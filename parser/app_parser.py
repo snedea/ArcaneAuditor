@@ -7,7 +7,7 @@ from typing import Dict, Any
 from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation
 
 
-class PMDParser:
+class ModelParser:
     """Parses source files into PMD models for analysis."""
     
     def __init__(self):
@@ -41,13 +41,16 @@ class PMDParser:
         
         if extension == '.pmd':
             self._parse_pmd_file(file_path, source_file, context)
-        elif extension == '.script':
-            self._parse_script_file(file_path, source_file, context)
         elif extension == '.amd':
             self._parse_amd_file(file_path, source_file, context)
-        elif extension in {'.pod', '.smd'}:
-            # TODO: Implement POD and SMD parsing
+        elif extension == '.smd':
+            # TODO: Implement SMD parsing
             print(f"📝 {extension} parsing not yet implemented for {file_path}")
+        elif extension == '.pod':
+            # TODO: Implement POD parsing
+            print(f"📝 {extension} parsing not yet implemented for {file_path}")
+        elif extension == '.script':
+            self._parse_script_file(file_path, source_file, context)
     
     def _parse_pmd_file(self, file_path: str, source_file: Any, context: ProjectContext):
         """Parse a .pmd file into a PMDModel."""
@@ -59,19 +62,26 @@ class PMDParser:
             # Try to parse as JSON first
             try:
                 pmd_data = json.loads(content)
+                
+                # Extract presentation data - handle the nested structure properly
+                presentation_data = pmd_data.get('presentation', {})
+
+                # Handle includes - convert to PMDIncludes format
+                includes_data = pmd_data.get('include', [])
+                if isinstance(includes_data, list):
+                    includes = PMDIncludes(scripts=includes_data)
+                else:
+                    includes = None
+                
                 pmd_model = PMDModel(
-                    pageId=pmd_data.get('pageId', 'unknown'),
+                    pageId=pmd_data.get('id', path_obj.stem),  # Use 'id' field or fallback to filename
                     securityDomains=pmd_data.get('securityDomains', []),
-                    inboundEndpoints=pmd_data.get('inboundEndpoints', {}),
-                    outboundEndpoints=pmd_data.get('outboundEndpoints', {}),
-                    presentation=PMDPresentation(
-                        widgets=pmd_data.get('presentation', {}).get('widgets', [])
-                    ) if pmd_data.get('presentation') else None,
+                    inboundEndpoints=pmd_data.get('endPoints', []), 
+                    outboundEndpoints=pmd_data.get('outboundData', {}).get('outboundEndPoints', []),  # Handle nested structure
+                    presentation=PMDPresentation(attributes={}, title=presentation_data.get("title", {}), body=presentation_data.get("body", []), footer=presentation_data.get("footer", {})) if presentation_data else None,
                     onLoad=pmd_data.get('onLoad'),
                     script=pmd_data.get('script'),
-                    includes=PMDIncludes(
-                        scripts=pmd_data.get('includes', {}).get('scripts', [])
-                    ) if pmd_data.get('includes') else None,
+                    includes=includes,
                     file_path=file_path
                 )
                 context.pmds[pmd_model.pageId] = pmd_model
@@ -99,6 +109,7 @@ class PMDParser:
                 source=source_file.content,
                 file_path=file_path
             )
+            # Use the full filename (including extension) as the key since that's how it's referenced in PMD files
             context.scripts[Path(file_path).name] = script_model
             print(f"✅ Parsed Script: {Path(file_path).name}")
             
