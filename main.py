@@ -32,8 +32,8 @@ def review_app(
     for path_key, source_file in source_files_map.items():
         typer.echo(f"  - Ready to parse: {path_key}")
 
-    # --- Parse Files into PMD Models ---
-    typer.echo("\n🔍 Parsing files into PMD models...")
+    # --- Parse Files into App File Models ---
+    typer.echo("\n🔍 Parsing files into App File models...")
     try:
         pmd_parser = ModelParser()
         context = pmd_parser.parse_files(source_files_map)
