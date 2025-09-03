@@ -27,15 +27,18 @@ class PMDIncludes(BaseModel):
     scripts: Optional[List[str]] = Field(default_factory=list)
 
 class PMDPresentation(BaseModel):
-    widgets: List[Dict[str, Any]] = Field(default_factory=list)
+    attributes: Dict[str, Any] = Field(default_factory=dict)
+    title: Dict[str, Any] = Field(default_factory=dict)
+    body: Dict[str, Any] = Field(default_factory=dict)
+    footer: Dict[str, Any] = Field(default_factory=dict)
 
 class PMDModel(BaseModel):
     """Represents the structure of a .pmd page file."""
     pageId: str
     securityDomains: Optional[List[str]] = Field(default_factory=list)
-    inboundEndpoints: Optional[Dict[str, Any]] = Field(default_factory=dict)
-    outboundEndpoints: Optional[Dict[str, Any]] = Field(default_factory=dict)
-    presentation: Optional[PMDPresentation] = None
+    inboundEndpoints: Optional[List[dict]] = Field(default_factory=list)
+    outboundEndpoints: Optional[List[dict]] = Field(default_factory=list)
+    presentation: PMDPresentation = None
     onLoad: Optional[str] = None
     script: Optional[str] = None
     includes: Optional[PMDIncludes] = None
@@ -92,7 +95,7 @@ class ProjectContext:
     def __init__(self):
         self.pmds: Dict[str, PMDModel] = {}          # Maps pageId to PMDModel
         self.scripts: Dict[str, ScriptModel] = {}    # Maps file name to ScriptModel
-        self.amd: Optional[AMDModel] = None          # Assumes one .amd file per app
+        self.amd: AMDModel = None          # Assumes one .amd file per app
         # self.pods: Dict[str, PODModel] = {}        # Placeholder for PODs
         # self.smd: Optional[SMDModel] = None        # Placeholder for SMD
         self.parsing_errors: List[str] = []          # To track files that failed validation
