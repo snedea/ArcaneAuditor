@@ -1,0 +1,87 @@
+{
+  "id": "sample",
+  "endPoints": [
+    {
+      "allowEmptyValue": true,
+      "name": "getCurrentWorker",
+      "baseUrlType": "workday-common",
+      "url": "/workers/me",
+      "onSend": "<%
+                  self.data = {:}
+                  return self.data;
+                 %>",
+      "responseErrorDetail": {},
+      "failOnStatusCodes": [
+        {
+          "code": "400"
+        },
+        {
+          "code": "403"
+        }
+      ]
+    }
+  ],
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Workday Extend"
+    },
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "text",
+          "id": "hello",
+          "label": "Hello World!",
+          "value": "Welcome from Workday!"
+        }
+      ]
+    },
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "richText",
+          "enabled": "false",
+          "value": "Powered By Workday Extend"
+        }
+      ]
+    }
+  },
+  "onLoad": "<% pageVariables.isGood = true; %>",
+  "onSubmit": "<%
+                  if(!pageVariables.isGood){
+                      textWidget.setError('Not good!')
+                  }
+                 %>",
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postModelData",
+        "baseUrlType": "workday-app",
+        "url": "/someModel",
+        "onSend": "<%
+                  self.data = {:};
+                  return self.data;
+                 %>",
+        "failOnStatusCodes": [
+          {
+            "code": "400"
+          },
+          {
+            "code": "403"
+          }
+        ]
+      }
+    ]
+  },
+  "include": [
+    "util.script"
+  ],
+  "script": "<%
+                const myFunc = function(){
+                    return true;
+                }
+               %>"
+}

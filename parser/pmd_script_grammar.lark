@@ -1,0 +1,203 @@
+?program: source_elements? IDENTIFIER*
+
+?source_elements: source_element+
+
+?source_element: statement
+    | function_declaration
+
+?statement: block
+    | variable_statement
+    | empty_statement
+    | expression_statement
+    | if_statement
+    | iteration_statement
+    | continue_statement
+    | break_statement
+    | return_statement
+    | labelled_statement
+
+?block: "{" statement_list? "}"
+
+?statement_list: statement+
+
+?variable_statement: VAR variable_declaration_list eos
+
+?variable_declaration_list: variable_declaration ("," variable_declaration)*
+
+?variable_declaration: IDENTIFIER initializer?
+
+?initializer: "=" single_expression
+
+?empty_statement: ";"
+
+?expression_statement: expression_sequence
+
+?if_statement: IF "(" expression_sequence ")" statement (ELSE statement)?
+
+?iteration_statement: DO statement WHILE "(" expression_sequence ")" eos -> do_statement
+    | WHILE "(" expression_sequence ")" statement -> while_statement
+    | FOR "(" expression_sequence? ";" expression_sequence? ";" expression_sequence? ")" statement -> for_statement
+    | FOR "(" VAR variable_declaration_list ";" expression_sequence? ";" expression_sequence? ")" statement -> for_var_statement
+    | FOR "(" single_expression IN expression_sequence ")" statement -> for_in_statement
+    | FOR "(" VAR variable_declaration IN expression_sequence ")" statement -> for_var_in_statement
+
+?continue_statement: CONTINUE [IDENTIFIER] eos
+
+?break_statement: BREAK [IDENTIFIER] eos
+
+?return_statement: RETURN [expression_sequence] eos
+
+?labelled_statement: IDENTIFIER ":" statement
+
+?function_declaration: FUNCTION IDENTIFIER "(" formal_parameter_list? ")" "{" function_body "}"
+
+?formal_parameter_list: IDENTIFIER ("," IDENTIFIER)*
+
+?function_body: source_elements?
+
+?array_literal: "[" [element_list] ","? [elision] "]"
+
+?element_list: elision? single_expression ("," elision? single_expression)*
+
+?elision: ","+
+
+?object_literal: "{" "}"
+    | "{" property_name_and_value_list ","? "}"
+
+?property_name_and_value_list: property_assignment ("," property_assignment)*
+
+?property_assignment: property_name ":" single_expression -> property_expression_assignment
+    | getter "(" ")" "{" function_body "}" -> property_getter
+    | setter "(" property_set_parameter_list ")" "{" function_body "}" -> property_setter
+
+?property_name: identifier_name
+    | STRING_LITERAL
+    | numeric_literal
+
+?property_set_parameter_list: IDENTIFIER
+
+?arguments: "(" [argument_list] ")"
+
+?argument_list: single_expression ("," single_expression)*
+
+?expression_sequence: single_expression ("," single_expression)*
+
+?single_expression: FUNCTION IDENTIFIER? "(" formal_parameter_list? ")" "{" function_body "}" -> function_expression
+    | single_expression "[" expression_sequence "]" -> member_index_expression
+    | single_expression "." identifier_name -> member_dot_expression
+    | single_expression arguments -> arguments_expression
+    | single_expression "++" -> post_increment_expression
+    | single_expression "--" -> post_decrease_expression
+    | TYPEOF single_expression -> typeof_expression
+    | "++" single_expression -> pre_increment_expression
+    | "--" single_expression -> pre_decrease_expression
+    | "+" single_expression -> unary_plus_expression
+    | "-" single_expression -> unary_minus_expression
+    | "~" single_expression -> bit_not_expression
+    | "!" single_expression -> not_expression
+    | single_expression ("*" | "/" | "%") single_expression -> multiplicative_expression
+    | single_expression ("+" | "-") single_expression -> additive_expression
+    | single_expression ("<<" | ">>") single_expression -> bit_shift_expression
+    | single_expression ("<" | ">" | "<=" | ">=") single_expression -> relational_expression
+    | single_expression ("==" | "!=") single_expression -> equality_expression
+    | single_expression "&" single_expression -> bit_and_expression
+    | single_expression "^" single_expression -> bit_x_or_expression
+    | single_expression "|" single_expression -> bit_or_expression
+    | single_expression "&&" single_expression -> logical_and_expression
+    | single_expression "||" single_expression -> logical_or_expression
+    | single_expression "?" single_expression ":" single_expression -> ternary_expression
+    | single_expression "=" expression_sequence -> assignment_expression
+    | single_expression assignment_operator expression_sequence -> assignment_operator_expression
+    | IDENTIFIER -> identifier_expression
+    | literal -> literal_expression
+    | array_literal -> array_literal_expression
+    | object_literal -> object_literal_expression
+    | "(" expression_sequence ")" -> parenthesized_expression
+
+?assignment_operator: "*=" | "/=" | "%=" | "+=" | "-=" | "<<=" | ">>=" | "&=" | "^=" | "|="
+
+?literal: NULL_LITERAL | BOOLEAN_LITERAL | STRING_LITERAL | REGULAR_EXPRESSION_LITERAL | numeric_literal
+
+?numeric_literal: DECIMAL_LITERAL | HEX_INTEGER_LITERAL | OCTAL_INTEGER_LITERAL
+
+?identifier_name: IDENTIFIER | reserved_word
+
+?reserved_word: keyword | future_reserved_word | NULL_LITERAL | BOOLEAN_LITERAL
+
+?keyword: BREAK | DO | INSTANCEOF | TYPEOF | CASE | ELSE | NEW | VAR | RETURN | CONTINUE | FOR | WHILE | FUNCTION | IF
+?future_reserved_word: CONST | LET
+
+?getter: IDENTIFIER property_name
+
+?setter: IDENTIFIER property_name
+
+?eos: ";"
+
+REGULAR_EXPRESSION_LITERAL: "/" /([^\r\n\u2028\u2029*\\/\[]|\\[^\r\n\u2028\u2029]|\[([^\r\n\u2028\u2029\]\\]|\\[^\r\n\u2028\u2029])*\])([^\r\n\u2028\u2029\\/\[]|\\[^\r\n\u2028\u2029]|\[([^\r\n\u2028\u2029\]\\]|\\[^\r\n\u2028\u2029])*\])*/ "/" /[a-zA-Z$_][\p{L}\p{Mn}\p{Nd}\p{Pc}\u200C\u200D$_]*/
+
+NULL_LITERAL: "null"
+BOOLEAN_LITERAL: "true" | "false"
+
+DECIMAL_LITERAL: /(0|[1-9][0-9]*)\.[0-9]*([eE][+-]?[0-9]+)?|\.[0-9]+([eE][+-]?[0-9]+)?|(0|[1-9][0-9]*)([eE][+-]?[0-9]+)?/
+HEX_INTEGER_LITERAL: /0[xX][0-9a-fA-F]+/
+OCTAL_INTEGER_LITERAL: /0[0-7]+/
+
+BREAK: "break"
+DO: "do"
+INSTANCEOF: "instanceof"
+TYPEOF: "typeof"
+ELSE: "else"
+NEW: "new"
+VAR: "var"
+RETURN: "return"
+CONTINUE: "continue"
+FOR: "for"
+WHILE: "while"
+FUNCTION: "function"
+IF: "if"
+CONST: "const"
+LET: "let"
+
+IDENTIFIER: /[\p{L}$_][\p{L}\p{Mn}\p{Nd}\p{Pc}\u200C\u200D$_]*/
+STRING_LITERAL: /"([^"\\\r\n]|\\[^\r\n]|\\\r?\n)*"|'([^'\\\r\n]|\\[^\r\n]|\\\r?\n)*'/
+
+// Punctuation and Operators
+ASSIGN: "="
+QUESTION_MARK: "?"
+COLON: ":"
+DOT: "."
+PLUS_PLUS: "++"
+MINUS_MINUS: "--"
+PLUS: "+"
+MINUS: "-"
+BIT_NOT: "~"
+NOT: "!"
+MULTIPLY: "*"
+DIVIDE: "/"
+MODULUS: "%"
+RIGHT_SHIFT_ARITHMETIC: ">>"
+LEFT_SHIFT_ARITHMETIC: "<<"
+LESS_THAN: "<"
+MORE_THAN: ">"
+LESS_THAN_EQUALS: "<="
+GREATER_THAN_EQUALS: ">="
+EQUALS: "=="
+NOT_EQUALS: "!="
+BIT_AND: "&"
+BIT_XOR: "^"
+BIT_OR: "|"
+AND: "&&"
+OR: "||"
+MULTIPLY_ASSIGN: "*="
+DIVIDE_ASSIGN: "/="
+MODULUS_ASSIGN: "%="
+PLUS_ASSIGN: "+="
+MINUS_ASSIGN: "-="
+LEFT_SHIFT_ARITHMETIC_ASSIGN: "<<="
+RIGHT_SHIFT_ARITHMETIC_ASSIGN: ">>="
+BIT_AND_ASSIGN: "&="
+BIT_XOR_ASSIGN: "^="
+BIT_OR_ASSIGN: "|="
+
+// Ignored tokens
+%ignore /(\/\*.*?\*\/|\/\/[^\r\n]*|[\t\u000B\u000C\u0020\u00A0]+|[\r\n\u2028\u2029])+/

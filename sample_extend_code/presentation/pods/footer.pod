@@ -1,0 +1,10 @@
+{
+    "podId": "footer",
+    "seed": {
+      "parameters": [],
+      "template": {
+        "type": "text",
+        "value": "Powered By 🧙‍♂️"
+      }
+    }
+  }

@@ -1,0 +1,12 @@
+[project]
+name = "extend-reviewer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "lark>=1.2.2",
+    "openai>=1.102.0",
+    "pytest>=8.4.1",
+    "typer[all]>=0.16.1",
+]
