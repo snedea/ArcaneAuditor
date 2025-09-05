@@ -48,6 +48,8 @@ class PMDModel(BaseModel):
     _onLoad_ast: Optional[Tree] = PrivateAttr(default=None)
     # Private attribute to cache the parsed AST of the page-level 'script'
     _script_ast: Optional[Tree] = PrivateAttr(default=None)
+    # Private attribute to store line mappings for script fields
+    _line_mappings: Optional[Dict[str, List[int]]] = PrivateAttr(default=None)
 
     def _parse_script(self, script_content: Optional[str]) -> Optional[Tree]:
         """A helper method to parse a script string using the custom Lark parser."""
@@ -71,6 +73,28 @@ class PMDModel(BaseModel):
         if self._script_ast is None:
             self._script_ast = self._parse_script(self.script)
         return self._script_ast
+    
+    def set_line_mappings(self, line_mappings: Dict[str, List[int]]):
+        """Set the line mappings for script fields."""
+        self._line_mappings = line_mappings
+    
+    def get_original_line_number(self, field_path: str, processed_line: int) -> int:
+        """
+        Get the original line number for a field at a given processed line.
+        
+        Args:
+            field_path: Path to the field (e.g., "onLoad", "endPoints.0.onSend")
+            processed_line: Line number in the processed content
+            
+        Returns:
+            Original line number
+        """
+        if not self._line_mappings or field_path not in self._line_mappings:
+            return processed_line
+        
+        # For now, return the first line of the script field
+        # This could be enhanced to map specific lines within the script
+        return self._line_mappings[field_path][0] if self._line_mappings[field_path] else processed_line
 
 class AMDRoute(BaseModel):
     pageId: str
