@@ -26,6 +26,7 @@ class NoVarInPMDRule(Rule):
             yield Finding(
                 rule=self,
                 message="Legacy 'var' declaration found. Use 'let' or 'const' instead.",
+                file_path=pmd_model.file_path,
                 line=var_node.line,
                 column=var_node.column,
             )
