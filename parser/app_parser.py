@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Dict, Any
 from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation
+from .pmd_preprocessor import preprocess_pmd_content
 
 
 class ModelParser:
@@ -55,14 +56,17 @@ class ModelParser:
     def _parse_pmd_file(self, file_path: str, source_file: Any, context: ProjectContext):
         """Parse a .pmd file into a PMDModel."""
         try:
-            # Simple JSON parsing for PMD files
+            # Preprocess the content to handle multi-line script sections
             content = source_file.content.strip()
             path_obj = Path(file_path)
             
-            # Try to parse as JSON first
+            # Preprocess the PMD content
+            processed_content, line_mappings = preprocess_pmd_content(content)
+            
+            # Try to parse as JSON
             try:
-                pmd_data = json.loads(content)
-                
+                pmd_data = json.loads(processed_content)
+
                 # Extract presentation data - handle the nested structure properly
                 presentation_data = pmd_data.get('presentation', {})
 
@@ -84,10 +88,15 @@ class ModelParser:
                     includes=includes,
                     file_path=file_path
                 )
+                
+                # Set line mappings for proper error reporting
+                pmd_model.set_line_mappings(line_mappings)
+                
                 context.pmds[pmd_model.pageId] = pmd_model
                 print(f"✅ Parsed PMD: {pmd_model.pageId}")
                 
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                print(f"⚠️ JSON parsing failed for {file_path}: {e}")
                 # Fallback: treat as plain text with basic extraction
                 pmd_model = PMDModel(
                     pageId=path_obj.stem,  # Use filename as pageId
