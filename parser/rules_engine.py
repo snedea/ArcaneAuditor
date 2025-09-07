@@ -1,21 +1,24 @@
 import inspect
 import pkgutil
-from typing import List
+from typing import List, Optional
 
 # --- Local Imports ---
 from .models import ProjectContext
 from . import rules
 from .rules.base import Rule, Finding
+from .config import ExtendReviewerConfig
 
 class RulesEngine:
     """Discovers, loads, and runs all analysis rules."""
 
-    def __init__(self):
+    def __init__(self, config: Optional[ExtendReviewerConfig] = None):
+        self.config = config or ExtendReviewerConfig()
         self.rules = self._discover_rules()
 
     def _discover_rules(self) -> List[Rule]:
         """
         Automatically finds and instantiates all Rule classes in the 'rules' package.
+        Only includes rules that are enabled in the configuration.
         """
         discovered_rules = []
         # pkgutil.walk_packages allows us to find all modules in a package
@@ -31,9 +34,32 @@ class RulesEngine:
                     # Skip the base Rule class itself
                     if member_obj.__name__ == 'Rule':
                         continue
-                    print(f"🔎 Discovered rule: {member_obj.ID}")
-                    discovered_rules.append(member_obj()) # Instantiate the rule
+                    
+                    # Check if rule is enabled in configuration
+                    if self.config.is_rule_enabled(member_obj.ID):
+                        print(f"🔎 Discovered rule: {member_obj.ID}")
+                        rule_instance = member_obj()
+                        # Apply configuration overrides
+                        self._apply_rule_config(rule_instance)
+                        discovered_rules.append(rule_instance)
+                    else:
+                        print(f"⏭️  Skipping disabled rule: {member_obj.ID}")
         return discovered_rules
+    
+    def _apply_rule_config(self, rule: Rule) -> None:
+        """Apply configuration overrides to a rule instance."""
+        # Override severity if configured
+        if hasattr(rule, 'SEVERITY'):
+            original_severity = rule.SEVERITY
+            configured_severity = self.config.get_rule_severity(rule.ID, original_severity)
+            if configured_severity != original_severity:
+                rule.SEVERITY = configured_severity
+                print(f"🔧 Override severity for {rule.ID}: {original_severity} → {configured_severity}")
+        
+        # Apply custom settings if the rule supports it
+        custom_settings = self.config.get_rule_settings(rule.ID)
+        if custom_settings and hasattr(rule, 'apply_settings'):
+            rule.apply_settings(custom_settings)
 
     def run(self, context: ProjectContext) -> List[Finding]:
         """

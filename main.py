@@ -3,17 +3,35 @@ from pathlib import Path
 from file_processing import FileProcessor
 from parser.rules_engine import RulesEngine
 from parser.app_parser import ModelParser
+from parser.config import ExtendReviewerConfig
 
 app = typer.Typer()
 
 @app.command()
 def review_app(
-    zip_filepath: Path = typer.Argument(..., exists=True, help="Path to the application .zip file.")
+    zip_filepath: Path = typer.Argument(..., exists=True, help="Path to the application .zip file."),
+    config_file: Path = typer.Option(None, "--config", "-c", help="Path to configuration file (JSON)")
 ):
     """
     Kicks off the analysis of a Workday Extend application archive.
     """
     typer.echo(f"Starting review for '{zip_filepath.name}'...")
+    
+    # Load configuration if provided
+    config = None
+    if config_file:
+        if not config_file.exists():
+            typer.secho(f"❌ Configuration file not found: {config_file}", fg=typer.colors.RED)
+            raise typer.Exit(1)
+        try:
+            config = ExtendReviewerConfig.from_file(str(config_file))
+            typer.echo(f"✅ Loaded configuration from {config_file}")
+        except Exception as e:
+            typer.secho(f"❌ Error loading configuration: {e}", fg=typer.colors.RED)
+            raise typer.Exit(1)
+    else:
+        config = ExtendReviewerConfig()  # Use default configuration
+        typer.echo("ℹ️  Using default configuration (no config file specified)")
     
     # This is the entry point to our pipeline.
     processor = FileProcessor()
@@ -46,7 +64,7 @@ def review_app(
     # --- Run Rules Analysis ---
     typer.echo("\n🔍 Running PMD Script Analysis...")
     try:
-        rules_engine = RulesEngine()
+        rules_engine = RulesEngine(config)
         findings = rules_engine.run(context)
         
         if findings:
@@ -58,6 +76,37 @@ def review_app(
             
     except Exception as e:
         typer.secho(f"❌ Error running analysis: {e}", fg=typer.colors.RED)
+
+
+@app.command()
+def generate_config(
+    output_file: Path = typer.Option("extend-reviewer-config.json", "--output", "-o", help="Output file path for the configuration")
+):
+    """
+    Generate a default configuration file with all rules enabled.
+    """
+    config = ExtendReviewerConfig()
+    config.to_file(str(output_file))
+    typer.echo(f"✅ Generated default configuration file: {output_file}")
+    typer.echo("You can now edit this file to enable/disable rules and customize settings.")
+
+
+@app.command()
+def list_rules():
+    """
+    List all available rules and their current status.
+    """
+    config = ExtendReviewerConfig()
+    typer.echo("Available rules:")
+    typer.echo("=" * 50)
+    
+    # Get all rule configurations
+    rule_configs = config.rules.model_dump()
+    
+    for rule_id, rule_config in rule_configs.items():
+        status = "✅ ENABLED" if rule_config["enabled"] else "❌ DISABLED"
+        severity = rule_config.get("severity_override") or "default"
+        typer.echo(f"{rule_id}: {status} (severity: {severity})")
 
 
 if __name__ == "__main__":
