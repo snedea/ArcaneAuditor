@@ -26,30 +26,26 @@ class ScriptVarUsageRule(Rule):
 
     def visit_pmd(self, pmd_model: PMDModel):
         """Analyzes script fields in a PMD model."""
-        if not pmd_model.presentation:
-            return
-
-        # Check common script fields
-        script_fields = ['onLoad', 'onSend', 'onReceive', 'onError', 'onClick', 'onChange']
+        # Use the generic script field finder to detect all fields containing <% %> patterns
+        script_fields = self.find_script_fields(pmd_model)
         
-        for field_name in script_fields:
-            if hasattr(pmd_model.presentation, field_name):
-                field_value = getattr(pmd_model.presentation, field_name)
-                if field_value and len(field_value.strip()) > 0:
-                    yield from self._check_var_usage(field_value, field_name, pmd_model.file_path)
+        for field_path, field_value, field_name in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                yield from self._check_var_usage(field_value, field_name, pmd_model.file_path)
 
     def _check_var_usage(self, script_content, field_name, file_path):
         """Check for use of 'var' in script content."""
         # Look for 'var' declarations (not in strings or comments)
-        var_pattern = r'\bvar\s+\w+'
+        var_pattern = r'\bvar\s+(\w+)'
         matches = re.finditer(var_pattern, script_content)
         
         for match in matches:
             line_number = self._get_line_number_from_content(script_content, match.start())
+            variable_name = match.group(1)  # Extract the variable name
             
             yield Finding(
                 rule=self,
-                message=f"Script field '{field_name}' uses 'var' declaration. Consider using 'let' or 'const' instead.",
+                message=f"File section '{field_name}' uses 'var' declaration for variable '{variable_name}'. Consider using 'let' or 'const' instead.",
                 line=line_number,
                 column=1,
                 file_path=file_path
@@ -74,17 +70,12 @@ class ScriptNestingLevelRule(Rule):
 
     def visit_pmd(self, pmd_model: PMDModel):
         """Analyzes script fields in a PMD model."""
-        if not pmd_model.presentation:
-            return
-
-        # Check common script fields
-        script_fields = ['onLoad', 'onSend', 'onReceive', 'onError', 'onClick', 'onChange']
+        # Use the generic script field finder to detect all fields containing <% %> patterns
+        script_fields = self.find_script_fields(pmd_model)
         
-        for field_name in script_fields:
-            if hasattr(pmd_model.presentation, field_name):
-                field_value = getattr(pmd_model.presentation, field_name)
-                if field_value and len(field_value.strip()) > 0:
-                    yield from self._check_nesting_level(field_value, field_name, pmd_model.file_path)
+        for field_path, field_value, field_name in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                yield from self._check_nesting_level(field_value, field_name, pmd_model.file_path)
 
     def _check_nesting_level(self, script_content, field_name, file_path):
         """Check for excessive nesting levels in script content."""
@@ -123,22 +114,17 @@ class ScriptComplexityRule(Rule):
 
     def visit_pmd(self, pmd_model: PMDModel):
         """Analyzes script fields in a PMD model."""
-        if not pmd_model.presentation:
-            return
-
-        # Check common script fields
-        script_fields = ['onLoad', 'onSend', 'onReceive', 'onError', 'onClick', 'onChange']
+        # Use the generic script field finder to detect all fields containing <% %> patterns
+        script_fields = self.find_script_fields(pmd_model)
         
-        for field_name in script_fields:
-            if hasattr(pmd_model.presentation, field_name):
-                field_value = getattr(pmd_model.presentation, field_name)
-                if field_value and len(field_value.strip()) > 0:
-                    yield from self._check_complexity(field_value, field_name, pmd_model.file_path)
+        for field_path, field_value, field_name in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                yield from self._check_complexity(field_value, field_name, pmd_model.file_path)
 
     def _check_complexity(self, script_content, field_name, file_path):
         """Check for excessive complexity in script content."""
         # Simple cyclomatic complexity calculation
-        complexity_keywords = ['if', 'else', 'for', 'while', 'switch', 'case', 'catch', '&&', '||', '?']
+        complexity_keywords = ['if', 'else', 'for', 'while', '&&', '||', '?']
         complexity = 1  # Base complexity
         
         for keyword in complexity_keywords:
