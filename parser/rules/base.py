@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Generator
+from typing import Generator, Dict, Any, List, Tuple
 from dataclasses import dataclass
 from ..models import ProjectContext, PMDModel
+import re
 
 @dataclass
 class Finding:
@@ -51,3 +52,66 @@ class Rule(ABC):
     def visit_pmd(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
         """Optional visitor method to run logic on a single PMD model."""
         yield from []
+
+    def find_script_fields(self, pmd_model: PMDModel) -> List[Tuple[str, str, str]]:
+        """
+        Recursively find all fields in a PMD model that contain script content (<% %>).
+        
+        Returns:
+            List of tuples: (field_path, field_value, field_name)
+            - field_path: Full path to the field (e.g., "script", "onLoad")
+            - field_value: The actual script content
+            - field_name: Just the field name for display purposes
+        """
+        script_fields = []
+        script_pattern = r'<%[^%]*%>'
+        
+        def _search_dict(data: Dict[str, Any], prefix: str = "") -> None:
+            """Recursively search a dictionary for script fields."""
+            for key, value in data.items():
+                if isinstance(value, str) and re.search(script_pattern, value):
+                    field_path = f"{prefix}.{key}" if prefix else key
+                    script_fields.append((field_path, value, key))
+                elif isinstance(value, dict):
+                    _search_dict(value, f"{prefix}.{key}" if prefix else key)
+                elif isinstance(value, list):
+                    for i, item in enumerate(value):
+                        if isinstance(item, dict):
+                            _search_dict(item, f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}")
+                        elif isinstance(item, str) and re.search(script_pattern, item):
+                            field_path = f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}"
+                            script_fields.append((field_path, item, f"{key}[{i}]"))
+        
+        # Convert PMD model to dict for recursive search
+        pmd_dict = pmd_model.model_dump(exclude={'file_path'})
+        _search_dict(pmd_dict)
+        
+        return script_fields
+
+    def traverse_widgets_recursively(self, widgets: List[Dict[str, Any]], widget_path: str = "") -> Generator[Tuple[Dict[str, Any], str, int], None, None]:
+        """
+        Recursively traverse widgets and their children arrays.
+        
+        Args:
+            widgets: List of widget dictionaries to traverse
+            widget_path: Current path in the widget hierarchy (e.g., "body.children", "body.children.0.children")
+            
+        Yields:
+            Tuples of (widget, full_path, index) for each widget found
+        """
+        if not isinstance(widgets, list):
+            return
+            
+        for i, widget in enumerate(widgets):
+            if not isinstance(widget, dict):
+                continue
+                
+            # Yield the current widget
+            current_path = f"{widget_path}.{i}" if widget_path else str(i)
+            yield (widget, current_path, i)
+            
+            # Check if this widget has children and recurse
+            children = widget.get('children', [])
+            if isinstance(children, list) and children:
+                children_path = f"{current_path}.children"
+                yield from self.traverse_widgets_recursively(children, children_path)
