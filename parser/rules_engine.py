@@ -25,6 +25,12 @@ class RulesEngine:
             # Find all classes in the module that are subclasses of Rule
             for member_name, member_obj in inspect.getmembers(module, inspect.isclass):
                 if issubclass(member_obj, Rule) and member_obj is not Rule:
+                    # Skip abstract classes
+                    if hasattr(member_obj, '__abstractmethods__') and member_obj.__abstractmethods__:
+                        continue
+                    # Skip the base Rule class itself
+                    if member_obj.__name__ == 'Rule':
+                        continue
                     print(f"🔎 Discovered rule: {member_obj.ID}")
                     discovered_rules.append(member_obj()) # Instantiate the rule
         return discovered_rules
