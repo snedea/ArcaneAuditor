@@ -1,5 +1,8 @@
 # llm_integration/prompts.py
 def build_prompt(code_snippet, finding):
+    # TODO: refine this prompt so that it will handle the entire list of findings, not just one.
+    # TODO: add a section that will list the list of findings.
+    # TODO: Refactor the Task section to simply provide a well formatted list of findings for the user to address.
     return f"""
     **Context:**
     I am reviewing a piece of Workday Extend DSL code. My static analysis tool has found the following issue.
