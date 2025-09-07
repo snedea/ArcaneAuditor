@@ -31,25 +31,19 @@ class WidgetIdRequiredRule(Rule):
         if not pmd_model.presentation:
             return
 
-        # Check body widgets
+        # Check body widgets recursively
         if pmd_model.presentation.body and isinstance(pmd_model.presentation.body, dict):
             children = pmd_model.presentation.body.get("children", [])
             if isinstance(children, list):
-                for i, widget in enumerate(children):
-                    yield from self._check_widget_id(widget, pmd_model.file_path, pmd_model, 'body', i)
+                for widget, path, index in self.traverse_widgets_recursively(children, "body.children"):
+                    yield from self._check_widget_id(widget, pmd_model.file_path, pmd_model, 'body', path, index)
 
         # Check title widgets
         if pmd_model.presentation.title and isinstance(pmd_model.presentation.title, dict):
-            yield from self._check_widget_id(pmd_model.presentation.title, pmd_model.file_path, pmd_model, 'title', 0)
+            yield from self._check_widget_id(pmd_model.presentation.title, pmd_model.file_path, pmd_model, 'title', "title", 0)
 
-        # Check footer widgets
-        if pmd_model.presentation.footer and isinstance(pmd_model.presentation.footer, dict):
-            children = pmd_model.presentation.footer.get("children", [])
-            if isinstance(children, list):
-                for i, widget in enumerate(children):
-                    yield from self._check_widget_id(widget, pmd_model.file_path, pmd_model, 'footer', i)
 
-    def _check_widget_id(self, widget, file_path, pmd_model=None, section='body', widget_index=0):
+    def _check_widget_id(self, widget, file_path, pmd_model=None, section='body', widget_path="", widget_index=0):
         """Check if a widget has an 'id' field."""
         if not isinstance(widget, dict):
             return
@@ -64,17 +58,20 @@ class WidgetIdRequiredRule(Rule):
             # Get line number from the PMD model if available
             line_number = 1
             if pmd_model:
-                line_number = self._get_widget_line_number(pmd_model, widget_type, section, widget_index)
+                line_number = self._get_widget_line_number(pmd_model, widget_type, section, widget_path, widget_index)
+            
+            # Create a more descriptive message with the widget path
+            path_description = f" at path '{widget_path}'" if widget_path else ""
             
             yield Finding(
                 rule=self,
-                message=f"Widget of type '{widget_type}' is missing required 'id' field.",
+                message=f"Widget of type '{widget_type}'{path_description} is missing required 'id' field.",
                 line=line_number,
                 column=1,
                 file_path=file_path
             )
 
-    def _get_widget_line_number(self, pmd_model: PMDModel, widget_type: str, section: str, widget_index: int = 0) -> int:
+    def _get_widget_line_number(self, pmd_model: PMDModel, widget_type: str, section: str, widget_path: str = "", widget_index: int = 0) -> int:
         """Get approximate line number for a widget based on its location."""
         try:
             with open(pmd_model.file_path, 'r', encoding='utf-8') as f:
@@ -167,19 +164,21 @@ class WidgetIdLowerCamelCaseRule(ValidationRule):
         if not pmd_model.presentation:
             return entities
         
-        # Check body widgets
+        # Check body widgets recursively
         if pmd_model.presentation.body and isinstance(pmd_model.presentation.body, dict):
             children = pmd_model.presentation.body.get("children", [])
             if isinstance(children, list):
-                for i, widget in enumerate(children):
+                for widget, path, index in self.traverse_widgets_recursively(children, "body.children"):
                     if isinstance(widget, dict) and 'id' in widget:
                         entities.append({
                             'entity': widget,
                             'entity_type': 'widget',
                             'entity_name': widget.get('id', 'unknown'),
                             'entity_context': 'body',
-                            'entity_index': i
+                            'entity_path': path,
+                            'entity_index': index
                         })
+        
         
         return entities
     
@@ -194,6 +193,111 @@ class WidgetIdLowerCamelCaseRule(ValidationRule):
         field_name = self.get_field_to_validate(entity_info)
         
         return validate_lower_camel_case(field_value, field_name, entity_type, entity_name)
+
+
+class FooterPodRequiredRule(Rule):
+    """Ensures footer uses pod structure - either direct pod or footer with pod children."""
+    
+    ID = "STRUCT003"
+    DESCRIPTION = "Ensures footer uses pod structure (direct pod or footer with pod children)"
+    SEVERITY = "WARNING"
+
+    def analyze(self, context):
+        """Main entry point - analyze all PMD models in the context."""
+        for pmd_model in context.pmds.values():
+            yield from self.visit_pmd(pmd_model)
+    
+    def visit_pmd(self, pmd_model: PMDModel):
+        """Analyzes the footer structure within a PMD model."""
+        if not pmd_model.presentation or not pmd_model.presentation.footer:
+            return
+
+        footer = pmd_model.presentation.footer
+        if not isinstance(footer, dict):
+            return
+
+        # Check if footer is missing entirely
+        if not footer:
+            yield Finding(
+                rule=self,
+                message="Footer section is missing. Footer should use pod structure.",
+                line=1,
+                column=1,
+                file_path=pmd_model.file_path
+            )
+            return
+
+        # Check if footer uses direct pod structure
+        if footer.get('type') == 'pod':
+            # Direct pod structure - check if it has podId
+            if 'podId' not in footer:
+                yield Finding(
+                    rule=self,
+                    message="Footer pod is missing required 'podId' field.",
+                    line=1,
+                    column=1,
+                    file_path=pmd_model.file_path
+                )
+            return
+
+        # Check if footer uses footer type with pod children
+        if footer.get('type') == 'footer':
+            children = footer.get('children', [])
+            if not isinstance(children, list) or len(children) == 0:
+                yield Finding(
+                    rule=self,
+                    message="Footer with 'footer' type must have 'children' array with pod elements.",
+                    line=1,
+                    column=1,
+                    file_path=pmd_model.file_path
+                )
+                return
+
+            # Check if all children are pods
+            pod_found = False
+            for i, child in enumerate(children):
+                if not isinstance(child, dict):
+                    continue
+                    
+                if child.get('type') == 'pod':
+                    pod_found = True
+                    # Check if pod has podId
+                    if 'podId' not in child:
+                        yield Finding(
+                            rule=self,
+                            message=f"Footer pod at index {i} is missing required 'podId' field.",
+                            line=1,
+                            column=1,
+                            file_path=pmd_model.file_path
+                        )
+                else:
+                    yield Finding(
+                        rule=self,
+                        message=f"Footer child at index {i} has type '{child.get('type', 'unknown')}'. Only 'pod' type is allowed in footer children.",
+                        line=1,
+                        column=1,
+                        file_path=pmd_model.file_path
+                    )
+
+            if not pod_found:
+                yield Finding(
+                    rule=self,
+                    message="Footer with 'footer' type must contain at least one 'pod' child.",
+                    line=1,
+                    column=1,
+                    file_path=pmd_model.file_path
+                )
+            return
+
+        # If we get here, footer has invalid structure
+        footer_type = footer.get('type', 'unknown')
+        yield Finding(
+            rule=self,
+            message=f"Footer has invalid type '{footer_type}'. Footer must use 'pod' type or 'footer' type with pod children.",
+            line=1,
+            column=1,
+            file_path=pmd_model.file_path
+        )
 
 
 class EndpointNameLowerCamelCaseRule(ValidationRule):
@@ -251,3 +355,85 @@ class EndpointNameLowerCamelCaseRule(ValidationRule):
         field_name = self.get_field_to_validate(entity_info)
         
         return validate_lower_camel_case(field_value, field_name, entity_type, entity_name)
+
+
+class FooterPodRequiredRule(Rule):
+    """Ensures footer uses pod structure - either direct pod or footer with pod children."""
+    
+    ID = "STRUCT003"
+    DESCRIPTION = "Ensures footer uses pod structure (direct pod or footer with pod children)"
+    SEVERITY = "WARNING"
+
+    def analyze(self, context):
+        """Main entry point - analyze all PMD models in the context."""
+        for pmd_model in context.pmds.values():
+            yield from self.visit_pmd(pmd_model)
+    
+    def visit_pmd(self, pmd_model: PMDModel):
+        """Analyzes the footer structure within a PMD model."""
+        if not pmd_model.presentation or not pmd_model.presentation.footer:
+            return
+
+        footer = pmd_model.presentation.footer
+        if not isinstance(footer, dict):
+            return
+
+        # Check if footer is missing entirely
+        if not footer:
+            yield Finding(
+                rule=self,
+                message="Footer section is missing. Footer should use pod structure.",
+                line=1,
+                column=1,
+                file_path=pmd_model.file_path
+            )
+            return
+
+        # Check if footer uses direct pod structure
+        if footer.get('type') == 'pod':
+            return  # Valid pod structure
+
+        # Check if footer uses footer type with pod children
+        if footer.get('type') == 'footer':
+            children = footer.get('children', [])
+            if not isinstance(children, list) or len(children) == 0:
+                yield Finding(
+                    rule=self,
+                    message="Footer must utilize a pod.",
+                    line=1,
+                    column=1,
+                    file_path=pmd_model.file_path
+                )
+                return
+
+            # Check if the first (and only expected) child is a pod
+            if len(children) > 0:
+                child = children[0]
+                if isinstance(child, dict) and child.get('type') == 'pod':
+                    return  # Valid pod child
+                else:
+                    yield Finding(
+                        rule=self,
+                        message="Footer must utilize a pod.",
+                        line=1,
+                        column=1,
+                        file_path=pmd_model.file_path
+                    )
+            else:
+                yield Finding(
+                    rule=self,
+                    message="Footer must utilize a pod.",
+                    line=1,
+                    column=1,
+                    file_path=pmd_model.file_path
+                )
+            return
+
+        # If we get here, footer has invalid structure
+        yield Finding(
+            rule=self,
+            message="Footer must utilize a pod.",
+            line=1,
+            column=1,
+            file_path=pmd_model.file_path
+        )
