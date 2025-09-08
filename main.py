@@ -21,17 +21,17 @@ def review_app(
     config = None
     if config_file:
         if not config_file.exists():
-            typer.secho(f"❌ Configuration file not found: {config_file}", fg=typer.colors.RED)
+            typer.secho(f"Configuration file not found: {config_file}", fg=typer.colors.RED)
             raise typer.Exit(1)
         try:
             config = ExtendReviewerConfig.from_file(str(config_file))
-            typer.echo(f"✅ Loaded configuration from {config_file}")
+            typer.echo(f"Loaded configuration from {config_file}")
         except Exception as e:
-            typer.secho(f"❌ Error loading configuration: {e}", fg=typer.colors.RED)
+            typer.secho(f"Error loading configuration: {e}", fg=typer.colors.RED)
             raise typer.Exit(1)
     else:
         config = ExtendReviewerConfig()  # Use default configuration
-        typer.echo("ℹ️  Using default configuration (no config file specified)")
+        typer.echo("Using default configuration (no config file specified)")
     
     # This is the entry point to our pipeline.
     processor = FileProcessor()
@@ -51,31 +51,31 @@ def review_app(
         typer.echo(f"  - Ready to parse: {path_key}")
 
     # --- Parse Files into App File Models ---
-    typer.echo("\n🔍 Parsing files into App File models...")
+    typer.echo("\nParsing files into App File models...")
     try:
         pmd_parser = ModelParser()
         context = pmd_parser.parse_files(source_files_map)
-        typer.echo(f"✅ Parsed {len(context.pmds)} PMD files, {len(context.scripts)} script files")
+        typer.echo(f"Parsed {len(context.pmds)} PMD files, {len(context.scripts)} script files")
         
     except Exception as e:
-        typer.secho(f"❌ Error parsing files: {e}", fg=typer.colors.RED)
+        typer.secho(f"Error parsing files: {e}", fg=typer.colors.RED)
         raise typer.Exit(1)
 
     # --- Run Rules Analysis ---
-    typer.echo("\n🔍 Running PMD Script Analysis...")
+    typer.echo("\nRunning PMD Script Analysis...")
     try:
         rules_engine = RulesEngine(config)
         findings = rules_engine.run(context)
         
         if findings:
-            typer.echo(f"\n📋 Found {len(findings)} issue(s):")
+            typer.echo(f"\nFound {len(findings)} issue(s):")
             for finding in findings:
                 typer.echo(f"  {finding}")
         else:
-            typer.echo("✅ No issues found!")
+            typer.echo("No issues found!")
             
     except Exception as e:
-        typer.secho(f"❌ Error running analysis: {e}", fg=typer.colors.RED)
+        typer.secho(f"Error running analysis: {e}", fg=typer.colors.RED)
 
 
 @app.command()
@@ -87,7 +87,7 @@ def generate_config(
     """
     config = ExtendReviewerConfig()
     config.to_file(str(output_file))
-    typer.echo(f"✅ Generated default configuration file: {output_file}")
+    typer.echo(f"Generated default configuration file: {output_file}")
     typer.echo("You can now edit this file to enable/disable rules and customize settings.")
 
 
@@ -104,7 +104,7 @@ def list_rules():
     rule_configs = config.rules.model_dump()
     
     for rule_name, rule_config in rule_configs.items():
-        status = "✅ ENABLED" if rule_config["enabled"] else "❌ DISABLED"
+        status = "ENABLED" if rule_config["enabled"] else "DISABLED"
         severity = rule_config.get("severity_override") or "default"
         
         # Get the description from the field info
@@ -112,7 +112,7 @@ def list_rules():
         description = field_info.description if field_info else "No description available"
         
         typer.echo(f"{rule_name}: {status} (severity: {severity})")
-        typer.echo(f"  📝 {description}")
+        typer.echo(f"  {description}")
         typer.echo()
 
 

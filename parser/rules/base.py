@@ -53,44 +53,92 @@ class Rule(ABC):
         """Optional visitor method to run logic on a single PMD model."""
         yield from []
 
-    def find_script_fields(self, pmd_model: PMDModel) -> List[Tuple[str, str, str]]:
+    def find_script_fields(self, pmd_model: PMDModel) -> List[Tuple[str, str, str, int]]:
         """
         Recursively find all fields in a PMD model that contain script content (<% %>).
         
+        Args:
+            pmd_model: The PMD model to search
+        
         Returns:
-            List of tuples: (field_path, field_value, field_name)
+            List of tuples: (field_path, field_value, field_name, line_offset)
             - field_path: Full path to the field (e.g., "script", "onLoad")
             - field_value: The actual script content
             - field_name: Just the field name for display purposes
+            - line_offset: Line number where the script starts in the original file
         """
         script_fields = []
         script_pattern = r'<%[^%]*%>'
         
-        def _search_dict(data: Dict[str, Any], prefix: str = "") -> None:
+        def _search_dict(data: Dict[str, Any], prefix: str = "", file_content: str = "") -> None:
             """Recursively search a dictionary for script fields."""
             for key, value in data.items():
                 if isinstance(value, str) and re.search(script_pattern, value):
                     field_path = f"{prefix}.{key}" if prefix else key
                     # Use the full path as the display name for better context
                     display_name = field_path
-                    script_fields.append((field_path, value, display_name))
+                    # Calculate line offset by finding the script content in the original file
+                    line_offset = self._calculate_script_line_offset(file_content, value) if file_content else 1
+                    script_fields.append((field_path, value, display_name, line_offset))
                 elif isinstance(value, dict):
-                    _search_dict(value, f"{prefix}.{key}" if prefix else key)
+                    _search_dict(value, f"{prefix}.{key}" if prefix else key, file_content)
                 elif isinstance(value, list):
                     for i, item in enumerate(value):
                         if isinstance(item, dict):
-                            _search_dict(item, f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}")
+                            _search_dict(item, f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}", file_content)
                         elif isinstance(item, str) and re.search(script_pattern, item):
                             field_path = f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}"
                             # Use the full path as the display name for better context
                             display_name = field_path
-                            script_fields.append((field_path, item, display_name))
+                            # Calculate line offset by finding the script content in the original file
+                            line_offset = self._calculate_script_line_offset(file_content, item) if file_content else 1
+                            script_fields.append((field_path, item, display_name, line_offset))
+        
+        # Get the source content from the PMD model
+        source_content = getattr(pmd_model, 'source_content', '')
         
         # Convert PMD model to dict for recursive search
-        pmd_dict = pmd_model.model_dump(exclude={'file_path'})
-        _search_dict(pmd_dict)
+        pmd_dict = pmd_model.model_dump(exclude={'file_path', 'source_content'})
+        _search_dict(pmd_dict, file_content=source_content)
         
         return script_fields
+    
+    def _calculate_script_line_offset(self, file_content: str, script_content: str) -> int:
+        """Calculate the line number where the script content starts in the original file."""
+        if not file_content or not script_content:
+            return 1
+        
+        # Extract a unique identifier from the script content for matching
+        script_match = re.search(r'<%(.*?)%>', script_content, re.DOTALL)
+        if not script_match:
+            return 1
+        
+        script_body = script_match.group(1).strip()
+        
+        # Find a unique part of the script content to match
+        # Look for the first non-comment, non-whitespace line
+        script_lines = script_body.split('\n')
+        unique_identifier = None
+        for line in script_lines:
+            line = line.strip()
+            if line and not line.startswith('//'):
+                # Take the first significant line as identifier
+                unique_identifier = line
+                break
+        
+        if not unique_identifier:
+            return 1
+        
+        # Find this identifier in the original file
+        lines = file_content.split('\n')
+        for i, line in enumerate(lines):
+            if unique_identifier in line:
+                # The AST parser treats the script content as starting from line 1
+                # So we need to return the line where the actual script content starts
+                # (not the line with the <% tag)
+                return i + 1  # Convert to 1-based line numbering
+        
+        return 1  # Default to line 1 if not found
 
     def traverse_widgets_recursively(self, widgets: List[Dict[str, Any]], widget_path: str = "") -> Generator[Tuple[Dict[str, Any], str, int], None, None]:
         """

@@ -37,13 +37,13 @@ class RulesEngine:
                     
                     # Check if rule is enabled in configuration using class name
                     if self.config.is_rule_enabled(member_obj.__name__):
-                        print(f"🔎 Discovered rule: {member_obj.__name__}")
+                        print(f"Discovered rule: {member_obj.__name__}")
                         rule_instance = member_obj()
                         # Apply configuration overrides
                         self._apply_rule_config(rule_instance)
                         discovered_rules.append(rule_instance)
                     else:
-                        print(f"⏭️  Skipping disabled rule: {member_obj.__name__}")
+                        print(f"Skipping disabled rule: {member_obj.__name__}")
         return discovered_rules
     
     def _apply_rule_config(self, rule: Rule) -> None:
@@ -74,10 +74,10 @@ class RulesEngine:
         """
         all_findings = []
         if not self.rules:
-            print("⚠️ No rules were found to run.")
+            print("No rules were found to run.")
             return []
             
-        print(f"\n⚙️  Running {len(self.rules)} rule(s)...")
+        print(f"\nRunning {len(self.rules)} rule(s)...")
         for rule in self.rules:
             try:
                 # The 'analyze' method is a generator, so we consume it into a list.
@@ -85,7 +85,7 @@ class RulesEngine:
                 if findings_from_rule:
                     all_findings.extend(findings_from_rule)
             except Exception as e:
-                print(f"❌ Error running rule {rule.__class__.__name__}: {e}")
+                print(f"Error running rule {rule.__class__.__name__}: {e}")
         
-        print(f"✅ Analysis complete. Found {len(all_findings)} issue(s).")
+        print(f"Analysis complete. Found {len(all_findings)} issue(s).")
         return all_findings

@@ -74,8 +74,10 @@ class WidgetIdRequiredRule(Rule):
     def _get_widget_line_number(self, pmd_model: PMDModel, widget_type: str, section: str, widget_path: str = "", widget_index: int = 0) -> int:
         """Get approximate line number for a widget based on its location."""
         try:
-            with open(pmd_model.file_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
+            # Use source_content instead of reading from file_path
+            if not pmd_model.source_content:
+                return 1
+            lines = pmd_model.source_content.split('\n')
             
             # Look for the presentation section
             presentation_start = -1
@@ -397,10 +399,11 @@ class FooterPodRequiredRule(Rule):
         if footer.get('type') == 'footer':
             children = footer.get('children', [])
             if not isinstance(children, list) or len(children) == 0:
+                line_number = self._get_footer_line_number(pmd_model)
                 yield Finding(
                     rule=self,
                     message="Footer must utilize a pod.",
-                    line=1,
+                    line=line_number,
                     column=1,
                     file_path=pmd_model.file_path
                 )
@@ -412,28 +415,48 @@ class FooterPodRequiredRule(Rule):
                 if isinstance(child, dict) and child.get('type') == 'pod':
                     return  # Valid pod child
                 else:
+                    line_number = self._get_footer_line_number(pmd_model)
                     yield Finding(
                         rule=self,
                         message="Footer must utilize a pod.",
-                        line=1,
+                        line=line_number,
                         column=1,
                         file_path=pmd_model.file_path
                     )
             else:
+                line_number = self._get_footer_line_number(pmd_model)
                 yield Finding(
                     rule=self,
                     message="Footer must utilize a pod.",
-                    line=1,
+                    line=line_number,
                     column=1,
                     file_path=pmd_model.file_path
                 )
             return
 
         # If we get here, footer has invalid structure
+        line_number = self._get_footer_line_number(pmd_model)
         yield Finding(
             rule=self,
             message="Footer must utilize a pod.",
-            line=1,
+            line=line_number,
             column=1,
             file_path=pmd_model.file_path
         )
+
+    def _get_footer_line_number(self, pmd_model: PMDModel) -> int:
+        """Get approximate line number for the footer section."""
+        try:
+            # Use source_content instead of reading from file_path
+            if not pmd_model.source_content:
+                return 1
+            lines = pmd_model.source_content.split('\n')
+            
+            # Look for the footer section
+            for i, line in enumerate(lines):
+                if '"footer"' in line:
+                    return i + 1  # Convert to 1-based line numbering
+            
+            return 1  # Default to line 1 if not found
+        except Exception:
+            return 1

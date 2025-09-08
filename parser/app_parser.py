@@ -30,7 +30,7 @@ class ModelParser:
             try:
                 self._parse_single_file(file_path, source_file, context)
             except Exception as e:
-                print(f"⚠️ Failed to parse {file_path}: {e}")
+                print(f"Failed to parse {file_path}: {e}")
                 context.parsing_errors.append(f"{file_path}: {e}")
         
         return context
@@ -46,10 +46,10 @@ class ModelParser:
             self._parse_amd_file(file_path, source_file, context)
         elif extension == '.smd':
             # TODO: Implement SMD parsing
-            print(f"📝 {extension} parsing not yet implemented for {file_path}")
+            print(f"{extension} parsing not yet implemented for {file_path}")
         elif extension == '.pod':
             # TODO: Implement POD parsing
-            print(f"📝 {extension} parsing not yet implemented for {file_path}")
+            print(f"{extension} parsing not yet implemented for {file_path}")
         elif extension == '.script':
             self._parse_script_file(file_path, source_file, context)
     
@@ -86,17 +86,18 @@ class ModelParser:
                     onLoad=pmd_data.get('onLoad'),
                     script=pmd_data.get('script'),
                     includes=includes,
-                    file_path=file_path
+                    file_path=file_path,
+                    source_content=content  # Store the original content for line offset calculation
                 )
                 
                 # Set line mappings for proper error reporting
                 pmd_model.set_line_mappings(line_mappings)
                 
                 context.pmds[pmd_model.pageId] = pmd_model
-                print(f"✅ Parsed PMD: {pmd_model.pageId}")
+                print(f"Parsed PMD: {pmd_model.pageId}")
                 
             except json.JSONDecodeError as e:
-                print(f"⚠️ JSON parsing failed for {file_path}: {e}")
+                print(f"JSON parsing failed for {file_path}: {e}")
                 # Fallback: treat as plain text with basic extraction
                 pmd_model = PMDModel(
                     pageId=path_obj.stem,  # Use filename as pageId
@@ -105,10 +106,10 @@ class ModelParser:
                     script=content if 'script' in content else None
                 )
                 context.pmds[pmd_model.pageId] = pmd_model
-                print(f"✅ Parsed PMD (fallback): {pmd_model.pageId}")
+                print(f"Parsed PMD (fallback): {pmd_model.pageId}")
                 
         except Exception as e:
-            print(f"❌ Failed to parse PMD file {file_path}: {e}")
+            print(f"Failed to parse PMD file {file_path}: {e}")
             raise
     
     def _parse_script_file(self, file_path: str, source_file: Any, context: ProjectContext):
@@ -120,10 +121,10 @@ class ModelParser:
             )
             # Use the full filename (including extension) as the key since that's how it's referenced in PMD files
             context.scripts[Path(file_path).name] = script_model
-            print(f"✅ Parsed Script: {Path(file_path).name}")
+            print(f"Parsed Script: {Path(file_path).name}")
             
         except Exception as e:
-            print(f"❌ Failed to parse script file {file_path}: {e}")
+            print(f"Failed to parse script file {file_path}: {e}")
             raise
     
     def _parse_amd_file(self, file_path: str, source_file: Any, context: ProjectContext):
@@ -140,7 +141,7 @@ class ModelParser:
                     file_path=file_path
                 )
                 context.amd = amd_model
-                print(f"✅ Parsed AMD: {file_path}")
+                print(f"Parsed AMD: {file_path}")
                 
             except json.JSONDecodeError:
                 # Fallback: create basic AMD model
@@ -149,8 +150,8 @@ class ModelParser:
                     file_path=file_path
                 )
                 context.amd = amd_model
-                print(f"✅ Parsed AMD (fallback): {file_path}")
+                print(f"Parsed AMD (fallback): {file_path}")
                 
         except Exception as e:
-            print(f"❌ Failed to parse AMD file {file_path}: {e}")
+            print(f"Failed to parse AMD file {file_path}: {e}")
             raise

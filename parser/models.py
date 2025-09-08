@@ -43,6 +43,7 @@ class PMDModel(BaseModel):
     script: Optional[str] = None
     includes: Optional[PMDIncludes] = None
     file_path: str = Field(..., exclude=True)
+    source_content: str = Field(default="", exclude=True)
 
     # Private attribute to cache the parsed AST of the 'onLoad' script
     _onLoad_ast: Optional[Tree] = PrivateAttr(default=None)

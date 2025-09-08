@@ -29,17 +29,16 @@ class ScriptVarUsageRule(Rule):
         # Use the generic script field finder to detect all fields containing <% %> patterns
         script_fields = self.find_script_fields(pmd_model)
         
-        for field_path, field_value, field_name in script_fields:
+        for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
-                yield from self._check_var_usage(field_value, field_name, pmd_model.file_path)
+                yield from self._check_var_usage(field_value, field_name, pmd_model.file_path, line_offset)
 
-    def _check_var_usage(self, script_content, field_name, file_path):
+    def _check_var_usage(self, script_content, field_name, file_path, line_offset=1):
         """Check for use of 'var' in script content using Lark grammar."""
         # Parse the script content using Lark grammar
         ast = self._parse_script_content(script_content)
         if not ast:
-            # If parsing fails, report the issue and skip this script
-            print(f"⚠️ Failed to parse script in '{field_name}' - skipping var usage check")
+            # If parsing fails, skip this script (compiler should have caught syntax errors)
             return
         
         # Find all variable_statement nodes in the AST
@@ -51,7 +50,9 @@ class ScriptVarUsageRule(Rule):
                 var_declaration = var_stmt.children[1]
                 if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
                         var_name = var_declaration.children[0].value
-                        line_number = var_stmt.line if hasattr(var_stmt, 'line') else 1
+                        # Get line number from the VAR token (first child)
+                        relative_line = getattr(var_stmt.children[0], 'line', 1) or 1
+                        line_number = line_offset + relative_line - 1
                         
                         yield Finding(
                             rule=self,
@@ -77,7 +78,7 @@ class ScriptVarUsageRule(Rule):
             return pmd_script_parser.parse(clean_content)
         except Exception as e:
             # If parsing fails, return None to fall back to regex
-            print(f"⚠️ Failed to parse script content: {e}")
+            print(f"Failed to parse script content: {e}")
             return None
     
     def _strip_pmd_wrappers(self, script_content):
@@ -85,7 +86,10 @@ class ScriptVarUsageRule(Rule):
         # Remove <% at the beginning and %> at the end
         content = script_content.strip()
         if content.startswith('<%') and content.endswith('%>'):
-            return content[2:-2].strip()
+            content = content[2:-2].strip()
+        
+        # Convert escaped newlines to actual newlines for proper line number tracking
+        content = content.replace('\\n', '\n')
         return content
     
 
@@ -111,18 +115,16 @@ class ScriptNestingLevelRule(Rule):
         # Use the generic script field finder to detect all fields containing <% %> patterns
         script_fields = self.find_script_fields(pmd_model)
         
-        for field_path, field_value, field_name in script_fields:
+        for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
-                yield from self._check_nesting_level(field_value, field_name, pmd_model.file_path)
+                yield from self._check_nesting_level(field_value, field_name, pmd_model.file_path, line_offset)
 
-    def _check_nesting_level(self, script_content, field_name, file_path):
+    def _check_nesting_level(self, script_content, field_name, file_path, line_offset=1):
         """Check for excessive nesting levels in script content using Lark grammar."""
         # Parse the script content using Lark grammar
         ast = self._parse_script_content(script_content)
         if not ast:
-            # If parsing fails, fall back to simple character counting
-            print(f"⚠️ Failed to parse script in '{field_name}' - using fallback nesting analysis")
-            yield from self._check_nesting_level_fallback(script_content, field_name, file_path)
+            # If parsing fails, skip this script (compiler should have caught syntax errors)
             return
         
         max_nesting = 4
@@ -141,10 +143,14 @@ class ScriptNestingLevelRule(Rule):
             else:
                 context_info = ""
             
+            # Use line_offset as base, add relative line if available
+            relative_line = nesting_info.get('line', 1) or 1
+            line_number = line_offset + relative_line - 1
+            
             yield Finding(
                 rule=self,
                 message=f"File section '{field_name}' has {max_nesting_found} nesting levels{context_info} (max recommended: {max_nesting}). Consider refactoring.",
-                line=nesting_info.get('line', 1),
+                line=line_number,
                 column=1,
                 file_path=file_path
             )
@@ -165,7 +171,7 @@ class ScriptNestingLevelRule(Rule):
             return pmd_script_parser.parse(clean_content)
         except Exception as e:
             # If parsing fails, return None to fall back to regex
-            print(f"⚠️ Failed to parse script content: {e}")
+            print(f"Failed to parse script content: {e}")
             return None
     
     def _strip_pmd_wrappers(self, script_content):
@@ -173,7 +179,10 @@ class ScriptNestingLevelRule(Rule):
         # Remove <% at the beginning and %> at the end
         content = script_content.strip()
         if content.startswith('<%') and content.endswith('%>'):
-            return content[2:-2].strip()
+            content = content[2:-2].strip()
+        
+        # Convert escaped newlines to actual newlines for proper line number tracking
+        content = content.replace('\\n', '\n')
         return content
     
     def _analyze_ast_nesting(self, node, current_depth):
@@ -205,58 +214,21 @@ class ScriptNestingLevelRule(Rule):
                 if child_result['function_context'] and not function_context:
                     function_context = child_result['function_context']
         
+        # Get line number from the first token in the node
+        line_number = None
+        if hasattr(node, 'children') and len(node.children) > 0:
+            # Look for the first token with a line number
+            for child in node.children:
+                if hasattr(child, 'line') and child.line is not None:
+                    line_number = child.line
+                    break
+        
         return {
             'max_nesting': max_nesting,
             'function_context': function_context,
-            'line': getattr(node, 'line', None)
+            'line': line_number
         }
     
-    def _check_nesting_level_fallback(self, script_content, field_name, file_path):
-        """Fallback nesting level check using simple character counting."""
-        max_nesting = 4
-        current_nesting = 0
-        max_nesting_found = 0
-        function_context = self._extract_function_context(script_content)
-        
-        for char in script_content:
-            if char in '{([{':
-                current_nesting += 1
-                max_nesting_found = max(max_nesting_found, current_nesting)
-            elif char in '})]}':
-                current_nesting = max(0, current_nesting - 1)
-        
-        if max_nesting_found > max_nesting:
-            # Create a more descriptive message with function context
-            if function_context:
-                context_info = f" in function '{function_context}'"
-            else:
-                context_info = ""
-            
-            yield Finding(
-                rule=self,
-                message=f"File section '{field_name}' has {max_nesting_found} nesting levels{context_info} (max recommended: {max_nesting}). Consider refactoring.",
-                line=1,
-                column=1,
-                file_path=file_path
-            )
-    
-    def _extract_function_context(self, script_content):
-        """Extract function name if the script content contains a function definition."""
-        # Look for function declarations: function name() { or var name = function() {
-        function_patterns = [
-            r'function\s+(\w+)\s*\(',
-            r'var\s+(\w+)\s*=\s*function\s*\(',
-            r'let\s+(\w+)\s*=\s*function\s*\(',
-            r'const\s+(\w+)\s*=\s*function\s*\(',
-            r'(\w+)\s*:\s*function\s*\('
-        ]
-        
-        for pattern in function_patterns:
-            match = re.search(pattern, script_content)
-            if match:
-                return match.group(1)
-        
-        return None
 
 
 class ScriptComplexityRule(Rule):
@@ -276,18 +248,16 @@ class ScriptComplexityRule(Rule):
         # Use the generic script field finder to detect all fields containing <% %> patterns
         script_fields = self.find_script_fields(pmd_model)
         
-        for field_path, field_value, field_name in script_fields:
+        for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
-                yield from self._check_complexity(field_value, field_name, pmd_model.file_path)
+                yield from self._check_complexity(field_value, field_name, pmd_model.file_path, line_offset)
 
-    def _check_complexity(self, script_content, field_name, file_path):
+    def _check_complexity(self, script_content, field_name, file_path, line_offset=1):
         """Check for excessive complexity in script content using Lark grammar."""
         # Parse the script content using Lark grammar
         ast = self._parse_script_content(script_content)
         if not ast:
-            # If parsing fails, fall back to regex-based complexity calculation
-            print(f"⚠️ Failed to parse script in '{field_name}' - using fallback complexity analysis")
-            yield from self._check_complexity_fallback(script_content, field_name, file_path)
+            # If parsing fails, skip this script (compiler should have caught syntax errors)
             return
         
         max_complexity = 10
@@ -298,10 +268,14 @@ class ScriptComplexityRule(Rule):
         line = complexity_info.get('line', 1)
         
         if complexity > max_complexity:
+            # Use line_offset as base, add relative line if available
+            relative_line = complexity_info.get('line', 1) or 1
+            line_number = line_offset + relative_line - 1
+            
             yield Finding(
                 rule=self,
                 message=f"File section '{field_name}' has complexity of {complexity} (max recommended: {max_complexity}). Consider refactoring.",
-                line=line,
+                line=line_number,
                 column=1,
                 file_path=file_path
             )
@@ -322,7 +296,7 @@ class ScriptComplexityRule(Rule):
             return pmd_script_parser.parse(clean_content)
         except Exception as e:
             # If parsing fails, return None to fall back to regex
-            print(f"⚠️ Failed to parse script content: {e}")
+            print(f"Failed to parse script content: {e}")
             return None
     
     def _strip_pmd_wrappers(self, script_content):
@@ -330,7 +304,10 @@ class ScriptComplexityRule(Rule):
         # Remove <% at the beginning and %> at the end
         content = script_content.strip()
         if content.startswith('<%') and content.endswith('%>'):
-            return content[2:-2].strip()
+            content = content[2:-2].strip()
+        
+        # Convert escaped newlines to actual newlines for proper line number tracking
+        content = content.replace('\\n', '\n')
         return content
     
     def _analyze_ast_complexity(self, node):
@@ -342,19 +319,36 @@ class ScriptComplexityRule(Rule):
             # Count complexity-increasing constructs
             if node.data in ['if_statement', 'while_statement', 'for_statement', 'do_statement']:
                 complexity += 1
-                line = getattr(node, 'line', line)
+                # Get line number from the first token in the node
+                if hasattr(node, 'children') and len(node.children) > 0:
+                    for child in node.children:
+                        if hasattr(child, 'line') and child.line is not None:
+                            line = child.line
+                            break
             
             elif node.data == 'logical_and_expression':
                 complexity += 1
-                line = getattr(node, 'line', line)
+                if hasattr(node, 'children') and len(node.children) > 0:
+                    for child in node.children:
+                        if hasattr(child, 'line') and child.line is not None:
+                            line = child.line
+                            break
             
             elif node.data == 'logical_or_expression':
                 complexity += 1
-                line = getattr(node, 'line', line)
+                if hasattr(node, 'children') and len(node.children) > 0:
+                    for child in node.children:
+                        if hasattr(child, 'line') and child.line is not None:
+                            line = child.line
+                            break
             
             elif node.data == 'ternary_expression':
                 complexity += 1
-                line = getattr(node, 'line', line)
+                if hasattr(node, 'children') and len(node.children) > 0:
+                    for child in node.children:
+                        if hasattr(child, 'line') and child.line is not None:
+                            line = child.line
+                            break
         
         # Recursively analyze children
         if hasattr(node, 'children'):
@@ -369,28 +363,6 @@ class ScriptComplexityRule(Rule):
             'line': line
         }
     
-    def _check_complexity_fallback(self, script_content, field_name, file_path):
-        """Fallback complexity check using regex keyword counting."""
-        # Simple cyclomatic complexity calculation
-        complexity_keywords = ['if', 'else', 'for', 'while', '&&', '||', '?']
-        complexity = 1  # Base complexity
-        
-        for keyword in complexity_keywords:
-            # Count occurrences of complexity-increasing keywords
-            pattern = r'\b' + re.escape(keyword) + r'\b'
-            matches = re.findall(pattern, script_content, re.IGNORECASE)
-            complexity += len(matches)
-        
-        max_complexity = 10
-        
-        if complexity > max_complexity:
-            yield Finding(
-                rule=self,
-                message=f"File section '{field_name}' has complexity of {complexity} (max recommended: {max_complexity}). Consider refactoring.",
-                line=1,
-                column=1,
-                file_path=file_path
-            )
 
 
 class ScriptUnusedVariableRule(Rule):
@@ -412,12 +384,12 @@ class ScriptUnusedVariableRule(Rule):
         # Build a global function registry from the main script section
         global_functions = self._build_global_function_registry(pmd_model)
         
-        for field_path, field_value, field_name in script_fields:
+        for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
                 is_global_scope = (field_name == 'script')
                 yield from self._check_unused_variables_with_scope(
                     field_value, field_name, pmd_model.file_path, 
-                    is_global_scope, global_functions
+                    is_global_scope, global_functions, line_offset
                 )
 
     def _build_global_function_registry(self, pmd_model: PMDModel):
@@ -431,11 +403,11 @@ class ScriptUnusedVariableRule(Rule):
         
         return global_functions
 
-    def _check_unused_variables_with_scope(self, script_content, field_name, file_path, is_global_scope, global_functions):
+    def _check_unused_variables_with_scope(self, script_content, field_name, file_path, is_global_scope, global_functions, line_offset=1):
         """Check for unused variables with proper scoping awareness."""
         ast = self._parse_script_content(script_content)
         if not ast:
-            print(f"⚠️ Failed to parse script in '{field_name}' - skipping unused variable check")
+            # If parsing fails, skip this script (compiler should have caught syntax errors)
             return
         
         # Analyze the script with scope awareness
@@ -458,10 +430,14 @@ class ScriptUnusedVariableRule(Rule):
                     else:
                         scope_context = f" in {scope_type} '{scope_name}'" if scope_name != 'global' else ""
                     
+                    # Use line_offset as base, add relative line if available
+                    relative_line = var_info.get('line', 1) or 1
+                    line_number = line_offset + relative_line - 1
+                    
                     yield Finding(
                         rule=self,
                         message=f"File section '{field_name}' declares unused variable '{var_name}'{scope_context}. Consider removing it.",
-                        line=var_info.get('line', 1),
+                        line=line_number,
                         column=1,
                         file_path=file_path
                     )
@@ -512,8 +488,16 @@ class ScriptUnusedVariableRule(Rule):
                 # Handle variable declarations
                 if len(node.children) > 0 and hasattr(node.children[0], 'value'):
                     var_name = node.children[0].value
+                    # Get line number from the first token in the node
+                    line_number = None
+                    if hasattr(node, 'children') and len(node.children) > 0:
+                        for child in node.children:
+                            if hasattr(child, 'line') and child.line is not None:
+                                line_number = child.line
+                                break
+                    
                     current_scope['declared_vars'][var_name] = {
-                        'line': getattr(node, 'line', None),
+                        'line': line_number,
                         'type': 'variable'
                     }
                     
@@ -594,7 +578,7 @@ class ScriptUnusedVariableRule(Rule):
             from ..pmd_script_parser import pmd_script_parser
             return pmd_script_parser.parse(clean_content)
         except Exception as e:
-            print(f"⚠️ Failed to parse script content: {e}")
+            print(f"Failed to parse script content: {e}")
             return None
     
     def _strip_pmd_wrappers(self, script_content):
@@ -621,11 +605,11 @@ class ScriptConsoleLogRule(Rule):
         """Analyzes script fields in a PMD model."""
         script_fields = self.find_script_fields(pmd_model)
         
-        for field_path, field_value, field_name in script_fields:
+        for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
-                yield from self._check_console_logs(field_value, field_name, pmd_model.file_path)
+                yield from self._check_console_logs(field_value, field_name, pmd_model.file_path, line_offset)
 
-    def _check_console_logs(self, script_content, field_name, file_path):
+    def _check_console_logs(self, script_content, field_name, file_path, line_offset=1):
         """Check for console.log statements in script content."""
         # Simple regex check for console.log statements
         import re
@@ -634,7 +618,8 @@ class ScriptConsoleLogRule(Rule):
         matches = list(re.finditer(console_log_pattern, script_content, re.IGNORECASE))
         
         for match in matches:
-            line_number = script_content[:match.start()].count('\n') + 1
+            relative_line = script_content[:match.start()].count('\n') + 1
+            line_number = line_offset + relative_line - 1
             yield Finding(
                 rule=self,
                 message=f"File section '{field_name}' contains console log statement. Remove debug statements from production code.",
@@ -660,15 +645,15 @@ class ScriptMagicNumberRule(Rule):
         """Analyzes script fields in a PMD model."""
         script_fields = self.find_script_fields(pmd_model)
         
-        for field_path, field_value, field_name in script_fields:
+        for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
-                yield from self._check_magic_numbers(field_value, field_name, pmd_model.file_path)
+                yield from self._check_magic_numbers(field_value, field_name, pmd_model.file_path, line_offset)
 
-    def _check_magic_numbers(self, script_content, field_name, file_path):
+    def _check_magic_numbers(self, script_content, field_name, file_path, line_offset=1):
         """Check for magic numbers in script content using AST analysis."""
         ast = self._parse_script_content(script_content)
         if not ast:
-            print(f"⚠️ Failed to parse script in '{field_name}' - skipping magic number check")
+            # If parsing fails, skip this script (compiler should have caught syntax errors)
             return
         
         # Define allowed numbers and contexts
@@ -692,10 +677,14 @@ class ScriptMagicNumberRule(Rule):
                             is_magic = number not in allowed_numbers
                             
                             if is_magic:
+                                # Get line number from the token inside the literal_expression
+                                relative_line = getattr(node.children[0], 'line', 1) or 1
+                                line_number = line_offset + relative_line - 1
+                                
                                 findings.append(Finding(
                                     rule=self,
                                     message=f"File section '{field_name}' contains magic number '{number}'. Consider using a named constant instead.",
-                                    line=getattr(node, 'line', 1),
+                                    line=line_number,
                                     column=1,
                                     file_path=file_path
                                 ))
@@ -728,7 +717,7 @@ class ScriptMagicNumberRule(Rule):
             from ..pmd_script_parser import pmd_script_parser
             return pmd_script_parser.parse(clean_content)
         except Exception as e:
-            print(f"⚠️ Failed to parse script content: {e}")
+            print(f"Failed to parse script content: {e}")
             return None
     
     def _strip_pmd_wrappers(self, script_content):
@@ -755,25 +744,29 @@ class ScriptLongFunctionRule(Rule):
         """Analyzes script fields in a PMD model."""
         script_fields = self.find_script_fields(pmd_model)
         
-        for field_path, field_value, field_name in script_fields:
+        for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
-                yield from self._check_long_functions(field_value, field_name, pmd_model.file_path)
+                yield from self._check_long_functions(field_value, field_name, pmd_model.file_path, line_offset)
 
-    def _check_long_functions(self, script_content, field_name, file_path):
+    def _check_long_functions(self, script_content, field_name, file_path, line_offset=1):
         """Check for overly long functions in script content."""
         ast = self._parse_script_content(script_content)
         if not ast:
-            print(f"⚠️ Failed to parse script in '{field_name}' - skipping long function check")
+            # If parsing fails, skip this script (compiler should have caught syntax errors)
             return
         
         max_lines = 50
         long_functions = self._find_long_functions(ast, max_lines)
         
         for func_info in long_functions:
+            # Use line_offset as base, add relative line if available
+            relative_line = func_info.get('line', 1) or 1
+            line_number = line_offset + relative_line - 1
+            
             yield Finding(
                 rule=self,
                 message=f"File section '{field_name}' contains function '{func_info['name']}' with {func_info['lines']} lines (max recommended: {max_lines}). Consider breaking it into smaller functions.",
-                line=func_info.get('line', 1),
+                line=line_number,
                 column=1,
                 file_path=file_path
             )
@@ -800,10 +793,18 @@ class ScriptLongFunctionRule(Rule):
                         if func_body:
                             line_count = self._count_function_lines(func_body)
                             if line_count > max_lines:
+                                # Get line number from the first token in the node
+                                line_number = None
+                                if hasattr(node, 'children') and len(node.children) > 0:
+                                    for child in node.children:
+                                        if hasattr(child, 'line') and child.line is not None:
+                                            line_number = child.line
+                                            break
+                                
                                 long_functions.append({
                                     'name': var_name,
                                     'lines': line_count,
-                                    'line': getattr(node, 'line', None)
+                                    'line': line_number
                                 })
         
         # Recursively check children
@@ -834,7 +835,7 @@ class ScriptLongFunctionRule(Rule):
             from ..pmd_script_parser import pmd_script_parser
             return pmd_script_parser.parse(clean_content)
         except Exception as e:
-            print(f"⚠️ Failed to parse script content: {e}")
+            print(f"Failed to parse script content: {e}")
             return None
     
     def _strip_pmd_wrappers(self, script_content):
@@ -861,15 +862,15 @@ class ScriptVariableNamingRule(Rule):
         """Analyzes script fields in a PMD model."""
         script_fields = self.find_script_fields(pmd_model)
         
-        for field_path, field_value, field_name in script_fields:
+        for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
-                yield from self._check_variable_naming(field_value, field_name, pmd_model.file_path)
+                yield from self._check_variable_naming(field_value, field_name, pmd_model.file_path, line_offset)
 
-    def _check_variable_naming(self, script_content, field_name, file_path):
+    def _check_variable_naming(self, script_content, field_name, file_path, line_offset=1):
         """Check variable naming conventions in script content."""
         ast = self._parse_script_content(script_content)
         if not ast:
-            print(f"⚠️ Failed to parse script in '{field_name}' - skipping variable naming check")
+            # If parsing fails, skip this script (compiler should have caught syntax errors)
             return
         
         # Find all variable declarations
@@ -878,10 +879,14 @@ class ScriptVariableNamingRule(Rule):
         for var_name, var_info in declared_vars.items():
             is_valid, suggestion = self._validate_camel_case(var_name)
             if not is_valid:
+                # Use line_offset as base, add relative line if available
+                relative_line = var_info.get('line', 1) or 1
+                line_number = line_offset + relative_line - 1
+                
                 yield Finding(
                     rule=self,
                     message=f"File section '{field_name}' declares variable '{var_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'.",
-                    line=var_info.get('line', 1),
+                    line=line_number,
                     column=1,
                     file_path=file_path
                 )
@@ -894,8 +899,16 @@ class ScriptVariableNamingRule(Rule):
             if node.data == 'variable_declaration':
                 if len(node.children) > 0 and hasattr(node.children[0], 'value'):
                     var_name = node.children[0].value
+                    # Get line number from the first token in the node
+                    line_number = None
+                    if hasattr(node, 'children') and len(node.children) > 0:
+                        for child in node.children:
+                            if hasattr(child, 'line') and child.line is not None:
+                                line_number = child.line
+                                break
+                    
                     declared_vars[var_name] = {
-                        'line': getattr(node, 'line', None),
+                        'line': line_number,
                         'type': 'declaration'
                     }
         
@@ -925,7 +938,7 @@ class ScriptVariableNamingRule(Rule):
             from ..pmd_script_parser import pmd_script_parser
             return pmd_script_parser.parse(clean_content)
         except Exception as e:
-            print(f"⚠️ Failed to parse script content: {e}")
+            print(f"Failed to parse script content: {e}")
             return None
     
     def _strip_pmd_wrappers(self, script_content):
