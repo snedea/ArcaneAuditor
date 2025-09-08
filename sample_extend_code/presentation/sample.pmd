@@ -3,11 +3,11 @@
   "endPoints": [
     {
       "allowEmptyValue": true,
-      "name": "getCurrentWorker",
+      "name": "GetCurrentWorker",
       "baseUrlType": "workday-common",
       "url": "/workers/me",
       "onSend": "<%
-                  self.data = {:}
+                  self.data = {:};
                   return self.data;
                  %>",
       "responseErrorDetail": {},
@@ -32,7 +32,6 @@
       "children": [
         {
           "type": "text",
-          "id": "hello",
           "label": "Hello World!",
           "value": "Welcome from Workday!"
         }
@@ -80,7 +79,21 @@
     "util.script"
   ],
   "script": "<%
-                const myFunc = function(){
+                var myFunc = function(){
+                    var myBool = true;
+                    let count = 0;
+                    
+                    if(myBool){
+                      while(count < 10){
+                        myBool != myBool;
+                        if(myBool){
+                          while(count < 5){
+                            
+                          }
+                        }
+                        count++;
+                      }
+                    }
                     return true;
                 }
                %>"
