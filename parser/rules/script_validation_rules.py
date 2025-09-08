@@ -876,10 +876,11 @@ class ScriptVariableNamingRule(Rule):
         declared_vars = self._find_declared_variables(ast)
         
         for var_name, var_info in declared_vars.items():
-            if not self._is_valid_camel_case(var_name):
+            is_valid, suggestion = self._validate_camel_case(var_name)
+            if not is_valid:
                 yield Finding(
                     rule=self,
-                    message=f"File section '{field_name}' declares variable '{var_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{self._suggest_camel_case(var_name)}'.",
+                    message=f"File section '{field_name}' declares variable '{var_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'.",
                     line=var_info.get('line', 1),
                     column=1,
                     file_path=file_path
@@ -906,24 +907,10 @@ class ScriptVariableNamingRule(Rule):
         
         return declared_vars
     
-    def _is_valid_camel_case(self, var_name):
-        """Check if variable name follows lowerCamelCase convention."""
-        import re
-        # Must start with lowercase letter, followed by letters or numbers (no underscores)
-        pattern = r'^[a-z][a-zA-Z0-9]*$'
-        return bool(re.match(pattern, var_name))
-    
-    def _suggest_camel_case(self, var_name):
-        """Suggest a camelCase version of the variable name."""
-        import re
-        # Convert snake_case to camelCase
-        if '_' in var_name:
-            parts = var_name.split('_')
-            return parts[0].lower() + ''.join(word.capitalize() for word in parts[1:])
-        # Convert PascalCase to camelCase
-        elif var_name and var_name[0].isupper():
-            return var_name[0].lower() + var_name[1:]
-        return var_name
+    def _validate_camel_case(self, var_name):
+        """Validate variable name using common camel case validation."""
+        from .common_validations import validate_script_variable_camel_case
+        return validate_script_variable_camel_case(var_name)
     
     def _parse_script_content(self, script_content):
         """Parse script content using Lark grammar."""

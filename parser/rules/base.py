@@ -71,7 +71,9 @@ class Rule(ABC):
             for key, value in data.items():
                 if isinstance(value, str) and re.search(script_pattern, value):
                     field_path = f"{prefix}.{key}" if prefix else key
-                    script_fields.append((field_path, value, key))
+                    # Use the full path as the display name for better context
+                    display_name = field_path
+                    script_fields.append((field_path, value, display_name))
                 elif isinstance(value, dict):
                     _search_dict(value, f"{prefix}.{key}" if prefix else key)
                 elif isinstance(value, list):
@@ -80,7 +82,9 @@ class Rule(ABC):
                             _search_dict(item, f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}")
                         elif isinstance(item, str) and re.search(script_pattern, item):
                             field_path = f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}"
-                            script_fields.append((field_path, item, f"{key}[{i}]"))
+                            # Use the full path as the display name for better context
+                            display_name = field_path
+                            script_fields.append((field_path, item, display_name))
         
         # Convert PMD model to dict for recursive search
         pmd_dict = pmd_model.model_dump(exclude={'file_path'})

@@ -83,3 +83,37 @@ def validate_email_format(email: str, entity_type: str, entity_name: str) -> Lis
         )
     
     return errors
+
+
+def validate_script_variable_camel_case(var_name: str) -> tuple[bool, str]:
+    """
+    Validate that a script variable name follows lowerCamelCase convention.
+    
+    Args:
+        var_name: The variable name to validate
+        
+    Returns:
+        Tuple of (is_valid, suggestion)
+        - is_valid: True if the name follows camelCase convention
+        - suggestion: Suggested camelCase version if invalid, otherwise the original name
+    """
+    camel_case_pattern = re.compile(r'^[a-z][a-zA-Z0-9]*$')
+    
+    if camel_case_pattern.match(var_name):
+        return True, var_name
+    
+    # Generate suggestion
+    suggestion = _suggest_camel_case(var_name)
+    return False, suggestion
+
+
+def _suggest_camel_case(var_name: str) -> str:
+    """Suggest a camelCase version of the variable name."""
+    # Convert snake_case to camelCase
+    if '_' in var_name:
+        parts = var_name.split('_')
+        return parts[0].lower() + ''.join(word.capitalize() for word in parts[1:])
+    # Convert PascalCase to camelCase
+    elif var_name and var_name[0].isupper():
+        return var_name[0].lower() + var_name[1:]
+    return var_name
