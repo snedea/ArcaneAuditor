@@ -228,7 +228,6 @@ class ScriptNestingLevelRule(Rule):
             'function_context': function_context,
             'line': line_number
         }
-    
 
 
 class ScriptComplexityRule(Rule):
@@ -361,8 +360,7 @@ class ScriptComplexityRule(Rule):
         return {
             'complexity': complexity,
             'line': line
-        }
-    
+        }  
 
 
 class ScriptUnusedVariableRule(Rule):
