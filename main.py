@@ -98,15 +98,22 @@ def list_rules():
     """
     config = ExtendReviewerConfig()
     typer.echo("Available rules:")
-    typer.echo("=" * 50)
+    typer.echo("=" * 80)
     
     # Get all rule configurations
     rule_configs = config.rules.model_dump()
     
-    for rule_id, rule_config in rule_configs.items():
+    for rule_name, rule_config in rule_configs.items():
         status = "✅ ENABLED" if rule_config["enabled"] else "❌ DISABLED"
         severity = rule_config.get("severity_override") or "default"
-        typer.echo(f"{rule_id}: {status} (severity: {severity})")
+        
+        # Get the description from the field info
+        field_info = config.rules.__class__.model_fields.get(rule_name)
+        description = field_info.description if field_info else "No description available"
+        
+        typer.echo(f"{rule_name}: {status} (severity: {severity})")
+        typer.echo(f"  📝 {description}")
+        typer.echo()
 
 
 if __name__ == "__main__":
