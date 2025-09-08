@@ -169,3 +169,23 @@ class Rule(ABC):
             if isinstance(children, list) and children:
                 children_path = f"{current_path}.children"
                 yield from self.traverse_widgets_recursively(children, children_path)
+    
+    def _parse_script_content(self, script_content: str):
+        """Parse script content using the PMD script grammar."""
+        try:
+            from ..pmd_script_parser import pmd_script_parser
+            # Strip PMD wrappers if present
+            content = self._strip_pmd_wrappers(script_content)
+            if not content:
+                return None
+            return pmd_script_parser.parse(content)
+        except Exception as e:
+            print(f"Failed to parse script content: {e}")
+            return None
+    
+    def _strip_pmd_wrappers(self, script_content):
+        """Strip <% and %> wrappers from PMD script content."""
+        content = script_content.strip()
+        if content.startswith('<%') and content.endswith('%>'):
+            return content[2:-2].strip()
+        return content

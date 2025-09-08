@@ -143,8 +143,7 @@ class WidgetIdRequiredRule(Rule):
         }
         base_line = section_base_lines.get(section, 5)
         return base_line + widget_index * 2
-
-
+        
 class WidgetIdLowerCamelCaseRule(ValidationRule):
     """Validates that widget IDs follow lowerCamelCase convention (style guide)."""
     
