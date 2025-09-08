@@ -606,10 +606,10 @@ class ScriptUnusedVariableRule(Rule):
 
 
 class ScriptConsoleLogRule(Rule):
-    """Validates that scripts don't contain console.log statements."""
+    """Validates that scripts don't contain console statements."""
     
     ID = "SCRIPT005"
-    DESCRIPTION = "Ensures scripts don't contain console.log statements (production code)"
+    DESCRIPTION = "Ensures scripts don't contain console statements (production code)"
     SEVERITY = "WARNING"
 
     def analyze(self, context):
@@ -629,14 +629,15 @@ class ScriptConsoleLogRule(Rule):
         """Check for console.log statements in script content."""
         # Simple regex check for console.log statements
         import re
-        console_log_pattern = r'console\.log\s*\('
+        # TODO: Confirm what console methods exist
+        console_log_pattern = r'console\.[info|warn|debug]\s*\('
         matches = list(re.finditer(console_log_pattern, script_content, re.IGNORECASE))
         
         for match in matches:
             line_number = script_content[:match.start()].count('\n') + 1
             yield Finding(
                 rule=self,
-                message=f"File section '{field_name}' contains console.log statement. Remove debug statements from production code.",
+                message=f"File section '{field_name}' contains console log statement. Remove debug statements from production code.",
                 line=line_number,
                 column=match.start() - script_content.rfind('\n', 0, match.start()) - 1,
                 file_path=file_path
@@ -664,26 +665,78 @@ class ScriptMagicNumberRule(Rule):
                 yield from self._check_magic_numbers(field_value, field_name, pmd_model.file_path)
 
     def _check_magic_numbers(self, script_content, field_name, file_path):
-        """Check for magic numbers in script content."""
-        import re
+        """Check for magic numbers in script content using AST analysis."""
+        ast = self._parse_script_content(script_content)
+        if not ast:
+            print(f"⚠️ Failed to parse script in '{field_name}' - skipping magic number check")
+            return
         
-        # Common magic numbers to flag (excluding 0, 1, -1 which are often legitimate)
-        magic_numbers = [200, 201, 400, 401, 403, 404, 500, 24, 60, 1000, 1024]
+        # Define allowed numbers and contexts
+        allowed_numbers = {0, 1, -1}  # Common legitimate numbers
+        # We want to flag magic numbers regardless of their parent context
         
-        for number in magic_numbers:
-            # Look for the number not preceded by a letter or underscore (to avoid matching in variable names)
-            pattern = r'(?<![a-zA-Z_])' + str(number) + r'(?![a-zA-Z0-9_])'
-            matches = list(re.finditer(pattern, script_content))
+        findings = []
+        
+        def visit_node(node, parent=None):
+            """Recursively visit AST nodes to find magic numbers."""
+            # Check if the current node is a numeric literal
+            if hasattr(node, 'data') and node.data == 'literal_expression':
+                if len(node.children) > 0 and hasattr(node.children[0], 'value'):
+                    try:
+                        # Try to parse the value as a number
+                        value = node.children[0].value
+                        if value.isdigit() or (value.startswith('-') and value[1:].isdigit()):
+                            number = int(value)
+                            
+                            # Check if this is a magic number
+                            is_magic = number not in allowed_numbers
+                            
+                            if is_magic:
+                                findings.append(Finding(
+                                    rule=self,
+                                    message=f"File section '{field_name}' contains magic number '{number}'. Consider using a named constant instead.",
+                                    line=getattr(node, 'line', 1),
+                                    column=1,
+                                    file_path=file_path
+                                ))
+                    except (ValueError, AttributeError):
+                        # Not a number, skip
+                        pass
             
-            for match in matches:
-                line_number = script_content[:match.start()].count('\n') + 1
-                yield Finding(
-                    rule=self,
-                    message=f"File section '{field_name}' contains magic number '{number}'. Consider using a named constant instead.",
-                    line=line_number,
-                    column=match.start() - script_content.rfind('\n', 0, match.start()) - 1,
-                    file_path=file_path
-                )
+            # Recurse into children
+            if hasattr(node, 'children'):
+                for child in node.children:
+                    visit_node(child, parent=node)
+        
+        # Start the traversal from the root of the AST
+        visit_node(ast)
+        
+        # Yield all findings
+        for finding in findings:
+            yield finding
+    
+    def _parse_script_content(self, script_content):
+        """Parse script content using Lark grammar."""
+        if not script_content or not script_content.strip():
+            return None
+        
+        clean_content = self._strip_pmd_wrappers(script_content)
+        if not clean_content:
+            return None
+        
+        try:
+            from ..pmd_script_parser import pmd_script_parser
+            return pmd_script_parser.parse(clean_content)
+        except Exception as e:
+            print(f"⚠️ Failed to parse script content: {e}")
+            return None
+    
+    def _strip_pmd_wrappers(self, script_content):
+        """Strip <% and %> wrappers from PMD script content."""
+        content = script_content.strip()
+        if content.startswith('<%') and content.endswith('%>'):
+            return content[2:-2].strip()
+        return content
 
 
 class ScriptLongFunctionRule(Rule):
