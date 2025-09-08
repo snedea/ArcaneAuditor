@@ -21,6 +21,8 @@
 ?statement_list: statement+
 
 ?variable_statement: VAR variable_declaration_list eos?
+    | LET variable_declaration_list eos?
+    | CONST variable_declaration_list eos?
 
 ?variable_declaration_list: variable_declaration ("," variable_declaration)*
 

@@ -50,16 +50,16 @@ class ScriptVarUsageRule(Rule):
                 # Get the variable declaration (second child)
                 var_declaration = var_stmt.children[1]
                 if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
-                    var_name = var_declaration.children[0].value
-                    line_number = var_stmt.line if hasattr(var_stmt, 'line') else 1
-                    
-                    yield Finding(
-                        rule=self,
-                        message=f"File section '{field_name}' uses 'var' declaration for variable '{var_name}'. Consider using 'let' or 'const' instead.",
-                        line=line_number,
-                        column=1,
-                        file_path=file_path
-                    )
+                        var_name = var_declaration.children[0].value
+                        line_number = var_stmt.line if hasattr(var_stmt, 'line') else 1
+                        
+                        yield Finding(
+                            rule=self,
+                            message=f"File section '{field_name}' uses 'var' declaration for variable '{var_name}'. Consider using 'let' or 'const' instead.",
+                            line=line_number,
+                            column=1,
+                            file_path=file_path
+                        )
     
     def _parse_script_content(self, script_content):
         """Parse script content using Lark grammar."""
@@ -391,3 +391,506 @@ class ScriptComplexityRule(Rule):
                 column=1,
                 file_path=file_path
             )
+
+
+class ScriptUnusedVariableRule(Rule):
+    """Validates that all declared variables are used with proper scoping."""
+    
+    ID = "SCRIPT004"
+    DESCRIPTION = "Ensures all declared variables are used (prevents dead code) with proper scoping awareness"
+    SEVERITY = "WARNING"
+
+    def analyze(self, context):
+        """Main entry point - analyze all PMD models in the context."""
+        for pmd_model in context.pmds.values():
+            yield from self.visit_pmd(pmd_model)
+
+    def visit_pmd(self, pmd_model: PMDModel):
+        """Analyzes script fields in a PMD model with scope awareness."""
+        script_fields = self.find_script_fields(pmd_model)
+        
+        # Build a global function registry from the main script section
+        global_functions = self._build_global_function_registry(pmd_model)
+        
+        for field_path, field_value, field_name in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                is_global_scope = (field_name == 'script')
+                yield from self._check_unused_variables_with_scope(
+                    field_value, field_name, pmd_model.file_path, 
+                    is_global_scope, global_functions
+                )
+
+    def _build_global_function_registry(self, pmd_model: PMDModel):
+        """Build a registry of functions declared in the global script section."""
+        global_functions = set()
+        
+        if pmd_model.script:
+            ast = self._parse_script_content(pmd_model.script)
+            if ast:
+                global_functions = self._find_function_declarations(ast)
+        
+        return global_functions
+
+    def _check_unused_variables_with_scope(self, script_content, field_name, file_path, is_global_scope, global_functions):
+        """Check for unused variables with proper scoping awareness."""
+        ast = self._parse_script_content(script_content)
+        if not ast:
+            print(f"⚠️ Failed to parse script in '{field_name}' - skipping unused variable check")
+            return
+        
+        # Analyze the script with scope awareness
+        scope_analysis = self._analyze_script_scope(ast, is_global_scope, global_functions)
+        
+        # Check for unused variables in each scope
+        for scope_info in scope_analysis['scopes']:
+            scope_type = scope_info['type']
+            scope_name = scope_info['name']
+            declared_vars = scope_info['declared_vars']
+            used_vars = scope_info['used_vars']
+            
+            # Check for unused variables in this scope
+            for var_name, var_info in declared_vars.items():
+                if var_name not in used_vars:
+                    # Special handling for global functions - they might be used by widgets/endpoints
+                    if is_global_scope and scope_type == 'global' and var_name in global_functions:
+                        # For now, we'll still flag them but with a different message
+                        scope_context = " (global function - may be used by widgets/endpoints)"
+                    else:
+                        scope_context = f" in {scope_type} '{scope_name}'" if scope_name != 'global' else ""
+                    
+                    yield Finding(
+                        rule=self,
+                        message=f"File section '{field_name}' declares unused variable '{var_name}'{scope_context}. Consider removing it.",
+                        line=var_info.get('line', 1),
+                        column=1,
+                        file_path=file_path
+                    )
+
+    def _analyze_script_scope(self, ast, is_global_scope, global_functions):
+        """Analyze script with proper scoping."""
+        analysis = {
+            'scopes': [],
+            'global_functions': global_functions
+        }
+        
+        # Create global scope
+        global_scope = {
+            'type': 'global',
+            'name': 'global',
+            'declared_vars': {},
+            'used_vars': set(),
+            'functions': {}
+        }
+        
+        # Analyze the AST
+        self._analyze_ast_scope(ast, global_scope, is_global_scope, global_functions)
+        analysis['scopes'].append(global_scope)
+        
+        # Add function scopes
+        for func_name, func_expr in global_scope['functions'].items():
+            func_scope = {
+                'type': 'function',
+                'name': func_name,
+                'declared_vars': {},
+                'used_vars': set(),
+                'functions': {}
+            }
+            
+            # Analyze function body
+            self._analyze_function_body(func_expr, func_scope)
+            
+            # Only add function scope if it has variables to check
+            if func_scope['declared_vars'] or func_scope['used_vars']:
+                analysis['scopes'].append(func_scope)
+        
+        return analysis
+
+    def _analyze_ast_scope(self, node, current_scope, is_global_scope, global_functions):
+        """Recursively analyze AST with scope awareness."""
+        if hasattr(node, 'data'):
+            if node.data == 'variable_declaration':
+                # Handle variable declarations
+                if len(node.children) > 0 and hasattr(node.children[0], 'value'):
+                    var_name = node.children[0].value
+                    current_scope['declared_vars'][var_name] = {
+                        'line': getattr(node, 'line', None),
+                        'type': 'variable'
+                    }
+                    
+                    # Check if this is a function declaration
+                    if len(node.children) >= 2:
+                        func_expr = node.children[1]
+                        if hasattr(func_expr, 'data') and func_expr.data == 'function_expression':
+                            current_scope['functions'][var_name] = func_expr
+                            
+            elif node.data == 'identifier_expression':
+                # Handle variable usage
+                if len(node.children) > 0 and hasattr(node.children[0], 'value'):
+                    var_name = node.children[0].value
+                    current_scope['used_vars'].add(var_name)
+        
+        # Recursively check children
+        if hasattr(node, 'children'):
+            for child in node.children:
+                self._analyze_ast_scope(child, current_scope, is_global_scope, global_functions)
+
+    def _analyze_function_body(self, func_expr, func_scope):
+        """Analyze function body for local variables and parameters."""
+        # First, extract function parameters
+        self._extract_function_parameters(func_expr, func_scope)
+        
+        # Then analyze function body (source_elements)
+        for child in func_expr.children:
+            if hasattr(child, 'data') and child.data == 'source_elements':
+                self._analyze_ast_scope(child, func_scope, False, set())
+                break
+
+    def _extract_function_parameters(self, func_expr, func_scope):
+        """Extract function parameters and add them to the scope."""
+        # Look for formal_parameter_list in function expression
+        for child in func_expr.children:
+            if hasattr(child, 'data') and child.data == 'formal_parameter_list':
+                # Extract parameter names
+                for param_child in child.children:
+                    if hasattr(param_child, 'value'):
+                        param_name = param_child.value
+                        func_scope['declared_vars'][param_name] = {
+                            'line': getattr(param_child, 'line', None),
+                            'type': 'parameter'
+                        }
+                break
+
+    def _find_function_declarations(self, ast):
+        """Find all function declarations in the AST."""
+        functions = set()
+        
+        def _search_functions(node):
+            if hasattr(node, 'data'):
+                if node.data == 'variable_declaration':
+                    if len(node.children) >= 2:
+                        var_name = node.children[0].value if hasattr(node.children[0], 'value') else None
+                        func_expr = node.children[1]
+                        if hasattr(func_expr, 'data') and func_expr.data == 'function_expression':
+                            if var_name:
+                                functions.add(var_name)
+            
+            if hasattr(node, 'children'):
+                for child in node.children:
+                    _search_functions(child)
+        
+        _search_functions(ast)
+        return functions
+    
+    def _parse_script_content(self, script_content):
+        """Parse script content using Lark grammar."""
+        if not script_content or not script_content.strip():
+            return None
+        
+        clean_content = self._strip_pmd_wrappers(script_content)
+        if not clean_content:
+            return None
+        
+        try:
+            from ..pmd_script_parser import pmd_script_parser
+            return pmd_script_parser.parse(clean_content)
+        except Exception as e:
+            print(f"⚠️ Failed to parse script content: {e}")
+            return None
+    
+    def _strip_pmd_wrappers(self, script_content):
+        """Strip <% and %> wrappers from PMD script content."""
+        content = script_content.strip()
+        if content.startswith('<%') and content.endswith('%>'):
+            return content[2:-2].strip()
+        return content
+
+
+class ScriptConsoleLogRule(Rule):
+    """Validates that scripts don't contain console.log statements."""
+    
+    ID = "SCRIPT005"
+    DESCRIPTION = "Ensures scripts don't contain console.log statements (production code)"
+    SEVERITY = "WARNING"
+
+    def analyze(self, context):
+        """Main entry point - analyze all PMD models in the context."""
+        for pmd_model in context.pmds.values():
+            yield from self.visit_pmd(pmd_model)
+
+    def visit_pmd(self, pmd_model: PMDModel):
+        """Analyzes script fields in a PMD model."""
+        script_fields = self.find_script_fields(pmd_model)
+        
+        for field_path, field_value, field_name in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                yield from self._check_console_logs(field_value, field_name, pmd_model.file_path)
+
+    def _check_console_logs(self, script_content, field_name, file_path):
+        """Check for console.log statements in script content."""
+        # Simple regex check for console.log statements
+        import re
+        console_log_pattern = r'console\.log\s*\('
+        matches = list(re.finditer(console_log_pattern, script_content, re.IGNORECASE))
+        
+        for match in matches:
+            line_number = script_content[:match.start()].count('\n') + 1
+            yield Finding(
+                rule=self,
+                message=f"File section '{field_name}' contains console.log statement. Remove debug statements from production code.",
+                line=line_number,
+                column=match.start() - script_content.rfind('\n', 0, match.start()) - 1,
+                file_path=file_path
+            )
+
+
+class ScriptMagicNumberRule(Rule):
+    """Validates that scripts don't contain magic numbers."""
+    
+    ID = "SCRIPT006"
+    DESCRIPTION = "Ensures scripts don't contain magic numbers (use named constants)"
+    SEVERITY = "INFO"
+
+    def analyze(self, context):
+        """Main entry point - analyze all PMD models in the context."""
+        for pmd_model in context.pmds.values():
+            yield from self.visit_pmd(pmd_model)
+
+    def visit_pmd(self, pmd_model: PMDModel):
+        """Analyzes script fields in a PMD model."""
+        script_fields = self.find_script_fields(pmd_model)
+        
+        for field_path, field_value, field_name in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                yield from self._check_magic_numbers(field_value, field_name, pmd_model.file_path)
+
+    def _check_magic_numbers(self, script_content, field_name, file_path):
+        """Check for magic numbers in script content."""
+        import re
+        
+        # Common magic numbers to flag (excluding 0, 1, -1 which are often legitimate)
+        magic_numbers = [200, 201, 400, 401, 403, 404, 500, 24, 60, 1000, 1024]
+        
+        for number in magic_numbers:
+            # Look for the number not preceded by a letter or underscore (to avoid matching in variable names)
+            pattern = r'(?<![a-zA-Z_])' + str(number) + r'(?![a-zA-Z0-9_])'
+            matches = list(re.finditer(pattern, script_content))
+            
+            for match in matches:
+                line_number = script_content[:match.start()].count('\n') + 1
+                yield Finding(
+                    rule=self,
+                    message=f"File section '{field_name}' contains magic number '{number}'. Consider using a named constant instead.",
+                    line=line_number,
+                    column=match.start() - script_content.rfind('\n', 0, match.start()) - 1,
+                    file_path=file_path
+                )
+
+
+class ScriptLongFunctionRule(Rule):
+    """Validates that functions don't exceed maximum line count."""
+    
+    ID = "SCRIPT007"
+    DESCRIPTION = "Ensures functions don't exceed maximum line count (max 50 lines)"
+    SEVERITY = "WARNING"
+
+    def analyze(self, context):
+        """Main entry point - analyze all PMD models in the context."""
+        for pmd_model in context.pmds.values():
+            yield from self.visit_pmd(pmd_model)
+
+    def visit_pmd(self, pmd_model: PMDModel):
+        """Analyzes script fields in a PMD model."""
+        script_fields = self.find_script_fields(pmd_model)
+        
+        for field_path, field_value, field_name in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                yield from self._check_long_functions(field_value, field_name, pmd_model.file_path)
+
+    def _check_long_functions(self, script_content, field_name, file_path):
+        """Check for overly long functions in script content."""
+        ast = self._parse_script_content(script_content)
+        if not ast:
+            print(f"⚠️ Failed to parse script in '{field_name}' - skipping long function check")
+            return
+        
+        max_lines = 50
+        long_functions = self._find_long_functions(ast, max_lines)
+        
+        for func_info in long_functions:
+            yield Finding(
+                rule=self,
+                message=f"File section '{field_name}' contains function '{func_info['name']}' with {func_info['lines']} lines (max recommended: {max_lines}). Consider breaking it into smaller functions.",
+                line=func_info.get('line', 1),
+                column=1,
+                file_path=file_path
+            )
+    
+    def _find_long_functions(self, node, max_lines):
+        """Find functions that exceed the maximum line count."""
+        long_functions = []
+        
+        if hasattr(node, 'data'):
+            if node.data == 'variable_declaration':
+                # Check if this variable declaration contains a function expression
+                if len(node.children) >= 2:
+                    var_name = node.children[0].value if hasattr(node.children[0], 'value') else "unknown"
+                    func_expr = node.children[1]
+                    
+                    if hasattr(func_expr, 'data') and func_expr.data == 'function_expression':
+                        # Find function body
+                        func_body = None
+                        for child in func_expr.children:
+                            if hasattr(child, 'data') and child.data == 'source_elements':
+                                func_body = child
+                                break
+                        
+                        if func_body:
+                            line_count = self._count_function_lines(func_body)
+                            if line_count > max_lines:
+                                long_functions.append({
+                                    'name': var_name,
+                                    'lines': line_count,
+                                    'line': getattr(node, 'line', None)
+                                })
+        
+        # Recursively check children
+        if hasattr(node, 'children'):
+            for child in node.children:
+                child_functions = self._find_long_functions(child, max_lines)
+                long_functions.extend(child_functions)
+        
+        return long_functions
+    
+    def _count_function_lines(self, func_body):
+        """Count the number of lines in a function body."""
+        # Count the number of statements in the function body
+        if hasattr(func_body, 'children'):
+            return len(func_body.children)
+        return 1
+    
+    def _parse_script_content(self, script_content):
+        """Parse script content using Lark grammar."""
+        if not script_content or not script_content.strip():
+            return None
+        
+        clean_content = self._strip_pmd_wrappers(script_content)
+        if not clean_content:
+            return None
+        
+        try:
+            from ..pmd_script_parser import pmd_script_parser
+            return pmd_script_parser.parse(clean_content)
+        except Exception as e:
+            print(f"⚠️ Failed to parse script content: {e}")
+            return None
+    
+    def _strip_pmd_wrappers(self, script_content):
+        """Strip <% and %> wrappers from PMD script content."""
+        content = script_content.strip()
+        if content.startswith('<%') and content.endswith('%>'):
+            return content[2:-2].strip()
+        return content
+
+
+class ScriptVariableNamingRule(Rule):
+    """Validates that variables follow naming conventions."""
+    
+    ID = "SCRIPT008"
+    DESCRIPTION = "Ensures variables follow lowerCamelCase naming convention"
+    SEVERITY = "WARNING"
+
+    def analyze(self, context):
+        """Main entry point - analyze all PMD models in the context."""
+        for pmd_model in context.pmds.values():
+            yield from self.visit_pmd(pmd_model)
+
+    def visit_pmd(self, pmd_model: PMDModel):
+        """Analyzes script fields in a PMD model."""
+        script_fields = self.find_script_fields(pmd_model)
+        
+        for field_path, field_value, field_name in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                yield from self._check_variable_naming(field_value, field_name, pmd_model.file_path)
+
+    def _check_variable_naming(self, script_content, field_name, file_path):
+        """Check variable naming conventions in script content."""
+        ast = self._parse_script_content(script_content)
+        if not ast:
+            print(f"⚠️ Failed to parse script in '{field_name}' - skipping variable naming check")
+            return
+        
+        # Find all variable declarations
+        declared_vars = self._find_declared_variables(ast)
+        
+        for var_name, var_info in declared_vars.items():
+            if not self._is_valid_camel_case(var_name):
+                yield Finding(
+                    rule=self,
+                    message=f"File section '{field_name}' declares variable '{var_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{self._suggest_camel_case(var_name)}'.",
+                    line=var_info.get('line', 1),
+                    column=1,
+                    file_path=file_path
+                )
+    
+    def _find_declared_variables(self, node):
+        """Find all variable declarations in the AST."""
+        declared_vars = {}
+        
+        if hasattr(node, 'data'):
+            if node.data == 'variable_declaration':
+                if len(node.children) > 0 and hasattr(node.children[0], 'value'):
+                    var_name = node.children[0].value
+                    declared_vars[var_name] = {
+                        'line': getattr(node, 'line', None),
+                        'type': 'declaration'
+                    }
+        
+        # Recursively check children
+        if hasattr(node, 'children'):
+            for child in node.children:
+                child_vars = self._find_declared_variables(child)
+                declared_vars.update(child_vars)
+        
+        return declared_vars
+    
+    def _is_valid_camel_case(self, var_name):
+        """Check if variable name follows lowerCamelCase convention."""
+        import re
+        # Must start with lowercase letter, followed by letters or numbers (no underscores)
+        pattern = r'^[a-z][a-zA-Z0-9]*$'
+        return bool(re.match(pattern, var_name))
+    
+    def _suggest_camel_case(self, var_name):
+        """Suggest a camelCase version of the variable name."""
+        import re
+        # Convert snake_case to camelCase
+        if '_' in var_name:
+            parts = var_name.split('_')
+            return parts[0].lower() + ''.join(word.capitalize() for word in parts[1:])
+        # Convert PascalCase to camelCase
+        elif var_name and var_name[0].isupper():
+            return var_name[0].lower() + var_name[1:]
+        return var_name
+    
+    def _parse_script_content(self, script_content):
+        """Parse script content using Lark grammar."""
+        if not script_content or not script_content.strip():
+            return None
+        
+        clean_content = self._strip_pmd_wrappers(script_content)
+        if not clean_content:
+            return None
+        
+        try:
+            from ..pmd_script_parser import pmd_script_parser
+            return pmd_script_parser.parse(clean_content)
+        except Exception as e:
+            print(f"⚠️ Failed to parse script content: {e}")
+            return None
+    
+    def _strip_pmd_wrappers(self, script_content):
+        """Strip <% and %> wrappers from PMD script content."""
+        content = script_content.strip()
+        if content.startswith('<%') and content.endswith('%>'):
+            return content[2:-2].strip()
+        return content

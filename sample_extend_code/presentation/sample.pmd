@@ -79,22 +79,67 @@
     "util.script"
   ],
   "script": "<%
-                var myFunc = function(){
-                    var myBool = true;
-                    let count = 0;
-                    
-                    if(myBool){
-                      while(count < 10){
-                        myBool != myBool;
-                        if(myBool){
-                          while(count < 5){
-                            
-                          }
-                        }
-                        count++;
-                      }
-                    }
-                    return true;
+                // Test script with various violations
+                var snake_case_var = 200;  // Magic number and bad naming
+                let unusedVar = 404;       // Unused variable and magic number
+                console.log('Debug info'); // Console.log statement
+                
+                var MyPascalCase = function(){
+                    // This function is too long with many lines
+                    var line1 = 1;
+                    var line2 = 2;
+                    var line3 = 3;
+                    var line4 = 4;
+                    var line5 = 5;
+                    var line6 = 6;
+                    var line7 = 7;
+                    var line8 = 8;
+                    var line9 = 9;
+                    var line10 = 10;
+                    var line11 = 11;
+                    var line12 = 12;
+                    var line13 = 13;
+                    var line14 = 14;
+                    var line15 = 15;
+                    var line16 = 16;
+                    var line17 = 17;
+                    var line18 = 18;
+                    var line19 = 19;
+                    var line20 = 20;
+                    var line21 = 21;
+                    var line22 = 22;
+                    var line23 = 23;
+                    var line24 = 24;
+                    var line25 = 25;
+                    var line26 = 26;
+                    var line27 = 27;
+                    var line28 = 28;
+                    var line29 = 29;
+                    var line30 = 30;
+                    var line31 = 31;
+                    var line32 = 32;
+                    var line33 = 33;
+                    var line34 = 34;
+                    var line35 = 35;
+                    var line36 = 36;
+                    var line37 = 37;
+                    var line38 = 38;
+                    var line39 = 39;
+                    var line40 = 40;
+                    var line41 = 41;
+                    var line42 = 42;
+                    var line43 = 43;
+                    var line44 = 44;
+                    var line45 = 45;
+                    var line46 = 46;
+                    var line47 = 47;
+                    var line48 = 48;
+                    var line49 = 49;
+                    var line50 = 50;
+                    var line51 = 51; // This should trigger long function rule
+                    return line1;
                 }
+                
+                return snake_case_var;
                %>"
 }

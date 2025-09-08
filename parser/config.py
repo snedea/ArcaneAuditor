@@ -29,6 +29,11 @@ class RulesConfig(BaseModel):
     ScriptVarUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts use 'let' or 'const' instead of 'var' (best practice)")
     ScriptNestingLevelRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't have excessive nesting levels (max 4 levels)")
     ScriptComplexityRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't exceed complexity thresholds (max 10 cyclomatic complexity)")
+    ScriptUnusedVariableRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all declared variables are used (prevents dead code)")
+    ScriptConsoleLogRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't contain console.log statements (production code)")
+    ScriptMagicNumberRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't contain magic numbers (use named constants)")
+    ScriptLongFunctionRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures functions don't exceed maximum line count (max 50 lines)")
+    ScriptVariableNamingRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures variables follow lowerCamelCase naming convention")
     
     # Structure validation rules
     WidgetIdRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all widgets have required 'id' field")
