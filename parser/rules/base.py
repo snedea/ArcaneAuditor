@@ -20,7 +20,7 @@ class Finding:
         self.severity = self.rule.SEVERITY
 
     def __repr__(self) -> str:
-        return f"[{self.rule_id}:{self.line}] in '{self.file_path}': {self.message}"
+        return f"[{self.rule_id}:{self.line}] ({self.severity}) in '{self.file_path}': {self.message}"
 
 # The abstract base class that all rule implementations must inherit from.
 class Rule(ABC):
