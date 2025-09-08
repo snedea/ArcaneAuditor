@@ -35,15 +35,15 @@ class RulesEngine:
                     if member_obj.__name__ == 'Rule':
                         continue
                     
-                    # Check if rule is enabled in configuration
-                    if self.config.is_rule_enabled(member_obj.ID):
-                        print(f"🔎 Discovered rule: {member_obj.ID}")
+                    # Check if rule is enabled in configuration using class name
+                    if self.config.is_rule_enabled(member_obj.__name__):
+                        print(f"🔎 Discovered rule: {member_obj.__name__}")
                         rule_instance = member_obj()
                         # Apply configuration overrides
                         self._apply_rule_config(rule_instance)
                         discovered_rules.append(rule_instance)
                     else:
-                        print(f"⏭️  Skipping disabled rule: {member_obj.ID}")
+                        print(f"⏭️  Skipping disabled rule: {member_obj.__name__}")
         return discovered_rules
     
     def _apply_rule_config(self, rule: Rule) -> None:
@@ -51,13 +51,13 @@ class RulesEngine:
         # Override severity if configured
         if hasattr(rule, 'SEVERITY'):
             original_severity = rule.SEVERITY
-            configured_severity = self.config.get_rule_severity(rule.ID, original_severity)
+            configured_severity = self.config.get_rule_severity(rule.__class__.__name__, original_severity)
             if configured_severity != original_severity:
                 rule.SEVERITY = configured_severity
-                print(f"🔧 Override severity for {rule.ID}: {original_severity} → {configured_severity}")
+                print(f"🔧 Override severity for {rule.__class__.__name__}: {original_severity} → {configured_severity}")
         
         # Apply custom settings if the rule supports it
-        custom_settings = self.config.get_rule_settings(rule.ID)
+        custom_settings = self.config.get_rule_settings(rule.__class__.__name__)
         if custom_settings and hasattr(rule, 'apply_settings'):
             rule.apply_settings(custom_settings)
 
@@ -85,7 +85,7 @@ class RulesEngine:
                 if findings_from_rule:
                     all_findings.extend(findings_from_rule)
             except Exception as e:
-                print(f"❌ Error running rule {rule.ID}: {e}")
+                print(f"❌ Error running rule {rule.__class__.__name__}: {e}")
         
         print(f"✅ Analysis complete. Found {len(all_findings)} issue(s).")
         return all_findings

@@ -24,23 +24,19 @@ class RuleConfig(BaseModel):
 
 
 class RulesConfig(BaseModel):
-    """Configuration for all rules."""
+    """Configuration for all rules using human-readable class names."""
     # Script validation rules
-    SCRIPT001: RuleConfig = Field(default_factory=RuleConfig, description="Script var usage rule")
-    SCRIPT002: RuleConfig = Field(default_factory=RuleConfig, description="Script nesting level rule")
-    SCRIPT003: RuleConfig = Field(default_factory=RuleConfig, description="Script complexity rule")
+    ScriptVarUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts use 'let' or 'const' instead of 'var' (best practice)")
+    ScriptNestingLevelRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't have excessive nesting levels (max 4 levels)")
+    ScriptComplexityRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't exceed complexity thresholds (max 10 cyclomatic complexity)")
     
     # Structure validation rules
-    STRUCT001: RuleConfig = Field(default_factory=RuleConfig, description="Widget ID required rule")
-    STRUCT002: RuleConfig = Field(default_factory=RuleConfig, description="Widget ID lower camel case rule")
-    STRUCT003: RuleConfig = Field(default_factory=RuleConfig, description="Footer pod required rule")
+    WidgetIdRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all widgets have required 'id' field")
+    WidgetIdLowerCamelCaseRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures widget IDs follow lowerCamelCase convention")
+    FooterPodRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures footer widgets utilize pods")
     
     # Style validation rules
-    STYLE001: RuleConfig = Field(default_factory=RuleConfig, description="Widget ID lower camel case rule")
-    STYLE002: RuleConfig = Field(default_factory=RuleConfig, description="Endpoint name lower camel case rule")
-    
-    # PMD script rules (if they exist)
-    PMD001: RuleConfig = Field(default_factory=RuleConfig, description="PMD script var usage rule")
+    EndpointNameLowerCamelCaseRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoint names follow lowerCamelCase convention")
 
 
 class FileProcessingConfig(BaseModel):
@@ -95,24 +91,24 @@ class ExtendReviewerConfig(BaseModel):
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(self.model_dump(), f, indent=2, ensure_ascii=False)
     
-    def is_rule_enabled(self, rule_id: str) -> bool:
-        """Check if a specific rule is enabled."""
-        rule_config = getattr(self.rules, rule_id, None)
+    def is_rule_enabled(self, rule_class_name: str) -> bool:
+        """Check if a specific rule is enabled using class name."""
+        rule_config = getattr(self.rules, rule_class_name, None)
         if rule_config is None:
-            # If rule ID not found in config, assume it's enabled
+            # If rule class name not found in config, assume it's enabled
             return True
         return rule_config.enabled
     
-    def get_rule_severity(self, rule_id: str, default_severity: str) -> str:
-        """Get the severity for a rule, using override if configured."""
-        rule_config = getattr(self.rules, rule_id, None)
+    def get_rule_severity(self, rule_class_name: str, default_severity: str) -> str:
+        """Get the severity for a rule using class name, using override if configured."""
+        rule_config = getattr(self.rules, rule_class_name, None)
         if rule_config is None or rule_config.severity_override is None:
             return default_severity
         return rule_config.severity_override.value
     
-    def get_rule_settings(self, rule_id: str) -> Dict[str, Any]:
-        """Get custom settings for a rule."""
-        rule_config = getattr(self.rules, rule_id, None)
+    def get_rule_settings(self, rule_class_name: str) -> Dict[str, Any]:
+        """Get custom settings for a rule using class name."""
+        rule_config = getattr(self.rules, rule_class_name, None)
         if rule_config is None:
             return {}
         return rule_config.custom_settings
