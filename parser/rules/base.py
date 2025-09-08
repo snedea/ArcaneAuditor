@@ -108,37 +108,39 @@ class Rule(ABC):
         if not file_content or not script_content:
             return 1
         
-        # Extract a unique identifier from the script content for matching
-        script_match = re.search(r'<%(.*?)%>', script_content, re.DOTALL)
-        if not script_match:
-            return 1
+        # Normalize both strings for comparison
+        # The script_content has escaped newlines (\n), but file_content has actual newlines
+        normalized_script = script_content.replace('\\n', '\n')
         
-        script_body = script_match.group(1).strip()
-        
-        # Find a unique part of the script content to match
-        # Look for the first non-comment, non-whitespace line
-        script_lines = script_body.split('\n')
-        unique_identifier = None
-        for line in script_lines:
-            line = line.strip()
-            if line and not line.startswith('//'):
-                # Take the first significant line as identifier
-                unique_identifier = line
-                break
-        
-        if not unique_identifier:
-            return 1
-        
-        # Find this identifier in the original file
+        # Find the specific script content within the file
+        # We need to find where this exact script content appears in the file
         lines = file_content.split('\n')
         for i, line in enumerate(lines):
-            if unique_identifier in line:
-                # The AST parser treats the script content as starting from line 1
-                # So we need to return the line where the actual script content starts
-                # (not the line with the <% tag)
+            if normalized_script.strip() in line:
+                # The AST parser treats the stripped script content as starting from line 1
+                # So we need to return the line where the script content starts
                 return i + 1  # Convert to 1-based line numbering
         
+        # Fallback: find the line with the <% tag (for cases where script content is too long)
+        for i, line in enumerate(lines):
+            if '<%' in line and 'script' in line.lower():
+                # Look for the "script" field specifically
+                # The AST parser treats the stripped script content as starting from line 1
+                # But the stripped content starts on the next line after the <% tag
+                # So we need to return the line where the stripped content starts
+                return i + 2  # Convert to 1-based line numbering and add 1 for the next line
+        
         return 1  # Default to line 1 if not found
+    
+    def _strip_pmd_wrappers(self, script_content):
+        """Strip <% and %> wrappers from PMD script content."""
+        content = script_content.strip()
+        if content.startswith('<%') and content.endswith('%>'):
+            content = content[2:-2].strip()
+        
+        # Convert escaped newlines to actual newlines for proper line number tracking
+        content = content.replace('\\n', '\n')
+        return content
 
     def traverse_widgets_recursively(self, widgets: List[Dict[str, Any]], widget_path: str = "") -> Generator[Tuple[Dict[str, Any], str, int], None, None]:
         """

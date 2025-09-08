@@ -195,112 +195,25 @@ class WidgetIdLowerCamelCaseRule(ValidationRule):
         field_name = self.get_field_to_validate(entity_info)
         
         return validate_lower_camel_case(field_value, field_name, entity_type, entity_name)
-
-
-class FooterPodRequiredRule(Rule):
-    """Ensures footer uses pod structure - either direct pod or footer with pod children."""
     
-    ID = "STRUCT003"
-    DESCRIPTION = "Ensures footer uses pod structure (direct pod or footer with pod children)"
-    SEVERITY = "WARNING"
-
-    def analyze(self, context):
-        """Main entry point - analyze all PMD models in the context."""
-        for pmd_model in context.pmds.values():
-            yield from self.visit_pmd(pmd_model)
-    
-    def visit_pmd(self, pmd_model: PMDModel):
-        """Analyzes the footer structure within a PMD model."""
-        if not pmd_model.presentation or not pmd_model.presentation.footer:
-            return
-
-        footer = pmd_model.presentation.footer
-        if not isinstance(footer, dict):
-            return
-
-        # Check if footer is missing entirely
-        if not footer:
-            yield Finding(
-                rule=self,
-                message="Footer section is missing. Footer should use pod structure.",
-                line=1,
-                column=1,
-                file_path=pmd_model.file_path
-            )
-            return
-
-        # Check if footer uses direct pod structure
-        if footer.get('type') == 'pod':
-            # Direct pod structure - check if it has podId
-            if 'podId' not in footer:
-                yield Finding(
-                    rule=self,
-                    message="Footer pod is missing required 'podId' field.",
-                    line=1,
-                    column=1,
-                    file_path=pmd_model.file_path
-                )
-            return
-
-        # Check if footer uses footer type with pod children
-        if footer.get('type') == 'footer':
-            children = footer.get('children', [])
-            if not isinstance(children, list) or len(children) == 0:
-                yield Finding(
-                    rule=self,
-                    message="Footer with 'footer' type must have 'children' array with pod elements.",
-                    line=1,
-                    column=1,
-                    file_path=pmd_model.file_path
-                )
-                return
-
-            # Check if all children are pods
-            pod_found = False
-            for i, child in enumerate(children):
-                if not isinstance(child, dict):
-                    continue
-                    
-                if child.get('type') == 'pod':
-                    pod_found = True
-                    # Check if pod has podId
-                    if 'podId' not in child:
-                        yield Finding(
-                            rule=self,
-                            message=f"Footer pod at index {i} is missing required 'podId' field.",
-                            line=1,
-                            column=1,
-                            file_path=pmd_model.file_path
-                        )
-                else:
-                    yield Finding(
-                        rule=self,
-                        message=f"Footer child at index {i} has type '{child.get('type', 'unknown')}'. Only 'pod' type is allowed in footer children.",
-                        line=1,
-                        column=1,
-                        file_path=pmd_model.file_path
-                    )
-
-            if not pod_found:
-                yield Finding(
-                    rule=self,
-                    message="Footer with 'footer' type must contain at least one 'pod' child.",
-                    line=1,
-                    column=1,
-                    file_path=pmd_model.file_path
-                )
-            return
-
-        # If we get here, footer has invalid structure
-        footer_type = footer.get('type', 'unknown')
-        yield Finding(
-            rule=self,
-            message=f"Footer has invalid type '{footer_type}'. Footer must use 'pod' type or 'footer' type with pod children.",
-            line=1,
-            column=1,
-            file_path=pmd_model.file_path
-        )
-
+    def get_line_number(self, pmd_model: PMDModel, entity_info: Dict[str, Any]) -> int:
+        """Get line number for the widget ID field."""
+        entity = entity_info['entity']
+        entity_path = entity_info.get('entity_path', '')
+        
+        # Search for the widget ID in the source content
+        if hasattr(pmd_model, 'source_content') and pmd_model.source_content:
+            source_content = pmd_model.source_content
+            widget_id = entity.get('id', '')
+            
+            if widget_id:
+                # Find the line containing the widget ID
+                lines = source_content.split('\n')
+                for i, line in enumerate(lines):
+                    if f'"id": "{widget_id}"' in line or f'"id":"{widget_id}"' in line:
+                        return i + 1  # Convert to 1-based line numbering
+        
+        return 1  # Default fallback
 
 class EndpointNameLowerCamelCaseRule(ValidationRule):
     """Validates that endpoint names follow lowerCamelCase convention (style guide)."""
@@ -357,6 +270,26 @@ class EndpointNameLowerCamelCaseRule(ValidationRule):
         field_name = self.get_field_to_validate(entity_info)
         
         return validate_lower_camel_case(field_value, field_name, entity_type, entity_name)
+    
+    def get_line_number(self, pmd_model: PMDModel, entity_info: Dict[str, Any]) -> int:
+        """Get line number for the endpoint name field."""
+        entity = entity_info['entity']
+        entity_context = entity_info.get('entity_context', '')
+        entity_index = entity_info.get('entity_index', 0)
+        
+        # Search for the endpoint name in the source content
+        if hasattr(pmd_model, 'source_content') and pmd_model.source_content:
+            source_content = pmd_model.source_content
+            endpoint_name = entity.get('name', '')
+            
+            if endpoint_name:
+                # Find the line containing the endpoint name
+                lines = source_content.split('\n')
+                for i, line in enumerate(lines):
+                    if f'"name": "{endpoint_name}"' in line or f'"name":"{endpoint_name}"' in line:
+                        return i + 1  # Convert to 1-based line numbering
+        
+        return 1  # Default fallback
 
 
 class FooterPodRequiredRule(Rule):
