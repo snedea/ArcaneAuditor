@@ -1,5 +1,8 @@
 ?program: source_elements?
 
+%import common.WS
+%ignore WS
+
 ?source_elements: statement+
 
 ?statement: block
@@ -17,7 +20,7 @@
 
 ?statement_list: statement+
 
-?variable_statement: VAR variable_declaration_list eos
+?variable_statement: VAR variable_declaration_list eos?
 
 ?variable_declaration_list: variable_declaration ("," variable_declaration)*
 
@@ -31,16 +34,16 @@
 
 ?if_statement: IF "(" expression_sequence ")" statement (ELSE statement)?
 
-?iteration_statement: DO statement WHILE "(" expression_sequence ")" eos -> do_statement
+?iteration_statement: DO statement WHILE "(" expression_sequence ")" eos? -> do_statement
     | WHILE "(" expression_sequence ")" statement -> while_statement
     | FOR "(" expression_sequence? ";" expression_sequence? ";" expression_sequence? ")" statement -> for_statement
     | FOR "(" VAR variable_declaration_list ";" expression_sequence? ";" expression_sequence? ")" statement -> for_var_statement
     
-?continue_statement: CONTINUE [IDENTIFIER] eos
+?continue_statement: CONTINUE [IDENTIFIER] eos?
 
-?break_statement: BREAK [IDENTIFIER] eos
+?break_statement: BREAK [IDENTIFIER] eos?
 
-?return_statement: RETURN [expression_sequence] eos
+?return_statement: RETURN [expression_sequence] eos?
 
 ?labelled_statement: IDENTIFIER ":" statement
 
@@ -54,7 +57,9 @@
 
 ?elision: ","+
 
-?object_literal: "{:" (property_name_and_value_list ","?)? ":}"
+?object_literal: "{:" (property_name_and_value_list ","?)? ":}" -> workday_object_literal
+    | "{:" "}" -> empty_workday_object
+
 
 ?property_name_and_value_list: property_assignment ("," property_assignment)*
 
@@ -122,14 +127,14 @@
 
 ?eos: ";"
 
-REGULAR_EXPRESSION_LITERAL: "/[^/\\r\\n]+/[a-zA-Z$_]*"
+REGULAR_EXPRESSION_LITERAL: /\/[^\/\\r\\n]+\/[a-zA-Z$_]*/
 
 NULL_LITERAL: "null"
 BOOLEAN_LITERAL: "true" | "false"
 
-DECIMAL_LITERAL: "/(0|[1-9][0-9]*)\.[0-9]*([eE][+-]?[0-9]+)?|\.[0-9]+([eE][+-]?[0-9]+)?|(0|[1-9][0-9]*)([eE][+-]?[0-9]+)?/"
-HEX_INTEGER_LITERAL:"/0[xX][0-9a-fA-F]+/"
-OCTAL_INTEGER_LITERAL: "/0[0-7]+/"
+DECIMAL_LITERAL: /(0|[1-9][0-9]*)\.[0-9]*([eE][+-]?[0-9]+)?|\.[0-9]+([eE][+-]?[0-9]+)?|(0|[1-9][0-9]*)([eE][+-]?[0-9]+)?/
+HEX_INTEGER_LITERAL: /0[xX][0-9a-fA-F]+/
+OCTAL_INTEGER_LITERAL: /0[0-7]+/
 
 BREAK: "break"
 DO: "do"
@@ -147,7 +152,7 @@ IF: "if"
 CONST: "const"
 LET: "let"
 
-IDENTIFIER: "/[\p{L}$_][\p{L}\p{Mn}\p{Nd}\p{Pc}\u200C\u200D$_]*/"
+IDENTIFIER: /[a-zA-Z_$][a-zA-Z0-9_$]*/
 STRING_LITERAL: /"([^"\\\r\n]|\\[^\r\n]|\\\r?\n)*"|'([^'\\\r\n]|\\[^\r\n]|\\\r?\n)*'/
 
 // Punctuation and Operators
