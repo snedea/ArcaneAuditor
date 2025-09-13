@@ -128,7 +128,7 @@ const ConfigurationPanel: React.FC = () => {
   }
 
   return (
-    <div className="results">
+    <div className="configuration-panel">
       <h3>
         <Settings className="inline-icon" />
         Rule Configuration
@@ -178,7 +178,7 @@ const ConfigurationPanel: React.FC = () => {
         <h4>Available Rules</h4>
         <div className="space-y-3">
           {rules.map((rule) => (
-            <div key={rule.name} className="border rounded p-3 bg-white">
+            <div key={rule.name} className="rule-item">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <input
@@ -200,7 +200,7 @@ const ConfigurationPanel: React.FC = () => {
                   <option value="ERROR">Error</option>
                 </select>
               </div>
-              <p className="text-sm text-gray-600">{rule.description}</p>
+              <p className="rule-description">{rule.description}</p>
             </div>
           ))}
         </div>

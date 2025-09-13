@@ -52,6 +52,9 @@ CONFIG_DIR.mkdir(exist_ok=True)
 # Serve static files if they exist
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    # Also serve assets directly
+    if (STATIC_DIR / "assets").exists():
+        app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets")), name="assets")
 
 # Global analysis state (simple in-memory storage for internal use)
 analysis_cache: Dict[str, Dict[str, Any]] = {}
@@ -174,14 +177,15 @@ async def serve_frontend():
                         body: formData
                     });
 
-                    const data = await response.json();
-                    
-                    if (response.ok) {
-                        displayResults(data);
-                    } else {
-                        throw new Error(data.detail || 'Analysis failed');
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Server error: ${response.status} - ${errorText}`);
                     }
+
+                    const data = await response.json();
+                    displayResults(data);
                 } catch (error) {
+                    console.error('Upload error:', error);
                     uploadArea.innerHTML = '<p>❌ Error: ' + error.message + '</p><button onclick="resetUpload()">Try Again</button>';
                 }
             }

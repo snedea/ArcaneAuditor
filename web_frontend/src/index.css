@@ -3,9 +3,9 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light;
+  color: #213547;
+  background-color: #ffffff;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -20,6 +20,8 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #ffffff;
+  color: #213547;
 }
 
 #root {
@@ -29,18 +31,25 @@ body {
   text-align: center;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-}
+/* Light theme only - removed dark theme support for better readability */
 
 /* Custom styles for Extend Reviewer */
 .app {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
+  color: #213547;
+  background-color: #ffffff;
+}
+
+.app h1 {
+  color: #213547;
+  margin-bottom: 10px;
+}
+
+.app p {
+  color: #495057;
+  margin-bottom: 15px;
 }
 
 .upload-area {
@@ -174,4 +183,71 @@ button.secondary:hover {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Configuration panel specific styles */
+.configuration-panel {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.configuration-panel h3 {
+  color: #213547;
+  margin-top: 0;
+}
+
+.configuration-panel h4 {
+  color: #213547;
+  margin-bottom: 15px;
+}
+
+.configuration-panel p {
+  color: #6c757d;
+}
+
+.configuration-panel label {
+  color: #213547;
+  font-weight: 500;
+}
+
+.configuration-panel input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.configuration-panel input[type="text"],
+.configuration-panel select {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: #213547;
+  background-color: white;
+}
+
+.configuration-panel .rule-item {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 10px;
+}
+
+.configuration-panel .rule-item strong {
+  color: #213547;
+}
+
+.configuration-panel .rule-description {
+  color: #6c757d;
+  font-size: 0.9em;
+  margin-top: 5px;
+}
+
+.inline-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.5em;
+  vertical-align: middle;
 }
