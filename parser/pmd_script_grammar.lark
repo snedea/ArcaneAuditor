@@ -68,8 +68,7 @@
 ?property_assignment: property_name ":" single_expression -> property_expression_assignment
     | "get" property_name "(" ")" "{" function_body "}" -> property_getter
     | "set" property_name "(" property_set_parameter_list ")" "{" function_body "}" -> property_setter
- 
-
+    
 ?property_name: STRING_LITERAL
     | numeric_literal
 
@@ -81,41 +80,82 @@
 
 ?expression_sequence: single_expression ("," single_expression)*
 
-?single_expression: FUNCTION IDENTIFIER? "(" formal_parameter_list? ")" "{" function_body "}" -> function_expression
-    | single_expression "[" expression_sequence "]" -> member_index_expression
-    | single_expression "." identifier_name -> member_dot_expression
-    | single_expression "?." identifier_name -> optional_member_dot_expression
-    | single_expression arguments -> arguments_expression
-    | single_expression "++" -> post_increment_expression
-    | single_expression "--" -> post_decrease_expression
-    | TYPEOF single_expression -> typeof_expression
-    | EMPTY single_expression -> empty_expression
+
+// --- START: CORRECTED EXPRESSION HIERARCHY ---
+
+// The main entry point for an expression, starting with the lowest precedence.
+?single_expression: assignment_expression
+
+// Precedence Level: Assignment (Right-associative)
+?assignment_expression: ternary_expression
+    | ternary_expression "=" expression_sequence -> assignment_expression
+    | ternary_expression assignment_operator expression_sequence -> assignment_operator_expression
+
+// Precedence Level: Ternary (Right-associative)
+?ternary_expression: logical_or_expression ("?" assignment_expression ":" assignment_expression)?
+
+// Precedence Level: Logical OR
+?logical_or_expression: logical_and_expression ("||" logical_and_expression)*
+
+// Precedence Level: Logical AND
+?logical_and_expression: bit_or_expression ("&&" bit_or_expression)*
+
+// Precedence Level: Bitwise OR
+?bit_or_expression: bit_x_or_expression ("|" bit_x_or_expression)*
+
+// Precedence Level: Bitwise XOR
+?bit_x_or_expression: bit_and_expression ("^" bit_and_expression)*
+
+// Precedence Level: Bitwise AND
+?bit_and_expression: equality_expression ("&" equality_expression)*
+
+// Precedence Level: Equality
+?equality_expression: relational_expression (("==" | "!=") relational_expression)*
+
+// Precedence Level: Relational
+?relational_expression: bit_shift_expression ((">" | "<" | "<=" | ">=") bit_shift_expression)*
+
+// Precedence Level: Bitwise Shift
+?bit_shift_expression: additive_expression (("<<" | ">>") additive_expression)*
+
+// Precedence Level: Additive
+?additive_expression: multiplicative_expression (("+" | "-") multiplicative_expression)*
+
+// Precedence Level: Multiplicative
+?multiplicative_expression: unary_expression (("*" | "/" | "%") unary_expression)*
+
+// Precedence Level: Unary (Prefix)
+?unary_expression: PLUS_PLUS unary_expression -> pre_increment_expression
+    | MINUS_MINUS unary_expression -> pre_decrease_expression
+    | PLUS unary_expression -> unary_plus_expression
+    | MINUS unary_expression -> unary_minus_expression
+    | BIT_NOT unary_expression -> bit_not_expression
+    | NOT unary_expression -> not_expression
+    | TYPEOF unary_expression -> typeof_expression
+    | EMPTY unary_expression -> empty_expression
     | EMPTY "(" single_expression ")" -> empty_function_expression
-    | "++" single_expression -> pre_increment_expression
-    | "--" single_expression -> pre_decrease_expression
-    | "+" single_expression -> unary_plus_expression
-    | "-" single_expression -> unary_minus_expression
-    | "~" single_expression -> bit_not_expression
-    | "!" single_expression -> not_expression
-    | single_expression ("*" | "/" | "%") single_expression -> multiplicative_expression
-    | single_expression ("+" | "-") single_expression -> additive_expression
-    | single_expression ("<<" | ">>") single_expression -> bit_shift_expression
-    | single_expression ("<" | ">" | "<=" | ">=") single_expression -> relational_expression
-    | single_expression ("==" | "!=") single_expression -> equality_expression
-    | single_expression "&" single_expression -> bit_and_expression
-    | single_expression "^" single_expression -> bit_x_or_expression
-    | single_expression "|" single_expression -> bit_or_expression
-    | single_expression "&&" single_expression -> logical_and_expression
-    | single_expression "||" single_expression -> logical_or_expression
-    | single_expression "??" single_expression -> null_coalescing_expression
-    | single_expression "?" single_expression ":" single_expression -> ternary_expression
-    | single_expression "=" expression_sequence -> assignment_expression
-    | single_expression assignment_operator expression_sequence -> assignment_operator_expression
-    | IDENTIFIER -> identifier_expression
+    | postfix_expression
+
+// Precedence Level: Postfix and Member Access
+?postfix_expression: primary_expression
+    | postfix_expression "[" expression_sequence "]" -> member_index_expression
+    | postfix_expression "." identifier_name -> member_dot_expression
+    | postfix_expression "?." identifier_name -> optional_member_dot_expression
+    | postfix_expression arguments -> arguments_expression
+    | postfix_expression PLUS_PLUS -> post_increment_expression
+    | postfix_expression MINUS_MINUS -> post_decrease_expression
+
+// Precedence Level: Primary (Highest)
+// These are the fundamental building blocks of expressions.
+?primary_expression: IDENTIFIER -> identifier_expression
     | literal -> literal_expression
     | array_literal -> array_literal_expression
     | object_literal -> object_literal_expression
     | "(" expression_sequence ")" -> parenthesized_expression
+    | FUNCTION IDENTIFIER? "(" formal_parameter_list? ")" "{" function_body "}" -> function_expression
+
+// --- END: CORRECTED EXPRESSION HIERARCHY ---
+
 
 ?assignment_operator: "*=" | "/=" | "%=" | "+=" | "-=" | "<<=" | ">>=" | "&=" | "^=" | "|="
 
