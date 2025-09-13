@@ -10,6 +10,7 @@ This tool focuses on structure and naming compliance for code reviewers.
 from .base import Rule, Finding
 from .base_validation import ValidationRule
 from .common_validations import validate_lower_camel_case
+from .line_number_utils import LineNumberUtils
 from ..models import PMDModel
 from typing import Dict, Any, List
 
@@ -198,19 +199,10 @@ class WidgetIdLowerCamelCaseRule(ValidationRule):
     def get_line_number(self, pmd_model: PMDModel, entity_info: Dict[str, Any]) -> int:
         """Get line number for the widget ID field."""
         entity = entity_info['entity']
-        entity_path = entity_info.get('entity_path', '')
+        widget_id = entity.get('id', '')
         
-        # Search for the widget ID in the source content
-        if hasattr(pmd_model, 'source_content') and pmd_model.source_content:
-            source_content = pmd_model.source_content
-            widget_id = entity.get('id', '')
-            
-            if widget_id:
-                # Find the line containing the widget ID
-                lines = source_content.split('\n')
-                for i, line in enumerate(lines):
-                    if f'"id": "{widget_id}"' in line or f'"id":"{widget_id}"' in line:
-                        return i + 1  # Convert to 1-based line numbering
+        if widget_id:
+            return LineNumberUtils.find_field_line_number(pmd_model, 'id', widget_id)
         
         return 1  # Default fallback
 
@@ -273,20 +265,10 @@ class EndpointNameLowerCamelCaseRule(ValidationRule):
     def get_line_number(self, pmd_model: PMDModel, entity_info: Dict[str, Any]) -> int:
         """Get line number for the endpoint name field."""
         entity = entity_info['entity']
-        entity_context = entity_info.get('entity_context', '')
-        entity_index = entity_info.get('entity_index', 0)
+        endpoint_name = entity.get('name', '')
         
-        # Search for the endpoint name in the source content
-        if hasattr(pmd_model, 'source_content') and pmd_model.source_content:
-            source_content = pmd_model.source_content
-            endpoint_name = entity.get('name', '')
-            
-            if endpoint_name:
-                # Find the line containing the endpoint name
-                lines = source_content.split('\n')
-                for i, line in enumerate(lines):
-                    if f'"name": "{endpoint_name}"' in line or f'"name":"{endpoint_name}"' in line:
-                        return i + 1  # Convert to 1-based line numbering
+        if endpoint_name:
+            return LineNumberUtils.find_field_line_number(pmd_model, 'name', endpoint_name)
         
         return 1  # Default fallback
 
@@ -451,17 +433,83 @@ class FooterPodRequiredRule(Rule):
 
     def _get_footer_line_number(self, pmd_model: PMDModel) -> int:
         """Get approximate line number for the footer section."""
-        try:
-            # Use source_content instead of reading from file_path
-            if not pmd_model.source_content:
-                return 1
-            lines = pmd_model.source_content.split('\n')
-            
-            # Look for the footer section
-            for i, line in enumerate(lines):
-                if '"footer"' in line:
-                    return i + 1  # Convert to 1-based line numbering
-            
-            return 1  # Default to line 1 if not found
-        except Exception:
-            return 1
+        return LineNumberUtils.find_section_line_number(pmd_model, 'footer')
+
+
+class EndpointFailOnStatusCodesRule(Rule):
+    """Ensures endpoints have proper failOnStatusCodes structure with required codes 400 and 403."""
+    
+    ID = "STRUCT004"
+    DESCRIPTION = "Ensures endpoints have failOnStatusCodes with minimum required codes 400 and 403"
+    SEVERITY = "WARNING"
+
+    def analyze(self, context):
+        """Main entry point - analyze all PMD models in the context."""
+        for pmd_model in context.pmds.values():
+            yield from self.visit_pmd(pmd_model)
+    
+    def visit_pmd(self, pmd_model: PMDModel):
+        """Analyzes endpoints for proper failOnStatusCodes structure."""
+        # Check inbound endpoints
+        if pmd_model.inboundEndpoints:
+            for i, endpoint in enumerate(pmd_model.inboundEndpoints):
+                if isinstance(endpoint, dict):
+                    yield from self._check_endpoint_fail_on_status_codes(endpoint, pmd_model, 'inbound', i)
+        
+        # Check outbound endpoints
+        if pmd_model.outboundEndpoints:
+            if isinstance(pmd_model.outboundEndpoints, list):
+                for i, endpoint in enumerate(pmd_model.outboundEndpoints):
+                    if isinstance(endpoint, dict):
+                        yield from self._check_endpoint_fail_on_status_codes(endpoint, pmd_model, 'outbound', i)
+
+    def _check_endpoint_fail_on_status_codes(self, endpoint, pmd_model, endpoint_type, index):
+        """Check if an endpoint has proper failOnStatusCodes structure."""
+        endpoint_name = endpoint.get('name')
+        fail_on_status_codes = endpoint.get('failOnStatusCodes', None)
+        
+        # Check if failOnStatusCodes exists
+        if fail_on_status_codes is None:
+            line_number = self._get_endpoint_line_number(pmd_model, endpoint_name, endpoint_type)
+            yield Finding(
+                rule=self,
+                message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is missing required 'failOnStatusCodes' field.",
+                line=line_number,
+                column=1,
+                file_path=pmd_model.file_path
+            )
+            return
+
+        codes_found = set()
+        for _, status_code_entry in enumerate(fail_on_status_codes):
+            code = status_code_entry['code']
+            codes_found.add(code)
+        
+        # Check for required codes 400 and 403
+        required_codes = {'400', '403'}
+        # Remove codes found from required codes. Empty set if all required codes are found.
+        missing_codes = required_codes - codes_found
+        
+        # If there are missing codes, yield a finding
+        if missing_codes:
+            line_number = self._get_fail_on_status_codes_line_number(pmd_model, endpoint_name, endpoint_type)
+            missing_codes_str = ', '.join(sorted(missing_codes))
+            yield Finding(
+                rule=self,
+                message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is missing required status codes: {missing_codes_str}.",
+                line=line_number,
+                column=1,
+                file_path=pmd_model.file_path
+            )
+
+    def _get_endpoint_line_number(self, pmd_model: PMDModel, endpoint_name: str, endpoint_type: str) -> int:
+        """Get line number for the endpoint."""
+        if endpoint_name:
+            return LineNumberUtils.find_field_line_number(pmd_model, 'name', endpoint_name)
+        return 1
+
+    def _get_fail_on_status_codes_line_number(self, pmd_model: PMDModel, endpoint_name: str, endpoint_type: str) -> int:
+        """Get line number for the failOnStatusCodes field."""
+        if endpoint_name:
+            return LineNumberUtils.find_field_after_entity(pmd_model, 'name', endpoint_name, 'failOnStatusCodes')
+        return 1

@@ -8,6 +8,7 @@ Note: Basic script validation (syntax errors, etc.) is handled by the compiler.
 This tool focuses on script quality and best practices for code reviewers.
 """
 from .base import Rule, Finding
+from .line_number_utils import LineNumberUtils
 from ..models import PMDModel, ProjectContext
 import re
 from typing import Set, List, Tuple, Optional, Generator
@@ -1100,7 +1101,6 @@ class ScriptNullSafetyRule(Rule):
         if not pmd_model.script:
             return 1
             
-
-        # Calculate the script line offset
-        line_offset = self._calculate_script_line_offset(pmd_model.source_content, pmd_model.script)
+        # Calculate the script line offset using the utility
+        line_offset = LineNumberUtils.calculate_script_line_offset(pmd_model, pmd_model.script)
         return line_offset + relative_line - 1
