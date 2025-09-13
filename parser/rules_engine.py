@@ -35,6 +35,10 @@ class RulesEngine:
                     if member_obj.__name__ == 'Rule':
                         continue
                     
+                    # Skip example rules (flagged with IS_EXAMPLE = True)
+                    if hasattr(member_obj, 'IS_EXAMPLE') and member_obj.IS_EXAMPLE:
+                        continue
+                    
                     # Check if rule is enabled in configuration using class name
                     if self.config.is_rule_enabled(member_obj.__name__):
                         print(f"Discovered rule: {member_obj.__name__}")

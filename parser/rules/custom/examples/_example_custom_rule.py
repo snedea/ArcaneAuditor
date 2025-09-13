@@ -21,6 +21,8 @@ class CustomScriptCommentQualityRule(Rule):
     - Finding generation
     """
     
+    IS_EXAMPLE = True  # Flag to exclude from automatic discovery
+    
     def __init__(self):
         super().__init__()
         self.rule_id = "CUSTOM001"

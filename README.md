@@ -45,7 +45,6 @@ extend-reviewer/
 ├── pyproject.toml                    # Project configuration
 ├── README.md                         # This file
 ├── RULE_BREAKDOWN.md                 # Detailed rule documentation
-├── RULE_IDEAS.md                     # Future rule ideas
 │
 ├── file_processing/                  # File processing pipeline
 │   ├── config.py                     # Configuration models
@@ -122,8 +121,6 @@ extend-reviewer/
 │   │       └── user/                 # User's actual custom rules
 │   │           └── __init__.py
 │   │
-│   └── script_validation_rules.py    # Legacy (documentation only)
-│   └── structure_validation_rules.py # Legacy (documentation only)
 │
 ├── tests/                            # Unit tests
 │   ├── test_app_parser.py
@@ -140,8 +137,6 @@ extend-reviewer/
 │   ├── model/
 │   ├── presentation/
 │   └── template_bad_nkhlsq.zip      # Sample with violations
-│
-└── temp/                             # Temporary files
 ```
 
 ## 🔧 Validation Rules
@@ -202,18 +197,32 @@ The rules engine automatically discovers all validation rules using `pkgutil.wal
 
 ### Adding New Rules
 
-#### Official Rules
+> **⚠️ Important**: To avoid merge conflicts when updating the official codebase, **always use the Custom Rules system** for user-defined validation rules. Only modify official rules if you are a core contributor to the project.
+
+#### For Users: Custom Rules (Recommended)
+**Use this approach for your own validation rules:**
+
+1. Place new rules in `parser/rules/custom/user/`
+2. Use CUSTOM### IDs (CUSTOM001, CUSTOM002, etc.)
+3. Follow patterns in `parser/rules/custom/examples/`
+4. See `parser/rules/custom/README.md` for detailed guide
+
+**Benefits:**
+- ✅ No merge conflicts when updating the official codebase
+- ✅ Rules persist through official updates
+- ✅ Easy to share and version control your custom rules
+- ✅ Automatic discovery by the rules engine
+
+#### For Core Contributors: Official Rules
+**Only for core project maintainers adding official validation rules:**
+
 1. Choose appropriate category and subdirectory
 2. Use next available ID (SCRIPT015, STRUCT007, etc.)
 3. Follow existing patterns and naming conventions
 4. Add comprehensive tests
 5. Update `RULE_BREAKDOWN.md`
 
-#### Custom Rules
-1. Place in `parser/rules/custom/user/`
-2. Use CUSTOM### IDs (CUSTOM001, CUSTOM002, etc.)
-3. Follow patterns in `parser/rules/custom/examples/`
-4. See `parser/rules/custom/README.md` for detailed guide
+**Note**: Official rules should be minimal and cover only the most common validation needs. Specialized or organization-specific rules belong in the custom rules system.
 
 ### Testing
 
@@ -222,8 +231,8 @@ The rules engine automatically discovers all validation rules using `pkgutil.wal
 uv run pytest
 
 # Run specific test categories
-uv run pytest tests/test_pmd_script_rules.py
-uv run pytest tests/test_pmd_structure_rules.py
+uv run pytest tests/test_all_script_rules.py
+uv run pytest tests/test_all_structure_rules.py
 uv run pytest tests/test_rules_engine.py
 
 # Test with sample data
@@ -237,6 +246,11 @@ Create custom configurations in JSON format:
 ```json
 {
   "rules": {
+    "CustomScriptCommentQualityRule": {
+      "enabled": true,
+      "severity": "WARNING",
+      "min_comment_density": 0.15
+    },
     "ScriptVarUsageRule": {
       "enabled": true,
       "severity": "ERROR"
@@ -251,35 +265,11 @@ Create custom configurations in JSON format:
 ## 📚 Documentation
 
 - **RULE_BREAKDOWN.md**: Detailed rule descriptions with examples
-- **RULE_IDEAS.md**: Future rule concepts and ideas
 - **parser/rules/custom/README.md**: Custom rules development guide
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add your changes with tests
-4. Update documentation as needed
-5. Submit a pull request
-
-### Code Style
-
-- Follow existing patterns and conventions
-- Use lowerCamelCase for entities (per project standards)
-- Add comprehensive error handling
-- Include unit tests for new functionality
-- Update documentation for user-facing changes
 
 ## 📄 License
 
-[Add your license information here]
-
-## 🆘 Support
-
-For issues, questions, or contributions:
-- Create an issue in the repository
-- Check existing documentation
-- Review the rule breakdown for specific validation details
+[TBD]
 
 ---
 

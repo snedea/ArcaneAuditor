@@ -15,11 +15,13 @@ custom/
 ├── README.md                     # This documentation
 ├── examples/                     # Example implementations
 │   ├── __init__.py
-│   └── example_custom_rule.py    # Sample custom rule
+│   └── _example_custom_rule.py   # Sample custom rule (excluded from discovery)
 └── user/                         # Your custom rules go here
     ├── __init__.py
     └── [your custom rule files]
 ```
+
+> **Note**: Example files are prefixed with `_` and marked with `IS_EXAMPLE = True` to prevent them from being automatically discovered and run during analysis.
 
 ## 🏷️ Naming Conventions
 
@@ -59,7 +61,34 @@ class CustomScriptMyRule(Rule):
         return findings
 ```
 
-### 2. Rule Types
+### 2. Excluding Example Rules
+
+If you create example rules for demonstration purposes, you can exclude them from automatic discovery:
+
+```python
+class MyExampleRule(Rule):
+    """Example rule for demonstration purposes."""
+    
+    IS_EXAMPLE = True  # This flag excludes the rule from automatic discovery
+    
+    def __init__(self):
+        super().__init__()
+        self.rule_id = "CUSTOM999"  # Use high numbers for examples
+        self.severity = "INFO"
+        self.title = "Example Rule"
+        self.description = "This is just an example"
+    
+    def analyze(self, context: ProjectContext) -> List[Finding]:
+        return []  # Example rule - no actual analysis
+```
+
+**Benefits of using `IS_EXAMPLE = True`:**
+- ✅ Example rules won't run during normal analysis
+- ✅ Keeps example code visible for reference
+- ✅ Prevents confusion with production rules
+- ✅ Allows sharing example code without side effects
+
+### 3. Rule Types
 
 #### Script Rules
 For analyzing PMD Script content:
