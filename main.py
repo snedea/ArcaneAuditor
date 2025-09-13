@@ -4,13 +4,16 @@ from file_processing import FileProcessor
 from parser.rules_engine import RulesEngine
 from parser.app_parser import ModelParser
 from parser.config import ExtendReviewerConfig
+from output.formatter import OutputFormatter, OutputFormat
 
 app = typer.Typer()
 
 @app.command()
 def review_app(
     zip_filepath: Path = typer.Argument(..., exists=True, help="Path to the application .zip file."),
-    config_file: Path = typer.Option(None, "--config", "-c", help="Path to configuration file (JSON)")
+    config_file: Path = typer.Option(None, "--config", "-c", help="Path to configuration file (JSON)"),
+    output_format: str = typer.Option("console", "--format", "-f", help="Output format: console, json, summary, excel"),
+    output_file: Path = typer.Option(None, "--output", "-o", help="Output file path (optional)")
 ):
     """
     Kicks off the analysis of a Workday Extend application archive.
@@ -67,15 +70,53 @@ def review_app(
         rules_engine = RulesEngine(config)
         findings = rules_engine.run(context)
         
-        if findings:
-            typer.echo(f"\nFound {len(findings)} issue(s):")
-            for finding in findings:
-                typer.echo(f"  {finding}")
+        # Format output based on selected format
+        try:
+            format_type = OutputFormat(output_format.lower())
+        except ValueError:
+            typer.secho(f"Invalid output format: {output_format}. Use: console, json, summary, or excel", fg=typer.colors.RED)
+            raise typer.Exit(1)
+        
+        formatter = OutputFormatter(format_type)
+        total_files = len(context.pmds) + len(context.scripts) + (1 if context.amd else 0)
+        total_rules = len(rules_engine.rules)
+        
+        formatted_output = formatter.format_results(findings, total_files, total_rules)
+        
+        # Output to file or console
+        if output_file:
+            if format_type == OutputFormat.EXCEL:
+                # For Excel, the formatter returns the file path
+                import shutil
+                try:
+                    shutil.move(formatted_output, str(output_file))
+                    typer.echo(f"Excel file written to: {output_file}")
+                except Exception as e:
+                    typer.secho(f"Error moving Excel file: {e}", fg=typer.colors.RED)
+                    typer.echo(f"Excel file created at: {formatted_output}")
+            else:
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    f.write(formatted_output)
+                typer.echo(f"Results written to: {output_file}")
         else:
-            typer.echo("No issues found!")
+            if format_type == OutputFormat.EXCEL:
+                typer.echo(f"Excel file created at: {formatted_output}")
+            else:
+                typer.echo(formatted_output)
+        
+        # Set appropriate exit code based on findings
+        if findings:
+            error_count = len([f for f in findings if f.severity == "ERROR"])
+            if error_count > 0:
+                raise typer.Exit(2)  # Exit code 2 for errors
+            else:
+                raise typer.Exit(1)  # Exit code 1 for warnings/info
+        else:
+            raise typer.Exit(0)  # Exit code 0 for no issues
             
     except Exception as e:
         typer.secho(f"Error running analysis: {e}", fg=typer.colors.RED)
+        raise typer.Exit(3)  # Exit code 3 for analysis errors
 
 
 @app.command()

@@ -1,0 +1,24 @@
+{
+  "id": 1,
+  "name": "MyModelObject",
+  "label": "My Model Object",
+  "defaultSecurityDomains": [
+    "ModelSecDomain"
+  ],
+  "defaultCollection": {
+    "name": "myModelObjects",
+    "label": "My Model Objects"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "myField1",
+      "type": "TEXT",
+      "isReferenceId": false,
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "enableIndex": false,
+      "enableSearch": false
+    }
+  ]
+}

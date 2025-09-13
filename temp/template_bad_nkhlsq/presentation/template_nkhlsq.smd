@@ -1,0 +1,19 @@
+{
+  "id": "template_nkhlsq",
+  "applicationId": "template_nkhlsq",
+  "siteId": "template_nkhlsq",
+  "languages": [
+    {
+      "code": "en-US",
+      "description": "English"
+    }
+  ],
+  "siteAuth": {
+    "authTypes": [
+      {
+        "scheme": "SSO",
+        "id": "sso"
+      }
+    ]
+  }
+}

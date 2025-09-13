@@ -1,0 +1,103 @@
+{
+  "id": "sample",
+  "endPoints": [
+    {
+      "name": "GetCurrentWorker",
+      "url": "https://api.workday.com/common/v1/workers/me",
+      "failOnStatusCodes": [
+        {
+          "code": "400"
+        },
+        {
+          "code": "403"
+        }
+      ]
+    },
+    {
+      "name": "getWorkerByName",
+      "baseUrlType": "workday-common",
+      "url": "/workers",
+      "failOnStatusCodes": [
+        {
+          "code": "400"
+        },
+        {
+          "code": "403"
+        }
+      ]
+    }
+  ],
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Workday Extend"
+    },
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "text",
+          "id": "hello",
+          "label": "Hello World!",
+          "value": "Welcome from Workday!"
+        },
+        {
+          "type": "text",
+          "label": "Goodbye",
+          "value": "Goodbye from Workday!"
+        },
+        {
+          "type": "text",
+          "label": "Debug",
+          "value": "I so bad!"
+        }
+      ]
+    },
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "richText",
+          "enabled": "false",
+          "value": "Powered By Workday Extend"
+        }
+      ]
+    }
+  },
+  "onLoad": "<% pageVariables.isGood = true; %>",
+  "onSubmit": "<%
+                  if(!pageVariables.isGood){
+                      textWidget.setError('Not good!')
+                  }
+                 %>",
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postModelData",
+        "baseUrlType": "workday-app",
+        "url": "/someModel",
+        "onSend": "<%
+                  self.data = {:};
+                  return self.data;
+                 %>",
+        "failOnStatusCodes": [
+          {
+            "code": "400"
+          },
+          {
+            "code": "403"
+          }
+        ]
+      }
+    ]
+  },
+  "include": [
+    "util.script"
+  ],
+  "script": "<%
+                const myFunc = function(){
+                    return true;
+                }
+               %>"
+}
