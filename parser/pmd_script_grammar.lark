@@ -45,7 +45,7 @@
 
 ?break_statement: BREAK [IDENTIFIER] eos?
 
-?return_statement: RETURN [expression_sequence] eos?
+?return_statement: RETURN [single_expression] eos?
 
 ?labelled_statement: IDENTIFIER ":" statement
 
@@ -55,13 +55,12 @@
 
 ?array_literal: "[" [element_list] ","? [elision] "]"
 
-?element_list: elision? single_expression ("," elision? single_expression)*
+?element_list: elision? expression_sequence ("," elision? expression_sequence)*
 
 ?elision: ","+
 
-?object_literal: "{:" "}" -> empty_workday_object
-    | "{" property_name_and_value_list "}" -> workday_object_literal
-
+?object_literal: "{" ":" "}" -> empty_object_literal
+    | "{" property_name_and_value_list "}" -> object_literal
 
 ?property_name_and_value_list: property_assignment ("," property_assignment)*
 
@@ -98,25 +97,13 @@
 ?logical_or_expression: logical_and_expression ("||" logical_and_expression)*
 
 // Precedence Level: Logical AND
-?logical_and_expression: bit_or_expression ("&&" bit_or_expression)*
-
-// Precedence Level: Bitwise OR
-?bit_or_expression: bit_x_or_expression ("|" bit_x_or_expression)*
-
-// Precedence Level: Bitwise XOR
-?bit_x_or_expression: bit_and_expression ("^" bit_and_expression)*
-
-// Precedence Level: Bitwise AND
-?bit_and_expression: equality_expression ("&" equality_expression)*
+?logical_and_expression: equality_expression ("&&" equality_expression)*
 
 // Precedence Level: Equality
 ?equality_expression: relational_expression (("==" | "!=") relational_expression)*
 
 // Precedence Level: Relational
-?relational_expression: bit_shift_expression ((">" | "<" | "<=" | ">=") bit_shift_expression)*
-
-// Precedence Level: Bitwise Shift
-?bit_shift_expression: additive_expression (("<<" | ">>") additive_expression)*
+?relational_expression: additive_expression ((">" | "<" | "<=" | ">=") additive_expression)*
 
 // Precedence Level: Additive
 ?additive_expression: multiplicative_expression (("+" | "-") multiplicative_expression)*
@@ -129,7 +116,6 @@
     | MINUS_MINUS unary_expression -> pre_decrease_expression
     | PLUS unary_expression -> unary_plus_expression
     | MINUS unary_expression -> unary_minus_expression
-    | BIT_NOT unary_expression -> bit_not_expression
     | NOT unary_expression -> not_expression
     | TYPEOF unary_expression -> typeof_expression
     | EMPTY unary_expression -> empty_expression
@@ -157,7 +143,7 @@
 // --- END: CORRECTED EXPRESSION HIERARCHY ---
 
 
-?assignment_operator: "*=" | "/=" | "%=" | "+=" | "-=" | "<<=" | ">>=" | "&=" | "^=" | "|="
+?assignment_operator: "*=" | "/=" | "%=" | "+=" | "-="
 
 ?literal: NULL_LITERAL | BOOLEAN_LITERAL | STRING_LITERAL | REGULAR_EXPRESSION_LITERAL | numeric_literal
 
@@ -213,22 +199,16 @@ PLUS_PLUS: "++"
 MINUS_MINUS: "--"
 PLUS: "+"
 MINUS: "-"
-BIT_NOT: "~"
 NOT: "!"
 MULTIPLY: "*"
 DIVIDE: "/"
 MODULUS: "%"
-RIGHT_SHIFT_ARITHMETIC: ">>"
-LEFT_SHIFT_ARITHMETIC: "<<"
 LESS_THAN: "<"
 MORE_THAN: ">"
 LESS_THAN_EQUALS: "<="
 GREATER_THAN_EQUALS: ">="
 EQUALS: "=="
 NOT_EQUALS: "!="
-BIT_AND: "&"
-BIT_XOR: "^"
-BIT_OR: "|"
 AND: "&&"
 OR: "||"
 NULL_COALESCING: "??"
@@ -237,11 +217,6 @@ DIVIDE_ASSIGN: "/="
 MODULUS_ASSIGN: "%="
 PLUS_ASSIGN: "+="
 MINUS_ASSIGN: "-="
-LEFT_SHIFT_ARITHMETIC_ASSIGN: "<<="
-RIGHT_SHIFT_ARITHMETIC_ASSIGN: ">>="
-BIT_AND_ASSIGN: "&="
-BIT_XOR_ASSIGN: "^="
-BIT_OR_ASSIGN: "|="
 
 // Ignored tokens
 %ignore /(\/\*.*?\*\/|\/\/[^\r\n]*|[\t\u000B\u000C\u0020\u00A0]+|[\r\n\u2028\u2029])+/
