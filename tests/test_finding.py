@@ -77,7 +77,7 @@ class TestFinding:
             file_path="sample.pmd"
         )
         
-        expected_repr = "[TEST001:20] in 'sample.pmd': Test finding message"
+        expected_repr = "[TEST001:20] (WARNING) in 'sample.pmd': Test finding message"
         assert repr(finding) == expected_repr
     
     def test_finding_repr_no_file_path(self):
@@ -89,7 +89,7 @@ class TestFinding:
             column=3
         )
         
-        expected_repr = "[TEST001:25] in '': Test finding message"
+        expected_repr = "[TEST001:25] (WARNING) in '': Test finding message"
         assert repr(finding) == expected_repr
     
     def test_finding_equality(self):
