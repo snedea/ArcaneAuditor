@@ -611,23 +611,89 @@ class ScriptConsoleLogRule(Rule):
                 yield from self._check_console_logs(field_value, field_name, pmd_model.file_path, line_offset)
 
     def _check_console_logs(self, script_content, field_name, file_path, line_offset=1):
-        """Check for console.log statements in script content."""
-        # Simple regex check for console.log statements
-        import re
-        # TODO: Confirm what console methods exist
-        console_log_pattern = r'console\.[info|warn|debug]\s*\('
-        matches = list(re.finditer(console_log_pattern, script_content, re.IGNORECASE))
+        """Check for console statements in script content using AST parsing."""
+        # Parse the script content using Lark grammar
+        ast = self._parse_script_content(script_content)
+        if not ast:
+            return
         
-        for match in matches:
-            relative_line = script_content[:match.start()].count('\n') + 1
-            line_number = line_offset + relative_line - 1
-            yield Finding(
-                rule=self,
-                message=f"File section '{field_name}' contains console log statement. Remove debug statements from production code.",
-                line=line_number,
-                column=match.start() - script_content.rfind('\n', 0, match.start()) - 1,
-                file_path=file_path
-            )
+        # Find all console method calls
+        yield from self._find_console_calls(ast, field_name, file_path, line_offset)
+
+    def _find_console_calls(self, ast, field_name, file_path, line_offset=1):
+        """Find all console method calls in the AST."""
+        # Find all member_dot_expression nodes (e.g., console.debug, console.info)
+        member_expressions = ast.find_data('member_dot_expression')
+        
+        for member_expr in member_expressions:
+            if len(member_expr.children) >= 2:
+                object_node = member_expr.children[0]
+                method_node = member_expr.children[1]
+                
+                # Check if it's a console method call
+                if self._is_console_method_call(object_node, method_node):
+                    method_name = self._extract_method_name(method_node)
+                    line_number = self._get_line_number_from_node(member_expr) + line_offset - 1
+                    
+                    yield Finding(
+                        rule=self,
+                        message=f"File section '{field_name}' contains console.{method_name} statement. Remove debug statements from production code.",
+                        line=line_number,
+                        column=1,  # Column detection could be improved if needed
+                        file_path=file_path
+                    )
+
+    def _is_console_method_call(self, object_node, method_node):
+        """Check if the member expression is a console method call."""
+        # Check if the object is 'console'
+        if (hasattr(object_node, 'children') and 
+            len(object_node.children) > 0 and
+            hasattr(object_node.children[0], 'value') and
+            object_node.children[0].value == 'console'):
+            
+            # Check if the method is a known console method
+            method_name = self._extract_method_name(method_node)
+            console_methods = ['info', 'warn', 'error', 'debug']
+            
+            return method_name in console_methods
+        
+        return False
+
+    def _extract_method_name(self, method_node):
+        """Extract the method name from the method node."""
+        if hasattr(method_node, 'value'):
+            return method_node.value
+        elif hasattr(method_node, 'children') and len(method_node.children) > 0:
+            child = method_node.children[0]
+            if hasattr(child, 'value'):
+                return child.value
+        else:
+            # The method node might be a token without children
+            return str(method_node)
+        return str(method_node)
+
+    def _get_line_number_from_node(self, node):
+        """Get the line number from an AST node."""
+        if hasattr(node, 'line'):
+            return node.line
+        elif hasattr(node, 'children') and len(node.children) > 0:
+            # Try to get line from first child
+            child = node.children[0]
+            if hasattr(child, 'line'):
+                return child.line
+        return 1  # Default fallback
+
+    def _parse_script_content(self, script_content):
+        """Parse script content using Lark grammar."""
+        try:
+            from ..pmd_script_parser import pmd_script_parser
+            # Remove the <% %> wrapper if present
+            if script_content.startswith('<%') and script_content.endswith('%>'):
+                script_content = script_content[2:-2].strip()
+            
+            return pmd_script_parser.parse(script_content)
+        except Exception:
+            return None
 
 
 class ScriptMagicNumberRule(Rule):
@@ -1032,6 +1098,11 @@ class ScriptNullSafetyRule(Rule):
 
         if len(parts) < 2:
             return False
+        
+        # Check if the root object is a known global/library object
+        root_object = parts[0]
+        if self._is_global_object(root_object):
+            return False
             
         # Check if the full chain is protected
         if self._is_protected_chain(ast, chain):
@@ -1044,6 +1115,29 @@ class ScriptNullSafetyRule(Rule):
                 return False
             
         return True
+
+    def _is_global_object(self, object_name: str) -> bool:
+        """Check if an object name refers to a known global/library object."""
+        # List of known global objects that are guaranteed to exist and don't need null safety checks
+        global_objects = {
+            # Browser/DOM APIs
+            'window', 'document', 'navigator', 'location', 'history', 'screen',
+            
+            # Console and logging
+            'console',
+            
+            # JavaScript built-ins
+            'Math', 'Date', 'JSON', 'Array', 'Object', 'String', 'Number', 'Boolean',
+            'RegExp', 'Error', 'Promise', 'Symbol', 'Map', 'Set', 'WeakMap', 'WeakSet',
+            
+            # Common libraries that are typically available globally
+            'jQuery', '$', 'lodash', '_', 'moment', 'axios', 'fetch',
+            
+            # Workday-specific globals (if any)
+            'workday', 'wd'
+        }
+        
+        return object_name in global_objects
 
 
     def _is_protected_chain(self, ast: Tree, chain: str) -> bool:
