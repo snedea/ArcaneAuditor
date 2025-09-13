@@ -22,8 +22,22 @@ cd extend-reviewer
 # Install dependencies
 uv sync
 
-# Run analysis on a PMD application
+# Run analysis on a PMD application (CLI)
 uv run main.py review-app your-app.zip
+```
+
+### Web Interface (Recommended)
+
+For a user-friendly web interface:
+
+```bash
+# One-time setup (requires Node.js)
+python setup_web_interface.py
+
+# Start the web server
+python start_web_interface.py
+
+# Open http://localhost:8000 in your browser
 ```
 
 ### Basic Usage
