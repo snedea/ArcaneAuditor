@@ -590,7 +590,7 @@ class EndpointUrlBaseUrlTypeRule(Rule):
 
     def _check_endpoint_url(self, endpoint, pmd_model, endpoint_type, index):
         """Check if an endpoint URL contains hardcoded values."""
-        endpoint_name = endpoint.get('name', f'unnamed_{endpoint_type}_{index}')
+        endpoint_name = endpoint.get('name')
         url = endpoint.get('url', '')
         base_url_type = endpoint.get('baseUrlType', '')
         
