@@ -14,15 +14,15 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'SEVERE':
-        return <AlertTriangle className="inline-icon text-red-600" />;
+        return <AlertTriangle className="inline-icon text-red-400" />;
       case 'WARNING':
-        return <AlertTriangle className="inline-icon text-yellow-600" />;
+        return <AlertTriangle className="inline-icon text-yellow-400" />;
       case 'INFO':
-        return <Info className="inline-icon text-blue-600" />;
+        return <Info className="inline-icon text-blue-400" />;
       case 'HINT':
-        return <CheckCircle className="inline-icon text-green-600" />;
+        return <CheckCircle className="inline-icon text-green-400" />;
       default:
-        return <Info className="inline-icon" />;
+        return <Info className="inline-icon text-gray-400" />;
     }
   };
 
@@ -101,38 +101,34 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
       {/* Summary */}
       <div className="summary">
         <h4>📈 Summary</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-          <div>
-            <strong>{result.total_files}</strong>
-            <br />
-            <small>Files Analyzed</small>
+        <div className="summary-grid">
+          <div className="summary-item">
+            <div className="summary-number summary-number-blue">{result.total_files}</div>
+            <div className="summary-label">Files Analyzed</div>
           </div>
-          <div>
-            <strong>{result.total_rules}</strong>
-            <br />
-            <small>Rules Executed</small>
+          <div className="summary-item">
+            <div className="summary-number summary-number-purple">{result.total_rules}</div>
+            <div className="summary-label">Rules Executed</div>
           </div>
-          <div>
-            <strong>{result.findings.length}</strong>
-            <br />
-            <small>Issues Found</small>
+          <div className="summary-item">
+            <div className="summary-number summary-number-orange">{result.findings.length}</div>
+            <div className="summary-label">Issues Found</div>
           </div>
-          <div>
-            <strong>{result.zip_filename}</strong>
-            <br />
-            <small>Application</small>
+          <div className="summary-item">
+            <div className="summary-filename">{result.zip_filename}</div>
+            <div className="summary-label">Application</div>
           </div>
         </div>
 
         {Object.keys(severityCounts).length > 0 && (
-          <div className="mt-4">
+          <div className="severity-section">
             <h5>Issues by Severity:</h5>
-            <div className="flex gap-4 mt-2">
+            <div className="severity-badges">
               {Object.entries(severityCounts).map(([severity, count]) => (
-                <div key={severity} className="flex items-center gap-1">
+                <div key={severity} className="severity-badge">
                   {getSeverityIcon(severity)}
-                  <span className="font-bold">{count}</span>
-                  <span className="text-sm">{severity}</span>
+                  <span className="severity-count">{count}</span>
+                  <span className="severity-name">{severity.toLowerCase()}</span>
                 </div>
               ))}
             </div>
