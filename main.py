@@ -106,9 +106,9 @@ def review_app(
         
         # Set appropriate exit code based on findings
         if findings:
-            error_count = len([f for f in findings if f.severity == "ERROR"])
-            if error_count > 0:
-                raise typer.Exit(2)  # Exit code 2 for errors
+            severe_count = len([f for f in findings if f.severity == "SEVERE"])
+            if severe_count > 0:
+                raise typer.Exit(2)  # Exit code 2 for severe issues
             else:
                 raise typer.Exit(1)  # Exit code 1 for warnings/info
         else:

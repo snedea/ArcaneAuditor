@@ -23,7 +23,7 @@ class OutputFormatter:
     
     # Emoji mappings for different severity levels
     SEVERITY_EMOJIS = {
-        "ERROR": "🔴",
+        "SEVERE": "🔴",
         "WARNING": "🟡", 
         "INFO": "🔵",
         "HINT": "💡"
@@ -110,14 +110,14 @@ class OutputFormatter:
         output = []
         
         # Quick stats
-        error_count = len([f for f in findings if f.severity == "ERROR"])
+        severe_count = len([f for f in findings if f.severity == "SEVERE"])
         warning_count = len([f for f in findings if f.severity == "WARNING"])
         info_count = len([f for f in findings if f.severity == "INFO"])
         
         if not findings:
             return "✅ No issues found!"
         
-        output.append(f"🔍 Found {len(findings)} issue(s): {error_count} errors, {warning_count} warnings, {info_count} info")
+        output.append(f"🔍 Found {len(findings)} issue(s): {severe_count} severe, {warning_count} warnings, {info_count} info")
         
         # Show top 3 issues
         top_findings = findings[:3]
@@ -138,7 +138,7 @@ class OutputFormatter:
                 "total_rules": total_rules,
                 "total_findings": len(findings),
                 "findings_by_severity": {
-                    "ERROR": len([f for f in findings if f.severity == "ERROR"]),
+                    "SEVERE": len([f for f in findings if f.severity == "SEVERE"]),
                     "WARNING": len([f for f in findings if f.severity == "WARNING"]),
                     "INFO": len([f for f in findings if f.severity == "INFO"])
                 }
@@ -178,7 +178,7 @@ class OutputFormatter:
             groups[severity].append(finding)
         
         # Sort by severity priority
-        severity_order = ["ERROR", "WARNING", "INFO", "HINT"]
+        severity_order = ["SEVERE", "WARNING", "INFO", "HINT"]
         return {k: groups[k] for k in severity_order if k in groups}
     
     def _format_excel(self, findings: List[Finding], total_files: int, total_rules: int) -> str:
@@ -205,11 +205,11 @@ class OutputFormatter:
         summary_sheet.append(["Files Analyzed", total_files])
         summary_sheet.append(["Rules Executed", total_rules])
         summary_sheet.append(["Total Issues", len(findings)])
-        summary_sheet.append(["Errors", len([f for f in findings if f.severity == "ERROR"])])
+        summary_sheet.append(["Severe", len([f for f in findings if f.severity == "SEVERE"])])
         summary_sheet.append(["Warnings", len([f for f in findings if f.severity == "WARNING"])])
         summary_sheet.append(["Info", len([f for f in findings if f.severity == "INFO"])])
         summary_sheet.append([])
-        summary_sheet.append(["File", "Issues", "Errors", "Warnings", "Info"])
+        summary_sheet.append(["File", "Issues", "Severe", "Warnings", "Info"])
         
         # Style summary sheet
         summary_sheet['A1'].font = Font(bold=True, size=14)
@@ -253,7 +253,7 @@ class OutputFormatter:
                 
                 # Color code by severity
                 severity_colors = {
-                    "ERROR": "FFCCCC",    # Light red
+                    "SEVERE": "FFCCCC",    # Light red
                     "WARNING": "FFFFCC",  # Light yellow
                     "INFO": "CCE5FF",     # Light blue
                     "HINT": "E6FFE6"      # Light green
@@ -280,10 +280,10 @@ class OutputFormatter:
                 ws.column_dimensions[column_letter].width = adjusted_width
             
             # Update summary sheet
-            error_count = len([f for f in file_findings if f.severity == "ERROR"])
+            severe_count = len([f for f in file_findings if f.severity == "SEVERE"])
             warning_count = len([f for f in file_findings if f.severity == "WARNING"])
             info_count = len([f for f in file_findings if f.severity == "INFO"])
-            summary_sheet.append([file_path, len(file_findings), error_count, warning_count, info_count])
+            summary_sheet.append([file_path, len(file_findings), severe_count, warning_count, info_count])
         
         # Save to temporary file and return path
         import tempfile

@@ -144,44 +144,55 @@ extend-reviewer/
 ### Rule Categories
 
 #### Script Rules (SCRIPT001-SCRIPT014)
+
 **Core Rules** (`parser/rules/script/core/`)
+
 - **SCRIPT001**: Var Usage Rule - Prefer `let`/`const` over `var`
 - **SCRIPT005**: Console Log Rule - Avoid console statements in production
 - **SCRIPT008**: Variable Naming Rule - Use lowerCamelCase convention
 
 **Complexity Rules** (`parser/rules/script/complexity/`)
+
 - **SCRIPT002**: Nesting Level Rule - Limit code nesting depth
 - **SCRIPT003**: Cyclomatic Complexity Rule - Control function complexity
 - **SCRIPT007**: Long Function Rule - Limit function length
 
 **Unused Code Rules** (`parser/rules/script/unused_code/`)
+
 - **SCRIPT004**: Unused Variables Rule - Remove unused variables
 - **SCRIPT012**: Unused Parameters Rule - Remove unused function parameters
 - **SCRIPT013**: Empty Functions Rule - Remove empty functions
 
 **Logic Rules** (`parser/rules/script/logic/`)
+
 - **SCRIPT006**: Magic Numbers Rule - Use named constants
 - **SCRIPT010**: Null Safety Rule - Proper null checking
 - **SCRIPT011**: Verbose Boolean Rule - Simplify boolean expressions
 - **SCRIPT014**: Return Consistency Rule - Consistent return patterns
 
 #### Structure Rules (STRUCT001-STRUCT006, STYLE001-STYLE002)
+
 **Widget Rules** (`parser/rules/structure/widgets/`)
+
 - **STRUCT001**: Widget ID Required Rule - All widgets need IDs
 - **STYLE001**: Widget ID Lower Camel Case Rule - Widget IDs follow naming convention
 
 **Endpoint Rules** (`parser/rules/structure/endpoints/`)
+
 - **STYLE002**: Endpoint Name Lower Camel Case Rule - Endpoint names follow convention
 - **SCRIPT009**: Endpoint On Send Self Data Rule - Avoid self.data anti-pattern
 - **STRUCT004**: Endpoint Fail On Status Codes Rule - Proper error handling
 - **STRUCT006**: Endpoint URL Base URL Type Rule - Consistent URL configuration
 
 **Validation Rules** (`parser/rules/structure/validation/`)
+
 - **STRUCT003**: Footer Pod Required Rule - Footer must use pod structure
 - **STRUCT005**: String Boolean Rule - Use boolean values, not strings
 
 #### Custom Rules (CUSTOM001-CUSTOM999)
+
 **User Extensions** (`parser/rules/custom/user/`)
+
 - **CUSTOM001+**: User-defined validation rules
 - See `parser/rules/custom/README.md` for development guide
 
@@ -200,6 +211,7 @@ The rules engine automatically discovers all validation rules using `pkgutil.wal
 > **⚠️ Important**: To avoid merge conflicts when updating the official codebase, **always use the Custom Rules system** for user-defined validation rules. Only modify official rules if you are a core contributor to the project.
 
 #### For Users: Custom Rules (Recommended)
+
 **Use this approach for your own validation rules:**
 
 1. Place new rules in `parser/rules/custom/user/`
@@ -208,21 +220,11 @@ The rules engine automatically discovers all validation rules using `pkgutil.wal
 4. See `parser/rules/custom/README.md` for detailed guide
 
 **Benefits:**
+
 - ✅ No merge conflicts when updating the official codebase
 - ✅ Rules persist through official updates
 - ✅ Easy to share and version control your custom rules
 - ✅ Automatic discovery by the rules engine
-
-#### For Core Contributors: Official Rules
-**Only for core project maintainers adding official validation rules:**
-
-1. Choose appropriate category and subdirectory
-2. Use next available ID (SCRIPT015, STRUCT007, etc.)
-3. Follow existing patterns and naming conventions
-4. Add comprehensive tests
-5. Update `RULE_BREAKDOWN.md`
-
-**Note**: Official rules should be minimal and cover only the most common validation needs. Specialized or organization-specific rules belong in the custom rules system.
 
 ### Testing
 
