@@ -1,10 +1,63 @@
 {
-  "max_file_size": 52428800,
-  "max_zip_size": 524288000,
-  "relevant_extensions": [".pod", ".pmd", ".script", ".amd", ".smd"],
-  "encoding": "utf-8",
-  "log_level": "INFO",
-  "chunk_size": 16384,
-  "max_concurrent_files": 20,
-  "fallback_encodings": ["utf-8", "latin-1", "cp1252", "iso-8859-1"]
+  "rules": {
+    "ScriptVarUsageRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptNestingLevelRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {
+        "max_nesting_levels": 4
+      }
+    },
+    "ScriptComplexityRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {
+        "max_complexity": 10
+      }
+    },
+    "WidgetIdRequiredRule": {
+      "enabled": true,
+      "severity_override": "ERROR",
+      "custom_settings": {}
+    },
+    "WidgetIdLowerCamelCaseRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "FooterPodRequiredRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "EndpointNameLowerCamelCaseRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    }
+  },
+  "file_processing": {
+    "max_file_size": 52428800,
+    "max_zip_size": 524288000,
+    "relevant_extensions": [".pod", ".pmd", ".script", ".amd", ".smd"],
+    "encoding": "utf-8",
+    "log_level": "INFO",
+    "chunk_size": 16384,
+    "max_concurrent_files": 20,
+    "fallback_encodings": ["utf-8", "latin-1", "cp1252", "iso-8859-1"]
+  },
+  "output": {
+    "format": "text",
+    "include_rule_details": true,
+    "group_by_file": false,
+    "sort_by_severity": true,
+    "max_findings_per_rule": null
+  },
+  "fail_on_error": false,
+  "fail_on_warning": false,
+  "quiet": false
 }

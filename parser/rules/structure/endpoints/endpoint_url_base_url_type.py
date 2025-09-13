@@ -1,0 +1,74 @@
+from ...base import Rule, Finding
+from ...line_number_utils import LineNumberUtils
+from ....models import PMDModel
+from typing import Dict, Any, List
+
+
+class EndpointUrlBaseUrlTypeRule(Rule):
+    """Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values."""
+    
+    ID = "STRUCT006"
+    DESCRIPTION = "Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values"
+    SEVERITY = "WARNING"
+
+    def analyze(self, context):
+        """Main entry point - analyze all PMD models in the context."""
+        for pmd_model in context.pmds.values():
+            yield from self.visit_pmd(pmd_model)
+    
+    def visit_pmd(self, pmd_model: PMDModel):
+        """Analyzes endpoints for hardcoded URL violations."""
+        # Check inbound endpoints
+        if pmd_model.inboundEndpoints:
+            for i, endpoint in enumerate(pmd_model.inboundEndpoints):
+                if isinstance(endpoint, dict):
+                    yield from self._check_endpoint_url(endpoint, pmd_model, 'inbound', i)
+        
+        # Check outbound endpoints
+        if pmd_model.outboundEndpoints:
+            if isinstance(pmd_model.outboundEndpoints, list):
+                for i, endpoint in enumerate(pmd_model.outboundEndpoints):
+                    if isinstance(endpoint, dict):
+                        yield from self._check_endpoint_url(endpoint, pmd_model, 'outbound', i)
+
+    def _check_endpoint_url(self, endpoint, pmd_model, endpoint_type, index):
+        """Check if an endpoint URL contains hardcoded values."""
+        endpoint_name = endpoint.get('name')
+        url = endpoint.get('url', '')
+        base_url_type = endpoint.get('baseUrlType', '')
+        
+        if not url:
+            return
+        
+        # Check for hardcoded workday.com or apiGatewayEndpoint
+        hardcoded_patterns = ['workday.com', 'apigatewayendpoint']
+        found_patterns = []
+        
+        for pattern in hardcoded_patterns:
+            if pattern in url.lower():
+                found_patterns.append(pattern)
+        
+        if found_patterns:
+            line_number = self._get_endpoint_url_line_number(pmd_model, endpoint_name, endpoint_type)
+            
+            # Create helpful message with baseUrlType suggestion
+            pattern_list = ', '.join(found_patterns)
+            suggestion = ""
+            if base_url_type:
+                suggestion = f" (current baseUrlType: '{base_url_type}')"
+            else:
+                suggestion = " (consider adding baseUrlType like 'workday-common' or 'workday-app')"
+            
+            yield Finding(
+                rule=self,
+                message=f"{endpoint_type.title()} endpoint '{endpoint_name}' has URL containing hardcoded values: {pattern_list}. Use baseUrlType instead of hardcoded URLs{suggestion}.",
+                line=line_number,
+                column=1,
+                file_path=pmd_model.file_path
+            )
+
+    def _get_endpoint_url_line_number(self, pmd_model: PMDModel, endpoint_name: str, endpoint_type: str) -> int:
+        """Get line number for the endpoint URL field."""
+        if endpoint_name:
+            return LineNumberUtils.find_field_after_entity(pmd_model, 'name', endpoint_name, 'url')
+        return 1

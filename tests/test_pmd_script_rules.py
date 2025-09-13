@@ -3,17 +3,17 @@ Unit tests for PMD Script Rules.
 """
 import pytest
 from unittest.mock import Mock, patch
-from parser.rules.pmd_script_rules import NoVarInPMDRule
+from parser.rules.script_validation_rules import ScriptVarUsageRule, ScriptUnusedFunctionParametersRule, ScriptEmptyFunctionRule, ScriptFunctionReturnConsistencyRule
 from parser.rules.base import Finding
 from parser.models import ProjectContext, PMDModel
 
 
-class TestNoVarInPMDRule:
-    """Test cases for NoVarInPMDRule class."""
+class TestScriptVarUsageRule:
+    """Test cases for ScriptVarUsageRule class."""
     
     def setup_method(self):
         """Set up test fixtures."""
-        self.rule = NoVarInPMDRule()
+        self.rule = ScriptVarUsageRule()
         self.context = ProjectContext()
     
     def test_rule_metadata(self):
@@ -248,12 +248,12 @@ class TestNoVarInPMDRule:
         assert finding.column == 4
 
 
-class TestNoVarInPMDRuleIntegration:
-    """Integration tests for NoVarInPMDRule with real AST parsing."""
+class TestScriptVarUsageRuleIntegration:
+    """Integration tests for ScriptVarUsageRule with real AST parsing."""
     
     def setup_method(self):
         """Set up test fixtures."""
-        self.rule = NoVarInPMDRule()
+        self.rule = ScriptVarUsageRule()
         self.context = ProjectContext()
     
     def test_real_ast_parsing_with_var(self):
@@ -284,6 +284,235 @@ class TestNoVarInPMDRuleIntegration:
         assert finding.rule_id == "PMD001"
         assert finding.severity == "INFO"
         assert "Legacy 'var' declaration found" in finding.message
+
+
+class TestScriptUnusedFunctionParametersRule:
+    """Test SCRIPT012 - Script Unused Function Parameters Rule"""
+    
+    def test_unused_function_parameter_violation(self):
+        rule = ScriptUnusedFunctionParametersRule()
+        context = ProjectContext()
+        
+        # Create PMD model with script containing unused parameter
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            onLoad="<%function processData(data, unusedParam, config) { return data.value; }%>"
+        )
+        context.pmds["test-page"] = pmd_model
+        
+        findings = list(rule.analyze(context))
+        
+        assert len(findings) == 1
+        finding = findings[0]
+        assert finding.rule_id == "SCRIPT012"
+        assert finding.severity == "WARNING"
+        assert "unusedParam" in finding.message
+    
+    def test_no_unused_parameters(self):
+        rule = ScriptUnusedFunctionParametersRule()
+        context = ProjectContext()
+        
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            onLoad="<%function processData(data, config) { return data.value + config.multiplier; }%>"
+        )
+        context.pmds["test-page"] = pmd_model
+        
+        findings = list(rule.analyze(context))
+        
+        assert len(findings) == 0
+    
+    def test_function_with_no_parameters(self):
+        rule = ScriptUnusedFunctionParametersRule()
+        context = ProjectContext()
+        
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            onLoad="<%function getData() { return 'test'; }%>"
+        )
+        context.pmds["test-page"] = pmd_model
+        
+        findings = list(rule.analyze(context))
+        
+        assert len(findings) == 0
+    
+    def test_multiple_unused_parameters(self):
+        rule = ScriptUnusedFunctionParametersRule()
+        context = ProjectContext()
+        
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            onLoad="<%function test(a, b, c) { return a; }%>"
+        )
+        context.pmds["test-page"] = pmd_model
+        
+        findings = list(rule.analyze(context))
+        
+        assert len(findings) == 2  # b and c are unused
+        unused_params = [f.message for f in findings]
+        assert any("b" in msg for msg in unused_params)
+        assert any("c" in msg for msg in unused_params)
+
+
+class TestScriptEmptyFunctionRule:
+    """Test SCRIPT013 - Script Empty Function Rule"""
+    
+    def test_empty_function_violation(self):
+        rule = ScriptEmptyFunctionRule()
+        context = ProjectContext()
+        
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            onLoad="<%function calculateTotal(items) { }%>"
+        )
+        context.pmds["test-page"] = pmd_model
+        
+        findings = list(rule.analyze(context))
+        
+        assert len(findings) == 1
+        finding = findings[0]
+        assert finding.rule_id == "SCRIPT013"
+        assert finding.severity == "WARNING"
+        assert "empty body" in finding.message
+    
+    def test_function_with_implementation(self):
+        rule = ScriptEmptyFunctionRule()
+        context = ProjectContext()
+        
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            onLoad="<%function calculateTotal(items) { let total = 0; return total; }%>"
+        )
+        context.pmds["test-page"] = pmd_model
+        
+        findings = list(rule.analyze(context))
+        
+        assert len(findings) == 0
+    
+    def test_function_with_comment_only(self):
+        rule = ScriptEmptyFunctionRule()
+        context = ProjectContext()
+        
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            onLoad="<%function test() { // TODO: implement this }%>"
+        )
+        context.pmds["test-page"] = pmd_model
+        
+        findings = list(rule.analyze(context))
+        
+        assert len(findings) == 1  # Comment-only function is still considered empty
+    
+    def test_function_with_return_statement(self):
+        rule = ScriptEmptyFunctionRule()
+        context = ProjectContext()
+        
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            onLoad="<%function getValue() { return 42; }%>"
+        )
+        context.pmds["test-page"] = pmd_model
+        
+        findings = list(rule.analyze(context))
+        
+        assert len(findings) == 0
+
+
+class TestScriptFunctionReturnConsistencyRule:
+    """Test SCRIPT014 - Script Function Return Consistency Rule"""
+    
+    def test_inconsistent_return_violation(self):
+        rule = ScriptFunctionReturnConsistencyRule()
+        context = ProjectContext()
+        
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            onLoad="<%function processData(data) { if (data.isValid) { return data.value; } }%>"
+        )
+        context.pmds["test-page"] = pmd_model
+        
+        findings = list(rule.analyze(context))
+        
+        assert len(findings) == 1
+        finding = findings[0]
+        assert finding.rule_id == "SCRIPT014"
+        assert finding.severity == "WARNING"
+        assert "inconsistent return pattern" in finding.message
+    
+    def test_consistent_no_returns(self):
+        rule = ScriptFunctionReturnConsistencyRule()
+        context = ProjectContext()
+        
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            onLoad="<%function processData(data) { let result = data.value; console.log(result); }%>"
+        )
+        context.pmds["test-page"] = pmd_model
+        
+        findings = list(rule.analyze(context))
+        
+        assert len(findings) == 0
+    
+    def test_consistent_all_returns(self):
+        rule = ScriptFunctionReturnConsistencyRule()
+        context = ProjectContext()
+        
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            onLoad="<%function processData(data) { if (data.isValid) { return data.value; } else { return null; } }%>"
+        )
+        context.pmds["test-page"] = pmd_model
+        
+        findings = list(rule.analyze(context))
+        
+        assert len(findings) == 0
+    
+    def test_single_return_statement(self):
+        rule = ScriptFunctionReturnConsistencyRule()
+        context = ProjectContext()
+        
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            onLoad="<%function getValue() { return 42; }%>"
+        )
+        context.pmds["test-page"] = pmd_model
+        
+        findings = list(rule.analyze(context))
+        
+        assert len(findings) == 0
+    
+    def test_complex_inconsistent_returns(self):
+        rule = ScriptFunctionReturnConsistencyRule()
+        context = ProjectContext()
+        
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            onLoad="""<%function complex(data) { 
+                if (data.type == 'A') { 
+                    return data.value; 
+                } else if (data.type == 'B') { 
+                    let result = data.value * 2; 
+                } 
+            }%>"""
+        )
+        context.pmds["test-page"] = pmd_model
+        
+        findings = list(rule.analyze(context))
+        
+        assert len(findings) == 1
 
 
 if __name__ == "__main__":

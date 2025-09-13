@@ -1,0 +1,106 @@
+from typing import Generator
+from ...base import Rule, Finding
+from ....models import ProjectContext, PMDModel
+
+
+class ScriptComplexityRule(Rule):
+    """Validates that scripts don't exceed complexity thresholds."""
+    
+    ID = "SCRIPT003"
+    DESCRIPTION = "Ensures scripts don't exceed complexity thresholds (max 10 cyclomatic complexity)"
+    SEVERITY = "WARNING"
+
+    def analyze(self, context):
+        """Main entry point - analyze all PMD models in the context."""
+        for pmd_model in context.pmds.values():
+            yield from self.visit_pmd(pmd_model)
+
+    def visit_pmd(self, pmd_model: PMDModel):
+        """Analyzes script fields in a PMD model."""
+        # Use the generic script field finder to detect all fields containing <% %> patterns
+        script_fields = self.find_script_fields(pmd_model)
+        
+        for field_path, field_value, field_name, line_offset in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                yield from self._check_complexity(field_value, field_name, pmd_model.file_path, line_offset)
+
+    def _check_complexity(self, script_content, field_name, file_path, line_offset=1):
+        """Check for excessive complexity in script content using Lark grammar."""
+        # Parse the script content using Lark grammar
+        ast = self._parse_script_content(script_content)
+        if not ast:
+            # If parsing fails, skip this script (compiler should have caught syntax errors)
+            return
+        
+        max_complexity = 10
+        
+        # Analyze complexity using AST
+        complexity_info = self._analyze_ast_complexity(ast)
+        complexity = complexity_info['complexity']
+        line = complexity_info.get('line', 1)
+        
+        if complexity > max_complexity:
+            # Use line_offset as base, add relative line if available
+            relative_line = complexity_info.get('line', 1) or 1
+            line_number = line_offset + relative_line - 1
+            
+            yield Finding(
+                rule=self,
+                message=f"File section '{field_name}' has complexity of {complexity} (max recommended: {max_complexity}). Consider refactoring.",
+                line=line_number,
+                column=1,
+                file_path=file_path
+            )
+    
+    def _analyze_ast_complexity(self, node):
+        """Analyze cyclomatic complexity in AST nodes."""
+        complexity = 1  # Base complexity
+        line = None
+        
+        if hasattr(node, 'data'):
+            # Count complexity-increasing constructs
+            if node.data in ['if_statement', 'while_statement', 'for_statement', 'do_statement']:
+                complexity += 1
+                # Get line number from the first token in the node
+                if hasattr(node, 'children') and len(node.children) > 0:
+                    for child in node.children:
+                        if hasattr(child, 'line') and child.line is not None:
+                            line = child.line
+                            break
+            
+            elif node.data == 'logical_and_expression':
+                complexity += 1
+                if hasattr(node, 'children') and len(node.children) > 0:
+                    for child in node.children:
+                        if hasattr(child, 'line') and child.line is not None:
+                            line = child.line
+                            break
+            
+            elif node.data == 'logical_or_expression':
+                complexity += 1
+                if hasattr(node, 'children') and len(node.children) > 0:
+                    for child in node.children:
+                        if hasattr(child, 'line') and child.line is not None:
+                            line = child.line
+                            break
+            
+            elif node.data == 'ternary_expression':
+                complexity += 1
+                if hasattr(node, 'children') and len(node.children) > 0:
+                    for child in node.children:
+                        if hasattr(child, 'line') and child.line is not None:
+                            line = child.line
+                            break
+        
+        # Recursively analyze children
+        if hasattr(node, 'children'):
+            for child in node.children:
+                child_complexity = self._analyze_ast_complexity(child)
+                complexity += child_complexity['complexity'] - 1  # Subtract 1 to avoid double-counting base complexity
+                if child_complexity.get('line') and not line:
+                    line = child_complexity['line']
+        
+        return {
+            'complexity': complexity,
+            'line': line
+        }

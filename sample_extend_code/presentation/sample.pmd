@@ -33,7 +33,7 @@
         {
           "type": "text",
           "label": "Hello World!",
-          "value": "Welcome from Workday!"
+          "value": "<% const foo = 1;  %>"
         }
       ]
     },
