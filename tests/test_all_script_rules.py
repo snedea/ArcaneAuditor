@@ -168,7 +168,7 @@ class TestScriptEmptyFunctionRule:
     
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
-        assert self.rule.ID == "SCRIPT013"
+        assert self.rule.ID == "SCRIPT016"
         assert self.rule.SEVERITY == "WARNING"
         assert "empty" in self.rule.DESCRIPTION.lower()
 
