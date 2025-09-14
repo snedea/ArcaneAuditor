@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, RotateCcw, Filter, AlertTriangle, Info, CheckCircle } from 'lucide-react';
+import { Download, RotateCcw, Filter, AlertTriangle, Info, CheckCircle, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import { AnalysisResult, Finding } from '../types/analysis';
 
 interface ResultsDisplayProps {
@@ -10,6 +10,7 @@ interface ResultsDisplayProps {
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'severity' | 'file' | 'rule'>('severity');
+  const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -31,6 +32,36 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
       acc[finding.severity] = (acc[finding.severity] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
+  };
+
+  const groupFindingsByFile = (findings: Finding[]) => {
+    return findings.reduce((acc, finding) => {
+      const filePath = finding.file_path || 'Unknown';
+      if (!acc[filePath]) {
+        acc[filePath] = [];
+      }
+      acc[filePath].push(finding);
+      return acc;
+    }, {} as Record<string, Finding[]>);
+  };
+
+  const toggleFileExpansion = (filePath: string) => {
+    const newExpanded = new Set(expandedFiles);
+    if (newExpanded.has(filePath)) {
+      newExpanded.delete(filePath);
+    } else {
+      newExpanded.add(filePath);
+    }
+    setExpandedFiles(newExpanded);
+  };
+
+  const expandAllFiles = () => {
+    const allFiles = Object.keys(groupFindingsByFile(filteredFindings));
+    setExpandedFiles(new Set(allFiles));
+  };
+
+  const collapseAllFiles = () => {
+    setExpandedFiles(new Set());
   };
 
   const filteredFindings = result.findings.filter(finding => 
@@ -178,26 +209,82 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
             </div>
           </div>
 
-          {/* Findings */}
-          <div>
+          {/* File Controls */}
+          <div className="flex justify-between items-center mb-4">
             <h4>🚨 Issues Found ({filteredFindings.length})</h4>
-            {sortedFindings.map((finding, index) => (
-              <div key={index} className={`finding ${finding.severity.toLowerCase()}`}>
-                <div className="finding-header">
-                  {getSeverityIcon(finding.severity)}
-                  <strong>[{finding.rule_id}:{finding.line}]</strong> {finding.message}
-                </div>
-                <div className="finding-details">
-                  <strong>File:</strong> {finding.file_path}
-                  {finding.column && (
-                    <>
-                      <br />
-                      <strong>Position:</strong> Line {finding.line}, Column {finding.column}
-                    </>
+            <div className="flex gap-2">
+              <button onClick={expandAllFiles} className="secondary" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
+                Expand All
+              </button>
+              <button onClick={collapseAllFiles} className="secondary" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
+                Collapse All
+              </button>
+            </div>
+          </div>
+
+          {/* Findings grouped by file */}
+          <div className="findings-by-file">
+            {Object.entries(groupFindingsByFile(filteredFindings)).map(([filePath, fileFindings]) => {
+              const isExpanded = expandedFiles.has(filePath);
+              const fileName = filePath.split(/[/\\]/).pop() || filePath;
+              const severityCounts = getSeverityCounts(fileFindings);
+              
+              return (
+                <div key={filePath} className="file-group">
+                  <div 
+                    className="file-header" 
+                    onClick={() => toggleFileExpansion(filePath)}
+                  >
+                    <div className="file-header-left">
+                      {isExpanded ? <ChevronDown className="inline-icon" /> : <ChevronRight className="inline-icon" />}
+                      <FileText className="inline-icon" />
+                      <span className="file-name">{fileName}</span>
+                      <span className="file-path">{filePath}</span>
+                    </div>
+                    <div className="file-header-right">
+                      <span className="file-count">{fileFindings.length} issue{fileFindings.length !== 1 ? 's' : ''}</span>
+                      {Object.entries(severityCounts).map(([severity, count]) => (
+                        <span key={severity} className={`severity-count-badge ${severity.toLowerCase()}`}>
+                          {count} {severity.toLowerCase()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {isExpanded && (
+                    <div className="file-findings">
+                      {fileFindings
+                        .sort((a, b) => {
+                          switch (sortBy) {
+                            case 'severity':
+                              const severityOrder = { SEVERE: 0, WARNING: 1, INFO: 2, HINT: 3 };
+                              return severityOrder[a.severity] - severityOrder[b.severity];
+                            case 'line':
+                              return a.line - b.line;
+                            case 'rule':
+                              return a.rule_id.localeCompare(b.rule_id);
+                            default:
+                              return 0;
+                          }
+                        })
+                        .map((finding, index) => (
+                          <div key={index} className={`finding ${finding.severity.toLowerCase()}`}>
+                            <div className="finding-header">
+                              {getSeverityIcon(finding.severity)}
+                              <strong>[{finding.rule_id}:{finding.line}]</strong> {finding.message}
+                            </div>
+                            <div className="finding-details">
+                              {finding.column && (
+                                <span><strong>Position:</strong> Line {finding.line}, Column {finding.column}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
