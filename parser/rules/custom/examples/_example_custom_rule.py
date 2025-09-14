@@ -15,7 +15,7 @@ class CustomScriptCommentQualityRule(Rule):
     Example custom rule that checks for minimum comment density in script functions.
     
     This rule demonstrates:
-    - Custom rule ID (CUSTOM001)
+    - Custom rule class name (CustomScriptCommentQualityRule)
     - Basic rule structure
     - Script parsing and analysis
     - Finding generation
@@ -25,10 +25,9 @@ class CustomScriptCommentQualityRule(Rule):
     
     def __init__(self):
         super().__init__()
-        self.rule_id = "CUSTOM001"
-        self.severity = "INFO"
-        self.title = "Script Comment Quality Rule"
-        self.description = "Functions should have at least one comment for every 10 lines of code"
+        self.ID = "RULE000"  # Base class default
+        self.SEVERITY = "INFO"
+        self.DESCRIPTION = "Functions should have at least one comment for every 10 lines of code"
         self.min_comment_density = 0.1  # 10% comment density minimum
     
     def analyze(self, context: ProjectContext) -> List[Finding]:
@@ -57,12 +56,12 @@ class CustomScriptCommentQualityRule(Rule):
                 
                 if comment_density < self.min_comment_density:
                     finding = Finding(
-                        rule_id=self.rule_id,
-                        severity=self.severity,
-                        file_path=pmd_file.file_path,
-                        line_number=self._get_line_number(func),
+                        rule=self,
                         message=f"Function '{func.get('name', 'anonymous')}' has low comment density "
-                               f"({comment_density:.1%}). Consider adding more comments to improve readability."
+                               f"({comment_density:.1%}). Consider adding more comments to improve readability.",
+                        line=self._get_line_number(func),
+                        column=1,
+                        file_path=pmd_file.file_path
                     )
                     findings.append(finding)
         

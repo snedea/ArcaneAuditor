@@ -26,8 +26,8 @@ custom/
 ## 🏷️ Naming Conventions
 
 ### Rule IDs
-- **Official rules**: `SCRIPT001`, `STRUCT001`, `STYLE001`, etc.
-- **Custom rules**: `CUSTOM001`, `CUSTOM002`, `CUSTOM003`, etc.
+- **Official rules**: Use descriptive class names (e.g., `ScriptVarUsageRule`, `WidgetIdRequiredRule`)
+- **Custom rules**: Use descriptive class names with `Custom` prefix (e.g., `CustomScriptMyRule`)
 
 ### Class Names
 - **Script rules**: `CustomScript[Description]Rule` (e.g., `CustomScriptNamingRule`)
@@ -45,10 +45,9 @@ from typing import List
 class CustomScriptMyRule(Rule):
     def __init__(self):
         super().__init__()
-        self.rule_id = "CUSTOM001"  # Use next available CUSTOM### ID
-        self.severity = "WARNING"   # ERROR, WARNING, INFO
-        self.title = "My Custom Rule"
-        self.description = "Description of what this rule checks"
+        self.ID = "RULE000"  # Base class default
+        self.SEVERITY = "WARNING"   # ERROR, WARNING, INFO
+        self.DESCRIPTION = "Description of what this rule checks"
     
     def analyze(self, context: ProjectContext) -> List[Finding]:
         """Main analysis method - required by all rules."""
@@ -73,10 +72,9 @@ class MyExampleRule(Rule):
     
     def __init__(self):
         super().__init__()
-        self.rule_id = "CUSTOM999"  # Use high numbers for examples
-        self.severity = "INFO"
-        self.title = "Example Rule"
-        self.description = "This is just an example"
+        self.ID = "RULE000"  # Base class default
+        self.SEVERITY = "INFO"
+        self.DESCRIPTION = "This is just an example"
     
     def analyze(self, context: ProjectContext) -> List[Finding]:
         return []  # Example rule - no actual analysis
@@ -126,11 +124,11 @@ def analyze(self, context: ProjectContext) -> List[Finding]:
 
 ```python
 finding = Finding(
-    rule_id=self.rule_id,
-    severity=self.severity,
-    file_path=pmd_file.file_path,
-    line_number=42,  # Line where the issue occurs
-    message="Detailed description of the issue and how to fix it"
+    rule=self,  # Pass the rule instance
+    message="Detailed description of the issue and how to fix it",
+    line=42,  # Line where the issue occurs
+    column=8,  # Column where the issue occurs
+    file_path=pmd_file.file_path
 )
 findings.append(finding)
 ```
@@ -222,7 +220,7 @@ uv run main.py review-app sample_extend_code/template_bad_nkhlsq.zip
 - **Rule not discovered**: Check `__init__.py` files exist
 - **Import errors**: Verify import paths are correct
 - **Parse errors**: Add try-catch blocks around parsing
-- **ID conflicts**: Ensure unique CUSTOM### IDs
+- **ID conflicts**: Ensure unique class names
 
 ## 📚 Examples
 

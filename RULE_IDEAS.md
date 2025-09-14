@@ -7,7 +7,7 @@ This document tracks potential new validation rules that could be added to the E
 
 ---
 
-### SCRIPT014 - Duplicate Code Rule
+### Duplicate Code Rule
 **Severity:** WARNING  
 **Description:** Ensures scripts don't contain duplicate code blocks (DRY principle)
 
@@ -38,7 +38,7 @@ let hasAccess = checkPermissions(permissions);
 
 ---
 
-### SCRIPT015 - String Concatenation Rule
+### String Concatenation Rule
 **Severity:** WARNING  
 **Description:** Ensures scripts use template literals instead of string concatenation
 
@@ -58,7 +58,7 @@ let message = `Hello {{userName}}, you have {{count}} items`;  // ✅ Template l
 
 ---
 
-### SCRIPT016 - Empty Function Rule
+### Empty Function Rule
 **Severity:** WARNING  
 **Description:** Ensures functions have actual implementation (not empty bodies)
 
@@ -86,7 +86,7 @@ function calculateTotal(items) {  // ✅ Implement the function
 
 ---
 
-### SCRIPT017 - Function Return Consistency Rule
+### Function Return Consistency Rule
 **Severity:** WARNING  
 **Description:** Ensures functions consistently return values (all paths return or none return)
 
@@ -116,7 +116,7 @@ function processData(data) {  // ✅ All paths return
 
 ---
 
-### SCRIPT019 - Functional Method Usage Rule
+### Functional Method Usage Rule
 **Severity:** WARNING  
 **Description:** Ensures scripts use appropriate functional methods instead of manual loops
 
@@ -142,20 +142,20 @@ let doubled = numbers.map(num => num * 2);  // ✅ functional method
 ## Implementation Priority
 
 ### High Priority
-- SCRIPT012 - Unused Function Parameters (easy to implement)
-- SCRIPT016 - Empty Function (easy to implement)
-- SCRIPT017 - Function Return Consistency (moderate complexity)
+- Unused Function Parameters (easy to implement)
+- Empty Function (easy to implement)
+- Function Return Consistency (moderate complexity)
 
 ### Medium Priority
-- SCRIPT013 - Function Complexity (parameter counting)
-- SCRIPT015 - String Concatenation (pattern matching)
-- SCRIPT018 - Variable Declaration Scope (AST analysis)
+- Function Complexity (parameter counting)
+- String Concatenation (pattern matching)
+- Variable Declaration Scope (AST analysis)
 
 ### Lower Priority
-- SCRIPT014 - Duplicate Code (complex AST comparison)
-- SCRIPT019 - Array Method Usage (complex pattern matching)
-- SCRIPT020 - Function Length (simple but low impact)
-- SCRIPT021 - Comment Quality (subjective, complex to implement)
+- Duplicate Code (complex AST comparison)
+- Array Method Usage (complex pattern matching)
+- Function Length (simple but low impact)
+- Comment Quality (subjective, complex to implement)
 
 ## Notes
 

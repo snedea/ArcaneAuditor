@@ -5,15 +5,15 @@ This document provides a comprehensive overview of all validation rules supporte
 ## Rule Categories
 
 The rules are organized into three main categories:
-- **Script Rules** (SCRIPT001-SCRIPT011): Code quality and best practices for PMD scripts
-- **Structure Rules** (STRUCT001-STRUCT006): Structural validation and required field checks  
-- **Style Rules** (STYLE001-STYLE002): Naming convention enforcement
+- **Script Rules**: Code quality and best practices for PMD scripts
+- **Structure Rules**: Structural validation and required field checks  
+- **Style Rules**: Naming convention enforcement
 
 ---
 
-## Script Rules (SCRIPT001-SCRIPT011)
+## Script Rules
 
-### SCRIPT001 - Script Var Usage Rule
+### ScriptVarUsageRule - Script Var Usage Rule
 **Severity:** WARNING  
 **Description:** Ensures scripts use 'let' or 'const' instead of 'var' (best practice)
 
@@ -34,7 +34,7 @@ let myVariable = "value";    // ✅ Use 'let' for mutable values
 
 ---
 
-### SCRIPT002 - Script Nesting Level Rule
+### ScriptNestingLevelRule - Script Nesting Level Rule
 **Severity:** WARNING  
 **Description:** Ensures scripts don't have excessive nesting levels (max 4 levels)
 
@@ -77,7 +77,7 @@ function processData(data) {
 
 ---
 
-### SCRIPT003 - Script Complexity Rule
+### ScriptComplexityRule - Script Complexity Rule
 **Severity:** WARNING  
 **Description:** Ensures scripts don't exceed complexity thresholds (max 10 cyclomatic complexity)
 
@@ -145,7 +145,7 @@ function calculateGrade(score, attendance, bonus) {
 
 ---
 
-### SCRIPT004 - Script Unused Variable Rule
+### ScriptUnusedVariableRule - Script Unused Variable Rule
 **Severity:** WARNING  
 **Description:** Ensures all declared variables are used (prevents dead code) with proper scoping awareness
 
@@ -175,7 +175,7 @@ function myFunction() {
 
 ---
 
-### SCRIPT005 - Script Console Log Rule
+### ScriptConsoleLogRule - Script Console Log Rule
 **Severity:** WARNING  
 **Description:** Ensures scripts don't contain console statements (production code)
 
@@ -205,7 +205,7 @@ console.error("Error occurred");  // ❌ Debug statement
 
 ---
 
-### SCRIPT006 - Script Magic Number Rule
+### ScriptMagicNumberRule - Script Magic Number Rule
 **Severity:** INFO  
 **Description:** Ensures scripts don't contain magic numbers (use named constants)
 
@@ -251,7 +251,7 @@ if (response.status == httpOk) {
 
 ---
 
-### SCRIPT007 - Script Long Function Rule
+### ScriptLongFunctionRule - Script Long Function Rule
 **Severity:** WARNING  
 **Description:** Ensures functions don't exceed maximum line count (max 50 lines)
 
@@ -292,7 +292,7 @@ function mainFunction(input) {
 
 ---
 
-### SCRIPT008 - Script Variable Naming Rule
+### ScriptVariableNamingRule - Script Variable Naming Rule
 **Severity:** WARNING  
 **Description:** Ensures variables follow lowerCamelCase naming convention
 
@@ -316,7 +316,7 @@ let upperCase = "value";         // ✅ Lower camel case
 
 ---
 
-### SCRIPT009 - Endpoint On Send Self Data Rule
+### EndpointOnSendSelfDataRule - Endpoint On Send Self Data Rule
 **Severity:** WARNING  
 **Description:** Ensures endpoints don't use anti-pattern 'self.data = {:}' in onSend scripts
 
@@ -345,7 +345,7 @@ return payload;
 
 ---
 
-### SCRIPT010 - Script Null Safety Rule
+### ScriptNullSafetyRule - Script Null Safety Rule
 **Severity:** WARNING  
 **Description:** Ensures property access chains are protected against null reference exceptions
 
@@ -378,7 +378,7 @@ let data = user?.profile?.name;
 
 ---
 
-### SCRIPT011 - Script Verbose Boolean Check Rule
+### ScriptVerboseBooleanCheckRule - Script Verbose Boolean Check Rule
 **Severity:** WARNING  
 **Description:** Ensures scripts don't use overly verbose boolean checks (if(var == true) return true else return false)
 
@@ -413,9 +413,9 @@ if (isValid) {
 
 ---
 
-## Structure Rules (STRUCT001-STRUCT006)
+## Structure Rules
 
-### STRUCT001 - Widget ID Required Rule
+### WidgetIdRequiredRule - Widget ID Required Rule
 **Severity:** WARNING  
 **Description:** Ensures all widgets have an 'id' field set (structure validation)
 
@@ -443,7 +443,7 @@ if (isValid) {
 
 ---
 
-### STRUCT003 - Footer Pod Required Rule
+### FooterPodRequiredRule - Footer Pod Required Rule
 **Severity:** WARNING  
 **Description:** Ensures footer uses pod structure (direct pod or footer with pod children)
 
@@ -492,7 +492,7 @@ if (isValid) {
 
 ---
 
-### STRUCT004 - Endpoint Fail On Status Codes Rule
+### EndpointFailOnStatusCodesRule - Endpoint Fail On Status Codes Rule
 **Severity:** WARNING  
 **Description:** Ensures endpoints have failOnStatusCodes with minimum required codes 400 and 403
 
@@ -523,7 +523,7 @@ if (isValid) {
 
 ---
 
-### STRUCT005 - String Boolean Rule
+### StringBooleanRule - String Boolean Rule
 **Severity:** WARNING  
 **Description:** Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans
 
@@ -549,7 +549,7 @@ if (isValid) {
 
 ---
 
-### STRUCT006 - Endpoint URL Base URL Type Rule
+### EndpointUrlBaseUrlTypeRule - Endpoint URL Base URL Type Rule
 **Severity:** WARNING  
 **Description:** Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values
 
@@ -576,9 +576,9 @@ if (isValid) {
 
 ---
 
-## Style Rules (STYLE001-STYLE002)
+## Style Rules
 
-### STYLE001 - Widget ID Lower Camel Case Rule
+### WidgetIdLowerCamelCaseRule - Widget ID Lower Camel Case Rule
 **Severity:** WARNING  
 **Description:** Ensures widget IDs follow lowerCamelCase naming convention (style guide)
 
@@ -606,7 +606,7 @@ if (isValid) {
 
 ---
 
-### STYLE002 - Endpoint Name Lower Camel Case Rule
+### EndpointNameLowerCamelCaseRule - Endpoint Name Lower Camel Case Rule
 **Severity:** WARNING  
 **Description:** Ensures endpoint names follow lowerCamelCase naming convention (style guide)
 
@@ -636,9 +636,9 @@ if (isValid) {
 
 ## Summary
 
-The Extend Reviewer tool provides **18 comprehensive validation rules** across three categories:
+The Extend Reviewer tool provides **24 comprehensive validation rules** across three categories:
 
-- **10 Script Rules** - Code quality, best practices, and maintainability
+- **16 Script Rules** - Code quality, best practices, and maintainability
 - **6 Structure Rules** - Required fields, proper configuration, and structural validation  
 - **2 Style Rules** - Naming convention enforcement
 

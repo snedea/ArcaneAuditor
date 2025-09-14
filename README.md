@@ -89,42 +89,43 @@ extend-reviewer/
 │   │   │   ├── __init__.py
 │   │   │   ├── core/                 # Basic syntax/style rules
 │   │   │   │   ├── __init__.py
-│   │   │   │   ├── var_usage.py      # SCRIPT001 - Var Usage Rule
-│   │   │   │   ├── variable_naming.py # SCRIPT008 - Variable Naming Rule
-│   │   │   │   └── console_log.py    # SCRIPT005 - Console Log Rule
+│   │   │   │   ├── var_usage.py      # ScriptVarUsageRule
+│   │   │   │   ├── variable_naming.py # ScriptVariableNamingRule
+│   │   │   │   └── console_log.py    # ScriptConsoleLogRule
 │   │   │   ├── complexity/           # Code complexity rules
 │   │   │   │   ├── __init__.py
-│   │   │   │   ├── nesting_level.py  # SCRIPT002 - Nesting Level Rule
-│   │   │   │   ├── cyclomatic_complexity.py # SCRIPT003 - Complexity Rule
-│   │   │   │   └── long_function.py  # SCRIPT007 - Long Function Rule
+│   │   │   │   ├── nesting_level.py  # ScriptNestingLevelRule
+│   │   │   │   ├── cyclomatic_complexity.py # ScriptComplexityRule
+│   │   │   │   └── long_function.py  # ScriptLongFunctionRule
 │   │   │   ├── unused_code/          # Dead code detection
 │   │   │   │   ├── __init__.py
-│   │   │   │   ├── unused_variables.py # SCRIPT004 - Unused Variables Rule
-│   │   │   │   ├── unused_parameters.py # SCRIPT012 - Unused Parameters Rule
-│   │   │   │   └── empty_functions.py # SCRIPT013 - Empty Functions Rule
+│   │   │   │   ├── unused_variables.py # ScriptUnusedVariableRule
+│   │   │   │   ├── unused_parameters.py # ScriptUnusedFunctionParametersRule
+│   │   │   │   └── empty_functions.py # ScriptEmptyFunctionRule
 │   │   │   └── logic/                # Logic/flow rules
 │   │   │       ├── __init__.py
-│   │   │       ├── magic_numbers.py  # SCRIPT006 - Magic Numbers Rule
-│   │   │       ├── null_safety.py    # SCRIPT010 - Null Safety Rule
-│   │   │       ├── verbose_boolean.py # SCRIPT011 - Verbose Boolean Rule
-│   │   │       └── return_consistency.py # SCRIPT014 - Return Consistency Rule
+│   │   │       ├── magic_numbers.py  # ScriptMagicNumberRule
+│   │   │       ├── null_safety.py    # ScriptNullSafetyRule
+│   │   │       ├── verbose_boolean.py # ScriptVerboseBooleanCheckRule
+│   │   │       ├── return_consistency.py # ScriptFunctionReturnConsistencyRule
+│   │   │       └── string_concat.py  # ScriptStringConcatRule
 │   │   │
 │   │   ├── structure/                # Structure validation rules
 │   │   │   ├── __init__.py
 │   │   │   ├── widgets/              # Widget validation rules
 │   │   │   │   ├── __init__.py
-│   │   │   │   ├── widget_id_required.py # STRUCT001 - Widget ID Required Rule
-│   │   │   │   └── widget_id_lower_camel_case.py # STYLE001 - Widget ID Lower Camel Case Rule
+│   │   │   │   ├── widget_id_required.py # WidgetIdRequiredRule
+│   │   │   │   └── widget_id_lower_camel_case.py # WidgetIdLowerCamelCaseRule
 │   │   │   ├── endpoints/            # Endpoint validation rules
 │   │   │   │   ├── __init__.py
-│   │   │   │   ├── endpoint_name_lower_camel_case.py # STYLE002 - Endpoint Name Lower Camel Case Rule
-│   │   │   │   ├── endpoint_on_send_self_data.py # SCRIPT009 - Endpoint On Send Self Data Rule
-│   │   │   │   ├── endpoint_fail_on_status_codes.py # STRUCT004 - Endpoint Fail On Status Codes Rule
-│   │   │   │   └── endpoint_url_base_url_type.py # STRUCT006 - Endpoint URL Base URL Type Rule
+│   │   │   │   ├── endpoint_name_lower_camel_case.py # EndpointNameLowerCamelCaseRule
+│   │   │   │   ├── endpoint_on_send_self_data.py # EndpointOnSendSelfDataRule
+│   │   │   │   ├── endpoint_fail_on_status_codes.py # EndpointFailOnStatusCodesRule
+│   │   │   │   └── endpoint_url_base_url_type.py # EndpointUrlBaseUrlTypeRule
 │   │   │   └── validation/           # General validation rules
 │   │   │       ├── __init__.py
-│   │   │       ├── footer_pod_required.py # STRUCT003 - Footer Pod Required Rule
-│   │   │       └── string_boolean.py # STRUCT005 - String Boolean Rule
+│   │   │       ├── footer_pod_required.py # FooterPodRequiredRule
+│   │   │       └── string_boolean.py # StringBooleanRule
 │   │   │
 │   │   └── custom/                   # 🆕 User custom rules
 │   │       ├── __init__.py           # Custom rules package
@@ -157,57 +158,58 @@ extend-reviewer/
 
 ### Rule Categories
 
-#### Script Rules (SCRIPT001-SCRIPT014)
+#### Script Rules
 
 **Core Rules** (`parser/rules/script/core/`)
 
-- **SCRIPT001**: Var Usage Rule - Prefer `let`/`const` over `var`
-- **SCRIPT005**: Console Log Rule - Avoid console statements in production
-- **SCRIPT008**: Variable Naming Rule - Use lowerCamelCase convention
+- **ScriptVarUsageRule**: Var Usage Rule - Prefer `let`/`const` over `var`
+- **ScriptConsoleLogRule**: Console Log Rule - Avoid console statements in production
+- **ScriptVariableNamingRule**: Variable Naming Rule - Use lowerCamelCase convention
 
 **Complexity Rules** (`parser/rules/script/complexity/`)
 
-- **SCRIPT002**: Nesting Level Rule - Limit code nesting depth
-- **SCRIPT003**: Cyclomatic Complexity Rule - Control function complexity
-- **SCRIPT007**: Long Function Rule - Limit function length
+- **ScriptNestingLevelRule**: Nesting Level Rule - Limit code nesting depth
+- **ScriptComplexityRule**: Cyclomatic Complexity Rule - Control function complexity
+- **ScriptLongFunctionRule**: Long Function Rule - Limit function length
 
 **Unused Code Rules** (`parser/rules/script/unused_code/`)
 
-- **SCRIPT004**: Unused Variables Rule - Remove unused variables
-- **SCRIPT012**: Unused Parameters Rule - Remove unused function parameters
-- **SCRIPT013**: Empty Functions Rule - Remove empty functions
+- **ScriptUnusedVariableRule**: Unused Variables Rule - Remove unused variables
+- **ScriptUnusedFunctionParametersRule**: Unused Parameters Rule - Remove unused function parameters
+- **ScriptEmptyFunctionRule**: Empty Functions Rule - Remove empty functions
 
 **Logic Rules** (`parser/rules/script/logic/`)
 
-- **SCRIPT006**: Magic Numbers Rule - Use named constants
-- **SCRIPT010**: Null Safety Rule - Proper null checking
-- **SCRIPT011**: Verbose Boolean Rule - Simplify boolean expressions
-- **SCRIPT014**: Return Consistency Rule - Consistent return patterns
+- **ScriptMagicNumberRule**: Magic Numbers Rule - Use named constants
+- **ScriptNullSafetyRule**: Null Safety Rule - Proper null checking
+- **ScriptVerboseBooleanCheckRule**: Verbose Boolean Rule - Simplify boolean expressions
+- **ScriptFunctionReturnConsistencyRule**: Return Consistency Rule - Consistent return patterns
+- **ScriptStringConcatRule**: String Concatenation Rule - Use template literals instead of string concatenation
 
-#### Structure Rules (STRUCT001-STRUCT006, STYLE001-STYLE002)
+#### Structure Rules
 
 **Widget Rules** (`parser/rules/structure/widgets/`)
 
-- **STRUCT001**: Widget ID Required Rule - All widgets need IDs
-- **STYLE001**: Widget ID Lower Camel Case Rule - Widget IDs follow naming convention
+- **WidgetIdRequiredRule**: Widget ID Required Rule - All widgets need IDs
+- **WidgetIdLowerCamelCaseRule**: Widget ID Lower Camel Case Rule - Widget IDs follow naming convention
 
 **Endpoint Rules** (`parser/rules/structure/endpoints/`)
 
-- **STYLE002**: Endpoint Name Lower Camel Case Rule - Endpoint names follow convention
-- **SCRIPT009**: Endpoint On Send Self Data Rule - Avoid self.data anti-pattern
-- **STRUCT004**: Endpoint Fail On Status Codes Rule - Proper error handling
-- **STRUCT006**: Endpoint URL Base URL Type Rule - Consistent URL configuration
+- **EndpointNameLowerCamelCaseRule**: Endpoint Name Lower Camel Case Rule - Endpoint names follow convention
+- **EndpointOnSendSelfDataRule**: Endpoint On Send Self Data Rule - Avoid self.data anti-pattern
+- **EndpointFailOnStatusCodesRule**: Endpoint Fail On Status Codes Rule - Proper error handling
+- **EndpointUrlBaseUrlTypeRule**: Endpoint URL Base URL Type Rule - Consistent URL configuration
 
 **Validation Rules** (`parser/rules/structure/validation/`)
 
-- **STRUCT003**: Footer Pod Required Rule - Footer must use pod structure
-- **STRUCT005**: String Boolean Rule - Use boolean values, not strings
+- **FooterPodRequiredRule**: Footer Pod Required Rule - Footer must use pod structure
+- **StringBooleanRule**: String Boolean Rule - Use boolean values, not strings
 
-#### Custom Rules (CUSTOM001-CUSTOM999)
+#### Custom Rules
 
 **User Extensions** (`parser/rules/custom/user/`)
 
-- **CUSTOM001+**: User-defined validation rules
+- **Custom[Description]Rule**: User-defined validation rules
 - See `parser/rules/custom/README.md` for development guide
 
 ### Rule Discovery
@@ -216,7 +218,7 @@ The rules engine automatically discovers all validation rules using `pkgutil.wal
 
 1. **Category**: Script vs Structure vs Custom
 2. **Type**: Core, Complexity, Unused Code, Logic, Widgets, Endpoints, Validation
-3. **ID Range**: SCRIPT001-SCRIPT999, STRUCT001-STRUCT999, STYLE001-STYLE999, CUSTOM001-CUSTOM999
+3. **Naming**: Descriptive class names (e.g., `ScriptVarUsageRule`, `WidgetIdRequiredRule`)
 
 ## 🛠️ Development
 
@@ -229,7 +231,7 @@ The rules engine automatically discovers all validation rules using `pkgutil.wal
 **Use this approach for your own validation rules:**
 
 1. Place new rules in `parser/rules/custom/user/`
-2. Use CUSTOM### IDs (CUSTOM001, CUSTOM002, etc.)
+2. Use descriptive class names (e.g., `CustomScriptMyRule`)
 3. Follow patterns in `parser/rules/custom/examples/`
 4. See `parser/rules/custom/README.md` for detailed guide
 
@@ -264,15 +266,20 @@ Create custom configurations in JSON format:
   "rules": {
     "CustomScriptCommentQualityRule": {
       "enabled": true,
-      "severity": "WARNING",
-      "min_comment_density": 0.15
+      "severity_override": "WARNING",
+      "custom_settings": {
+        "min_comment_density": 0.15
+      }
     },
     "ScriptVarUsageRule": {
       "enabled": true,
-      "severity": "ERROR"
+      "severity_override": "ERROR",
+      "custom_settings": {}
     },
     "ScriptMagicNumberRule": {
-      "enabled": false
+      "enabled": false,
+      "severity_override": null,
+      "custom_settings": {}
     }
   }
 }

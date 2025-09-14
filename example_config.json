@@ -19,6 +19,16 @@
         "max_complexity": 10
       }
     },
+    "ScriptNullSafetyRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptStringConcatRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
     "WidgetIdRequiredRule": {
       "enabled": true,
       "severity_override": "ERROR",
@@ -37,6 +47,11 @@
     "EndpointNameLowerCamelCaseRule": {
       "enabled": true,
       "severity_override": null,
+      "custom_settings": {}
+    },
+    "EndpointOnSendSelfDataRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
       "custom_settings": {}
     }
   },
