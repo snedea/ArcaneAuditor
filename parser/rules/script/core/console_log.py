@@ -7,7 +7,7 @@ class ScriptConsoleLogRule(Rule):
     """Validates that scripts don't contain console statements."""
     
     DESCRIPTION = "Ensures scripts don't contain console statements (production code)"
-    SEVERITY = "WARNING"
+    SEVERITY = "SEVERE"
 
     def analyze(self, context):
         """Main entry point - analyze all PMD models in the context."""

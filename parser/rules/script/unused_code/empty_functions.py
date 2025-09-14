@@ -7,7 +7,7 @@ class ScriptEmptyFunctionRule(Rule):
     """Validates that functions have actual implementation (not empty bodies)."""
     
     DESCRIPTION = "Ensures functions have actual implementation (not empty bodies)"
-    SEVERITY = "WARNING"
+    SEVERITY = "SEVERE"
 
     def analyze(self, context):
         """Main entry point - analyze all PMD models in the context."""

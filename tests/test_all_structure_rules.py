@@ -86,7 +86,7 @@ class TestEndpointFailOnStatusCodesRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "SEVERE"
         assert "status" in self.rule.DESCRIPTION.lower()
 
 
@@ -116,7 +116,7 @@ class TestFooterPodRequiredRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "INFO"
         assert "footer" in self.rule.DESCRIPTION.lower()
 
 
@@ -131,7 +131,7 @@ class TestStringBooleanRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "INFO"
         assert "string" in self.rule.DESCRIPTION.lower()
 
 

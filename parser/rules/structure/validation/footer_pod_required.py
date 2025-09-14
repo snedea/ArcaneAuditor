@@ -8,7 +8,7 @@ class FooterPodRequiredRule(Rule):
     """Ensures footer uses pod structure - either direct pod or footer with pod children."""
     
     DESCRIPTION = "Ensures footer uses pod structure (direct pod or footer with pod children)"
-    SEVERITY = "WARNING"
+    SEVERITY = "INFO"
 
     def analyze(self, context):
         """Main entry point - analyze all PMD models in the context."""

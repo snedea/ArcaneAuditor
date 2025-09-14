@@ -64,7 +64,7 @@ class TestScriptConsoleLogRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "SEVERE"
         assert "console" in self.rule.DESCRIPTION.lower()
 
 
@@ -169,7 +169,7 @@ class TestScriptEmptyFunctionRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "SEVERE"
         assert "empty" in self.rule.DESCRIPTION.lower()
 
 
@@ -199,7 +199,7 @@ class TestScriptNullSafetyRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "SEVERE"
         assert "null" in self.rule.DESCRIPTION.lower()
 
 
@@ -229,7 +229,7 @@ class TestScriptFunctionReturnConsistencyRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "SEVERE"
         assert "return" in self.rule.DESCRIPTION.lower()
 
 

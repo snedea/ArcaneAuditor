@@ -7,7 +7,7 @@ class StringBooleanRule(Rule):
     """Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans."""
     
     DESCRIPTION = "Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans"
-    SEVERITY = "WARNING"
+    SEVERITY = "INFO"
 
     def analyze(self, context):
         """Main entry point - analyze all PMD models in the context."""

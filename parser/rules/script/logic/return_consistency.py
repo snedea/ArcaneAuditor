@@ -7,7 +7,7 @@ class ScriptFunctionReturnConsistencyRule(Rule):
     """Validates that functions consistently return values (all paths return or none return)."""
     
     DESCRIPTION = "Ensures functions consistently return values (all paths return or none return)"
-    SEVERITY = "WARNING"
+    SEVERITY = "SEVERE"
 
     def analyze(self, context):
         """Main entry point - analyze all PMD models in the context."""

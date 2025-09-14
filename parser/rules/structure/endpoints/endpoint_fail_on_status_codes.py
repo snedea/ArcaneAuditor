@@ -8,7 +8,7 @@ class EndpointFailOnStatusCodesRule(Rule):
     """Ensures endpoints have proper failOnStatusCodes structure with required codes 400 and 403."""
     
     DESCRIPTION = "Ensures endpoints have failOnStatusCodes with minimum required codes 400 and 403"
-    SEVERITY = "WARNING"
+    SEVERITY = "SEVERE"
 
     def analyze(self, context):
         """Main entry point - analyze all PMD models in the context."""
