@@ -40,6 +40,8 @@
     | WHILE "(" expression_sequence ")" statement -> while_statement
     | FOR "(" expression_sequence? ";" expression_sequence? ";" expression_sequence? ")" statement -> for_statement
     | FOR "(" VAR variable_declaration_list ";" expression_sequence? ";" expression_sequence? ")" statement -> for_var_statement
+    | FOR "(" LET variable_declaration_list ";" expression_sequence? ";" expression_sequence? ")" statement -> for_let_statement
+    | FOR "(" CONST variable_declaration_list ";" expression_sequence? ";" expression_sequence? ")" statement -> for_const_statement
     
 ?continue_statement: CONTINUE [IDENTIFIER] eos?
 
@@ -69,6 +71,7 @@
     | "set" property_name "(" property_set_parameter_list ")" "{" function_body "}" -> property_setter
     
 ?property_name: STRING_LITERAL
+    | IDENTIFIER
     | numeric_literal
 
 ?property_set_parameter_list: IDENTIFIER
@@ -139,6 +142,10 @@
     | object_literal -> object_literal_expression
     | "(" expression_sequence ")" -> parenthesized_expression
     | FUNCTION IDENTIFIER? "(" formal_parameter_list? ")" "{" function_body "}" -> function_expression
+    | "(" [IDENTIFIER ("," IDENTIFIER)*] ")" "=>" single_expression -> arrow_function_expression
+    | "(" [IDENTIFIER ("," IDENTIFIER)*] ")" "=>" "{" function_body "}" -> arrow_function_expression
+    | IDENTIFIER "=>" single_expression -> arrow_function_expression
+    | IDENTIFIER "=>" "{" function_body "}" -> arrow_function_expression
 
 // --- END: CORRECTED EXPRESSION HIERARCHY ---
 
@@ -217,6 +224,7 @@ DIVIDE_ASSIGN: "/="
 MODULUS_ASSIGN: "%="
 PLUS_ASSIGN: "+="
 MINUS_ASSIGN: "-="
+ARROW: "=>"
 
 // Ignored tokens
 %ignore /(\/\*.*?\*\/|\/\/[^\r\n]*|[\t\u000B\u000C\u0020\u00A0]+|[\r\n\u2028\u2029])+/
