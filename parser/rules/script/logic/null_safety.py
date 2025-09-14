@@ -245,9 +245,27 @@ class ScriptNullSafetyRule(Rule):
         
         root_object = parts[0]
         
-        # If the root object is known to be safe due to conditional execution, skip this chain
+        # If the root object is known to be safe due to conditional execution,
+        # only consider direct property access on that variable as safe
         if root_object in safe_variables:
-            return False
+            # For chains like "getUser.data.something", if "getUser.data" is safe,
+            # then "getUser.data.something" is only safe if it's a direct property access
+            if len(parts) == 2:
+                # Direct property access on safe variable is safe
+                return False
+            else:
+                # Nested property access on safe variable needs further checking
+                # Check if the remaining chain (after the safe variable) is protected
+                remaining_chain = '.'.join(parts[1:])
+                if self._is_protected_chain(ast, remaining_chain):
+                    return False
+                # Also check if any partial chain from the safe variable onwards is protected
+                for i in range(1, len(parts)):
+                    partial_chain = '.'.join(parts[:i+1])
+                    if self._is_protected_chain(ast, partial_chain):
+                        return False
+                # If no protection found, this nested access is unsafe
+                return True
         
         # Apply the same safety checks as the original method
         if self._is_global_object(root_object):
@@ -261,7 +279,7 @@ class ScriptNullSafetyRule(Rule):
             partial_chain = '.'.join(parts[:i+1])
             if self._is_protected_chain(ast, partial_chain):
                 return False
-        
+                
         return True
 
     def _parse_script_content(self, script_content: str) -> Optional[Tree]:
