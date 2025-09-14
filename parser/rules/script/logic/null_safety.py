@@ -109,23 +109,7 @@ class ScriptNullSafetyRule(Rule):
     def _is_global_object(self, object_name: str) -> bool:
         """Check if an object name refers to a known global/library object."""
         # List of known global objects that are guaranteed to exist and don't need null safety checks
-        global_objects = {
-            # Browser/DOM APIs
-            'window', 'document', 'navigator', 'location', 'history', 'screen',
-            
-            # Console and logging
-            'console',
-            
-            # JavaScript built-ins
-            'Math', 'Date', 'JSON', 'Array', 'Object', 'String', 'Number', 'Boolean',
-            'RegExp', 'Error', 'Promise', 'Symbol', 'Map', 'Set', 'WeakMap', 'WeakSet',
-            
-            # Common libraries that are typically available globally
-            'jQuery', '$', 'lodash', '_', 'moment', 'axios', 'fetch',
-            
-            # Workday-specific globals (if any)
-            'workday', 'wd'
-        }
+        global_objects = {'console', 'pageVariables', 'sessionVariables', 'queryParams', }
         
         return object_name in global_objects
 
