@@ -42,6 +42,9 @@
     | FOR "(" VAR variable_declaration_list ";" expression_sequence? ";" expression_sequence? ")" statement -> for_var_statement
     | FOR "(" LET variable_declaration_list ";" expression_sequence? ";" expression_sequence? ")" statement -> for_let_statement
     | FOR "(" CONST variable_declaration_list ";" expression_sequence? ";" expression_sequence? ")" statement -> for_const_statement
+    | FOR "(" LET IDENTIFIER ":" expression_sequence ")" statement -> for_let_in_statement
+    | FOR "(" VAR IDENTIFIER ":" expression_sequence ")" statement -> for_var_in_statement
+    | FOR "(" CONST IDENTIFIER ":" expression_sequence ")" statement -> for_const_in_statement
     
 ?continue_statement: CONTINUE [IDENTIFIER] eos?
 
@@ -141,6 +144,7 @@
     | array_literal -> array_literal_expression
     | object_literal -> object_literal_expression
     | "(" expression_sequence ")" -> parenthesized_expression
+    | "(" expression_sequence "to" expression_sequence ")" -> range_expression
     | FUNCTION IDENTIFIER? "(" formal_parameter_list? ")" "{" function_body "}" -> function_expression
     | "(" [IDENTIFIER ("," IDENTIFIER)*] ")" "=>" single_expression -> arrow_function_expression
     | "(" [IDENTIFIER ("," IDENTIFIER)*] ")" "=>" "{" function_body "}" -> arrow_function_expression
@@ -190,6 +194,7 @@ IF: "if"
 CONST: "const"
 LET: "let"
 EMPTY: "empty"
+TO: "to"
 
 IDENTIFIER: /[a-zA-Z_$][a-zA-Z0-9_$]*/
 STRING_LITERAL: /"([^"\\\r\n]|\\[^\r\n]|\\\r?\n)*"|'([^'\\\r\n]|\\[^\r\n]|\\\r?\n)*'/
