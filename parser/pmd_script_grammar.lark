@@ -140,6 +140,7 @@
 // Precedence Level: Primary (Highest)
 // These are the fundamental building blocks of expressions.
 ?primary_expression: IDENTIFIER -> identifier_expression
+    | NAMESPACE_IDENTIFIER -> namespace_identifier_expression
     | literal -> literal_expression
     | array_literal -> array_literal_expression
     | object_literal -> object_literal_expression
@@ -197,6 +198,7 @@ EMPTY: "empty"
 TO: "to"
 
 IDENTIFIER: /[a-zA-Z_$][a-zA-Z0-9_$]*/
+NAMESPACE_IDENTIFIER: /[a-zA-Z_$][a-zA-Z0-9_$]*:[a-zA-Z_$][a-zA-Z0-9_$]*/
 STRING_LITERAL: /"([^"\\\r\n]|\\[^\r\n]|\\\r?\n)*"|'([^'\\\r\n]|\\[^\r\n]|\\\r?\n)*'/
 TEMPLATE_LITERAL: /`([^`\\\r\n]|\\[^\r\n]|\\\r?\n)*`/
 
