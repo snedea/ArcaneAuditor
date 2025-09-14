@@ -51,7 +51,7 @@ class ScriptNullSafetyRule(Rule):
                 )
                 
         except Exception as e:
-            print(f"Error analyzing {field_name} in {file_path}: {e}")
+            print(f"Warning: Failed to analyze {field_name} in {file_path}: {e}")
             return
     
     def _get_safe_variables_for_field(self, field_name: str, pmd_model: PMDModel) -> Set[str]:
@@ -100,116 +100,7 @@ class ScriptNullSafetyRule(Rule):
         
         return safe_variables
     
-    def _find_endpoint_for_field(self, field_name: str, pmd_model: PMDModel) -> Optional[Dict]:
-        """Find the endpoint that contains the given field."""
-        # This would need to be implemented based on the field_name path
-        # For now, return None - this is a placeholder for the complex logic
-        return None
-    
-    def _find_widget_for_field(self, field_name: str, pmd_model: PMDModel) -> Optional[Dict]:
-        """Find the widget that contains the given field."""
-        # This would need to be implemented based on the field_name path
-        # For now, return None - this is a placeholder for the complex logic
-        return None
 
-    def _analyze_endpoints(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
-        """Analyze endpoint scripts considering exclude conditions."""
-        # Analyze inbound endpoints
-        for i, endpoint in enumerate(pmd_model.inboundEndpoints or []):
-            yield from self._analyze_endpoint_script(pmd_model, endpoint, f"endPoints[{i}]")
-        
-        # Analyze outbound endpoints  
-        if hasattr(pmd_model, 'outboundData') and pmd_model.outboundData:
-            outbound_endpoints = getattr(pmd_model.outboundData, 'outboundEndPoints', []) or []
-            for i, endpoint in enumerate(outbound_endpoints):
-                yield from self._analyze_endpoint_script(pmd_model, endpoint, f"outboundData.outboundEndPoints[{i}]")
-
-    def _analyze_endpoint_script(self, pmd_model: PMDModel, endpoint: dict, endpoint_path: str) -> Generator[Finding, None, None]:
-        """Analyze a single endpoint's scripts considering its exclude condition."""
-        exclude_condition = endpoint.get('exclude')
-        on_send_script = endpoint.get('onSend')
-        url_script = endpoint.get('url')
-        
-        # Extract variables that are checked in exclude condition
-        exclude_variables = set()
-        if exclude_condition:
-            exclude_variables = self._extract_checked_variables(exclude_condition)
-        
-        # Analyze onSend script
-        if on_send_script:
-            yield from self._analyze_conditional_script(
-                pmd_model, on_send_script, exclude_variables, 
-                f"{endpoint_path}.onSend", 
-                f"Variables checked in exclude condition: {', '.join(exclude_variables) if exclude_variables else 'none'}"
-            )
-        
-        # Analyze url script
-        if url_script:
-            yield from self._analyze_conditional_script(
-                pmd_model, url_script, exclude_variables,
-                f"{endpoint_path}.url",
-                f"Variables checked in exclude condition: {', '.join(exclude_variables) if exclude_variables else 'none'}"
-            )
-
-    def _analyze_widgets(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
-        """Analyze widget scripts considering render conditions."""
-        if not pmd_model.presentation:
-            return
-            
-        # Recursively analyze all widgets in the presentation
-        yield from self._analyze_widget_recursive(pmd_model, pmd_model.presentation.body, "presentation.body")
-
-    def _analyze_widget_recursive(self, pmd_model: PMDModel, widget: dict, widget_path: str) -> Generator[Finding, None, None]:
-        """Recursively analyze widgets and their scripts."""
-        if not isinstance(widget, dict):
-            return
-            
-        # Check for render condition
-        render_condition = widget.get('render')
-        render_variables = set()
-        if render_condition:
-            render_variables = self._extract_checked_variables(render_condition)
-        
-        # Analyze widget scripts that are conditionally executed
-        for script_field in ['value', 'onChange', 'onClick', 'enabled']:
-            script_content = widget.get(script_field)
-            if script_content and isinstance(script_content, str) and script_content.strip().startswith('<%'):
-                yield from self._analyze_conditional_script(
-                    pmd_model, script_content, render_variables,
-                    f"{widget_path}.{script_field}",
-                    f"Variables checked in render condition: {', '.join(render_variables) if render_variables else 'none'}"
-                )
-        
-        # Recursively analyze children
-        children = widget.get('children', [])
-        if isinstance(children, list):
-            for i, child in enumerate(children):
-                yield from self._analyze_widget_recursive(pmd_model, child, f"{widget_path}.children[{i}]")
-
-    def _analyze_conditional_script(self, pmd_model: PMDModel, script_content: str, safe_variables: Set[str], 
-                                  script_path: str, context_message: str) -> Generator[Finding, None, None]:
-        """Analyze a script that runs in a conditional execution context."""
-        try:
-            ast = self._parse_script_content(script_content)
-            if not ast:
-                return
-            
-            # Find unsafe accesses, but exclude variables that are known to be safe due to conditional execution
-            unsafe_accesses = self._find_unsafe_property_accesses_with_context(ast, safe_variables)
-            
-            for access_info in unsafe_accesses:
-                line_number = self._get_line_number(pmd_model, access_info['line'])
-                
-                yield Finding(
-                    rule=self,
-                    message=f"Potentially unsafe property access: {access_info['chain']} - {context_message}",
-                    line=line_number,
-                    column=1,
-                    file_path=pmd_model.file_path
-                )
-                
-        except Exception as e:
-            print(f"Error analyzing conditional script {script_path} in {pmd_model.file_path}: {e}")
 
     def _analyze_standalone_script(self, script_model) -> Generator[Finding, None, None]:
         """Analyze standalone script files."""
@@ -230,7 +121,7 @@ class ScriptNullSafetyRule(Rule):
                 )
                 
         except Exception as e:
-            print(f"Error analyzing standalone script {script_model.file_path}: {e}")
+            print(f"Warning: Failed to analyze standalone script {script_model.file_path}: {e}")
 
     def _extract_checked_variables(self, condition: str) -> Set[str]:
         """Extract variable names that are checked in a condition (like exclude or render)."""
@@ -336,21 +227,6 @@ class ScriptNullSafetyRule(Rule):
                 
         return True
 
-    def _parse_script_content(self, script_content: str) -> Optional[Tree]:
-        """Parse script content using the PMD script parser."""
-        if not script_content or not script_content.strip():
-            return None
-        
-        # Remove script tags if present
-        clean_content = script_content.strip()
-        if clean_content.startswith('<%') and clean_content.endswith('%>'):
-            clean_content = clean_content[2:-2].strip()
-        
-        try:
-            from ..pmd_script_parser import pmd_script_parser
-            return pmd_script_parser.parse(clean_content)
-        except Exception:
-            return None
 
     def _find_unsafe_property_accesses(self, ast: Tree) -> List[dict]:
         """Find property access chains that lack null safety."""
@@ -419,7 +295,7 @@ class ScriptNullSafetyRule(Rule):
     def _is_global_object(self, object_name: str) -> bool:
         """Check if an object name refers to a known global/library object."""
         # List of known global objects that are guaranteed to exist and don't need null safety checks
-        global_objects = {'console', 'pageVariables', 'sessionVariables', 'queryParams', }
+        global_objects = {'console', 'pageVariables', 'sessionVariables', 'queryParams'}
         
         return object_name in global_objects
 
