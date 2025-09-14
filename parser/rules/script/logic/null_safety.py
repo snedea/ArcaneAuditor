@@ -253,9 +253,26 @@ class ScriptNullSafetyRule(Rule):
                 # If no protection found, this nested access is unsafe
                 return True
         
-        # Apply the same safety checks as the original method
+        # Global objects are guaranteed to exist, but their properties are not
+        # So we need to check if the chain is protected or if it's just a direct property access
         if self._is_global_object(root_object):
-            return False
+            # For global objects, only direct property access (like "self.data") is safe
+            # Nested access (like "self.data.name") needs protection
+            if len(parts) == 2:
+                # Direct property access on global object is safe
+                return False
+            else:
+                # Nested property access on global object needs protection
+                # Check if the chain is protected
+                if self._is_protected_chain(ast, chain):
+                    return False
+                # Check if any partial chain is protected
+                for i in range(1, len(parts)):
+                    partial_chain = '.'.join(parts[:i+1])
+                    if self._is_protected_chain(ast, partial_chain):
+                        return False
+                # If no protection found, this nested access is unsafe
+                return True
             
         if self._is_protected_chain(ast, chain):
             return False
@@ -336,7 +353,7 @@ class ScriptNullSafetyRule(Rule):
     def _is_global_object(self, object_name: str) -> bool:
         """Check if an object name refers to a known global/library object."""
         # List of known global objects that are guaranteed to exist and don't need null safety checks
-        global_objects = {'console', 'pageVariables', 'sessionVariables', 'queryParams'}
+        global_objects = {'console', 'pageVariables', 'sessionVariables', 'queryParams', 'self'}
         
         return object_name in global_objects
 
