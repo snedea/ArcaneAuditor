@@ -68,12 +68,12 @@ class Rule(ABC):
             - line_offset: Line number where the script starts in the original file
         """
         script_fields = []
-        script_pattern = r'<%[^%]*%>'
+        script_pattern = r'<%.*?%>'
         
         def _search_dict(data: Dict[str, Any], prefix: str = "", file_content: str = "") -> None:
             """Recursively search a dictionary for script fields."""
             for key, value in data.items():
-                if isinstance(value, str) and re.search(script_pattern, value):
+                if isinstance(value, str) and re.search(script_pattern, value, re.DOTALL):
                     field_path = f"{prefix}.{key}" if prefix else key
                     # Use the full path as the display name for better context
                     display_name = field_path
@@ -86,7 +86,7 @@ class Rule(ABC):
                     for i, item in enumerate(value):
                         if isinstance(item, dict):
                             _search_dict(item, f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}", file_content)
-                        elif isinstance(item, str) and re.search(script_pattern, item):
+                        elif isinstance(item, str) and re.search(script_pattern, item, re.DOTALL):
                             field_path = f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}"
                             # Use the full path as the display name for better context
                             display_name = field_path

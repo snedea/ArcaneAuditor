@@ -23,28 +23,12 @@ class ScriptFunctionalMethodUsageRule(Rule):
     
     def visit_pmd(self, pmd_model: PMDModel):
         """Analyzes script fields in a PMD model for manual loop issues."""
-        # Check common script fields directly since find_script_fields has regex issues with multiline content
-        script_fields = []
-        
-        # Check onLoad field
-        if pmd_model.onLoad and len(pmd_model.onLoad.strip()) > 0:
-            script_fields.append(("onLoad", pmd_model.onLoad, "onLoad", 1))
-        
-        # Check script field
-        if pmd_model.script and len(pmd_model.script.strip()) > 0:
-            script_fields.append(("script", pmd_model.script, "script", 1))
-        
-        # Check endpoint script fields
-        for i, endpoint in enumerate(pmd_model.inboundEndpoints or []):
-            if 'onSend' in endpoint and endpoint['onSend']:
-                script_fields.append((f"inboundEndpoints.{i}.onSend", endpoint['onSend'], f"inboundEndpoints[{i}].onSend", 1))
-        
-        for i, endpoint in enumerate(pmd_model.outboundEndpoints or []):
-            if 'onSend' in endpoint and endpoint['onSend']:
-                script_fields.append((f"outboundEndpoints.{i}.onSend", endpoint['onSend'], f"outboundEndpoints[{i}].onSend", 1))
+        # Use the generic script field finder to detect all fields containing <% %> patterns
+        script_fields = self.find_script_fields(pmd_model)
         
         for field_path, field_value, field_name, line_offset in script_fields:
-            yield from self._check_manual_loops(field_value, field_name, pmd_model.file_path, line_offset)
+            if field_value and len(field_value.strip()) > 0:
+                yield from self._check_manual_loops(field_value, field_name, pmd_model.file_path, line_offset)
     
     def _check_manual_loops(self, script_content, field_name, file_path, line_offset=1):
         """Check for manual loops that could use functional methods."""
