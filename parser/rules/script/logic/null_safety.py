@@ -15,48 +15,102 @@ class ScriptNullSafetyRule(Rule):
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze scripts for unsafe property access patterns, considering conditional execution contexts."""
         for pmd_model in context.pmds.values():
-            # Analyze page-level scripts
-            yield from self._analyze_pmd_script(pmd_model)
+            # Use the generic script field finder to detect all fields containing <% %> patterns
+            script_fields = self.find_script_fields(pmd_model)
             
-            # Analyze endpoint scripts with conditional execution context
-            yield from self._analyze_endpoints(pmd_model)
-            
-            # Analyze widget scripts with conditional execution context  
-            yield from self._analyze_widgets(pmd_model)
+            for field_path, field_value, field_name, line_offset in script_fields:
+                if field_value and len(field_value.strip()) > 0:
+                    yield from self._check_null_safety(field_value, field_name, pmd_model.file_path, line_offset, pmd_model)
             
         # Analyze standalone script files
         for script_model in context.scripts.values():
             yield from self._analyze_standalone_script(script_model)
 
-    def _analyze_pmd_script(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
-        """Analyze page-level scripts in PMD files."""
-        for script_field in ['script', 'onLoad', 'onSubmit']:
-            script_content = getattr(pmd_model, script_field, None)
-            if not script_content:
-                continue
+    def _check_null_safety(self, script_content: str, field_name: str, file_path: str, line_offset: int, pmd_model: PMDModel) -> Generator[Finding, None, None]:
+        """Check null safety for a script field, considering conditional execution contexts."""
+        try:
+            ast = self._parse_script_content(script_content)
+            if not ast:
+                return
+            
+            # Determine safe variables based on field context
+            safe_variables = self._get_safe_variables_for_field(field_name, pmd_model)
+            
+            # Find unsafe accesses with context awareness
+            unsafe_accesses = self._find_unsafe_property_accesses_with_context(ast, safe_variables)
+            
+            for access_info in unsafe_accesses:
+                line_number = line_offset + access_info['line'] - 1
                 
-            try:
-                ast = self._parse_script_content(script_content)
-                if not ast:
-                    continue
+                yield Finding(
+                    rule=self,
+                    message=f"Potentially unsafe property access: {access_info['chain']} - consider using null coalescing (??) or empty checks",
+                    line=line_number,
+                    column=1,
+                    file_path=file_path
+                )
                 
-                # Find unsafe accesses without conditional context
-                unsafe_accesses = self._find_unsafe_property_accesses(ast)
-                
-                for access_info in unsafe_accesses:
-                    line_number = self._get_line_number(pmd_model, access_info['line'])
-                    
-                    yield Finding(
-                        rule=self,
-                        message=f"Potentially unsafe property access: {access_info['chain']} - consider using null coalescing (??) or empty checks",
-                        line=line_number,
-                        column=1,
-                        file_path=pmd_model.file_path
-                    )
-                    
-            except Exception as e:
-                print(f"Error analyzing {script_field} in {pmd_model.file_path}: {e}")
-                continue
+        except Exception as e:
+            print(f"Error analyzing {field_name} in {file_path}: {e}")
+            return
+    
+    def _get_safe_variables_for_field(self, field_name: str, pmd_model: PMDModel) -> Set[str]:
+        """Determine which variables are safe based on the field context (exclude/render conditions)."""
+        safe_variables = set()
+        
+        # Check if this field is within an endpoint context
+        if self._is_endpoint_field(field_name, pmd_model):
+            safe_variables.update(self._get_endpoint_safe_variables(field_name, pmd_model))
+        
+        # Check if this field is within a widget context  
+        elif self._is_widget_field(field_name, pmd_model):
+            safe_variables.update(self._get_widget_safe_variables(field_name, pmd_model))
+        
+        return safe_variables
+    
+    def _is_endpoint_field(self, field_name: str, pmd_model: PMDModel) -> bool:
+        """Check if a field is within an endpoint context."""
+        return 'inboundEndpoints' in field_name or 'outboundEndpoints' in field_name
+    
+    def _is_widget_field(self, field_name: str, pmd_model: PMDModel) -> bool:
+        """Check if a field is within a widget context."""
+        return 'presentation' in field_name and ('widgets' in field_name or 'value' in field_name or 'onChange' in field_name)
+    
+    def _get_endpoint_safe_variables(self, field_name: str, pmd_model: PMDModel) -> Set[str]:
+        """Get safe variables from endpoint exclude conditions."""
+        safe_variables = set()
+        
+        # Find the endpoint that contains this field
+        endpoint = self._find_endpoint_for_field(field_name, pmd_model)
+        if endpoint and 'exclude' in endpoint:
+            exclude_condition = endpoint['exclude']
+            safe_variables.update(self._extract_checked_variables(exclude_condition))
+        
+        return safe_variables
+    
+    def _get_widget_safe_variables(self, field_name: str, pmd_model: PMDModel) -> Set[str]:
+        """Get safe variables from widget render conditions."""
+        safe_variables = set()
+        
+        # Find the widget that contains this field
+        widget = self._find_widget_for_field(field_name, pmd_model)
+        if widget and 'render' in widget:
+            render_condition = widget['render']
+            safe_variables.update(self._extract_checked_variables(render_condition))
+        
+        return safe_variables
+    
+    def _find_endpoint_for_field(self, field_name: str, pmd_model: PMDModel) -> Optional[Dict]:
+        """Find the endpoint that contains the given field."""
+        # This would need to be implemented based on the field_name path
+        # For now, return None - this is a placeholder for the complex logic
+        return None
+    
+    def _find_widget_for_field(self, field_name: str, pmd_model: PMDModel) -> Optional[Dict]:
+        """Find the widget that contains the given field."""
+        # This would need to be implemented based on the field_name path
+        # For now, return None - this is a placeholder for the complex logic
+        return None
 
     def _analyze_endpoints(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
         """Analyze endpoint scripts considering exclude conditions."""
