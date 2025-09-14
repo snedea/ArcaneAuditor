@@ -253,7 +253,10 @@ async def analyze_file(
             if not config:
                 raise HTTPException(status_code=400, detail=f"Configuration '{config_name}' not found")
         else:
-            config = ExtendReviewerConfig()  # Use default configuration
+            # Try to load default configuration, fallback to fresh config if not found
+            config = load_config("default")
+            if not config:
+                config = ExtendReviewerConfig()  # Use fresh default configuration
         
         # Process the file using existing core logic
         processor = FileProcessor()

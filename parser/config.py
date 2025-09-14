@@ -25,23 +25,43 @@ class RuleConfig(BaseModel):
 
 class RulesConfig(BaseModel):
     """Configuration for all rules using human-readable class names."""
-    # Script validation rules
-    ScriptVarUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts use 'let' or 'const' instead of 'var' (best practice)")
-    ScriptNestingLevelRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't have excessive nesting levels (max 4 levels)")
-    ScriptComplexityRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't exceed complexity thresholds (max 10 cyclomatic complexity)")
-    ScriptUnusedVariableRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all declared variables are used (prevents dead code)")
-    ScriptConsoleLogRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't contain console.log statements (production code)")
-    ScriptMagicNumberRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't contain magic numbers (use named constants)")
-    ScriptLongFunctionRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures functions don't exceed maximum line count (max 50 lines)")
-    ScriptVariableNamingRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures variables follow lowerCamelCase naming convention")
     
-    # Structure validation rules
+    # Script Complexity & Structure Rules
+    ScriptComplexityRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't exceed complexity thresholds (max 10 cyclomatic complexity)")
+    ScriptFunctionParameterCountRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures functions don't have too many parameters (max 5 parameters)")
+    ScriptLongFunctionRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures functions don't exceed maximum line count (max 50 lines)")
+    ScriptNestingLevelRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't have excessive nesting levels (max 4 levels)")
+    
+    # Script Code Quality Rules
+    ScriptConsoleLogRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't contain console.log statements (production code)")
+    ScriptVarUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts use 'let' or 'const' instead of 'var' (best practice)")
+    ScriptVariableNamingRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures variables follow lowerCamelCase naming convention")
+    ScriptFunctionalMethodUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using functional methods (map, filter, forEach) instead of manual loops")
+    ScriptMagicNumberRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't contain magic numbers (use named constants)")
+    ScriptNullSafetyRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures property access chains are protected against null reference exceptions")
+    ScriptFunctionReturnConsistencyRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures functions have consistent return patterns")
+    ScriptStringConcatRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using template literals instead of string concatenation")
+    ScriptVerboseBooleanCheckRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using concise boolean expressions")
+    
+    # Script Unused Code Rules
+    ScriptEmptyFunctionRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects empty function bodies")
+    ScriptUnusedFunctionRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects functions that are declared but never called")
+    ScriptUnusedFunctionParametersRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects unused function parameters")
+    ScriptUnusedVariableRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all declared variables are used (prevents dead code)")
+    
+    # Endpoint Structure Rules
+    EndpointFailOnStatusCodesRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoints handle failure status codes properly")
+    EndpointNameLowerCamelCaseRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoint names follow lowerCamelCase convention")
+    EndpointOnSendSelfDataRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoint onSend methods use self.data appropriately")
+    EndpointUrlBaseUrlTypeRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoint URLs use proper base URL types")
+    
+    # Widget Structure Rules
     WidgetIdRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all widgets have required 'id' field")
     WidgetIdLowerCamelCaseRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures widget IDs follow lowerCamelCase convention")
-    FooterPodRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures footer widgets utilize pods")
     
-    # Style validation rules
-    EndpointNameLowerCamelCaseRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoint names follow lowerCamelCase convention")
+    # General Structure Rules
+    FooterPodRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures footer widgets utilize pods")
+    StringBooleanRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures boolean values are not stored as strings")
 
 
 class FileProcessingConfig(BaseModel):
