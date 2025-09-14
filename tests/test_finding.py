@@ -63,7 +63,7 @@ class TestFinding:
         )
         
         # Check derived fields
-        assert finding.rule_id == "TEST001"
+        assert finding.rule_id == "MockRule"
         assert finding.rule_description == "Test rule for unit testing"
         assert finding.severity == "WARNING"
     
@@ -77,7 +77,7 @@ class TestFinding:
             file_path="sample.pmd"
         )
         
-        expected_repr = "[TEST001:20] (WARNING) in 'sample.pmd': Test finding message"
+        expected_repr = "[MockRule:20] (WARNING) in 'sample.pmd': Test finding message"
         assert repr(finding) == expected_repr
     
     def test_finding_repr_no_file_path(self):
@@ -89,7 +89,7 @@ class TestFinding:
             column=3
         )
         
-        expected_repr = "[TEST001:25] (WARNING) in '': Test finding message"
+        expected_repr = "[MockRule:25] (WARNING) in '': Test finding message"
         assert repr(finding) == expected_repr
     
     def test_finding_equality(self):
@@ -165,9 +165,9 @@ class TestFinding:
             column=5
         )
         
-        assert finding1.rule_id == "RULE001"
+        assert finding1.rule_id == "MockRule"
         assert finding1.severity == "ERROR"
-        assert finding2.rule_id == "RULE002"
+        assert finding2.rule_id == "MockRule"
         assert finding2.severity == "INFO"
     
     def test_finding_attributes(self):

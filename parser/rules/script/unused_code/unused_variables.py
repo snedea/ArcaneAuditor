@@ -6,7 +6,6 @@ from ....models import ProjectContext, PMDModel
 class ScriptUnusedVariableRule(Rule):
     """Validates that all declared variables are used with proper scoping."""
     
-    ID = "SCRIPT004"
     DESCRIPTION = "Ensures all declared variables are used (prevents dead code) with proper scoping awareness"
     SEVERITY = "WARNING"
 

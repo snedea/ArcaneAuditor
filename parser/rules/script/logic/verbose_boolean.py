@@ -6,7 +6,6 @@ from ....models import ProjectContext, PMDModel
 class ScriptVerboseBooleanCheckRule(Rule):
     """Validates that scripts don't use overly verbose boolean checks like 'if(var == true) { return true } else { return false }'."""
     
-    ID = "SCRIPT011"
     DESCRIPTION = "Ensures scripts don't use overly verbose boolean checks (if(var == true) return true else return false)"
     SEVERITY = "WARNING"
 

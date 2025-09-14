@@ -9,13 +9,12 @@ from typing import Dict, Any, List
 class WidgetIdLowerCamelCaseRule(ValidationRule):
     """Validates that widget IDs follow lowerCamelCase convention (style guide)."""
     
-    ID = "STYLE001"
     DESCRIPTION = "Ensures widget IDs follow lowerCamelCase naming convention (style guide)"
     SEVERITY = "WARNING"
     
     def __init__(self):
         super().__init__(
-            self.ID,
+            self.__class__.__name__,
             self.DESCRIPTION,
             self.SEVERITY
         )

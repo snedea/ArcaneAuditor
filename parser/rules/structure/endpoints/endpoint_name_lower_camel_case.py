@@ -9,13 +9,12 @@ from typing import Dict, Any, List
 class EndpointNameLowerCamelCaseRule(ValidationRule):
     """Validates that endpoint names follow lowerCamelCase convention (style guide)."""
     
-    ID = "STYLE002"
     DESCRIPTION = "Ensures endpoint names follow lowerCamelCase naming convention (style guide)"
     SEVERITY = "WARNING"
     
     def __init__(self):
         super().__init__(
-            self.ID,
+            self.__class__.__name__,
             self.DESCRIPTION,
             self.SEVERITY
         )

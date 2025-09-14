@@ -7,7 +7,6 @@ from typing import Dict, Any, List
 class FooterPodRequiredRule(Rule):
     """Ensures footer uses pod structure - either direct pod or footer with pod children."""
     
-    ID = "STRUCT003"
     DESCRIPTION = "Ensures footer uses pod structure (direct pod or footer with pod children)"
     SEVERITY = "WARNING"
 

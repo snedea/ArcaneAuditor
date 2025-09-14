@@ -6,7 +6,6 @@ from ....models import ProjectContext, PMDModel
 class ScriptConsoleLogRule(Rule):
     """Validates that scripts don't contain console statements."""
     
-    ID = "SCRIPT005"
     DESCRIPTION = "Ensures scripts don't contain console statements (production code)"
     SEVERITY = "WARNING"
 

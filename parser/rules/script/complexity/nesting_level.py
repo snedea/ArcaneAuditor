@@ -6,7 +6,6 @@ from ....models import ProjectContext, PMDModel
 class ScriptNestingLevelRule(Rule):
     """Validates that scripts don't have excessive nesting levels."""
     
-    ID = "SCRIPT002"
     DESCRIPTION = "Ensures scripts don't have excessive nesting levels (max 4 levels)"
     SEVERITY = "WARNING"
 

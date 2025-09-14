@@ -6,7 +6,6 @@ from ....models import ProjectContext, PMDModel
 class ScriptComplexityRule(Rule):
     """Validates that scripts don't exceed complexity thresholds."""
     
-    ID = "SCRIPT003"
     DESCRIPTION = "Ensures scripts don't exceed complexity thresholds (max 10 cyclomatic complexity)"
     SEVERITY = "WARNING"
 

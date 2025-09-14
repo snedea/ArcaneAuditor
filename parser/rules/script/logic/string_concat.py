@@ -8,7 +8,6 @@ from parser.models import PMDModel
 class ScriptStringConcatRule(Rule):
     """Rule to detect string concatenation using + operator when PMD templates should be used instead."""
     
-    ID = "SCRIPT015"
     DESCRIPTION = "Detects string concatenation with + operator - use PMD templates with backticks and {{ }} instead"
     SEVERITY = "WARNING"
     

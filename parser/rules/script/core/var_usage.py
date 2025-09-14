@@ -6,7 +6,6 @@ from ....models import ProjectContext, PMDModel
 class ScriptVarUsageRule(Rule):
     """Validates that scripts use 'let' or 'const' instead of 'var'."""
     
-    ID = "SCRIPT001"
     DESCRIPTION = "Ensures scripts use 'let' or 'const' instead of 'var' (best practice)"
     SEVERITY = "WARNING"
 

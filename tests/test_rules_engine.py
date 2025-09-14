@@ -113,8 +113,8 @@ class TestRulesEngine:
         # Should find 2 findings from MockRule
         assert len(result) == 2
         assert all(isinstance(finding, Finding) for finding in result)
-        assert result[0].rule_id == "TEST001"
-        assert result[1].rule_id == "TEST001"
+        assert result[0].rule_id == "MockRule"
+        assert result[1].rule_id == "MockRule"
     
     def test_run_multiple_rules(self):
         """Test running multiple rules."""
@@ -126,7 +126,7 @@ class TestRulesEngine:
         
         # Should find 2 findings from MockRule, 0 from MockRuleNoFindings
         assert len(result) == 2
-        assert all(finding.rule_id == "TEST001" for finding in result)
+        assert all(finding.rule_id == "MockRule" for finding in result)
     
     def test_run_rule_with_error(self):
         """Test running rules when one rule raises an error."""
@@ -138,7 +138,7 @@ class TestRulesEngine:
         
         # Should still get findings from working rules
         assert len(result) == 2
-        assert all(finding.rule_id == "TEST001" for finding in result)
+        assert all(finding.rule_id == "MockRule" for finding in result)
         # MockRuleWithError should be skipped due to error
     
     def test_run_with_empty_context(self):
@@ -187,7 +187,7 @@ class TestRulesEngine:
         assert hasattr(finding, 'file_path')
         
         # Check values
-        assert finding.rule_id == "TEST001"
+        assert finding.rule_id == "MockRule"
         assert finding.rule_description == "Test rule for unit testing"
         assert finding.severity == "INFO"
         assert "Test finding" in finding.message

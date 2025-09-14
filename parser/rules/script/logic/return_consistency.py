@@ -6,7 +6,6 @@ from ....models import ProjectContext, PMDModel
 class ScriptFunctionReturnConsistencyRule(Rule):
     """Validates that functions consistently return values (all paths return or none return)."""
     
-    ID = "SCRIPT014"
     DESCRIPTION = "Ensures functions consistently return values (all paths return or none return)"
     SEVERITY = "WARNING"
 

@@ -8,7 +8,6 @@ from ...line_number_utils import LineNumberUtils
 class ScriptNullSafetyRule(Rule):
     """Validates that property access chains are properly null-safe."""
 
-    ID = "SCRIPT010"
     DESCRIPTION = "Ensures property access chains are protected against null reference exceptions"
     SEVERITY = "WARNING"
 

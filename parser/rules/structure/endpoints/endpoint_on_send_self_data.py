@@ -6,7 +6,6 @@ from typing import Dict, Any, List
 class EndpointOnSendSelfDataRule(Rule):
     """Validates that endpoints don't use the anti-pattern 'self.data = {:}' in onSend scripts."""
     
-    ID = "SCRIPT009"
     DESCRIPTION = "Ensures endpoints don't use anti-pattern 'self.data = {:}' in onSend scripts"
     SEVERITY = "WARNING"
 

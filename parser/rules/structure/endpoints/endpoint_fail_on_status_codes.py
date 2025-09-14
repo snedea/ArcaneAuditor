@@ -7,7 +7,6 @@ from typing import Dict, Any, List
 class EndpointFailOnStatusCodesRule(Rule):
     """Ensures endpoints have proper failOnStatusCodes structure with required codes 400 and 403."""
     
-    ID = "STRUCT004"
     DESCRIPTION = "Ensures endpoints have failOnStatusCodes with minimum required codes 400 and 403"
     SEVERITY = "WARNING"
 

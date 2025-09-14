@@ -15,7 +15,6 @@ from typing import Dict, Any, List
 class WidgetIdRequiredRule(Rule):
     """Ensures all widgets have an 'id' field - important for code reviewers to catch."""
     
-    ID = "STRUCT001"
     DESCRIPTION = "Ensures all widgets have an 'id' field set (structure validation)"
     SEVERITY = "WARNING"
 

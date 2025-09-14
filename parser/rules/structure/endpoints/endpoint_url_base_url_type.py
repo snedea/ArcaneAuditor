@@ -7,7 +7,6 @@ from typing import Dict, Any, List
 class EndpointUrlBaseUrlTypeRule(Rule):
     """Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values."""
     
-    ID = "STRUCT006"
     DESCRIPTION = "Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values"
     SEVERITY = "WARNING"
 

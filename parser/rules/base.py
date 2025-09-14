@@ -15,7 +15,7 @@ class Finding:
     
     def __post_init__(self):
         # Set derived fields automatically
-        self.rule_id = self.rule.ID
+        self.rule_id = self.rule.__class__.__name__
         self.rule_description = self.rule.DESCRIPTION
         self.severity = self.rule.SEVERITY
 

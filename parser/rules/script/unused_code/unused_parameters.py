@@ -6,7 +6,6 @@ from ....models import ProjectContext, PMDModel
 class ScriptUnusedFunctionParametersRule(Rule):
     """Validates that function parameters are actually used in the function body."""
     
-    ID = "SCRIPT012"
     DESCRIPTION = "Ensures function parameters are actually used in the function body"
     SEVERITY = "WARNING"
 

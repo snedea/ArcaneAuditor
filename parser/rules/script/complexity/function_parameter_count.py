@@ -15,7 +15,6 @@ from parser.models import PMDModel
 class ScriptFunctionParameterCountRule(Rule):
     """Rule to detect functions with too many parameters."""
     
-    ID = "SCRIPT013"
     DESCRIPTION = "Functions should not have too many parameters (max 4 by default)"
     SEVERITY = "WARNING"
     

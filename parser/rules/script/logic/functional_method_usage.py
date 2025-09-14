@@ -8,7 +8,6 @@ from parser.models import PMDModel
 class ScriptFunctionalMethodUsageRule(Rule):
     """Rule to detect manual loops that could be replaced with functional methods."""
     
-    ID = "SCRIPT019"
     DESCRIPTION = "Detects manual loops that could be replaced with functional methods like map, filter, forEach"
     SEVERITY = "WARNING"
     

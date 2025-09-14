@@ -6,7 +6,6 @@ from ....models import ProjectContext, PMDModel
 class ScriptMagicNumberRule(Rule):
     """Validates that scripts don't contain magic numbers."""
     
-    ID = "SCRIPT006"
     DESCRIPTION = "Ensures scripts don't contain magic numbers (use named constants)"
     SEVERITY = "INFO"
 

@@ -6,7 +6,6 @@ from typing import Dict, Any, List
 class StringBooleanRule(Rule):
     """Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans."""
     
-    ID = "STRUCT005"
     DESCRIPTION = "Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans"
     SEVERITY = "WARNING"
 

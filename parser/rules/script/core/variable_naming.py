@@ -7,7 +7,6 @@ from ...common_validations import validate_script_variable_camel_case
 class ScriptVariableNamingRule(Rule):
     """Validates that variables follow naming conventions."""
     
-    ID = "SCRIPT008"
     DESCRIPTION = "Ensures variables follow lowerCamelCase naming convention"
     SEVERITY = "WARNING"
 

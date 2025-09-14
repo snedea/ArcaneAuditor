@@ -6,7 +6,6 @@ from ....models import ProjectContext, PMDModel
 class ScriptLongFunctionRule(Rule):
     """Validates that functions don't exceed maximum line count."""
     
-    ID = "SCRIPT007"
     DESCRIPTION = "Ensures functions don't exceed maximum line count (max 50 lines)"
     SEVERITY = "WARNING"
 
