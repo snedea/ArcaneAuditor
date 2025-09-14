@@ -6,7 +6,7 @@ from ....models import ProjectContext, PMDModel
 class ScriptEmptyFunctionRule(Rule):
     """Validates that functions have actual implementation (not empty bodies)."""
     
-    ID = "SCRIPT013"
+    ID = "SCRIPT016"
     DESCRIPTION = "Ensures functions have actual implementation (not empty bodies)"
     SEVERITY = "WARNING"
 
