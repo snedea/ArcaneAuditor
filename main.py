@@ -141,20 +141,73 @@ def list_rules():
     typer.echo("Available rules:")
     typer.echo("=" * 80)
     
-    # Get all rule configurations
-    rule_configs = config.rules.model_dump()
+    # Use the rules engine to discover all available rules dynamically
+    rules_engine = RulesEngine(config)
     
-    for rule_name, rule_config in rule_configs.items():
-        status = "ENABLED" if rule_config["enabled"] else "DISABLED"
-        severity = rule_config.get("severity_override") or "default"
-        
-        # Get the description from the field info
-        field_info = config.rules.__class__.model_fields.get(rule_name)
-        description = field_info.description if field_info else "No description available"
-        
-        typer.echo(f"{rule_name}: {status} (severity: {severity})")
-        typer.echo(f"  {description}")
-        typer.echo()
+    # Get all discovered rules
+    discovered_rules = rules_engine.rules
+    
+    if not discovered_rules:
+        typer.echo("No rules discovered.")
+        return
+    
+    # Group rules by category for better organization
+    script_rules = []
+    structure_rules = []
+    other_rules = []
+    
+    for rule in discovered_rules:
+        rule_name = rule.__class__.__name__
+        if rule_name.startswith("Script"):
+            script_rules.append(rule)
+        elif rule_name.startswith(("Widget", "Endpoint", "Footer", "String")):
+            structure_rules.append(rule)
+        else:
+            other_rules.append(rule)
+    
+    # Display script rules
+    if script_rules:
+        typer.echo("SCRIPT RULES:")
+        typer.echo("-" * 40)
+        for rule in sorted(script_rules, key=lambda r: r.__class__.__name__):
+            rule_name = rule.__class__.__name__
+            status = "ENABLED" if config.is_rule_enabled(rule_name) else "DISABLED"
+            severity = config.get_rule_severity(rule_name, rule.SEVERITY)
+            description = getattr(rule, 'DESCRIPTION', 'No description available')
+            
+            typer.echo(f"{rule_name}: {status} (severity: {severity})")
+            typer.echo(f"  {description}")
+            typer.echo()
+    
+    # Display structure rules
+    if structure_rules:
+        typer.echo("STRUCTURE RULES:")
+        typer.echo("-" * 40)
+        for rule in sorted(structure_rules, key=lambda r: r.__class__.__name__):
+            rule_name = rule.__class__.__name__
+            status = "ENABLED" if config.is_rule_enabled(rule_name) else "DISABLED"
+            severity = config.get_rule_severity(rule_name, rule.SEVERITY)
+            description = getattr(rule, 'DESCRIPTION', 'No description available')
+            
+            typer.echo(f"{rule_name}: {status} (severity: {severity})")
+            typer.echo(f"  {description}")
+            typer.echo()
+    
+    # Display other rules
+    if other_rules:
+        typer.echo("OTHER RULES:")
+        typer.echo("-" * 40)
+        for rule in sorted(other_rules, key=lambda r: r.__class__.__name__):
+            rule_name = rule.__class__.__name__
+            status = "ENABLED" if config.is_rule_enabled(rule_name) else "DISABLED"
+            severity = config.get_rule_severity(rule_name, rule.SEVERITY)
+            description = getattr(rule, 'DESCRIPTION', 'No description available')
+            
+            typer.echo(f"{rule_name}: {status} (severity: {severity})")
+            typer.echo(f"  {description}")
+            typer.echo()
+    
+    typer.echo(f"Total: {len(discovered_rules)} rules discovered")
 
 
 if __name__ == "__main__":
