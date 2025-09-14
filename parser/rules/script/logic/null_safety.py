@@ -88,6 +88,29 @@ class ScriptNullSafetyRule(Rule):
         
         return safe_variables
     
+    def _find_endpoint_for_field(self, field_name: str, pmd_model: PMDModel) -> dict:
+        """Find the endpoint that contains the given field."""
+        # Parse field name like "inboundEndpoints.0.onSend" or "outboundEndpoints.1.url"
+        if 'inboundEndpoints' in field_name:
+            parts = field_name.split('.')
+            if len(parts) >= 2 and parts[0] == 'inboundEndpoints':
+                try:
+                    index = int(parts[1])
+                    if 0 <= index < len(pmd_model.inboundEndpoints):
+                        return pmd_model.inboundEndpoints[index]
+                except (ValueError, IndexError):
+                    pass
+        elif 'outboundEndpoints' in field_name:
+            parts = field_name.split('.')
+            if len(parts) >= 2 and parts[0] == 'outboundEndpoints':
+                try:
+                    index = int(parts[1])
+                    if 0 <= index < len(pmd_model.outboundEndpoints):
+                        return pmd_model.outboundEndpoints[index]
+                except (ValueError, IndexError):
+                    pass
+        return None
+    
     def _get_widget_safe_variables(self, field_name: str, pmd_model: PMDModel) -> Set[str]:
         """Get safe variables from widget render conditions."""
         safe_variables = set()
@@ -99,6 +122,25 @@ class ScriptNullSafetyRule(Rule):
             safe_variables.update(self._extract_checked_variables(render_condition))
         
         return safe_variables
+    
+    def _find_widget_for_field(self, field_name: str, pmd_model: PMDModel) -> dict:
+        """Find the widget that contains the given field."""
+        # Parse field name like "presentation.body.children.0.value"
+        if 'presentation' in field_name and 'children' in field_name:
+            parts = field_name.split('.')
+            if len(parts) >= 4 and parts[0] == 'presentation' and parts[2] == 'children':
+                try:
+                    index = int(parts[3])
+                    # Navigate to presentation.body.children[index]
+                    if hasattr(pmd_model, 'presentation') and pmd_model.presentation:
+                        presentation = pmd_model.presentation
+                        if hasattr(presentation, 'body') and presentation.body:
+                            body = presentation.body
+                            if hasattr(body, 'children') and body.children and 0 <= index < len(body.children):
+                                return body.children[index]
+                except (ValueError, IndexError, AttributeError):
+                    pass
+        return None
     
 
 
