@@ -5,7 +5,8 @@ This directory contains pre-configured rule sets for the Extend Reviewer tool. C
 ## Available Configurations
 
 ### 🚀 **default.json** (Recommended)
-- **All 25 rules enabled** with their default settings
+- **All 28 rules enabled** with their default settings
+- Includes comprehensive analysis for both PMD embedded scripts AND standalone .script files
 - Best for teams that want comprehensive code quality analysis
 - Good starting point for most users
 
@@ -18,10 +19,12 @@ This directory contains pre-configured rule sets for the Extend Reviewer tool. C
   - `EndpointFailOnStatusCodesRule` - Proper error handling
   - `WidgetIdRequiredRule` - Required widget IDs for debugging
 - Perfect for quick analysis or when you want to focus on critical issues only
+- **Note:** PMDSectionOrderingRule is disabled (style preference)
 
 ### 🎯 **comprehensive.json** (Production Ready)
-- **All 25 rules enabled** with optimized severity levels
+- **All 28 rules enabled** with optimized severity levels
 - **ERROR severity** for critical issues (console.log, null safety, etc.)
+- **WARNING severity** for structure issues (PMD section ordering)
 - **INFO severity** for preferences (string booleans, footer pods)
 - Best for production code reviews and CI/CD pipelines
 
@@ -50,44 +53,49 @@ You can create your own configuration by:
 2. Modifying rule settings as needed
 3. Saving it with a descriptive name
 
-## Rule Categories
+## Rule Categories (28 Total Rules)
 
-### Script Complexity & Structure (4 rules)
-- Cyclomatic complexity limits
-- Function parameter counting
-- Function length limits
-- Nesting level limits
+### Script Rules (19 rules)
+**Applies to both PMD embedded scripts AND standalone .script files:**
 
-### Script Code Quality (7 rules)
-- Console log detection
-- Variable usage patterns
-- Naming conventions
-- Functional method usage
-- Magic number detection
-- Null safety checks
-- Return consistency
-- String concatenation patterns
-- Boolean expression optimization
+#### Script Complexity & Structure (4 rules)
+- Cyclomatic complexity limits (`ScriptComplexityRule`)
+- Function parameter counting (`ScriptFunctionParameterCountRule`)
+- Function length limits (`ScriptLongFunctionRule`)
+- Nesting level limits (`ScriptNestingLevelRule`)
 
-### Script Unused Code (4 rules)
-- Empty function detection
-- Unused function detection
-- Unused parameter detection
-- Unused variable detection
+#### Script Code Quality (9 rules)
+- Console log detection (`ScriptConsoleLogRule`)
+- Variable usage patterns (`ScriptVarUsageRule`, `ScriptFileVarUsageRule`)
+- Naming conventions (`ScriptVariableNamingRule`)
+- Functional method usage (`ScriptFunctionalMethodUsageRule`)
+- Magic number detection (`ScriptMagicNumberRule`)
+- Null safety checks (`ScriptNullSafetyRule`)
+- Return consistency (`ScriptFunctionReturnConsistencyRule`)
+- String concatenation patterns (`ScriptStringConcatRule`)
+- Boolean expression optimization (`ScriptVerboseBooleanCheckRule`)
 
-### Endpoint Structure (4 rules)
-- Status code handling
-- Naming conventions
-- Self.data usage
-- URL base type validation
+#### Script Unused Code (6 rules)
+- Empty function detection (`ScriptEmptyFunctionRule`)
+- Unused function detection (`ScriptUnusedFunctionRule`)
+- Unused parameter detection (`ScriptUnusedFunctionParametersRule`)
+- Unused variable detection (`ScriptUnusedVariableRule`)
+- Unused script includes detection (`ScriptUnusedScriptIncludesRule`)
 
-### Widget Structure (2 rules)
-- Required ID fields
-- Naming conventions
+### Endpoint Rules (4 rules)
+- Status code handling (`EndpointFailOnStatusCodesRule`)
+- Naming conventions (`EndpointNameLowerCamelCaseRule`)
+- Self.data usage (`EndpointOnSendSelfDataRule`)
+- URL base type validation (`EndpointUrlBaseUrlTypeRule`)
 
-### General Structure (2 rules)
-- Footer pod requirements
-- String boolean detection
+### Structure Rules (4 rules)
+- Required widget ID fields (`WidgetIdRequiredRule`)
+- Widget naming conventions (`WidgetIdLowerCamelCaseRule`)
+- Footer pod requirements (`FooterPodRequiredRule`)
+- String boolean detection (`StringBooleanRule`)
+
+### PMD Rules (1 rule)
+- **Configurable section ordering** (`PMDSectionOrderingRule`) - Enforces consistent PMD file structure
 
 ## Customizing Rules
 
@@ -96,7 +104,7 @@ Each rule can be configured with:
 - `severity_override`: "INFO", "WARNING", or "ERROR" to override default severity
 - `custom_settings`: Rule-specific configuration options
 
-Example:
+### Basic Configuration Example
 ```json
 {
   "ScriptLongFunctionRule": {
@@ -108,4 +116,41 @@ Example:
   }
 }
 ```
+
+### Advanced Configuration: PMD Section Ordering
+The `PMDSectionOrderingRule` supports custom section ordering:
+
+```json
+{
+  "PMDSectionOrderingRule": {
+    "enabled": true,
+    "severity_override": "WARNING",
+    "custom_settings": {
+      "section_order": [
+        "id",
+        "securityDomains", 
+        "endPoints",
+        "presentation",
+        "onLoad",
+        "onSubmit",
+        "outboundData",
+        "include",
+        "script"
+      ],
+      "enforce_order": true
+    }
+  }
+}
+```
+
+**Customization Options:**
+- `section_order`: Array defining the preferred order of PMD sections
+- `enforce_order`: Boolean to enable/disable ordering validation
+
+### Dual Script Analysis
+Script rules automatically analyze both:
+- **PMD embedded scripts** (in `script`, `onLoad`, `onSubmit` fields)
+- **Standalone .script files** (like `util.script`, `helper.script`)
+
+No additional configuration needed - comprehensive analysis is automatic!
 

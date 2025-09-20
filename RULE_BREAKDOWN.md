@@ -1,21 +1,25 @@
 # Extend Reviewer Rules Breakdown
 
-This document provides a comprehensive overview of all validation rules supported by the Extend Reviewer tool. These rules help catch code quality issues, style violations, and structural problems that compilers can't detect but are important for code reviewers to identify.
+This document provides a comprehensive overview of all **28 validation rules** supported by the Extend Reviewer tool. These rules help catch code quality issues, style violations, and structural problems that compilers can't detect but are important for code reviewers to identify.
 
 ## Rule Categories
 
-The rules are organized into three main categories:
-- **Script Rules**: Code quality and best practices for PMD scripts
-- **Structure Rules**: Structural validation and required field checks  
-- **Style Rules**: Naming convention enforcement
+The rules are organized into four main categories:
+- **Script Rules (19 Rules)**: Code quality and best practices for PMD scripts and standalone script files
+- **Endpoint Rules (4 Rules)**: API endpoint validation and compliance  
+- **Structure Rules (4 Rules)**: Widget and PMD structural validation
+- **PMD Rules (1 Rule)**: File structure and organization validation
 
 ---
 
-## Script Rules
+## Script Rules (19 Rules)
+
+*These rules analyze both PMD embedded scripts and standalone .script files for comprehensive code quality validation.*
 
 ### ScriptVarUsageRule - Script Var Usage Rule
 **Severity:** WARNING  
 **Description:** Ensures scripts use 'let' or 'const' instead of 'var' (best practice)
+**Applies to:** PMD embedded scripts
 
 **What it catches:**
 - Usage of `var` declarations instead of modern `let`/`const`
@@ -34,9 +38,45 @@ let myVariable = "value";    // ✅ Use 'let' for mutable values
 
 ---
 
+### ScriptFileVarUsageRule - Script File Variable Usage Rule
+**Severity:** WARNING  
+**Description:** Validates variable declaration and export patterns in standalone script files
+**Applies to:** Standalone .script files
+
+**What it catches:**
+- Top-level variables declared but not exported and not used internally
+- Variables exported but not declared at top level
+- Usage of `var` instead of `const`/`let` in script files
+
+**Example violations:**
+```javascript
+// In util.script
+var getCurrentTime = function() { return new Date(); };  // ❌ Should use 'const'
+const unusedHelper = function() { return "unused"; };    // ❌ Not exported or used
+
+{
+  "getCurrentTime": getCurrentTime  // ❌ unusedHelper is unused
+}
+```
+
+**Fix:**
+```javascript
+// In util.script
+const getCurrentTime = function() { return new Date(); };  // ✅ Use 'const'
+const helperFunction = function() { return "helper"; };    // ✅ Will be exported
+
+{
+  "getCurrentTime": getCurrentTime,
+  "helperFunction": helperFunction  // ✅ Both functions exported
+}
+```
+
+---
+
 ### ScriptNestingLevelRule - Script Nesting Level Rule
 **Severity:** WARNING  
 **Description:** Ensures scripts don't have excessive nesting levels (max 4 levels)
+**Applies to:** PMD embedded scripts and standalone .script files
 
 **What it catches:**
 - Overly nested code structures (if statements, loops, functions)
@@ -48,9 +88,9 @@ function processData(data) {
     if (data) {                    // Level 1
         if (data.isValid) {        // Level 2
             if (data.hasContent) { // Level 3
-                if (data.length > 0) { // Level 4
-                    if (data.items) {  // ❌ Level 5 - Too deep!
-                        return data.items.map(item => item.value);
+                if (data.content.length > 0) { // Level 4
+                    if (data.content[0].isActive) { // Level 5 ❌ Too deep!
+                        return data.content[0];
                     }
                 }
             }
@@ -61,17 +101,16 @@ function processData(data) {
 
 **Fix:**
 ```javascript
-// ✅ Use early returns to reduce nesting
 function processData(data) {
     if (!data || !data.isValid || !data.hasContent) {
         return null;
     }
     
-    if (data.length <= 0 || !data.items) {
+    if (data.content.length === 0) {
         return null;
     }
     
-    return data.items.map(item => item.value);
+    return data.content[0].isActive ? data.content[0] : null;
 }
 ```
 
@@ -79,173 +118,58 @@ function processData(data) {
 
 ### ScriptComplexityRule - Script Complexity Rule
 **Severity:** WARNING  
-**Description:** Ensures scripts don't exceed complexity thresholds (max 10 cyclomatic complexity)
+**Description:** Ensures scripts don't have excessive cyclomatic complexity (max 10)
+**Applies to:** PMD embedded scripts and standalone .script files
 
 **What it catches:**
-- Functions with too many decision points (if, while, for, ternary operators)
-- Complex code that's hard to test and maintain
+- Functions with too many decision points (if/else, switch, loops, ternary operators)
+- Complex functions that are hard to test and maintain
+- Functions that likely need to be broken down
 
 **Example violations:**
 ```javascript
-function calculateGrade(score, attendance, bonus) {
-    let grade = 'F';
-    
-    if (score >= 90) grade = 'A';      // +1 complexity
-    else if (score >= 80) grade = 'B'; // +1 complexity  
-    else if (score >= 70) grade = 'C'; // +1 complexity
-    else if (score >= 60) grade = 'D'; // +1 complexity
-    
-    if (attendance < 80) grade = 'F';  // +1 complexity
-    if (bonus > 0) {                   // +1 complexity
-        if (grade == 'A') grade = 'A+'; // +1 complexity
-        else if (grade == 'B') grade = 'B+'; // +1 complexity
-        else if (grade == 'C') grade = 'C+'; // +1 complexity
+function processOrder(order) {
+    if (order.type === 'premium') {        // +1
+        if (order.amount > 1000) {         // +1
+            if (order.customer.vip) {      // +1
+                // ... complex logic
+            } else {                       // +1
+                // ... more logic
+            }
+        } else if (order.amount > 500) {   // +1
+            // ... logic
+        }
+    } else if (order.type === 'standard') { // +1
+        for (let item of order.items) {    // +1
+            if (item.category === 'electronics') { // +1
+                // ... logic
+            }
+        }
+    }
+    // Complexity: 8+ (getting close to limit)
+}
+```
+
+**Fix:**
+```javascript
+function processOrder(order) {
+    if (order.type === 'premium') {
+        return processPremiumOrder(order);
     }
     
-    // Multiple ternary operators add complexity
-    let status = grade == 'F' ? 'fail' : 'pass'; // +1 complexity
-    let retake = grade == 'F' || grade == 'D' ? true : false; // +1 complexity
-    
-    return { "grade": grade, "status": status, "retake": retake }; // ❌ Total complexity: 10+ (too high!)
-}
-```
-
-**Fix:**
-```javascript
-// ✅ Break into smaller, focused functions
-function getBaseGrade(score) {
-    if (score >= 90) return 'A';
-    if (score >= 80) return 'B';
-    if (score >= 70) return 'C';
-    if (score >= 60) return 'D';
-    return 'F';
-}
-
-function applyBonus(baseGrade, bonus) {
-    if (bonus <= 0) return baseGrade;
-    if (baseGrade == 'A') return 'A+';
-    if (baseGrade == 'B') return 'B+';
-    if (baseGrade == 'C') return 'C+';
-    return baseGrade;
-}
-
-function calculateGrade(score, attendance, bonus) {
-    let grade = getBaseGrade(score);
-    
-    if (attendance < 80) grade = 'F';
-    else grade = applyBonus(grade, bonus);
-    
-    return {
-        "grade": grade,
-        "status": grade == 'F' ? 'fail' : 'pass',
-        "retake": grade == 'F' || grade == 'D'
-    };
-}
-```
-
----
-
-### ScriptUnusedVariableRule - Script Unused Variable Rule
-**Severity:** WARNING  
-**Description:** Ensures all declared variables are used (prevents dead code) with proper scoping awareness
-
-**What it catches:**
-- Variables declared but never used
-- Dead code that clutters the codebase
-- Variables in different scopes (global vs function-level)
-
-**Example violations:**
-```javascript
-let unusedVariable = "never used";  // ❌ Declared but never used
-let anotherVar = "also unused";
-
-function myFunction() {
-    let localUnused = "not used here either";  // ❌ Local scope unused
-    return "something";
-}
-```
-
-**Fix:**
-```javascript
-// ✅ Remove unused variables
-function myFunction() {
-    return "something";
-}
-```
-
----
-
-### ScriptConsoleLogRule - Script Console Log Rule
-**Severity:** WARNING  
-**Description:** Ensures scripts don't contain console statements (production code)
-
-**What it catches:**
-- Debug statements left in production code (console.debug, console.info, console.warn, console.error)
-- Console logging that should be removed before deployment
-
-**Example violations:**
-```javascript
-console.debug("Debug message");   // ❌ Debug statement
-console.info("Info message");     // ❌ Debug statement
-console.warn("Warning message");  // ❌ Debug statement
-console.error("Error occurred");  // ❌ Debug statement
-```
-
-**Fix:**
-```javascript
-// ✅ Remove all console statements from production code
-// Use proper logging mechanisms or remove entirely
-
-// ✅ Commenting out console statements is also acceptable
-// console.debug("Debug message");
-// console.info("Info message");
-// console.warn("Warning message");
-// console.error("Error occurred");
-```
-
----
-
-### ScriptMagicNumberRule - Script Magic Number Rule
-**Severity:** INFO  
-**Description:** Ensures scripts don't contain magic numbers (use named constants)
-
-**What it catches:**
-- Hardcoded numeric values without explanation (magic numbers)
-- Numbers that should be named constants for maintainability
-- Values like `200`, `5000`, `3` that lack context and should be `HTTP_OK`, `DEFAULT_TIMEOUT`, `MAX_RETRIES`
-
-**Example violations:**
-```javascript
-if (response.status == 200) {     // ❌ Magic number - hardcoded value
-    let timeout = 5000;            // ❌ Magic number - should be a named constant
-    let maxRetries = 3;            // ❌ Magic number - should be a named constant
-    
-    // More magic numbers in calculations
-    let retryDelay = timeout * 2;  // ❌ Magic number '2'
-    if (attempts > 5) {            // ❌ Magic number '5'
-        return false;
+    if (order.type === 'standard') {
+        return processStandardOrder(order);
     }
-}
-```
-
-**Fix:**
-```javascript
-// ✅ Define named constants for all magic numbers
-const httpOk = 200;               // ✅ Named constant
-const defaultTimeout = 5000;      // ✅ Named constant
-const maxRetryAttempts = 3;       // ✅ Named constant
-const retryMultiplier = 2;        // ✅ Named constant
-const maxAttempts = 5;            // ✅ Named constant
-
-if (response.status == httpOk) {
-    let timeout = defaultTimeout;
-    let maxRetries = maxRetryAttempts;
     
-    // ✅ Use named constants instead of magic numbers
-    let retryDelay = timeout * retryMultiplier;
-    if (attempts > maxAttempts) {
-        return false;
-    }
+    return processBasicOrder(order);
+}
+
+function processPremiumOrder(order) {
+    // Simplified premium logic
+}
+
+function processStandardOrder(order) {
+    // Simplified standard logic
 }
 ```
 
@@ -253,94 +177,192 @@ if (response.status == httpOk) {
 
 ### ScriptLongFunctionRule - Script Long Function Rule
 **Severity:** WARNING  
-**Description:** Ensures functions don't exceed maximum line count (max 50 lines)
+**Description:** Ensures scripts don't have excessively long functions (max 50 lines)
+**Applies to:** PMD embedded scripts and standalone .script files
 
 **What it catches:**
-- Functions that are too long and difficult to understand
-- Functions that do too many things (violating single responsibility)
+- Functions that exceed 50 lines of code
+- Monolithic functions that should be broken down
+- Functions that likely violate single responsibility principle
 
 **Example violations:**
 ```javascript
-function longFunction() {
-    // 60+ lines of code...  // ❌ Too long
-    // Multiple responsibilities
-    // Hard to test and maintain
+function processLargeDataset(data) {
+    // ... 60 lines of code ...
+    // This function is doing too many things
 }
 ```
 
 **Fix:**
 ```javascript
-// ✅ Break into smaller, focused functions
-function validateInput(data) {
-    // validation logic
+function processLargeDataset(data) {
+    const validated = validateData(data);
+    const processed = transformData(validated);
+    return formatOutput(processed);
 }
 
-function processData(data) {
-    // processing logic
+function validateData(data) {
+    // ... validation logic ...
+}
+
+function transformData(data) {
+    // ... transformation logic ...
 }
 
 function formatOutput(data) {
-    // formatting logic
+    // ... formatting logic ...
+}
+```
+
+---
+
+### ScriptFunctionParameterCountRule - Script Function Parameter Count Rule
+**Severity:** WARNING  
+**Description:** Ensures functions don't have too many parameters (max 4)
+**Applies to:** PMD embedded scripts and standalone .script files
+
+**What it catches:**
+- Functions with more than 4 parameters
+- Functions that are hard to call and maintain
+- Functions that likely need parameter objects or refactoring
+
+**Example violations:**
+```javascript
+function createUser(name, email, phone, address, age, department) { // ❌ 6 parameters
+    // ... function body
+}
+```
+
+**Fix:**
+```javascript
+function createUser(userInfo) { // ✅ Single parameter object
+    const { name, email, phone, address, age, department } = userInfo;
+    // ... function body
 }
 
-function mainFunction(input) {
-    validateInput(input);
-    const processed = processData(input);
-    return formatOutput(processed);
+// Or break into smaller functions
+function createUser(personalInfo, contactInfo, workInfo) { // ✅ 3 logical groups
+    // ... function body
+}
+```
+
+---
+
+### ScriptConsoleLogRule - Script Console Log Rule
+**Severity:** WARNING  
+**Description:** Ensures scripts don't contain console.log statements (production code)
+**Applies to:** PMD embedded scripts and standalone .script files
+
+**What it catches:**
+- `console.log()` statements that should be removed before production
+- Debug statements left in production code
+- Logging that should use proper logging mechanisms
+
+**Example violations:**
+```javascript
+function processData(data) {
+    console.log("Processing data:", data); // ❌ Debug statement
+    return data.map(item => item.value);
+}
+```
+
+**Fix:**
+```javascript
+function processData(data) {
+    // Use proper error handling instead of console.log
+    if (!data || !Array.isArray(data)) {
+        throw new Error("Invalid data provided");
+    }
+    return data.map(item => item.value);
 }
 ```
 
 ---
 
 ### ScriptVariableNamingRule - Script Variable Naming Rule
-**Severity:** WARNING  
+**Severity:** INFO  
 **Description:** Ensures variables follow lowerCamelCase naming convention
+**Applies to:** PMD embedded scripts and standalone .script files
 
 **What it catches:**
-- Variables that don't follow the project's camelCase convention
-- Inconsistent naming that affects code readability
+- Variables that don't follow camelCase naming (snake_case, PascalCase, etc.)
+- Inconsistent naming conventions
 
 **Example violations:**
 ```javascript
-let snake_case_var = "value";    // ❌ Snake case
-let PascalCase = "value";        // ❌ Pascal case
-let UPPER_CASE = "value";        // ❌ Upper case
+const user_name = "John";     // ❌ snake_case
+const UserAge = 25;           // ❌ PascalCase
+const user-email = "email";   // ❌ kebab-case
 ```
 
 **Fix:**
 ```javascript
-let snakeCaseVar = "value";      // ✅ Lower camel case
-let pascalCase = "value";        // ✅ Lower camel case
-let upperCase = "value";         // ✅ Lower camel case
+const userName = "John";      // ✅ lowerCamelCase
+const userAge = 25;           // ✅ lowerCamelCase
+const userEmail = "email";    // ✅ lowerCamelCase
 ```
 
 ---
 
-### EndpointOnSendSelfDataRule - Endpoint On Send Self Data Rule
-**Severity:** WARNING  
-**Description:** Ensures endpoints don't use anti-pattern 'self.data = {:}' in onSend scripts
+### ScriptFunctionalMethodUsageRule - Script Functional Method Usage Rule
+**Severity:** INFO  
+**Description:** Recommends using functional methods (map, filter, forEach) instead of manual loops
+**Applies to:** PMD embedded scripts and standalone .script files
 
 **What it catches:**
-- Using `self.data = {:}` to assign a new empty map (anti-pattern)
-- Should create a separate variable like `payload` instead
+- Traditional for loops that could be replaced with functional methods
+- Code that's more verbose than necessary
 
 **Example violations:**
 ```javascript
-// In endpoint onSend script
-self.data = {:}  // ❌ Anti-pattern
+const results = [];
+for (let i = 0; i < items.length; i++) {  // ❌ Manual loop
+    if (items[i].active) {
+        results.push(items[i].name);
+    }
+}
 ```
 
 **Fix:**
 ```javascript
-// ✅ Create a separate variable for the data map
-let payload = {:};
+const results = items
+    .filter(item => item.active)     // ✅ Functional approach
+    .map(item => item.name);
+```
 
-// ✅ Use the separate variable for processing
-payload["key1"] = "value1";
-payload["key2"] = "value2";
+---
 
-// ✅ Return the data instead of assigning to self.data
-return payload;
+### ScriptMagicNumberRule - Script Magic Number Rule
+**Severity:** INFO  
+**Description:** Ensures scripts don't contain magic numbers (use named constants)
+**Applies to:** PMD embedded scripts and standalone .script files
+
+**What it catches:**
+- Numeric literals without clear meaning
+- Hard-coded numbers that should be constants
+
+**Example violations:**
+```javascript
+function calculateDiscount(price) {
+    if (price > 1000) {        // ❌ Magic number
+        return price * 0.15;   // ❌ Magic number
+    }
+    return price * 0.05;       // ❌ Magic number
+}
+```
+
+**Fix:**
+```javascript
+const PREMIUM_THRESHOLD = 1000;
+const PREMIUM_DISCOUNT = 0.15;
+const STANDARD_DISCOUNT = 0.05;
+
+function calculateDiscount(price) {
+    if (price > PREMIUM_THRESHOLD) {
+        return price * PREMIUM_DISCOUNT;
+    }
+    return price * STANDARD_DISCOUNT;
+}
 ```
 
 ---
@@ -348,287 +370,599 @@ return payload;
 ### ScriptNullSafetyRule - Script Null Safety Rule
 **Severity:** WARNING  
 **Description:** Ensures property access chains are protected against null reference exceptions
+**Applies to:** PMD embedded scripts and standalone .script files
 
 **What it catches:**
-- Unsafe property access that could cause null reference errors
-- Missing null checks in property chains
-- Should use `empty` checks or null coalescing operator (`??`)
+- Unsafe property access that could throw null reference exceptions
+- Missing null checks before property access
+- Improper use of null coalescing operator
 
 **Example violations:**
 ```javascript
-let result = obj.prop.subProp.value;  // ❌ Unsafe - could throw if obj.prop is null
-let data = user.profile.name;         // ❌ Unsafe - could throw if user.profile is null
+const skill = workerData.skills[0].name;  // ❌ Unsafe - skills could be null/undefined
+const isProgrammer = workerData.skills[0] == 'Programming' ?? false; // ❌ Won't work as expected
 ```
 
 **Fix:**
 ```javascript
-// ✅ Use empty checks
-if (!empty obj.prop.subProp) {
-    let result = obj.prop.subProp.value;
+const skill = workerData.skills?.[0]?.name;  // ✅ Optional chaining
+const skills = workerData.skills ?? [];      // ✅ Proper null coalescing
+const isProgrammer = skills[0] === 'Programming'; // ✅ Safe access
+```
+
+---
+
+### ScriptFunctionReturnConsistencyRule - Script Function Return Consistency Rule
+**Severity:** WARNING  
+**Description:** Ensures functions have consistent return patterns
+**Applies to:** PMD embedded scripts and standalone .script files
+
+**What it catches:**
+- Functions with missing return statements
+- Inconsistent return patterns within functions
+
+**Example violations:**
+```javascript
+function processUser(user) {
+    if (user.active) {
+        return user.name;
+    }
+    // ❌ Missing return statement
 }
+```
 
-// ✅ Use null coalescing operator
-let result = obj.prop?.subProp?.value ?? "defaultValue";
-let data = user.profile?.name ?? "unknown";
+**Fix:**
+```javascript
+function processUser(user) {
+    if (user.active) {
+        return user.name;
+    }
+    return null; // ✅ Explicit return
+}
+```
 
-// ✅ Chain operator (helps indicate when an object or prop can be null)
-let result = obj?.prop?.subProp?.value;
-let data = user?.profile?.name;
+---
+
+### ScriptStringConcatRule - Script String Concat Rule
+**Severity:** INFO  
+**Description:** Recommends using template literals instead of string concatenation
+**Applies to:** PMD embedded scripts and standalone .script files
+
+**What it catches:**
+- String concatenation using + operator
+- Code that would be more readable with template literals
+
+**Example violations:**
+```javascript
+const message = "Hello " + userName + ", welcome to " + appName; // ❌ String concatenation
+```
+
+**Fix:**
+```javascript
+const message = `Hello ${userName}, welcome to ${appName}`; // ✅ Template literal
 ```
 
 ---
 
 ### ScriptVerboseBooleanCheckRule - Script Verbose Boolean Check Rule
-**Severity:** WARNING  
-**Description:** Ensures scripts don't use overly verbose boolean checks (if(var == true) return true else return false)
+**Severity:** INFO  
+**Description:** Recommends using concise boolean expressions
+**Applies to:** PMD embedded scripts and standalone .script files
 
 **What it catches:**
-- Redundant boolean comparisons and returns
-- Overly verbose conditional logic
+- Verbose boolean comparisons that can be simplified
+- Redundant boolean expressions
 
 **Example violations:**
 ```javascript
-if (isValid == true) {
-    return true;
-} else {
-    return false;
-}  // ❌ Verbose - can be simplified
-
-let result = isValid == true ? true : false;  // ❌ Verbose ternary
+if (user.active === true) { }     // ❌ Verbose
+if (user.active !== false) { }    // ❌ Verbose
+if (user.active == true) { }      // ❌ Verbose + loose equality
 ```
 
 **Fix:**
 ```javascript
-return isValid;  // ✅ Simple and clear
-
-let result = isValid;  // ✅ Simple assignment
-
-// ✅ Simple boolean check without comparison
-if (isValid) {
-    // do something when true
-} else {
-    // do something when false
-}
+if (user.active) { }              // ✅ Concise
+if (!user.active) { }             // ✅ Concise negation
 ```
 
 ---
 
-## Structure Rules
-
-### WidgetIdRequiredRule - Widget ID Required Rule
-**Severity:** WARNING  
-**Description:** Ensures all widgets have an 'id' field set (structure validation)
+### ScriptEmptyFunctionRule - Script Empty Function Rule
+**Severity:** INFO  
+**Description:** Detects empty function bodies
+**Applies to:** PMD embedded scripts and standalone .script files
 
 **What it catches:**
-- Widgets missing required 'id' fields
-- Structural issues that could affect functionality
+- Functions with empty bodies
+- Placeholder functions that should be implemented or removed
 
 **Example violations:**
-```json
-{
-  "type": "text",
-  "value": "Hello World"
-  // ❌ Missing 'id' field
+```javascript
+function processData(data) {
+    // ❌ Empty function body
+}
+
+const handler = function() { }; // ❌ Empty function
+```
+
+**Fix:**
+```javascript
+function processData(data) {
+    // TODO: Implement data processing
+    throw new Error("Not implemented");
+}
+
+// Or remove if not needed
+```
+
+---
+
+### ScriptUnusedFunctionRule - Script Unused Function Rule
+**Severity:** WARNING  
+**Description:** Detects functions that are declared but never called
+**Applies to:** PMD embedded scripts and standalone .script files
+
+**What it catches:**
+- Functions declared but never used
+- Dead code that should be removed
+
+**Example violations:**
+```javascript
+function unusedHelper() {  // ❌ Never called
+    return "helper";
+}
+
+function main() {
+    // unusedHelper is never called
+    return "main";
 }
 ```
 
 **Fix:**
-```json
-{
-  "type": "text",
-  "id": "welcomeText",        // ✅ Required 'id' field
-  "value": "Hello World"
+```javascript
+function main() {
+    return "main";
 }
+// Remove unused functions
 ```
 
 ---
 
-### FooterPodRequiredRule - Footer Pod Required Rule
-**Severity:** WARNING  
-**Description:** Ensures footer uses pod structure (direct pod or footer with pod children)
+### ScriptUnusedFunctionParametersRule - Script Unused Function Parameters Rule
+**Severity:** INFO  
+**Description:** Detects unused function parameters
+**Applies to:** PMD embedded scripts and standalone .script files
 
 **What it catches:**
-- Footers that don't use the required pod structure
-- Structural violations in footer implementation
+- Function parameters that are declared but never used
+- Parameters that could be removed to simplify the function signature
 
 **Example violations:**
-```json
-{
-  "footer": {
-    "type": "footer",
-    "children": [
-      {
-        "type": "text",  // ❌ Should be 'pod' type
-        "value": "Footer content"
-      }
-    ]
-  }
+```javascript
+function processUser(user, options, callback) { // ❌ options and callback unused
+    return user.name;
 }
 ```
 
 **Fix:**
-```json
-{
-  "footer": {
-    "type": "pod",  // ✅ Direct pod structure
-    "podId": "footer"
-  }
-}
-
-// OR
-
-{
-  "footer": {
-    "type": "footer",
-    "children": [
-      {
-        "type": "pod",  // ✅ Footer with pod children
-        "podId": "footer"
-      }
-    ]
-  }
+```javascript
+function processUser(user) { // ✅ Only used parameters
+    return user.name;
 }
 ```
 
 ---
+
+### ScriptUnusedVariableRule - Script Unused Variable Rule
+**Severity:** INFO  
+**Description:** Ensures all declared variables are used (prevents dead code)
+**Applies to:** PMD embedded scripts and standalone .script files
+
+**What it catches:**
+- Variables declared but never used
+- Dead code that increases bundle size
+
+**Example violations:**
+```javascript
+function processData() {
+    const unusedVar = "never used"; // ❌ Unused variable
+    const result = calculateResult();
+    return result;
+}
+```
+
+**Fix:**
+```javascript
+function processData() {
+    const result = calculateResult();
+    return result;
+}
+```
+
+---
+
+### ScriptUnusedScriptIncludesRule - Script Unused Script Includes Rule
+**Severity:** WARNING  
+**Description:** Detects script files that are included but never used in PMD files
+**Applies to:** PMD files with script includes
+
+**What it catches:**
+- Script files in PMD include arrays that are never called
+- Dead script dependencies that increase bundle size
+
+**Example violations:**
+```javascript
+// In sample.pmd
+{
+  "include": ["util.script", "helper.script"], // ❌ helper.script never called
+  "script": "<%
+    const time = util.getCurrentTime(); // Only util.script is used
+  %>"
+}
+```
+
+**Fix:**
+```javascript
+// In sample.pmd
+{
+  "include": ["util.script"], // ✅ Only include used scripts
+  "script": "<%
+    const time = util.getCurrentTime();
+    const result = helper.processData(); // Or add calls to helper.script
+  %>"
+}
+```
+
+---
+
+## Endpoint Rules (4 Rules)
 
 ### EndpointFailOnStatusCodesRule - Endpoint Fail On Status Codes Rule
 **Severity:** WARNING  
-**Description:** Ensures endpoints have failOnStatusCodes with minimum required codes 400 and 403
+**Description:** Ensures endpoints properly handle error status codes
+**Applies to:** PMD endpoint definitions
 
 **What it catches:**
-- Missing failOnStatusCodes configuration
-- Incomplete error handling setup
+- Missing error handling for common HTTP status codes
+- Endpoints that don't fail on error responses
 
 **Example violations:**
 ```json
 {
-  "name": "myEndpoint",
-  "url": "https://api.example.com/data"
-  // ❌ Missing failOnStatusCodes
+  "endPoints": [{
+    "name": "GetUser",
+    "url": "/users/me"
+    // ❌ Missing failOnStatusCodes
+  }]
 }
 ```
 
 **Fix:**
 ```json
 {
-  "name": "myEndpoint",
-  "url": "https://api.example.com/data",
-  "failOnStatusCodes": [    // ✅ Required to catch 400 and 403 errors
-    { "code": "400" },
-    { "code": "403" }
-  ]
-}
-```
-
----
-
-### StringBooleanRule - String Boolean Rule
-**Severity:** WARNING  
-**Description:** Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans
-
-**What it catches:**
-- String representations of boolean values instead of actual booleans
-- Type inconsistencies that could cause logic errors
-
-**Example violations:**
-```json
-{
-  "enabled": "true",     // ❌ String instead of boolean
-  "visible": "false"     // ❌ String instead of boolean
-}
-```
-
-**Fix:**
-```json
-{
-  "enabled": true,       // ✅ Actual boolean
-  "visible": false       // ✅ Actual boolean
-}
-```
-
----
-
-### EndpointUrlBaseUrlTypeRule - Endpoint URL Base URL Type Rule
-**Severity:** WARNING  
-**Description:** Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values
-
-**What it catches:**
-- Hardcoded URLs that should use baseUrlType configuration
-- URLs that aren't environment-agnostic
-
-**Example violations:**
-```json
-{
-  "name": "myEndpoint",
-  "url": "https://api.workday.com/v1/wql"  // ❌ Hardcoded workday.com
-}
-```
-
-**Fix:**
-```json
-{
-  "name": "GetCurrentWorker",
-  "url": "workers/me",               // ✅ Relative URL
-  "baseUrlType": "workday-common"    // ✅ Use baseUrlType
-}
-```
-
----
-
-## Style Rules
-
-### WidgetIdLowerCamelCaseRule - Widget ID Lower Camel Case Rule
-**Severity:** WARNING  
-**Description:** Ensures widget IDs follow lowerCamelCase naming convention (style guide)
-
-**What it catches:**
-- Widget IDs that don't follow the project's camelCase convention
-- Inconsistent naming that affects code style
-
-**Example violations:**
-```json
-{
-  "type": "text",
-  "id": "my_widget_id",     // ❌ Snake case
-  "value": "Hello"
-}
-```
-
-**Fix:**
-```json
-{
-  "type": "text",
-  "id": "myWidgetId",       // ✅ Lower camel case
-  "value": "Hello"
+  "endPoints": [{
+    "name": "GetUser", 
+    "url": "/users/me",
+    "failOnStatusCodes": [
+      {"code": "400"},
+      {"code": "401"},
+      {"code": "403"},
+      {"code": "404"},
+      {"code": "500"}
+    ]
+  }]
 }
 ```
 
 ---
 
 ### EndpointNameLowerCamelCaseRule - Endpoint Name Lower Camel Case Rule
-**Severity:** WARNING  
-**Description:** Ensures endpoint names follow lowerCamelCase naming convention (style guide)
+**Severity:** INFO  
+**Description:** Ensures endpoint names follow lowerCamelCase convention
+**Applies to:** PMD endpoint definitions
 
 **What it catches:**
-- Endpoint names that don't follow the project's camelCase convention
-- Inconsistent API naming
+- Endpoint names that don't follow camelCase naming
+- Inconsistent naming conventions across endpoints
 
 **Example violations:**
 ```json
 {
-  "name": "GetCurrentWorker",    // ❌ Pascal case
-  "url": "workers/me",
-  "baseUrlType": "workday-common"
+  "endPoints": [{
+    "name": "get_user_data"  // ❌ snake_case
+  }, {
+    "name": "GetUserProfile" // ❌ PascalCase
+  }]
 }
 ```
 
 **Fix:**
 ```json
 {
-  "name": "getCurrentWorker",    // ✅ Lower camel case
-  "url": "workers/me",
-  "baseUrlType": "workday-common"
+  "endPoints": [{
+    "name": "getUserData"    // ✅ lowerCamelCase
+  }, {
+    "name": "getUserProfile" // ✅ lowerCamelCase
+  }]
+}
+```
+
+---
+
+### EndpointOnSendSelfDataRule - Endpoint On Send Self Data Rule
+**Severity:** WARNING  
+**Description:** Ensures endpoints properly initialize self.data in onSend
+**Applies to:** PMD endpoint definitions
+
+**What it catches:**
+- Missing `self.data = {:};` initialization in onSend scripts
+- Endpoints that might have data persistence issues
+
+**Example violations:**
+```json
+{
+  "endPoints": [{
+    "onSend": "<%
+      return someData; // ❌ Missing self.data initialization
+    %>"
+  }]
+}
+```
+
+**Fix:**
+```json
+{
+  "endPoints": [{
+    "onSend": "<%
+      self.data = {:}; // ✅ Initialize self.data
+      return self.data;
+    %>"
+  }]
+}
+```
+
+---
+
+### EndpointUrlBaseUrlTypeRule - Endpoint URL Base URL Type Rule
+**Severity:** INFO  
+**Description:** Ensures endpoints specify appropriate baseUrlType
+**Applies to:** PMD endpoint definitions
+
+**What it catches:**
+- Missing baseUrlType specifications
+- Endpoints that might use incorrect base URLs
+
+**Example violations:**
+```json
+{
+  "endPoints": [{
+    "name": "GetWorker",
+    "url": "/workers/me"
+    // ❌ Missing baseUrlType
+  }]
+}
+```
+
+**Fix:**
+```json
+{
+  "endPoints": [{
+    "name": "GetWorker",
+    "url": "/workers/me",
+    "baseUrlType": "workday-common" // ✅ Specify base URL type
+  }]
+}
+```
+
+---
+
+## Structure Rules (4 Rules)
+
+### WidgetIdRequiredRule - Widget ID Required Rule
+**Severity:** ERROR  
+**Description:** Ensures all widgets have required 'id' field
+**Applies to:** PMD widget definitions
+
+**What it catches:**
+- Widgets missing required id field
+- Widgets that can't be properly referenced
+
+**Example violations:**
+```json
+{
+  "presentation": {
+    "widgets": [{
+      "type": "text"
+      // ❌ Missing required id field
+    }]
+  }
+}
+```
+
+**Fix:**
+```json
+{
+  "presentation": {
+    "widgets": [{
+      "type": "text",
+      "id": "welcomeText" // ✅ Required id field
+    }]
+  }
+}
+```
+
+---
+
+### WidgetIdLowerCamelCaseRule - Widget ID Lower Camel Case Rule
+**Severity:** INFO  
+**Description:** Ensures widget IDs follow lowerCamelCase convention
+**Applies to:** PMD widget definitions
+
+**What it catches:**
+- Widget IDs that don't follow camelCase naming
+- Inconsistent naming conventions
+
+**Example violations:**
+```json
+{
+  "presentation": {
+    "widgets": [{
+      "id": "welcome_text"  // ❌ snake_case
+    }, {
+      "id": "UserProfile"   // ❌ PascalCase
+    }]
+  }
+}
+```
+
+**Fix:**
+```json
+{
+  "presentation": {
+    "widgets": [{
+      "id": "welcomeText"   // ✅ lowerCamelCase
+    }, {
+      "id": "userProfile"   // ✅ lowerCamelCase
+    }]
+  }
+}
+```
+
+---
+
+### FooterPodRequiredRule - Footer Pod Required Rule
+**Severity:** INFO  
+**Description:** Ensures footer widgets utilize pods
+**Applies to:** PMD footer widget definitions
+
+**What it catches:**
+- Footer widgets that should use pod components
+- Missing pod references in footer widgets
+
+---
+
+### StringBooleanRule - String Boolean Rule
+**Severity:** INFO  
+**Description:** Ensures boolean values are not stored as strings
+**Applies to:** PMD configuration values
+
+**What it catches:**
+- Boolean values stored as strings ("true"/"false")
+- Configuration that should use proper boolean types
+
+**Example violations:**
+```json
+{
+  "widget": {
+    "visible": "true",  // ❌ String instead of boolean
+    "enabled": "false"  // ❌ String instead of boolean
+  }
+}
+```
+
+**Fix:**
+```json
+{
+  "widget": {
+    "visible": true,    // ✅ Proper boolean
+    "enabled": false    // ✅ Proper boolean
+  }
+}
+```
+
+---
+
+## PMD Rules (1 Rule)
+
+### PMDSectionOrderingRule - PMD Section Ordering Rule
+**Severity:** INFO (configurable)  
+**Description:** Ensures PMD file root-level sections follow consistent ordering for better readability
+**Applies to:** PMD file structure
+**Configurable:** ✅ Section order and enforcement can be customized
+
+**What it catches:**
+- PMD sections in non-standard order
+- Inconsistent file structure across applications
+
+**Default Section Order:**
+1. `id`
+2. `securityDomains`
+3. `endPoints`
+4. `presentation`
+5. `onLoad`
+6. `onSubmit`
+7. `outboundData`
+8. `include`
+9. `script`
+
+**Example violations:**
+```json
+{
+  "script": "<%  %>",      // ❌ script should come after include
+  "id": "myApp",
+  "presentation": { },
+  "include": ["util.script"]
+}
+```
+
+**Fix:**
+```json
+{
+  "id": "myApp",           // ✅ Proper order
+  "presentation": { },
+  "include": ["util.script"],
+  "script": "<%  %>"
+}
+```
+
+**Configuration:**
+```json
+{
+  "PMDSectionOrderingRule": {
+    "enabled": true,
+    "custom_settings": {
+      "section_order": ["id", "presentation", "endPoints", "script"],
+      "enforce_order": true
+    }
+  }
+}
+```
+
+---
+
+## Rule Configuration
+
+All rules can be configured in your configuration files:
+
+- **`configs/default.json`** - Standard configuration
+- **`configs/minimal.json`** - Minimal rule set  
+- **`configs/comprehensive.json`** - All rules enabled with strict settings
+
+### Configuration Options
+
+Each rule supports:
+- **`enabled`** - Enable/disable the rule
+- **`severity_override`** - Override default severity (ERROR, WARNING, INFO)
+- **`custom_settings`** - Rule-specific configuration options
+
+### Example Configuration
+```json
+{
+  "ScriptComplexityRule": {
+    "enabled": true,
+    "severity_override": "ERROR",
+    "custom_settings": {
+      "max_complexity": 8
+    }
+  },
+  "PMDSectionOrderingRule": {
+    "enabled": true,
+    "custom_settings": {
+      "section_order": ["id", "presentation", "script"],
+      "enforce_order": false
+    }
+  }
 }
 ```
 
@@ -636,17 +970,11 @@ if (isValid) {
 
 ## Summary
 
-The Extend Reviewer tool provides **24 comprehensive validation rules** across three categories:
+The Extend Reviewer provides comprehensive validation with **28 rules** across **4 categories**:
 
-- **16 Script Rules** - Code quality, best practices, and maintainability
-- **6 Structure Rules** - Required fields, proper configuration, and structural validation  
-- **2 Style Rules** - Naming convention enforcement
+- ✅ **19 Script Rules** - Code quality for PMD and standalone scripts
+- ✅ **4 Endpoint Rules** - API validation and compliance
+- ✅ **4 Structure Rules** - Widget and component validation  
+- ✅ **1 PMD Rule** - File organization and structure
 
-These rules help ensure:
-- ✅ **Code Quality** - Modern JavaScript practices, complexity management
-- ✅ **Maintainability** - Clear naming, appropriate function sizes, reduced nesting
-- ✅ **Reliability** - Null safety, proper error handling, required configurations
-- ✅ **Consistency** - Uniform naming conventions across the codebase
-- ✅ **Production Readiness** - No debug statements, proper boolean types
-
-All rules are designed to catch issues that compilers can't detect but are crucial for code reviewers to identify and address.
+These rules help maintain consistent, high-quality Workday Extend applications by catching issues that compilers miss but are important for maintainability, performance, and team collaboration.

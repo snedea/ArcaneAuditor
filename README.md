@@ -4,11 +4,12 @@ A comprehensive code review tool for Workday Extend applications that validates 
 
 ## 🎯 Overview
 
-Extend Reviewer analyzes Workday Extend applications to catch quality violations that compilers can't detect but code reviewers should catch. It focuses on:
+Extend Reviewer analyzes Workday Extend applications with **28 comprehensive validation rules** to catch quality violations that compilers can't detect but code reviewers should catch. It focuses on:
 
-- **Script Quality**: PMD Script syntax, complexity, naming conventions
-- **Structure Validation**: Widget configurations, endpoint compliance, required fields
-- **Best Practices**: Coding standards, anti-patterns, maintainability
+- **Script Quality (19 Rules)**: PMD Script syntax, complexity, naming conventions, unused code detection
+- **Endpoint Validation (4 Rules)**: API endpoint compliance, error handling, naming conventions
+- **Structure Validation (4 Rules)**: Widget configurations, required fields, component validation
+- **PMD Organization (1 Rule)**: File structure and section ordering for consistency
 
 ## 🚀 Quick Start
 
