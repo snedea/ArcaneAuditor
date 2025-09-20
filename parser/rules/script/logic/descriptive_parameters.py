@@ -165,7 +165,7 @@ class ScriptDescriptiveParameterRule(Rule):
         """Suggest a descriptive parameter name based on method, context, and parameter position."""
         
         # Special case for reduce - suggest based on parameter position (takes precedence over context)
-        if method_name in ['reduce', 'reduceRight']:
+        if method_name == 'reduce':
             if param_index == 0:
                 return 'acc'  # First parameter is accumulator
             elif param_index == 1:
