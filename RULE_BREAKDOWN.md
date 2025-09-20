@@ -1,6 +1,8 @@
-# Extend Reviewer Rules Breakdown
+# Arcane Auditor Rules Grimoire 📜
 
-This document provides a comprehensive overview of all **28 validation rules** supported by the Extend Reviewer tool. These rules help catch code quality issues, style violations, and structural problems that compilers can't detect but are important for code reviewers to identify.
+*Ancient wisdom distilled into 28 mystical validation rules*
+
+This grimoire provides a comprehensive overview of all **28 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify. These rules help catch code quality issues, style violations, and structural problems that compilers can't detect but are important for code reviewers to identify.
 
 ## Rule Categories
 
@@ -970,7 +972,7 @@ Each rule supports:
 
 ## Summary
 
-The Extend Reviewer provides comprehensive validation with **28 rules** across **4 categories**:
+The Arcane Auditor channels mystical powers through **28 rules** across **4 categories**:
 
 - ✅ **19 Script Rules** - Code quality for PMD and standalone scripts
 - ✅ **4 Endpoint Rules** - API validation and compliance

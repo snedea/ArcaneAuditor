@@ -1,5 +1,5 @@
 """
-Output formatting module for Extend Reviewer.
+Output formatting module for Arcane Auditor.
 Provides various output formats with emojis and better formatting.
 """
 from typing import List, Dict, Any, Optional
@@ -56,7 +56,7 @@ class OutputFormatter:
         output = []
         
         # Header with emojis
-        output.append("🎯 **Extend Reviewer Analysis Results**")
+        output.append("🧙‍♂️ **Arcane Auditor Analysis Results**")
         output.append("=" * 50)
         
         # Summary statistics

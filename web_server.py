@@ -424,7 +424,7 @@ async def download_excel(request_data: dict):
         # Return the Excel file
         return FileResponse(
             path=excel_file_path,
-            filename=f"extend-reviewer-results-{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                   filename=f"arcane-auditor-results-{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
         

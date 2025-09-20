@@ -1,6 +1,8 @@
-# Extend Reviewer Configuration Files
+# Arcane Auditor Configuration Scrolls 📜
 
-This directory contains pre-configured rule sets for the Extend Reviewer tool. Choose the configuration that best fits your needs:
+*Mystical configurations for the Developers and Dragons initiative*
+
+This directory contains pre-configured spell sets for the Arcane Auditor. Choose the configuration that best fits your needs:
 
 ## Available Configurations
 
@@ -31,7 +33,7 @@ This directory contains pre-configured rule sets for the Extend Reviewer tool. C
 ## How to Use
 
 ### Web Interface
-1. Go to the Extend Reviewer web interface
+1. Go to the Arcane Auditor mystical web interface
 2. Upload your ZIP file
 3. Select a configuration from the dropdown (optional - defaults to `default.json`)
 

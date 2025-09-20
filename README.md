@@ -1,10 +1,10 @@
-# Extend Reviewer
+# Arcane Auditor 🧙‍♂️
 
-A comprehensive code review tool for Workday Extend applications that validates PMD Script syntax, structure compliance, and coding best practices.
+*A mystical code review tool for Workday Extend applications that validates PMD Script syntax, structure compliance, and coding best practices. Part of the Developers and Dragons initiative to help new programmers master the arcane arts of Extend development.*
 
 ## 🎯 Overview
 
-Extend Reviewer analyzes Workday Extend applications with **28 comprehensive validation rules** to catch quality violations that compilers can't detect but code reviewers should catch. It focuses on:
+Arcane Auditor channels ancient wisdom through **28 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool focuses on:
 
 - **Script Quality (19 Rules)**: PMD Script syntax, complexity, naming conventions, unused code detection
 - **Endpoint Validation (4 Rules)**: API endpoint compliance, error handling, naming conventions
@@ -18,7 +18,7 @@ Extend Reviewer analyzes Workday Extend applications with **28 comprehensive val
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd extend-reviewer
+cd arcane-auditor
 
 # Install dependencies
 uv sync
@@ -29,7 +29,7 @@ uv run main.py review-app your-app.zip
 
 ### Web Interface (Recommended)
 
-For a user-friendly web interface:
+For a user-friendly mystical web interface:
 
 ```bash
 # One-time setup (requires Node.js)
@@ -38,23 +38,23 @@ python setup_web_interface.py
 # Start the web server
 python start_web_interface.py
 
-# Open http://localhost:8000 in your browser
+# Open http://localhost:8000 in your browser to access the Arcane Auditor
 ```
 
 ### Basic Usage
 
 ```bash
-# Analyze a PMD application
+# Analyze a PMD application with arcane wisdom
 uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
 
-# Use custom configuration
+# Use custom magical configuration
 uv run main.py review-app your-app.zip --config custom-config.json
 ```
 
 ## 📁 Project Structure
 
 ```
-extend-reviewer/
+arcane-auditor/
 ├── main.py                           # Main application entry point
 ├── requirements.txt                  # Python dependencies
 ├── pyproject.toml                    # Project configuration

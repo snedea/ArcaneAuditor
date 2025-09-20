@@ -1,7 +1,7 @@
 [project]
-name = "extend-reviewer"
+name = "arcane-auditor"
 version = "0.1.0"
-description = "Add your description here"
+description = "A mystical code review tool for Workday Extend applications - part of Developers and Dragons"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

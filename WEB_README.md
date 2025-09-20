@@ -1,6 +1,6 @@
-# Extend Reviewer Web Interface
+# Arcane Auditor Mystical Web Interface 🔮
 
-A web-based interface for the Extend Reviewer tool, designed for internal team use.
+A mystical web-based interface for the Arcane Auditor, designed for the Developers and Dragons initiative.
 
 ## 🚀 Quick Start
 
