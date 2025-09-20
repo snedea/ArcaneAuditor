@@ -1109,7 +1109,7 @@ All rules can be configured in your configuration files:
 Each rule supports:
 
 - **`enabled`** - Enable/disable the rule
-- **`severity_override`** - Override default severity (ERROR, WARNING, INFO)
+- **`severity_override`** - Override default severity (SEVERE, WARNING, INFO)
 - **`custom_settings`** - Rule-specific configuration options
 
 ### Example Configuration
@@ -1118,7 +1118,7 @@ Each rule supports:
 {
   "ScriptComplexityRule": {
     "enabled": true,
-    "severity_override": "ERROR",
+    "severity_override": "SEVERE",
     "custom_settings": {
       "max_complexity": 8
     }
@@ -1126,8 +1126,7 @@ Each rule supports:
   "PMDSectionOrderingRule": {
     "enabled": true,
     "custom_settings": {
-      "section_order": ["id", "presentation", "script"],
-      "enforce_order": false
+      "section_order": ["id", "presentation", "script"]
     }
   }
 }
@@ -1144,4 +1143,4 @@ The Arcane Auditor channels mystical powers through **29 rules** across **4 cate
 - ✅ **4 Structure Rules** - Widget and component validation
 - ✅ **1 PMD Rule** - File organization and structure
 
-These rules help maintain consistent, high-quality Workday Extend applications by catching issues that compilers miss but are important for maintainability, performance, and team collaboration.
+These rules help maintain consistent, high-quality Workday Extend applications by catching issues that compilers aren't designed to catch, but are important for maintainability, performance, and team collaboration.
