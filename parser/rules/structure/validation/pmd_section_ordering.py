@@ -12,17 +12,17 @@ class PMDSectionOrderingRule(Rule):
 
     def __init__(self, config: Dict[str, Any] = None):
         """Initialize with configurable section order."""
-        # Default section order based on current sample.pmd
+        # Default section order based on updated PMD standards
         default_order = [
             "id",
-            "securityDomains", 
+            "securityDomains",
+            "include", 
+            "script",
             "endPoints",
-            "presentation",
-            "onLoad",
-            "onSubmit", 
+            "onSubmit",
             "outboundData",
-            "include",
-            "script"
+            "onLoad",
+            "presentation"
         ]
         
         self.section_order = config.get("section_order", default_order) if config else default_order

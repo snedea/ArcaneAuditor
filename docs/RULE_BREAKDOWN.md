@@ -1051,21 +1051,21 @@ function processData() {
 
 1. `id`
 2. `securityDomains`
-3. `endPoints`
-4. `presentation`
-5. `onLoad`
+3. `include`
+4. `script`
+5. `endPoints`
 6. `onSubmit`
 7. `outboundData`
-8. `include`
-9. `script`
+8. `onLoad`
+9. `presentation`
 
 **Example violations:**
 
 ```json
 {
-  "script": "<%  %>",      // ❌ script should come after include
+  "presentation": { },     // ❌ presentation should come last
   "id": "myApp",
-  "presentation": { },
+  "script": "<%  %>",
   "include": ["util.script"]
 }
 ```
@@ -1075,9 +1075,9 @@ function processData() {
 ```json
 {
   "id": "myApp",           // ✅ Proper order
-  "presentation": { },
   "include": ["util.script"],
-  "script": "<%  %>"
+  "script": "<%  %>",
+  "presentation": { }
 }
 ```
 
@@ -1088,7 +1088,7 @@ function processData() {
   "PMDSectionOrderingRule": {
     "enabled": true,
     "custom_settings": {
-      "section_order": ["id", "presentation", "endPoints", "script"]
+        "section_order": ["id", "securityDomains", "include", "script", "endPoints", "onSubmit", "outboundData", "onLoad", "presentation"]
     }
   }
 }
