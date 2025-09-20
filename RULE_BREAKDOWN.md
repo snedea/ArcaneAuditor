@@ -867,9 +867,6 @@ function processData() {
   "endPoints": [{
     "name": "getWorker",
     "url": "https://api.workday.com/common/v1/workers/me"  // ❌ Hardcoded workday.com
-  }, {
-    "name": "getModelData",
-    "url": "apiGatewayEndpoint/data"  // ❌ Hardcoded apiGatewayEndpoint
   }]
 }
 ```
@@ -882,10 +879,6 @@ function processData() {
     "name": "getWorker",
     "url": "/workers/me",  // ✅ Relative URL
     "baseUrlType": "workday-common"  // ✅ Use baseUrlType instead
-  }, {
-    "name": "getModelData", 
-    "url": "/modelData",  // ✅ Relative URL
-    "baseUrlType": "workday-app"  // ✅ Use appropriate baseUrlType
   }]
 }
 ```
@@ -910,10 +903,14 @@ function processData() {
 ```json
 {
   "presentation": {
-    "widgets": [{
-      "type": "text"
-      // ❌ Missing required id field
-    }]
+    "body": {
+      "type": "section",
+      "children": [{
+        "type": "text",
+        "label": "Welcome"
+        // ❌ Missing required id field
+      }]
+    }
   }
 }
 ```
@@ -923,10 +920,14 @@ function processData() {
 ```json
 {
   "presentation": {
-    "widgets": [{
-      "type": "text",
-      "id": "welcomeText" // ✅ Required id field
-    }]
+    "body": {
+      "type": "section", 
+      "children": [{
+        "type": "text",
+        "label": "Welcome",
+        "id": "welcomeText" // ✅ Required id field
+      }]
+    }
   }
 }
 ```
@@ -949,11 +950,16 @@ function processData() {
 ```json
 {
   "presentation": {
-    "widgets": [{
-      "id": "welcome_text"  // ❌ snake_case
-    }, {
-      "id": "UserProfile"   // ❌ PascalCase
-    }]
+    "body": {
+      "type": "section",
+      "children": [{
+        "type": "text",
+        "id": "welcome_text"  // ❌ snake_case
+      }, {
+        "type": "button",
+        "id": "UserProfile"   // ❌ PascalCase
+      }]
+    }
   }
 }
 ```
@@ -963,11 +969,16 @@ function processData() {
 ```json
 {
   "presentation": {
-    "widgets": [{
-      "id": "welcomeText"   // ✅ lowerCamelCase
-    }, {
-      "id": "userProfile"   // ✅ lowerCamelCase
-    }]
+    "body": {
+      "type": "section",
+      "children": [{
+        "type": "text",
+        "id": "welcomeText"   // ✅ lowerCamelCase
+      }, {
+        "type": "button", 
+        "id": "userProfile"   // ✅ lowerCamelCase
+      }]
+    }
   }
 }
 ```
