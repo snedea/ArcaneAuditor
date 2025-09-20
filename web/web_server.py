@@ -46,9 +46,11 @@ app.add_middleware(
 )
 
 # Create necessary directories
-UPLOAD_DIR = Path("uploads")
-CONFIG_DIR = Path("configs")
-STATIC_DIR = Path("web/frontend/dist")
+# Get the project root directory (parent of web directory)
+PROJECT_ROOT = Path(__file__).parent.parent
+UPLOAD_DIR = PROJECT_ROOT / "uploads"
+CONFIG_DIR = PROJECT_ROOT / "configs"
+STATIC_DIR = Path("frontend/dist")  # Relative to web directory
 
 UPLOAD_DIR.mkdir(exist_ok=True)
 CONFIG_DIR.mkdir(exist_ok=True)
