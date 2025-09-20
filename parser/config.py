@@ -43,6 +43,7 @@ class RulesConfig(BaseModel):
     ScriptFunctionReturnConsistencyRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures functions have consistent return patterns")
     ScriptStringConcatRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using template literals instead of string concatenation")
     ScriptVerboseBooleanCheckRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using concise boolean expressions")
+    ScriptDescriptiveParameterRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures functional method parameters use descriptive names instead of single letters")
     
     # Script Unused Code Rules
     ScriptEmptyFunctionRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects empty function bodies")
