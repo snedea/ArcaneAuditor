@@ -179,6 +179,105 @@ const formatDate = function(date) {
         # Should handle parsing errors gracefully
         assert len(findings) == 0  # Rule should skip unparseable content
 
+    def test_configurable_checks_var_only(self):
+        """Test that only var declaration checking can be enabled."""
+        # Configure rule to only check var declarations
+        config = {
+            "check_unused_variables": False,
+            "check_export_consistency": False,
+            "check_var_declarations": True
+        }
+        rule = ScriptFileVarUsageRule(config)
+        
+        script_content = """var getCurrentTime = function() {
+    return date:now();
+};
+
+const unusedFunction = function() {
+    return "unused";
+};
+
+{
+  "getCurrentTime": getCurrentTime
+}"""
+        
+        script_model = ScriptModel(source=script_content, file_path="var_only.script")
+        context = ProjectContext()
+        context.scripts["var_only.script"] = script_model
+        
+        findings = list(rule.analyze(context))
+        
+        # Should only find the var declaration issue, not the unused variable
+        assert len(findings) == 1
+        assert "var" in findings[0].message.lower()
+        assert "const" in findings[0].message.lower()
+        assert "unused" not in findings[0].message.lower()
+
+    def test_configurable_checks_dead_code_only(self):
+        """Test that only dead code detection can be enabled."""
+        # Configure rule to only check unused variables
+        config = {
+            "check_unused_variables": True,
+            "check_export_consistency": False,
+            "check_var_declarations": False
+        }
+        rule = ScriptFileVarUsageRule(config)
+        
+        script_content = """var getCurrentTime = function() {
+    return date:now();
+};
+
+const unusedFunction = function() {
+    return "unused";
+};
+
+{
+  "getCurrentTime": getCurrentTime
+}"""
+        
+        script_model = ScriptModel(source=script_content, file_path="dead_code_only.script")
+        context = ProjectContext()
+        context.scripts["dead_code_only.script"] = script_model
+        
+        findings = list(rule.analyze(context))
+        
+        # Should only find the unused variable, not the var declaration
+        assert len(findings) == 1
+        assert "neither exported nor used internally" in findings[0].message
+        assert "unusedFunction" in findings[0].message
+
+    def test_configurable_checks_all_disabled(self):
+        """Test that all checks can be disabled."""
+        # Configure rule to disable all checks
+        config = {
+            "check_unused_variables": False,
+            "check_export_consistency": False,
+            "check_var_declarations": False
+        }
+        rule = ScriptFileVarUsageRule(config)
+        
+        script_content = """var getCurrentTime = function() {
+    return date:now();
+};
+
+const unusedFunction = function() {
+    return "unused";
+};
+
+{
+  "getCurrentTime": getCurrentTime,
+  "nonExistentFunction": nonExistentFunction
+}"""
+        
+        script_model = ScriptModel(source=script_content, file_path="all_disabled.script")
+        context = ProjectContext()
+        context.scripts["all_disabled.script"] = script_model
+        
+        findings = list(rule.analyze(context))
+        
+        # Should find no issues when all checks are disabled
+        assert len(findings) == 0
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

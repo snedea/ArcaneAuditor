@@ -89,6 +89,38 @@ const helperFunction = function() { return "helper"; };    // ✅ Will be export
 }
 ```
 
+**Configuration Options:**
+
+You can disable specific checks if you only want certain validations:
+
+```json
+{
+  "ScriptFileVarUsageRule": {
+    "enabled": true,
+    "custom_settings": {
+      "check_unused_variables": true,      // Dead code detection
+      "check_export_consistency": true,    // Export/declaration validation  
+      "check_var_declarations": true       // var vs const/let checking
+    }
+  }
+}
+```
+
+**Example: Only check var declarations (ignore dead code):**
+
+```json
+{
+  "ScriptFileVarUsageRule": {
+    "enabled": true,
+    "custom_settings": {
+      "check_unused_variables": false,     // Skip dead code detection
+      "check_export_consistency": false,   // Skip export validation
+      "check_var_declarations": true       // Only check var vs const/let
+    }
+  }
+}
+```
+
 ---
 
 ### ScriptNestingLevelRule - Script Nesting Level Rule

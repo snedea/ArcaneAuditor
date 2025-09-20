@@ -1,4 +1,4 @@
-from typing import Generator, Set, Dict
+from typing import Generator, Set, Dict, Any
 from ...base import Rule, Finding
 from ....models import ProjectContext, ScriptModel
 
@@ -8,6 +8,15 @@ class ScriptFileVarUsageRule(Rule):
     
     DESCRIPTION = "Ensures script files follow proper variable declaration and export patterns"
     SEVERITY = "WARNING"
+
+    def __init__(self, config: Dict[str, Any] = None):
+        """Initialize with configurable check options."""
+        self.config = config or {}
+        
+        # Allow users to disable specific checks
+        self.check_unused_variables = self.config.get("check_unused_variables", True)
+        self.check_export_consistency = self.config.get("check_export_consistency", True)
+        self.check_var_declarations = self.config.get("check_var_declarations", True)
 
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze standalone script files for variable usage patterns."""
@@ -152,49 +161,53 @@ class ScriptFileVarUsageRule(Rule):
 
     def _check_var_usage_issues(self, declared_vars: Dict[str, dict], exported_vars: Set[str], 
                                script_model: ScriptModel) -> Generator[Finding, None, None]:
-        """Check for variable usage issues."""
+        """Check for variable usage issues based on configuration."""
         
         # Separate top-level and function-scoped variables
         top_level_vars = {k: v for k, v in declared_vars.items() if v.get('scope') == 'top-level'}
         function_vars = {k: v for k, v in declared_vars.items() if v.get('scope') == 'function'}
         
-        # Get internal function calls to identify helper functions
-        ast = self._parse_script_content(script_model.source)
-        internal_calls = self._extract_internal_function_calls(ast) if ast else set()
+        # Get internal function calls to identify helper functions (only if needed)
+        if self.check_unused_variables:
+            ast = self._parse_script_content(script_model.source)
+            internal_calls = self._extract_internal_function_calls(ast) if ast else set()
         
         # Issue 1: Top-level variables declared but not exported AND not used internally
-        unexported_vars = set(top_level_vars.keys()) - exported_vars
-        truly_unused_vars = unexported_vars - internal_calls
-        
-        for var_name in truly_unused_vars:
-            var_info = top_level_vars[var_name]
-            yield Finding(
-                rule=self,
-                message=f"Top-level variable '{var_name}' is declared but neither exported nor used internally. Consider removing if unused.",
-                line=var_info['line'],
-                column=1,
-                file_path=script_model.file_path
-            )
-        
-        # Issue 2: Variables exported but not declared at top level
-        undeclared_exports = exported_vars - set(top_level_vars.keys())
-        for var_name in undeclared_exports:
-            yield Finding(
-                rule=self,
-                message=f"Variable '{var_name}' is exported but not declared at top level in this script. Check for typos or missing declarations.",
-                line=1,  # Can't determine exact line for exports without more complex analysis
-                column=1,
-                file_path=script_model.file_path
-            )
-        
-        # Issue 3: Recommend const/let over var for all variables (top-level and function-scoped)
-        for var_name, var_info in declared_vars.items():
-            if var_info['type'] == 'VAR':
-                scope_msg = "top-level" if var_info.get('scope') == 'top-level' else "function-scoped"
+        if self.check_unused_variables:
+            unexported_vars = set(top_level_vars.keys()) - exported_vars
+            truly_unused_vars = unexported_vars - internal_calls
+            
+            for var_name in truly_unused_vars:
+                var_info = top_level_vars[var_name]
                 yield Finding(
                     rule=self,
-                    message=f"Script file uses 'var' for {scope_msg} variable '{var_name}'. Consider using 'const' for functions or 'let' for variables.",
+                    message=f"Top-level variable '{var_name}' is declared but neither exported nor used internally. Consider removing if unused.",
                     line=var_info['line'],
                     column=1,
                     file_path=script_model.file_path
                 )
+        
+        # Issue 2: Variables exported but not declared at top level
+        if self.check_export_consistency:
+            undeclared_exports = exported_vars - set(top_level_vars.keys())
+            for var_name in undeclared_exports:
+                yield Finding(
+                    rule=self,
+                    message=f"Variable '{var_name}' is exported but not declared at top level in this script. Check for typos or missing declarations.",
+                    line=1,  # Can't determine exact line for exports without more complex analysis
+                    column=1,
+                    file_path=script_model.file_path
+                )
+        
+        # Issue 3: Recommend const/let over var for all variables (top-level and function-scoped)
+        if self.check_var_declarations:
+            for var_name, var_info in declared_vars.items():
+                if var_info['type'] == 'VAR':
+                    scope_msg = "top-level" if var_info.get('scope') == 'top-level' else "function-scoped"
+                    yield Finding(
+                        rule=self,
+                        message=f"Script file uses 'var' for {scope_msg} variable '{var_name}'. Consider using 'const' for functions or 'let' for variables.",
+                        line=var_info['line'],
+                        column=1,
+                        file_path=script_model.file_path
+                    )
