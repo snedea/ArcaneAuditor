@@ -529,17 +529,6 @@ If you create useful custom rules, consider:
 - **Contributing to the main codebase** - Help improve the platform
 - **Creating rule templates** - Help other developers get started
 
-## 🔄 Migration from Old Versions
-
-If you have rules from older versions, update them:
-
-1. **Change return type**: `List[Finding]` → `Generator[Finding, None, None]`
-2. **Use generators**: Replace `findings.append()` with `yield`
-3. **Add dual analysis**: Support both PMD and standalone scripts
-4. **Update imports**: Use current import paths
-5. **Use built-in utilities**: Leverage `find_script_fields()` and `_parse_script_content()`
-
----
 
 **Happy mystical rule development! 🧙‍♂️✨**
 
