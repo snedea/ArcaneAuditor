@@ -8,7 +8,7 @@ from parser.rules.structure.widgets.widget_id_lower_camel_case import WidgetIdLo
 from parser.rules.structure.endpoints.endpoint_name_lower_camel_case import EndpointNameLowerCamelCaseRule
 from parser.rules.structure.endpoints.endpoint_on_send_self_data import EndpointOnSendSelfDataRule
 from parser.rules.structure.endpoints.endpoint_fail_on_status_codes import EndpointFailOnStatusCodesRule
-from parser.rules.structure.endpoints.endpoint_url_base_url_type import EndpointUrlBaseUrlTypeRule
+from parser.rules.structure.endpoints.endpoint_url_base_url_type import EndpointBaseUrlTypeRule
 from parser.rules.structure.validation.footer_pod_required import FooterPodRequiredRule
 from parser.rules.structure.validation.string_boolean import StringBooleanRule
 from parser.rules.base import Finding
@@ -90,12 +90,12 @@ class TestEndpointFailOnStatusCodesRule:
         assert "status" in self.rule.DESCRIPTION.lower()
 
 
-class TestEndpointUrlBaseUrlTypeRule:
+class TestEndpointBaseUrlTypeRule:
     """Test cases for EndpointUrlBaseUrlTypeRule class."""
     
     def setup_method(self):
         """Set up test fixtures."""
-        self.rule = EndpointUrlBaseUrlTypeRule()
+        self.rule = EndpointBaseUrlTypeRule()
         self.context = ProjectContext()
     
     def test_rule_metadata(self):
@@ -162,7 +162,7 @@ class TestAllStructureRulesIntegration:
             EndpointNameLowerCamelCaseRule(),
             EndpointOnSendSelfDataRule(),
             EndpointFailOnStatusCodesRule(),
-            EndpointUrlBaseUrlTypeRule(),
+            EndpointBaseUrlTypeRule(),
             FooterPodRequiredRule(),
             StringBooleanRule(),
         ]
@@ -184,7 +184,7 @@ class TestAllStructureRulesIntegration:
             EndpointNameLowerCamelCaseRule(),
             EndpointOnSendSelfDataRule(),
             EndpointFailOnStatusCodesRule(),
-            EndpointUrlBaseUrlTypeRule(),
+            EndpointBaseUrlTypeRule(),
             FooterPodRequiredRule(),
             StringBooleanRule(),
         ]

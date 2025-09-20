@@ -848,25 +848,28 @@ function processData() {
 
 ---
 
-### EndpointUrlBaseUrlTypeRule - Endpoint Base URL Type Rule
+### EndpointBaseUrlTypeRule - Endpoint Base URL Type Rule
 
-**Severity:** INFO
-**Description:** Ensures endpoints specify appropriate baseUrlType
+**Severity:** WARNING
+**Description:** Ensures endpoint URLs don't include hardcoded *.workday.com or apiGatewayEndpoint values
 **Applies to:** PMD endpoint definitions
 
 **What it catches:**
 
-- Missing baseUrlType specifications
-- Endpoints that might use incorrect base URLs
+- Hardcoded *.workday.com domains in endpoint URLs
+- Hardcoded apiGatewayEndpoint values in URLs
+- Endpoints that should use baseUrlType instead of hardcoded values
 
 **Example violations:**
 
 ```json
 {
   "endPoints": [{
-    "name": "GetWorker",
-    "url": "/workers/me"
-    // ❌ Missing baseUrlType
+    "name": "getWorker",
+    "url": "https://api.workday.com/common/v1/workers/me"  // ❌ Hardcoded workday.com
+  }, {
+    "name": "getModelData",
+    "url": "apiGatewayEndpoint/data"  // ❌ Hardcoded apiGatewayEndpoint
   }]
 }
 ```
@@ -876,9 +879,13 @@ function processData() {
 ```json
 {
   "endPoints": [{
-    "name": "GetWorker",
-    "url": "/workers/me",
-    "baseUrlType": "workday-common" // ✅ Specify base URL type
+    "name": "getWorker",
+    "url": "/workers/me",  // ✅ Relative URL
+    "baseUrlType": "workday-common"  // ✅ Use baseUrlType instead
+  }, {
+    "name": "getModelData", 
+    "url": "/modelData",  // ✅ Relative URL
+    "baseUrlType": "workday-app"  // ✅ Use appropriate baseUrlType
   }]
 }
 ```

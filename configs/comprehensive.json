@@ -118,7 +118,7 @@
       "severity_override": null,
       "custom_settings": {}
     },
-    "EndpointUrlBaseUrlTypeRule": {
+    "EndpointBaseUrlTypeRule": {
       "enabled": true,
       "severity_override": null,
       "custom_settings": {}

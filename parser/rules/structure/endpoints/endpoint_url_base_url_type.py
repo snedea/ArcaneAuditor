@@ -4,7 +4,7 @@ from ....models import PMDModel
 from typing import Dict, Any, List
 
 
-class EndpointUrlBaseUrlTypeRule(Rule):
+class EndpointBaseUrlTypeRule(Rule):
     """Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values."""
     
     DESCRIPTION = "Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values"
