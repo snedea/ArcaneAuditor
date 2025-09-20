@@ -290,7 +290,3 @@ Create custom configurations in JSON format:
 ## 📄 License
 
 [TBD]
-
----
-
-**Extend Reviewer** - Making Workday Extend code reviews more effective and consistent! 🚀
