@@ -313,4 +313,6 @@ Create custom configurations in JSON format:
 
 ## 📄 License
 
-[TBD]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+**TL;DR:** You can use, modify, and distribute this code freely, just keep the copyright notice. No warranty or liability on my part! 🧙‍♂️
