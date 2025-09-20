@@ -561,7 +561,7 @@ const message = "Hello " + userName + ", welcome to " + appName; // ❌ String c
 **Fix:**
 
 ```javascript
-const message = `Hello ${userName}, welcome to ${appName}`; // ✅ Template literal
+const message = `Hello {{userName}}, welcome to {{appName}}`; // ✅ Template literal
 ```
 
 ---
@@ -580,9 +580,8 @@ const message = `Hello ${userName}, welcome to ${appName}`; // ✅ Template lite
 **Example violations:**
 
 ```javascript
-if (user.active === true) { }     // ❌ Verbose
-if (user.active !== false) { }    // ❌ Verbose
-if (user.active == true) { }      // ❌ Verbose + loose equality
+if (user.active == true) { }     // ❌ Verbose
+if (user.active != false) { }    // ❌ Verbose
 ```
 
 **Fix:**
@@ -615,17 +614,6 @@ function processData(data) {
 const handler = function() { }; // ❌ Empty function
 ```
 
-**Fix:**
-
-```javascript
-function processData(data) {
-    // TODO: Implement data processing
-    throw new Error("Not implemented");
-}
-
-// Or remove if not needed
-```
-
 ---
 
 ### ScriptUnusedFunctionRule - Script Unused Function Rule
@@ -638,28 +626,6 @@ function processData(data) {
 
 - Functions declared but never used
 - Dead code that should be removed
-
-**Example violations:**
-
-```javascript
-function unusedHelper() {  // ❌ Never called
-    return "helper";
-}
-
-function main() {
-    // unusedHelper is never called
-    return "main";
-}
-```
-
-**Fix:**
-
-```javascript
-function main() {
-    return "main";
-}
-// Remove unused functions
-```
 
 ---
 
@@ -767,13 +733,13 @@ function processData() {
 ### EndpointFailOnStatusCodesRule - Endpoint Fail On Status Codes Rule
 
 **Severity:** WARNING
-**Description:** Ensures endpoints properly handle error status codes
+**Description:** Ensures endpoints properly handle 400 and 403 error status codes
 **Applies to:** PMD endpoint definitions
 
 **What it catches:**
 
 - Missing error handling for common HTTP status codes
-- Endpoints that don't fail on error responses
+- Endpoints that don't fail on some specific error responses
 
 **Example violations:**
 
@@ -796,10 +762,7 @@ function processData() {
     "url": "/users/me",
     "failOnStatusCodes": [
       {"code": "400"},
-      {"code": "401"},
-      {"code": "403"},
-      {"code": "404"},
-      {"code": "500"}
+      {"code": "403"}
     ]
   }]
 }
@@ -847,13 +810,13 @@ function processData() {
 ### EndpointOnSendSelfDataRule - Endpoint On Send Self Data Rule
 
 **Severity:** WARNING
-**Description:** Ensures endpoints properly initialize self.data in onSend
+**Description:** Ensures endpoints don't use the anti-pattern 'self.data = {:}' in onSend scripts
 **Applies to:** PMD endpoint definitions
 
 **What it catches:**
 
-- Missing `self.data = {:};` initialization in onSend scripts
-- Endpoints that might have data persistence issues
+- Usage of the anti-pattern `self.data = {:}` in onSend scripts
+- Endpoints that use outdated or problematic data initialization patterns
 
 **Example violations:**
 
@@ -861,7 +824,8 @@ function processData() {
 {
   "endPoints": [{
     "onSend": "<%
-      return someData; // ❌ Missing self.data initialization
+      self.data = {:}; // ❌ Anti-pattern that should be avoided
+      return self.data;
     %>"
   }]
 }
@@ -873,8 +837,7 @@ function processData() {
 {
   "endPoints": [{
     "onSend": "<%
-      self.data = {:}; // ✅ Initialize self.data
-      return self.data;
+      return someData; // ✅ Return data directly without anti-pattern
     %>"
   }]
 }
