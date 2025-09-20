@@ -67,6 +67,8 @@
 ?object_literal: "{" ":" "}" -> empty_object_literal
     | "{" property_name_and_value_list "}" -> object_literal
 
+?set_literal: "{" expression_sequence "}"    
+
 ?property_name_and_value_list: property_assignment ("," property_assignment)*
 
 ?property_assignment: property_name ":" single_expression -> property_expression_assignment
@@ -147,6 +149,7 @@
     | literal -> literal_expression
     | array_literal -> array_literal_expression
     | object_literal -> object_literal_expression
+    | set_literal -> set_literal_expression
     | "(" expression_sequence ")" -> parenthesized_expression
     | "(" expression_sequence "to" expression_sequence ")" -> range_expression
     | FUNCTION IDENTIFIER? "(" formal_parameter_list? ")" "{" function_body "}" -> function_expression

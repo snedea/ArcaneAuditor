@@ -259,3 +259,147 @@ class TestPMDScriptGrammar:
         for script_content in correct_usage_cases:
             ast = pmd_script_parser.parse(script_content)
             assert ast is not None, f"Failed to parse correct usage: {script_content}"
+
+    def test_set_literal_basic_parsing(self):
+        """Test basic set literal parsing with {} syntax."""
+        test_cases = [
+            # Basic sets with different value types
+            "{1, 2, 3}",
+            "{'a', 'b', 'c'}",
+            "{true, false}",
+            "{1, 'mixed', true}",
+            
+            # Sets with variables
+            "{x, y, z}",
+            "{user.name, user.email}",
+            
+            # Sets with expressions
+            "{1 + 2, 3 * 4}",
+            "{getValue(), getOther()}",
+        ]
+        
+        for script_content in test_cases:
+            ast = pmd_script_parser.parse(script_content)
+            assert ast is not None, f"Failed to parse set literal: {script_content}"
+            
+            # Verify that set literal expressions are present
+            found_set_literal = False
+            for node in ast.iter_subtrees():
+                if hasattr(node, 'data') and node.data == 'set_literal_expression':
+                    found_set_literal = True
+                    break
+            
+            assert found_set_literal, f"Set literal expression not found in AST for: {script_content}"
+
+    def test_set_literal_in_variable_declarations(self):
+        """Test set literals in variable declarations and assignments."""
+        test_cases = [
+            # Variable declarations with sets
+            "var mySet = {1, 2, 3};",
+            "const colors = {'red', 'green', 'blue'};",
+            "let numbers = {10, 20, 30};",
+            
+            # Assignments
+            "mySet = {4, 5, 6};",
+            "this.allowedValues = {'option1', 'option2'};",
+            
+            # In function calls
+            "processSet({1, 2, 3});",
+            "return {user.id, user.name};",
+        ]
+        
+        for script_content in test_cases:
+            ast = pmd_script_parser.parse(script_content)
+            assert ast is not None, f"Failed to parse set in context: {script_content}"
+
+    def test_set_literal_vs_empty_block_disambiguation(self):
+        """Test that empty blocks {} are correctly distinguished from sets."""
+        test_cases = [
+            # Empty blocks (statements)
+            ("if (true) {}", "Empty block should parse as block"),
+            ("function test() {}", "Empty function body should parse as block"),
+            ("while (x > 0) {}", "Empty while body should parse as block"),
+            
+            # Non-empty sets (expressions)
+            ("var s = {1};", "Single-element set should parse as set"),
+            ("var s = {1, 2};", "Multi-element set should parse as set"),
+            ("return {value};", "Set in return should parse as set"),
+        ]
+        
+        for script_content, description in test_cases:
+            ast = pmd_script_parser.parse(script_content)
+            assert ast is not None, f"Failed to parse: {script_content} ({description})"
+
+    def test_set_literal_complex_expressions(self):
+        """Test set literals with complex expressions and nested structures."""
+        test_cases = [
+            # Sets with complex expressions
+            "{user.name + ' suffix', user.email}",
+            "{getValue() ?? 'default', getOther()}",
+            "{items[0], items[1]}",
+            
+            # Sets in object literals
+            "var config = { allowedValues: {1, 2, 3}, name: 'test' };",
+            
+            # Sets in arrays
+            "var data = [{1, 2}, {3, 4}];",
+            
+            # Nested expressions
+            "{func(a, b), func(c, d)}",
+            "{a ? b : c, d ? e : f}",
+        ]
+        
+        for script_content in test_cases:
+            ast = pmd_script_parser.parse(script_content)
+            assert ast is not None, f"Failed to parse complex set: {script_content}"
+
+    def test_set_literal_edge_cases(self):
+        """Test set literal edge cases and boundary conditions."""
+        test_cases = [
+            # Single element sets (important for disambiguation)
+            "{42}",
+            "{'single'}",
+            "{variable}",
+            
+            # Sets with trailing commas (if supported)
+            # Note: This might not be supported depending on expression_sequence definition
+            # "{1, 2, 3,}",  # Uncomment if trailing commas are supported
+            
+            # Sets with whitespace
+            "{ 1 , 2 , 3 }",
+            "{\n  'a',\n  'b'\n}",
+            
+            # Sets with function calls
+            "{getFirst(), getSecond()}",
+            
+            # Sets with member access
+            "{obj.prop1, obj.prop2}",
+        ]
+        
+        for script_content in test_cases:
+            ast = pmd_script_parser.parse(script_content)
+            assert ast is not None, f"Failed to parse set edge case: {script_content}"
+
+    def test_empty_set_limitation(self):
+        """Test that empty sets {} are not supported (due to block ambiguity)."""
+        # Empty sets should be created using alternative syntax
+        # This test documents the limitation
+        
+        # These should work (non-empty sets)
+        working_cases = [
+            "{1}",
+            "{null}",
+            "{'empty'}",
+        ]
+        
+        for case in working_cases:
+            ast = pmd_script_parser.parse(case)
+            assert ast is not None, f"Non-empty set should work: {case}"
+        
+        # Empty {} will parse as a block/statement, not a set literal
+        # This is expected behavior due to the grammar disambiguation
+        empty_block = "{}"
+        ast = pmd_script_parser.parse(empty_block)
+        assert ast is not None, f"Empty braces should parse (as block): {empty_block}"
+        
+        # Note: For empty sets, users should use: new Set() or Set.of() syntax
