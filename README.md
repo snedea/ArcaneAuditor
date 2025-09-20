@@ -1,6 +1,6 @@
-# Arcane Auditor 🧙‍♂️
+![Arcane Auditor Logo](assets/arcane-auditor-logo.png)
 
-*A mystical code review tool for Workday Extend applications that validates PMD Script syntax, structure compliance, and coding best practices. Part of the Developers and Dragons initiative to help new programmers master the arcane arts of Extend development.*
+*A mystical code review tool for Workday Extend applications that validates PMD Script syntax, structure compliance, and coding best practices.*
 
 ## 🎯 Overview
 
