@@ -97,6 +97,89 @@ class PMDModel(BaseModel):
         # This could be enhanced to map specific lines within the script
         return self._line_mappings[field_path][0] if self._line_mappings[field_path] else processed_line
 
+class PODSeed(BaseModel):
+    """Represents the seed configuration within a POD file."""
+    parameters: Optional[List[str]] = Field(default_factory=list)
+    endPoints: Optional[List[dict]] = Field(default_factory=list)
+    template: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    # Note: template can contain complex widget structures including:
+    # - Simple widgets: {"type": "text", "value": "text"}
+    # - Container widgets: {"type": "section", "children": [...]}
+    # - FieldSet widgets: {"type": "fieldSet", "children": [...]}
+    # - Any widget that can have children arrays with nested widgets
+    # Additional seed properties can be added as needed
+
+class PODModel(BaseModel):
+    """Represents the structure of a .pod file."""
+    podId: str
+    seed: PODSeed
+    file_path: str = Field(..., exclude=True)
+    source_content: str = Field(default="", exclude=True)
+    
+    def get_template_widgets(self) -> List[Dict[str, Any]]:
+        """
+        Recursively extracts all widgets from the template, including nested children.
+        Returns a flat list of all widgets found in the template hierarchy.
+        """
+        widgets = []
+        
+        def extract_widgets(widget_data):
+            if isinstance(widget_data, dict):
+                # Add the current widget
+                widgets.append(widget_data)
+                
+                # If it has children, recursively extract from children
+                if 'children' in widget_data and isinstance(widget_data['children'], list):
+                    for child in widget_data['children']:
+                        extract_widgets(child)
+            elif isinstance(widget_data, list):
+                # If the data is a list, process each item
+                for item in widget_data:
+                    extract_widgets(item)
+        
+        if self.seed.template:
+            extract_widgets(self.seed.template)
+        
+        return widgets
+    
+    def find_widgets_by_type(self, widget_type: str) -> List[Dict[str, Any]]:
+        """
+        Finds all widgets of a specific type in the template hierarchy.
+        
+        Args:
+            widget_type: The widget type to search for (e.g., 'text', 'section', 'fieldSet')
+        
+        Returns:
+            List of widgets matching the specified type
+        """
+        all_widgets = self.get_template_widgets()
+        return [widget for widget in all_widgets if widget.get('type') == widget_type]
+    
+    def get_parameter_references(self) -> List[str]:
+        """
+        Extracts all parameter references (@@param@@) from the template.
+        Useful for validating that all referenced parameters are declared.
+        """
+        import re
+        references = set()
+        
+        def extract_references(obj):
+            if isinstance(obj, str):
+                # Find all @@param@@ patterns
+                matches = re.findall(r'@@(\w+)@@', obj)
+                references.update(matches)
+            elif isinstance(obj, dict):
+                for value in obj.values():
+                    extract_references(value)
+            elif isinstance(obj, list):
+                for item in obj:
+                    extract_references(item)
+        
+        if self.seed.template:
+            extract_references(self.seed.template)
+        
+        return list(references)
+
 class AMDRoute(BaseModel):
     pageId: str
     parameters: Optional[List[str]] = Field(default_factory=list)
@@ -121,7 +204,7 @@ class ProjectContext:
         self.pmds: Dict[str, PMDModel] = {}          # Maps pageId to PMDModel
         self.scripts: Dict[str, ScriptModel] = {}    # Maps file name to ScriptModel
         self.amd: AMDModel = None          # Assumes one .amd file per app
-        # self.pods: Dict[str, PODModel] = {}        # Placeholder for PODs
+        self.pods: Dict[str, PODModel] = {}          # Maps podId to PODModel
         # self.smd: Optional[SMDModel] = None        # Placeholder for SMD
         self.parsing_errors: List[str] = []          # To track files that failed validation
 
@@ -132,3 +215,7 @@ class ProjectContext:
     def get_pmd_by_id(self, page_id: str) -> Optional[PMDModel]:
         """Retrieves a PMD model by its pageId."""
         return self.pmds.get(page_id)
+    
+    def get_pod_by_id(self, pod_id: str) -> Optional[PODModel]:
+        """Retrieves a POD model by its podId."""
+        return self.pods.get(pod_id)

@@ -4,7 +4,7 @@ Enhanced base class for validation rules with common validation patterns.
 from abc import ABC, abstractmethod
 from typing import Generator, List, Dict, Any
 from .base import Rule, Finding
-from ..models import PMDModel
+from ..models import PMDModel, PODModel
 
 
 class ValidationRule(Rule, ABC):
@@ -47,9 +47,14 @@ class ValidationRule(Rule, ABC):
         return 1
     
     def analyze(self, context):
-        """Main entry point - analyze all PMD models in the context."""
+        """Main entry point - analyze all PMD models and POD models in the context."""
+        # Analyze PMD models
         for pmd_model in context.pmds.values():
             yield from self.visit_pmd(pmd_model)
+        
+        # Analyze POD models
+        for pod_model in context.pods.values():
+            yield from self.visit_pod(pod_model)
     
     def visit_pmd(self, pmd_model: PMDModel):
         """Validate entities in the PMD model."""
@@ -70,4 +75,37 @@ class ValidationRule(Rule, ABC):
                         line=line_number,
                         column=1,
                         file_path=pmd_model.file_path
+                    )
+    
+    def get_entities_to_validate_pod(self, pod_model: PODModel) -> List[Dict[str, Any]]:
+        """
+        Return a list of entities to validate from a POD model.
+        Override this method to provide POD-specific entity extraction.
+        Default implementation returns empty list (no POD validation).
+        """
+        return []
+    
+    def get_line_number_pod(self, pod_model: PODModel, entity_info: Dict[str, Any]) -> int:
+        """Get line number for the entity in a POD file. Override for custom line tracking."""
+        return 1
+    
+    def visit_pod(self, pod_model: PODModel):
+        """Validate entities in the POD model."""
+        entities = self.get_entities_to_validate_pod(pod_model)
+        
+        for entity_info in entities:
+            field_name = self.get_field_to_validate(entity_info)
+            field_value = entity_info['entity'].get(field_name, '')
+            
+            if field_value:
+                errors = self.validate_field(field_value, entity_info)
+                for error_message in errors:
+                    line_number = self.get_line_number_pod(pod_model, entity_info)
+                    
+                    yield Finding(
+                        rule=self,
+                        message=error_message,
+                        line=line_number,
+                        column=1,
+                        file_path=pod_model.file_path
                     )

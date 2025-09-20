@@ -4,7 +4,7 @@ Parser to convert source files into PMD models for analysis.
 import json
 from pathlib import Path
 from typing import Dict, Any
-from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation
+from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation, PODModel, PODSeed
 from .pmd_preprocessor import preprocess_pmd_content
 
 
@@ -48,8 +48,7 @@ class ModelParser:
             # TODO: Implement SMD parsing
             print(f"{extension} parsing not yet implemented for {file_path}")
         elif extension == '.pod':
-            # TODO: Implement POD parsing
-            print(f"{extension} parsing not yet implemented for {file_path}")
+            self._parse_pod_file(file_path, source_file, context)
         elif extension == '.script':
             self._parse_script_file(file_path, source_file, context)
     
@@ -154,4 +153,46 @@ class ModelParser:
                 
         except Exception as e:
             print(f"Failed to parse AMD file {file_path}: {e}")
+            raise
+    
+    def _parse_pod_file(self, file_path: str, source_file: Any, context: ProjectContext):
+        """Parse a .pod file into a PODModel."""
+        try:
+            content = source_file.content.strip()
+            
+            try:
+                pod_data = json.loads(content)
+                
+                # Extract seed data
+                seed_data = pod_data.get('seed', {})
+                seed = PODSeed(
+                    parameters=seed_data.get('parameters', []),
+                    endPoints=seed_data.get('endPoints', []),
+                    template=seed_data.get('template', {})
+                )
+                
+                pod_model = PODModel(
+                    podId=pod_data.get('podId', Path(file_path).stem),
+                    seed=seed,
+                    file_path=file_path,
+                    source_content=content
+                )
+                
+                context.pods[pod_model.podId] = pod_model
+                print(f"Parsed POD: {pod_model.podId}")
+                
+            except json.JSONDecodeError as e:
+                print(f"JSON parsing error in POD file {file_path}: {e}")
+                # Create a basic POD model as fallback
+                pod_model = PODModel(
+                    podId=Path(file_path).stem,
+                    seed=PODSeed(),
+                    file_path=file_path,
+                    source_content=content
+                )
+                context.pods[pod_model.podId] = pod_model
+                print(f"Parsed POD (fallback): {pod_model.podId}")
+                
+        except Exception as e:
+            print(f"Failed to parse POD file {file_path}: {e}")
             raise

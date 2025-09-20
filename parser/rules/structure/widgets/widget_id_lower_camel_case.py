@@ -2,14 +2,14 @@ from ...base import Rule, Finding
 from ...base_validation import ValidationRule
 from ...common_validations import validate_lower_camel_case
 from ...line_number_utils import LineNumberUtils
-from ....models import PMDModel
+from ....models import PMDModel, PODModel
 from typing import Dict, Any, List
 
 
 class WidgetIdLowerCamelCaseRule(ValidationRule):
     """Validates that widget IDs follow lowerCamelCase convention (style guide)."""
     
-    DESCRIPTION = "Ensures widget IDs follow lowerCamelCase naming convention (style guide)"
+    DESCRIPTION = "Ensures widget IDs follow lowerCamelCase naming convention (style guide for PMD and POD files)"
     SEVERITY = "WARNING"
     
     def __init__(self):
@@ -65,3 +65,23 @@ class WidgetIdLowerCamelCaseRule(ValidationRule):
             return LineNumberUtils.find_field_line_number(pmd_model, 'id', widget_id)
         
         return 1  # Default fallback
+    
+    def get_entities_to_validate_pod(self, pod_model: PODModel) -> List[Dict[str, Any]]:
+        """Get all widgets with IDs from POD template to validate."""
+        entities = []
+        
+        # Use the base rule utility to find all widgets in the POD template
+        widgets = self.find_pod_widgets(pod_model)
+        
+        for widget_path, widget_data in widgets:
+            if isinstance(widget_data, dict) and 'id' in widget_data:
+                entities.append({
+                    'entity': widget_data,
+                    'entity_type': 'widget',
+                    'entity_name': widget_data.get('id', 'unknown'),
+                    'entity_context': 'template',
+                    'entity_path': widget_path,
+                    'entity_index': 0
+                })
+        
+        return entities

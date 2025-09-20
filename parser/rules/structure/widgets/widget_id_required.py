@@ -8,20 +8,25 @@ Note: Basic structural validation (missing required fields, etc.) is handled by 
 This tool focuses on structure and naming compliance for code reviewers.
 """
 from ...base import Rule, Finding
-from ....models import PMDModel
+from ....models import PMDModel, PODModel
 from typing import Dict, Any, List
 
 
 class WidgetIdRequiredRule(Rule):
     """Ensures all widgets have an 'id' field - important for code reviewers to catch."""
     
-    DESCRIPTION = "Ensures all widgets have an 'id' field set (structure validation)"
+    DESCRIPTION = "Ensures all widgets have an 'id' field set (structure validation for PMD and POD files)"
     SEVERITY = "WARNING"
 
     def analyze(self, context):
-        """Main entry point - analyze all PMD models in the context."""
+        """Main entry point - analyze all PMD models and POD models in the context."""
+        # Analyze PMD models
         for pmd_model in context.pmds.values():
             yield from self.visit_pmd(pmd_model)
+        
+        # Analyze POD models
+        for pod_model in context.pods.values():
+            yield from self.visit_pod(pod_model)
     
     def visit_pmd(self, pmd_model: PMDModel):
         """Analyzes the presentation structure within a PMD model."""
@@ -39,6 +44,28 @@ class WidgetIdRequiredRule(Rule):
         if pmd_model.presentation.title and isinstance(pmd_model.presentation.title, dict):
             yield from self._check_widget_id(pmd_model.presentation.title, pmd_model.file_path, pmd_model, 'title', "title", 0)
 
+    def visit_pod(self, pod_model: PODModel):
+        """Analyzes the template widgets within a POD model."""
+        if not pod_model.seed.template:
+            return
+        
+        # Use the base rule utility to find all widgets in the POD template
+        widgets = self.find_pod_widgets(pod_model)
+        
+        for widget_path, widget_data in widgets:
+            # Convert the path to a more readable format
+            path_parts = widget_path.split('.')
+            section = 'template'
+            index = 0
+            
+            # Extract index if present in path (e.g., "children[0]" -> 0)
+            if '[' in widget_path and ']' in widget_path:
+                import re
+                match = re.search(r'\[(\d+)\]', widget_path)
+                if match:
+                    index = int(match.group(1))
+            
+            yield from self._check_widget_id(widget_data, pod_model.file_path, None, section, widget_path, index)
 
     def _check_widget_id(self, widget, file_path, pmd_model=None, section='body', widget_path="", widget_index=0):
         """Check if a widget has an 'id' field."""

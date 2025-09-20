@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Generator, Dict, Any, List, Tuple
 from dataclasses import dataclass
-from ..models import ProjectContext, PMDModel
+from ..models import ProjectContext, PMDModel, PODModel
 import re
 
 @dataclass
@@ -189,3 +189,124 @@ class Rule(ABC):
         if content.startswith('<%') and content.endswith('%>'):
             return content[2:-2].strip()
         return content
+    
+    # POD-specific utility methods
+    
+    def find_pod_script_fields(self, pod_model: PODModel) -> List[Tuple[str, str, str, int]]:
+        """
+        Find all script content within POD endpoints and template widgets.
+        
+        Args:
+            pod_model: The POD model to search
+            
+        Returns:
+            List of tuples containing:
+            - field_path: Path to the field (e.g., "seed.endPoints[0].onReceive")
+            - script_content: The actual script content
+            - display_name: Human-readable field name
+            - line_offset: Line number where the script starts
+        """
+        script_fields = []
+        script_pattern = r'<%.*?%>'
+        
+        # Search endpoints in seed for script content
+        if pod_model.seed.endPoints:
+            for i, endpoint in enumerate(pod_model.seed.endPoints):
+                if isinstance(endpoint, dict):
+                    for script_field in ['onReceive', 'onSend', 'onError']:
+                        if script_field in endpoint and isinstance(endpoint[script_field], str):
+                            script_content = endpoint[script_field]
+                            if re.search(script_pattern, script_content, re.DOTALL):
+                                field_path = f"seed.endPoints[{i}].{script_field}"
+                                display_name = f"endpoint '{endpoint.get('name', f'endpoint_{i}')}' {script_field}"
+                                line_offset = self._calculate_pod_script_line_offset(pod_model.source_content, script_content)
+                                script_fields.append((field_path, script_content, display_name, line_offset))
+        
+        # Search template widgets for script content (e.g., onClick, onLoad handlers)
+        template_scripts = self._find_template_script_fields(pod_model.seed.template, "seed.template")
+        script_fields.extend(template_scripts)
+        
+        return script_fields
+    
+    def _find_template_script_fields(self, widget_data: Any, path_prefix: str) -> List[Tuple[str, str, str, int]]:
+        """Recursively search template widgets for script content."""
+        script_fields = []
+        script_pattern = r'<%.*?%>'
+        
+        def _search_widget(widget: Dict[str, Any], widget_path: str):
+            # Common script fields in widgets
+            script_field_names = ['onClick', 'onLoad', 'onFocus', 'onBlur', 'onChange', 'onSubmit']
+            
+            for field_name in script_field_names:
+                if field_name in widget and isinstance(widget[field_name], str):
+                    script_content = widget[field_name]
+                    if re.search(script_pattern, script_content, re.DOTALL):
+                        field_path = f"{widget_path}.{field_name}"
+                        widget_type = widget.get('type', 'unknown')
+                        widget_id = widget.get('id', 'unnamed')
+                        display_name = f"{widget_type} widget '{widget_id}' {field_name}"
+                        line_offset = 1  # POD script line calculation would be more complex
+                        script_fields.append((field_path, script_content, display_name, line_offset))
+            
+            # Recursively search children
+            if 'children' in widget and isinstance(widget['children'], list):
+                for i, child in enumerate(widget['children']):
+                    if isinstance(child, dict):
+                        child_path = f"{widget_path}.children[{i}]"
+                        _search_widget(child, child_path)
+        
+        if isinstance(widget_data, dict):
+            _search_widget(widget_data, path_prefix)
+        elif isinstance(widget_data, list):
+            for i, item in enumerate(widget_data):
+                if isinstance(item, dict):
+                    item_path = f"{path_prefix}[{i}]"
+                    _search_widget(item, item_path)
+        
+        return script_fields
+    
+    def _calculate_pod_script_line_offset(self, file_content: str, script_content: str) -> int:
+        """Calculate the line number where script content starts in a POD file."""
+        if not file_content or not script_content:
+            return 1
+        
+        # For PODs, this is more complex since scripts can be in various places
+        # For now, return a basic line number - this could be enhanced later
+        lines = file_content.split('\n')
+        for i, line in enumerate(lines):
+            if '<%' in line:
+                return i + 1
+        return 1
+    
+    def find_pod_widgets(self, pod_model: PODModel) -> List[Tuple[str, Dict[str, Any]]]:
+        """
+        Find all widgets in a POD template with their paths.
+        
+        Args:
+            pod_model: The POD model to search
+            
+        Returns:
+            List of tuples containing:
+            - widget_path: Path to the widget (e.g., "seed.template.children[0]")
+            - widget_data: The widget dictionary
+        """
+        widgets = []
+        
+        def _collect_widgets(widget_data: Any, path: str):
+            if isinstance(widget_data, dict) and 'type' in widget_data:
+                widgets.append((path, widget_data))
+                
+                # Recursively search children
+                if 'children' in widget_data and isinstance(widget_data['children'], list):
+                    for i, child in enumerate(widget_data['children']):
+                        child_path = f"{path}.children[{i}]"
+                        _collect_widgets(child, child_path)
+            elif isinstance(widget_data, list):
+                for i, item in enumerate(widget_data):
+                    item_path = f"{path}[{i}]"
+                    _collect_widgets(item, item_path)
+        
+        if pod_model.seed.template:
+            _collect_widgets(pod_model.seed.template, "seed.template")
+        
+        return widgets
