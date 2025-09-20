@@ -48,31 +48,27 @@ let myVariable = "value";    // ✅ Use 'let' for mutable values
 ### ScriptFileVarUsageRule - Script File Variable Usage Rule
 
 **Severity:** WARNING
-**Description:** Ensures script files follow proper variable export patterns and removes dead code
+**Description:** Detects and removes dead code from standalone script files
 **Applies to:** Standalone .script files
 
-**Why This Rule Focuses on Export Patterns:**
-This rule addresses export-specific quality concerns unique to standalone script files:
-1. **Dead Code Detection:** Variables declared but never exported or used internally
-2. **Export Consistency:** Variables exported but not properly declared at top level
+**Why This Rule Focuses on Dead Code:**
+This rule addresses dead code cleanup specific to standalone script files. It identifies variables that are declared but serve no purpose - they're neither exported for external use nor called internally by other functions.
 
-Note: Variable declaration style (`var` vs `const`/`let`) is handled by `ScriptVarUsageRule` which applies to both PMD embedded scripts and standalone script files.
+Note: Variable declaration style (`var` vs `const`/`let`) is handled by `ScriptVarUsageRule` which applies to both PMD embedded scripts and standalone script files. Export consistency errors (typos in export maps) are caught by the compiler.
 
 **What it catches:**
 
 - Top-level variables declared but not exported and not used internally
-- Variables exported but not declared at top level
 
 **Example violations:**
 
 ```javascript
 // In util.script
 const getCurrentTime = function() { return date:now(); };
-const unusedHelper = function() { return "unused"; };    // ❌ Not exported or used
+const unusedHelper = function() { return "unused"; };    // ❌ Dead code - not exported or used
 
 {
-  "getCurrentTime": getCurrentTime,  // ❌ unusedHelper is dead code
-  "nonExistentFunction": nonExistentFunction  // ❌ Exported but not declared
+  "getCurrentTime": getCurrentTime  // ❌ unusedHelper is dead code
 }
 ```
 
@@ -85,35 +81,33 @@ const helperFunction = function() { return "helper"; };    // ✅ Will be export
 
 {
   "getCurrentTime": getCurrentTime,
-  "helperFunction": helperFunction  // ✅ Both functions exported and declared
+  "helperFunction": helperFunction  // ✅ Both functions are used
 }
 ```
 
 **Configuration Options:**
 
-You can disable specific checks if you only want certain validations:
+You can disable dead code detection if you want to keep unused helper functions:
 
 ```json
 {
   "ScriptFileVarUsageRule": {
     "enabled": true,
     "custom_settings": {
-      "check_unused_variables": true,      // Dead code detection
-      "check_export_consistency": true     // Export/declaration validation
+      "check_unused_variables": true       // Dead code detection (default: true)
     }
   }
 }
 ```
 
-**Example: Only check dead code (ignore export consistency):**
+**Example: Disable dead code detection (keep unused functions):**
 
 ```json
 {
   "ScriptFileVarUsageRule": {
     "enabled": true,
     "custom_settings": {
-      "check_unused_variables": true,      // Only dead code detection
-      "check_export_consistency": false    // Skip export validation
+      "check_unused_variables": false     // Keep unused helper functions
     }
   }
 }

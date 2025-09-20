@@ -6,16 +6,15 @@ from ....models import ProjectContext, ScriptModel
 class ScriptFileVarUsageRule(Rule):
     """Validates variable usage patterns in standalone script files (.script)."""
     
-    DESCRIPTION = "Ensures script files follow proper variable export patterns and removes dead code"
+    DESCRIPTION = "Detects and removes dead code from standalone script files"
     SEVERITY = "WARNING"
 
     def __init__(self, config: Dict[str, Any] = None):
         """Initialize with configurable check options."""
         self.config = config or {}
         
-        # Allow users to disable specific checks
+        # Allow users to disable dead code detection
         self.check_unused_variables = self.config.get("check_unused_variables", True)
-        self.check_export_consistency = self.config.get("check_export_consistency", True)
 
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze standalone script files for variable usage patterns."""
@@ -186,15 +185,4 @@ class ScriptFileVarUsageRule(Rule):
                     file_path=script_model.file_path
                 )
         
-        # Issue 2: Variables exported but not declared at top level
-        if self.check_export_consistency:
-            undeclared_exports = exported_vars - set(top_level_vars.keys())
-            for var_name in undeclared_exports:
-                yield Finding(
-                    rule=self,
-                    message=f"Variable '{var_name}' is exported but not declared at top level in this script. Check for typos or missing declarations.",
-                    line=1,  # Can't determine exact line for exports without more complex analysis
-                    column=1,
-                    file_path=script_model.file_path
-                )
         

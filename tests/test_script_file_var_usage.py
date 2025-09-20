@@ -18,7 +18,7 @@ class TestScriptFileVarUsageRule:
     
     def test_rule_metadata(self):
         """Test rule metadata is correctly defined."""
-        assert self.rule.DESCRIPTION == "Ensures script files follow proper variable export patterns and removes dead code"
+        assert self.rule.DESCRIPTION == "Detects and removes dead code from standalone script files"
         assert self.rule.SEVERITY == "WARNING"
     
     def test_proper_script_file_pattern(self):
@@ -64,26 +64,6 @@ const unusedFunction = function() {
         assert len(unused_findings) == 1
         assert "unusedFunction" in unused_findings[0].message
     
-    def test_script_with_undeclared_exports(self):
-        """Test script file that exports variables that aren't declared."""
-        script_content = """const getCurrentTime = function() {
-  return "test";
-};
-
-{
-  "getCurrentTime": getCurrentTime,
-  "undeclaredFunction": undeclaredFunction
-}"""
-        
-        script_model = ScriptModel(source=script_content, file_path="test.script")
-        self.context.scripts["test.script"] = script_model
-        
-        findings = list(self.rule.analyze(self.context))
-        
-        # Should find the undeclared export
-        undeclared_findings = [f for f in findings if "not declared" in f.message]
-        assert len(undeclared_findings) == 1
-        assert "undeclaredFunction" in undeclared_findings[0].message
     
     
     def test_script_with_perfect_pattern(self):
@@ -154,9 +134,7 @@ const formatDate = function(date) {
         """Test that only dead code detection can be enabled."""
         # Configure rule to only check unused variables
         config = {
-            "check_unused_variables": True,
-            "check_export_consistency": False,
-            "check_var_declarations": False
+            "check_unused_variables": True
         }
         rule = ScriptFileVarUsageRule(config)
         
@@ -184,11 +162,10 @@ const unusedFunction = function() {
         assert "unusedFunction" in findings[0].message
 
     def test_configurable_checks_all_disabled(self):
-        """Test that all checks can be disabled."""
-        # Configure rule to disable all checks
+        """Test that dead code detection can be disabled."""
+        # Configure rule to disable dead code detection
         config = {
-            "check_unused_variables": False,
-            "check_export_consistency": False
+            "check_unused_variables": False
         }
         rule = ScriptFileVarUsageRule(config)
         
@@ -201,8 +178,7 @@ const unusedFunction = function() {
 };
 
 {
-  "getCurrentTime": getCurrentTime,
-  "nonExistentFunction": nonExistentFunction
+  "getCurrentTime": getCurrentTime
 }"""
         
         script_model = ScriptModel(source=script_content, file_path="all_disabled.script")
@@ -211,7 +187,7 @@ const unusedFunction = function() {
         
         findings = list(rule.analyze(context))
         
-        # Should find no issues when all checks are disabled
+        # Should find no issues when dead code detection is disabled
         assert len(findings) == 0
 
 
