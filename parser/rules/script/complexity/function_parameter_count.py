@@ -23,9 +23,14 @@ class ScriptFunctionParameterCountRule(Rule):
         self.max_parameters = config.get("max_parameters", 4) if config else 4
     
     def analyze(self, context):
-        """Main entry point - analyze all PMD models in the context."""
+        """Main entry point - analyze all PMD models and standalone script files in the context."""
+        # Analyze PMD embedded scripts
         for pmd_model in context.pmds.values():
             yield from self.visit_pmd(pmd_model)
+        
+        # Analyze standalone script files
+        for script_model in context.scripts.values():
+            yield from self._analyze_script_file(script_model)
     
     def visit_pmd(self, pmd_model: PMDModel):
         """Analyzes script fields in a PMD model for function parameter count issues."""
@@ -35,7 +40,14 @@ class ScriptFunctionParameterCountRule(Rule):
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
                 yield from self._check_function_parameters(field_value, field_name, pmd_model.file_path, line_offset)
-    
+
+    def _analyze_script_file(self, script_model):
+        """Analyze standalone script files for function parameter count."""
+        try:
+            yield from self._check_function_parameters(script_model.source, "script", script_model.file_path, 1)
+        except Exception as e:
+            print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
+
     def _check_function_parameters(self, script_content, field_name, file_path, line_offset=1):
         """Check for functions with too many parameters in script content."""
         # Parse the script content using the base class method (handles PMD wrappers)

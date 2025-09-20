@@ -11,9 +11,14 @@ class ScriptVariableNamingRule(Rule):
     SEVERITY = "WARNING"
 
     def analyze(self, context):
-        """Main entry point - analyze all PMD models in the context."""
+        """Main entry point - analyze all PMD models and standalone script files in the context."""
+        # Analyze PMD embedded scripts
         for pmd_model in context.pmds.values():
             yield from self.visit_pmd(pmd_model)
+        
+        # Analyze standalone script files
+        for script_model in context.scripts.values():
+            yield from self._analyze_script_file(script_model)
 
     def visit_pmd(self, pmd_model: PMDModel):
         """Analyzes script fields in a PMD model."""
@@ -22,6 +27,13 @@ class ScriptVariableNamingRule(Rule):
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
                 yield from self._check_variable_naming(field_value, field_name, pmd_model.file_path, line_offset)
+
+    def _analyze_script_file(self, script_model):
+        """Analyze standalone script files for variable naming."""
+        try:
+            yield from self._check_variable_naming(script_model.source, "script", script_model.file_path, 1)
+        except Exception as e:
+            print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
 
     def _check_variable_naming(self, script_content, field_name, file_path, line_offset=1):
         """Check variable naming conventions in script content."""
