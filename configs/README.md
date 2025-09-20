@@ -7,7 +7,7 @@ This directory contains pre-configured spell sets for the Arcane Auditor. Choose
 ## Available Configurations
 
 ### 🚀 **default.json** (Recommended)
-- **All 28 rules enabled** with their default settings
+- **All 29 rules enabled** with their default settings
 - Includes comprehensive analysis for both PMD embedded scripts AND standalone .script files
 - Best for teams that want comprehensive code quality analysis
 - Good starting point for most users
@@ -24,7 +24,7 @@ This directory contains pre-configured spell sets for the Arcane Auditor. Choose
 - **Note:** PMDSectionOrderingRule is disabled (style preference)
 
 ### 🎯 **comprehensive.json** (Production Ready)
-- **All 28 rules enabled** with optimized severity levels
+- **All 29 rules enabled** with optimized severity levels
 - **ERROR severity** for critical issues (console.log, null safety, etc.)
 - **WARNING severity** for structure issues (PMD section ordering)
 - **INFO severity** for preferences (string booleans, footer pods)
@@ -55,9 +55,9 @@ You can create your own configuration by:
 2. Modifying rule settings as needed
 3. Saving it with a descriptive name
 
-## Rule Categories (28 Total Rules)
+## Rule Categories (29 Total Rules)
 
-### Script Rules (19 rules)
+### Script Rules (20 rules)
 **Applies to both PMD embedded scripts AND standalone .script files:**
 
 #### Script Complexity & Structure (4 rules)
@@ -66,7 +66,7 @@ You can create your own configuration by:
 - Function length limits (`ScriptLongFunctionRule`)
 - Nesting level limits (`ScriptNestingLevelRule`)
 
-#### Script Code Quality (9 rules)
+#### Script Code Quality (10 rules)
 - Console log detection (`ScriptConsoleLogRule`)
 - Variable usage patterns (`ScriptVarUsageRule`, `ScriptFileVarUsageRule`)
 - Naming conventions (`ScriptVariableNamingRule`)
@@ -76,6 +76,7 @@ You can create your own configuration by:
 - Return consistency (`ScriptFunctionReturnConsistencyRule`)
 - String concatenation patterns (`ScriptStringConcatRule`)
 - Boolean expression optimization (`ScriptVerboseBooleanCheckRule`)
+- Descriptive parameter names (`ScriptDescriptiveParameterRule`)
 
 #### Script Unused Code (6 rules)
 - Empty function detection (`ScriptEmptyFunctionRule`)

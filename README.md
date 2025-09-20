@@ -4,9 +4,9 @@
 
 ## 🎯 Overview
 
-Arcane Auditor channels ancient wisdom through **28 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool focuses on:
+Arcane Auditor channels ancient wisdom through **29 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool focuses on:
 
-- **Script Quality (19 Rules)**: PMD Script syntax, complexity, naming conventions, unused code detection
+- **Script Quality (20 Rules)**: PMD Script syntax, complexity, naming conventions, unused code detection
 - **Endpoint Validation (4 Rules)**: API endpoint compliance, error handling, naming conventions
 - **Structure Validation (4 Rules)**: Widget configurations, required fields, component validation
 - **PMD Organization (1 Rule)**: File structure and section ordering for consistency
