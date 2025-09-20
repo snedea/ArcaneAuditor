@@ -24,7 +24,7 @@ def check_dependencies():
 
 def build_frontend():
     """Build the React frontend if needed."""
-    frontend_dir = Path("web_frontend")
+    frontend_dir = Path("web/frontend")
     if not frontend_dir.exists():
         print("⚠️  Frontend not found, will serve basic HTML interface")
         return False

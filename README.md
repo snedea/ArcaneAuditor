@@ -54,10 +54,10 @@ For a user-friendly mystical web interface:
 
 ```bash
 # One-time setup (requires Node.js)
-python setup_web_interface.py
+python web/setup_web_interface.py
 
 # Start the web server
-python start_web_interface.py
+python web/start_web_interface.py
 
 # Open http://localhost:8000 in your browser to access the Arcane Auditor
 ```
@@ -83,7 +83,10 @@ arcane-auditor/
 ├── requirements.txt                  # Python dependencies
 ├── pyproject.toml                    # Project configuration
 ├── README.md                         # This file
-├── RULE_BREAKDOWN.md                 # Detailed rule documentation
+├── LICENSE                           # MIT License
+├── docs/                             # Documentation
+│   ├── RULE_BREAKDOWN.md             # Detailed rule documentation
+│   └── WEB_README.md                 # Web interface documentation
 │
 ├── file_processing/                  # File processing pipeline
 │   ├── config.py                     # Configuration models
@@ -308,7 +311,8 @@ Create custom configurations in JSON format:
 
 ## 📚 Documentation
 
-- **RULE_BREAKDOWN.md**: Detailed rule descriptions with examples
+- **docs/RULE_BREAKDOWN.md**: Detailed rule descriptions with examples
+- **docs/WEB_README.md**: Web interface documentation
 - **parser/rules/custom/README.md**: Custom rules development guide
 
 ## 📄 License

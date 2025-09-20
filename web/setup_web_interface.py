@@ -70,9 +70,9 @@ def build_frontend():
     """Build the React frontend."""
     print("🏗️  Building React frontend...")
     
-    frontend_dir = Path("web_frontend")
+    frontend_dir = Path("web/frontend")
     if not frontend_dir.exists():
-        print("❌ web_frontend directory not found")
+        print("❌ web/frontend directory not found")
         return False
     
     try:
@@ -103,7 +103,7 @@ from pathlib import Path
 
 def main():
     # Check if frontend is built
-    dist_dir = Path("web_frontend/dist")
+    dist_dir = Path("web/frontend/dist")
     if not dist_dir.exists():
         print("❌ Frontend not built. Please run: python setup_web_interface.py")
         sys.exit(1)
@@ -168,7 +168,7 @@ pip install fastapi uvicorn[standard] python-multipart aiofiles
 
 ### 2. Build Frontend
 ```bash
-cd web_frontend
+cd web/frontend
 npm install
 npm run build
 cd ..
@@ -202,13 +202,13 @@ Use a different port: `--port 8001`
 
 To modify the frontend:
 ```bash
-cd web_frontend
+cd web/frontend
 npm run dev  # Development server with hot reload
 ```
 
 To rebuild after changes:
 ```bash
-cd web_frontend
+cd web/frontend
 npm run build
 ```
 """

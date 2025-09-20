@@ -9,7 +9,7 @@ from pathlib import Path
 
 def main():
     # Check if frontend is built
-    dist_dir = Path("web_frontend/dist")
+    dist_dir = Path("web/frontend/dist")
     if not dist_dir.exists():
         print("❌ Frontend not built. Please run: python setup_web_interface.py")
         sys.exit(1)

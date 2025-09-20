@@ -18,6 +18,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 # Import existing core logic (no changes needed!)
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
 from file_processing import FileProcessor
 from parser.rules_engine import RulesEngine
 from parser.app_parser import ModelParser
@@ -44,7 +48,7 @@ app.add_middleware(
 # Create necessary directories
 UPLOAD_DIR = Path("uploads")
 CONFIG_DIR = Path("configs")
-STATIC_DIR = Path("web_frontend/dist")
+STATIC_DIR = Path("web/frontend/dist")
 
 UPLOAD_DIR.mkdir(exist_ok=True)
 CONFIG_DIR.mkdir(exist_ok=True)
