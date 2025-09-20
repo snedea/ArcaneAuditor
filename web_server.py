@@ -386,6 +386,52 @@ async def get_analysis(analysis_id: str):
     return analysis_cache[analysis_id]
 
 
+@app.post("/api/download/excel")
+async def download_excel(request_data: dict):
+    """Download analysis results as Excel file."""
+    try:
+        findings_data = request_data.get('findings', [])
+        
+        # Convert dict findings back to Finding objects
+        findings = []
+        for finding_dict in findings_data:
+            # Create a mock rule object for the Finding
+            class MockRule:
+                def __init__(self, rule_id, severity, description):
+                    self.__class__.__name__ = rule_id
+                    self.SEVERITY = severity
+                    self.DESCRIPTION = description
+            
+            mock_rule = MockRule(
+                finding_dict.get('rule_id', 'Unknown'),
+                finding_dict.get('severity', 'INFO'), 
+                finding_dict.get('rule_description', 'No description')
+            )
+            
+            finding = Finding(
+                rule=mock_rule,
+                message=finding_dict.get('message', ''),
+                line=finding_dict.get('line', 0),
+                column=finding_dict.get('column', 0),
+                file_path=finding_dict.get('file_path', '')
+            )
+            findings.append(finding)
+        
+        # Create Excel file
+        formatter = OutputFormatter(OutputFormat.EXCEL)
+        excel_file_path = formatter.format_results(findings, len(set(f.file_path for f in findings)), 25)
+        
+        # Return the Excel file
+        return FileResponse(
+            path=excel_file_path,
+            filename=f"extend-reviewer-results-{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Excel generation failed: {str(e)}")
+
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""

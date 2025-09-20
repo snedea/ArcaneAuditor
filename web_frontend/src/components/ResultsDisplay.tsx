@@ -86,14 +86,13 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
 
   const downloadResults = async () => {
     try {
-      const response = await fetch('/api/analyze', {
+      const response = await fetch('/api/download/excel', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          findings: result.findings,
-          format: 'excel'
+          findings: result.findings
         }),
       });
 
