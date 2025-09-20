@@ -28,18 +28,15 @@ class TestPMDSectionOrderingRule:
             "onLoad", "onSubmit", "outboundData", "include", "script"
         ]
         assert self.rule.section_order == expected_order
-        assert self.rule.enforce_order == True
     
     def test_custom_configuration(self):
         """Test rule with custom configuration."""
         custom_config = {
-            "section_order": ["id", "presentation", "script"],
-            "enforce_order": False
+            "section_order": ["id", "presentation", "script"]
         }
         rule = PMDSectionOrderingRule(config=custom_config)
         
         assert rule.section_order == ["id", "presentation", "script"]
-        assert rule.enforce_order == False
     
     def test_pmd_with_correct_ordering(self):
         """Test PMD file with correct section ordering."""
@@ -138,30 +135,6 @@ class TestPMDSectionOrderingRule:
             for finding in findings:
                 assert "Expected order:" in finding.message or "wrong position" in finding.message
     
-    def test_disabled_enforcement(self):
-        """Test rule with enforcement disabled."""
-        config = {"enforce_order": False}
-        rule = PMDSectionOrderingRule(config=config)
-        
-        # Even with wrong order, should not report violations
-        source_content = """{
-  "script": "<% %>",
-  "id": "test-page",
-  "presentation": {}
-}"""
-        
-        pmd_model = PMDModel(
-            pageId="test-page",
-            file_path="disabled.pmd",
-            source_content=source_content
-        )
-        context = ProjectContext()
-        context.pmds["test-page"] = pmd_model
-        
-        findings = list(rule.analyze(context))
-        
-        # Should have no findings when enforcement is disabled
-        assert len(findings) == 0
     
     def test_pmd_with_invalid_json(self):
         """Test PMD file with invalid JSON (fallback parsing)."""

@@ -139,8 +139,7 @@ The `PMDSectionOrderingRule` supports custom section ordering:
         "outboundData",
         "include",
         "script"
-      ],
-      "enforce_order": true
+      ]
     }
   }
 }
@@ -148,7 +147,6 @@ The `PMDSectionOrderingRule` supports custom section ordering:
 
 **Customization Options:**
 - `section_order`: Array defining the preferred order of PMD sections
-- `enforce_order`: Boolean to enable/disable ordering validation
 
 ### Dual Script Analysis
 Script rules automatically analyze both:

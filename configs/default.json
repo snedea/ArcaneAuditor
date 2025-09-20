@@ -147,8 +147,7 @@
       "enabled": true,
       "severity_override": null,
       "custom_settings": {
-        "section_order": ["id", "securityDomains", "endPoints", "presentation", "onLoad", "onSubmit", "outboundData", "include", "script"],
-        "enforce_order": true
+        "section_order": ["id", "securityDomains", "endPoints", "presentation", "onLoad", "onSubmit", "outboundData", "include", "script"]
       }
     }
   },

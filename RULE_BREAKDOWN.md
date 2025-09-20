@@ -1088,8 +1088,7 @@ function processData() {
   "PMDSectionOrderingRule": {
     "enabled": true,
     "custom_settings": {
-      "section_order": ["id", "presentation", "endPoints", "script"],
-      "enforce_order": true
+      "section_order": ["id", "presentation", "endPoints", "script"]
     }
   }
 }

@@ -26,7 +26,6 @@ class PMDSectionOrderingRule(Rule):
         ]
         
         self.section_order = config.get("section_order", default_order) if config else default_order
-        self.enforce_order = config.get("enforce_order", True) if config else True
 
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze PMD files for section ordering."""
@@ -78,8 +77,6 @@ class PMDSectionOrderingRule(Rule):
 
     def _check_section_ordering(self, actual_order: List[str], pmd_model: PMDModel) -> Generator[Finding, None, None]:
         """Check if the actual order matches the configured order."""
-        if not self.enforce_order:
-            return
         
         # Get expected order for the keys that are actually present
         expected_order = self._get_expected_order_for_keys(actual_order)
