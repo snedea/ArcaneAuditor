@@ -8,7 +8,7 @@ This directory contains pre-configured spell sets for the Arcane Auditor. Choose
 
 ### 🚀 **default.json** (Recommended)
 - **All 29 rules enabled** with their default settings
-- Includes comprehensive analysis for both PMD embedded scripts AND standalone .script files
+- Includes comprehensive analysis for PMD, POD, and standalone .script files
 - Best for teams that want comprehensive code quality analysis
 - Good starting point for most users
 
@@ -58,7 +58,7 @@ You can create your own configuration by:
 ## Rule Categories (29 Total Rules)
 
 ### Script Rules (20 rules)
-**Applies to both PMD embedded scripts AND standalone .script files:**
+**Applies to PMD embedded scripts, POD endpoint/widget scripts, AND standalone .script files:**
 
 #### Script Complexity & Structure (4 rules)
 - Cyclomatic complexity limits (`ScriptComplexityRule`)
@@ -86,15 +86,17 @@ You can create your own configuration by:
 - Unused script includes detection (`ScriptUnusedScriptIncludesRule`)
 
 ### Endpoint Rules (4 rules)
+**Applies to PMD endpoints and POD seed endpoints:**
 - Status code handling (`EndpointFailOnStatusCodesRule`)
 - Naming conventions (`EndpointNameLowerCamelCaseRule`)
-- Self.data usage (`EndpointOnSendSelfDataRule`)
-- URL base type validation (`EndpointUrlBaseUrlTypeRule`)
+- Self.data usage (`EndpointOnSendSelfDataRule`) - *PMD outbound only*
+- URL base type validation (`EndpointBaseUrlTypeRule`)
 
 ### Structure Rules (4 rules)
+**Applies to PMD presentation widgets and POD template widgets:**
 - Required widget ID fields (`WidgetIdRequiredRule`)
 - Widget naming conventions (`WidgetIdLowerCamelCaseRule`)
-- Footer pod requirements (`FooterPodRequiredRule`)
+- Footer pod requirements (`FooterPodRequiredRule`) - *PMD footer only*
 - String boolean detection (`StringBooleanRule`)
 
 ### PMD Rules (1 rule)

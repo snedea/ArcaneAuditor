@@ -1,12 +1,17 @@
 ![Arcane Auditor Logo](assets/arcane-auditor-logo.png)
 
-*A mystical code review tool for Workday Extend applications that validates PMD Script syntax, structure compliance, and coding best practices.*
+*A mystical code review tool for Workday Extend applications that validates PMD, POD, and Script syntax, structure compliance, and coding best practices.*
 
 ## 🎯 Overview
 
-Arcane Auditor channels ancient wisdom through **29 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool focuses on:
+Arcane Auditor channels ancient wisdom through **29 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
 
-- **Script Quality (20 Rules)**: PMD Script syntax, complexity, naming conventions, unused code detection
+- **📄 PMD Files**: Page definitions with embedded scripts, endpoints, and presentation layers
+- **🧩 POD Files**: Portable Object Definitions with template widgets and endpoint configurations  
+- **📜 Script Files**: Standalone .script files with function libraries and utilities
+
+**Rule Categories:**
+- **Script Quality (20 Rules)**: Script syntax, complexity, naming conventions, unused code detection
 - **Endpoint Validation (4 Rules)**: API endpoint compliance, error handling, naming conventions
 - **Structure Validation (4 Rules)**: Widget configurations, required fields, component validation
 - **PMD Organization (1 Rule)**: File structure and section ordering for consistency
@@ -44,7 +49,8 @@ cd arcane-auditor
 # Install dependencies
 uv sync
 
-# Run analysis on a PMD application (CLI)
+# Run analysis on a Workday Extend application (CLI)
+# Supports PMD, POD, and Script files
 uv run main.py review-app your-app.zip
 ```
 

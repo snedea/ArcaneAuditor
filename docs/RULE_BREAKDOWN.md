@@ -8,22 +8,22 @@ This grimoire provides a comprehensive overview of all **29 validation rules** w
 
 The rules are organized into four main categories:
 
-- **Script Rules (20 Rules)**: Code quality and best practices for PMD scripts and standalone script files
-- **Endpoint Rules (4 Rules)**: API endpoint validation and compliance
-- **Structure Rules (4 Rules)**: Widget and PMD structural validation
-- **PMD Rules (1 Rule)**: File structure and organization validation
+- **Script Rules (20 Rules)**: Code quality and best practices for PMD, POD, and standalone script files
+- **Endpoint Rules (4 Rules)**: API endpoint validation and compliance for PMD and POD files
+- **Structure Rules (4 Rules)**: Widget and structural validation for PMD and POD files
+- **PMD Rules (1 Rule)**: PMD-specific file structure and organization validation
 
 ---
 
 ## Script Rules (20 Rules)
 
-*These rules analyze both PMD embedded scripts and standalone .script files for comprehensive code quality validation.*
+*These rules analyze PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files for comprehensive code quality validation.*
 
 ### ScriptVarUsageRule - Script Var Usage Rule
 
 **Severity:** WARNING
 **Description:** Ensures scripts use 'let' or 'const' instead of 'var' (best practice)
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -119,7 +119,7 @@ You can disable dead code detection if you want to keep unused helper functions:
 
 **Severity:** WARNING
 **Description:** Ensures scripts don't have excessive nesting levels (max 4 levels)
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -166,7 +166,7 @@ function processData(data) {
 
 **Severity:** WARNING
 **Description:** Ensures scripts don't have excessive cyclomatic complexity (max 10)
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -229,7 +229,7 @@ function processStandardOrder(order) {
 
 **Severity:** WARNING
 **Description:** Ensures scripts don't have excessively long functions (max 50 lines)
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -274,7 +274,7 @@ function formatOutput(data) {
 
 **Severity:** WARNING
 **Description:** Ensures functions don't have too many parameters (max 4)
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -305,7 +305,7 @@ function createUser(personalInfo, contactInfo, workInfo) { // ✅ 3 logical grou
 
 **Severity:** WARNING
 **Description:** Ensures scripts don't contain console log statements (production code)
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -338,7 +338,7 @@ function processData(data) {
 
 **Severity:** INFO
 **Description:** Ensures variables follow lowerCamelCase naming convention
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -367,7 +367,7 @@ const userEmail = "email";    // ✅ lowerCamelCase
 
 **Severity:** INFO
 **Description:** Recommends using functional methods (map, filter, forEach) instead of manual loops
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -399,7 +399,7 @@ const results = items
 
 **Severity:** INFO
 **Description:** Ensures scripts don't contain magic numbers (use named constants)
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -438,7 +438,7 @@ function calculateDiscount(price) {
 
 **Severity:** WARNING
 **Description:** Ensures property access chains are protected against null reference exceptions
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -466,7 +466,7 @@ const isProgrammer = skills.length > 0 && skills[0] == 'Programming'; // ✅ Saf
 
 **Severity:** INFO
 **Description:** Ensures functional method parameters use descriptive names instead of single letters (except 'i', 'j', 'k' for indices)
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -534,7 +534,7 @@ const total = numbers.reduce((acc, num) => {acc + num});
 
 **Severity:** WARNING
 **Description:** Ensures functions have consistent return patterns
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -569,7 +569,7 @@ function processUser(user) {
 
 **Severity:** INFO
 **Description:** Recommends using PMD template syntax instead of string concatenation
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -594,7 +594,7 @@ const message = `Hello {{userName}}, welcome to {{appName}}`; // ✅ PMD templat
 
 **Severity:** INFO
 **Description:** Recommends using concise boolean expressions
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -621,7 +621,7 @@ if (!user.active) { }             // ✅ Concise negation
 
 **Severity:** INFO
 **Description:** Detects empty function bodies
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -644,7 +644,7 @@ const handler = function() { }; // ❌ Empty function
 
 **Severity:** WARNING
 **Description:** Detects functions that are declared but never called
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -657,7 +657,7 @@ const handler = function() { }; // ❌ Empty function
 
 **Severity:** INFO
 **Description:** Detects unused function parameters
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -686,7 +686,7 @@ function processUser(user) { // ✅ Only used parameters
 
 **Severity:** INFO
 **Description:** Ensures all declared variables are used (prevents dead code)
-**Applies to:** PMD embedded scripts and standalone .script files
+**Applies to:** PMD embedded scripts, POD endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
@@ -754,11 +754,13 @@ function processData() {
 
 ## Endpoint Rules (4 Rules)
 
+*These rules validate API endpoint configurations, error handling, and compliance in both PMD and POD files.*
+
 ### EndpointFailOnStatusCodesRule - Endpoint Fail On Status Codes Rule
 
 **Severity:** WARNING
 **Description:** Ensures endpoints properly handle 400 and 403 error status codes
-**Applies to:** PMD endpoint definitions
+**Applies to:** PMD endpoint definitions and POD seed endpoints
 
 **What it catches:**
 
@@ -798,7 +800,7 @@ function processData() {
 
 **Severity:** INFO
 **Description:** Ensures endpoint names follow lowerCamelCase convention
-**Applies to:** PMD endpoint definitions
+**Applies to:** PMD endpoint definitions and POD seed endpoints
 
 **What it catches:**
 
@@ -876,7 +878,7 @@ function processData() {
 
 **Severity:** WARNING
 **Description:** Ensures endpoint URLs don't include hardcoded *.workday.com or apiGatewayEndpoint values
-**Applies to:** PMD endpoint definitions
+**Applies to:** PMD endpoint definitions and POD seed endpoints
 
 **What it catches:**
 
@@ -911,11 +913,13 @@ function processData() {
 
 ## Structure Rules (4 Rules)
 
+*These rules validate widget configurations, endpoint structures, and component compliance in both PMD and POD files.*
+
 ### WidgetIdRequiredRule - Widget ID Required Rule
 
 **Severity:** ERROR
 **Description:** Ensures all widgets have required 'id' field
-**Applies to:** PMD widget definitions
+**Applies to:** PMD presentation widgets and POD template widgets
 
 **What it catches:**
 
@@ -962,7 +966,7 @@ function processData() {
 
 **Severity:** INFO
 **Description:** Ensures widget IDs follow lowerCamelCase convention
-**Applies to:** PMD widget definitions
+**Applies to:** PMD presentation widgets and POD template widgets
 
 **What it catches:**
 
@@ -1026,7 +1030,7 @@ function processData() {
 
 **Severity:** INFO
 **Description:** Ensures boolean values are not stored as strings
-**Applies to:** PMD configuration values
+**Applies to:** PMD configuration values and POD widget properties
 
 **What it catches:**
 
