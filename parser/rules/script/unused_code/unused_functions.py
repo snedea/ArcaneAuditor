@@ -10,9 +10,18 @@ class ScriptUnusedFunctionRule(Rule):
     SEVERITY = "WARNING"
 
     def analyze(self, context: ProjectContext):
-        """Main entry point - analyze all PMD models in the context."""
+        """Main entry point - analyze all PMD models, POD models, and standalone script files in the context."""
+        # Analyze PMD embedded scripts
         for pmd_model in context.pmds.values():
             yield from self.visit_pmd(pmd_model)
+        
+        # Analyze POD embedded scripts
+        for pod_model in context.pods.values():
+            yield from self.visit_pod(pod_model)
+        
+        # Analyze standalone script files
+        for script_model in context.scripts.values():
+            yield from self._analyze_script_file(script_model)
 
     def visit_pmd(self, pmd_model: PMDModel):
         """Analyzes script fields in a PMD model for unused functions."""
@@ -32,6 +41,50 @@ class ScriptUnusedFunctionRule(Rule):
                     field_value, field_name, pmd_model, line_offset,
                     all_declared_functions, all_function_calls
                 )
+
+    def visit_pod(self, pod_model: PODModel):
+        """Analyzes script fields in a POD model for unused functions."""
+        script_fields = self.find_pod_script_fields(pod_model)
+        
+        # Build a registry of all functions declared across all POD script fields
+        all_declared_functions = self._build_pod_function_registry(pod_model)
+        
+        # Build a registry of all function calls across all POD script fields
+        all_function_calls = self._build_pod_function_call_registry(pod_model)
+        
+        # Analyze each script field for unused functions
+        for field_path, field_value, field_name, line_offset in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                yield from self._check_unused_functions_in_field(
+                    field_value, field_name, pod_model, line_offset,
+                    all_declared_functions, all_function_calls
+                )
+
+    def _analyze_script_file(self, script_model):
+        """Analyze standalone script files for unused functions."""
+        try:
+            # For standalone scripts, build registries from the single file
+            script_fields = [("script", script_model.source, "script", 1)]
+            
+            all_declared_functions = {}
+            all_function_calls = set()
+            
+            # Build registries from the script content
+            ast = self._parse_script_content(script_model.source)
+            if ast:
+                field_functions = self._extract_function_declarations(ast, "script", 1)
+                all_declared_functions.update(field_functions)
+                
+                field_calls = self._extract_function_calls(ast)
+                all_function_calls.update(field_calls)
+            
+            # Check for unused functions
+            yield from self._check_unused_functions_in_field(
+                script_model.source, "script", script_model, 1,
+                all_declared_functions, all_function_calls
+            )
+        except Exception as e:
+            print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
 
     def _build_function_registry(self, pmd_model: PMDModel) -> Dict[str, Dict]:
         """Build a registry of all functions declared in the PMD model."""
@@ -168,3 +221,31 @@ class ScriptUnusedFunctionRule(Rule):
         
         _search_function_calls(ast)
         return function_calls
+
+    def _build_pod_function_registry(self, pod_model: PODModel) -> Dict[str, Dict]:
+        """Build a registry of all functions declared in the POD model."""
+        function_registry = {}
+        script_fields = self.find_pod_script_fields(pod_model)
+        
+        for field_path, field_value, field_name, line_offset in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                ast = self._parse_script_content(field_value)
+                if ast:
+                    field_functions = self._extract_function_declarations(ast, field_name, line_offset)
+                    function_registry.update(field_functions)
+        
+        return function_registry
+
+    def _build_pod_function_call_registry(self, pod_model: PODModel) -> Set[str]:
+        """Build a registry of all function calls in the POD model."""
+        all_function_calls = set()
+        script_fields = self.find_pod_script_fields(pod_model)
+        
+        for field_path, field_value, field_name, line_offset in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                ast = self._parse_script_content(field_value)
+                if ast:
+                    field_calls = self._extract_function_calls(ast)
+                    all_function_calls.update(field_calls)
+        
+        return all_function_calls

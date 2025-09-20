@@ -1,5 +1,5 @@
 from ...base import Rule, Finding
-from ....models import PMDModel
+from ....models import PMDModel, PODModel
 from typing import Dict, Any, List
 
 
@@ -10,9 +10,14 @@ class StringBooleanRule(Rule):
     SEVERITY = "INFO"
 
     def analyze(self, context):
-        """Main entry point - analyze all PMD models in the context."""
+        """Main entry point - analyze all PMD models and POD models in the context."""
+        # Analyze PMD models
         for pmd_model in context.pmds.values():
             yield from self.visit_pmd(pmd_model)
+        
+        # Analyze POD models
+        for pod_model in context.pods.values():
+            yield from self.visit_pod(pod_model)
     
     def visit_pmd(self, pmd_model: PMDModel):
         """Analyzes the PMD model for string boolean values."""
@@ -22,11 +27,19 @@ class StringBooleanRule(Rule):
         # Check the raw source content for string boolean patterns
         yield from self._check_source_content_for_string_booleans(pmd_model)
 
-    def _check_source_content_for_string_booleans(self, pmd_model: PMDModel):
+    def visit_pod(self, pod_model: PODModel):
+        """Analyzes the POD model for string boolean values."""
+        if not pod_model.source_content:
+            return
+        
+        # Check the raw source content for string boolean patterns
+        yield from self._check_source_content_for_string_booleans(pod_model)
+
+    def _check_source_content_for_string_booleans(self, model):
         """Check the source content for string boolean patterns."""
         import re
         
-        lines = pmd_model.source_content.split('\n')
+        lines = model.source_content.split('\n')
         
         # Pattern to match field: "true" or field: "false" or field:"true" or field:"false"
         pattern = r'"([^"]+)"\s*:\s*"(true|false)"'
@@ -42,5 +55,5 @@ class StringBooleanRule(Rule):
                     message=f"Field '{field_name}' has string value '{string_value}' instead of boolean {string_value}. Use boolean {string_value} instead of string '{string_value}'.",
                     line=line_num,
                     column=match.start() + 1,
-                    file_path=pmd_model.file_path
+                    file_path=model.file_path
                 )
