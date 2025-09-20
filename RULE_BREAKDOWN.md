@@ -432,9 +432,8 @@ const isProgrammer = workerData.skills[0] == 'Programming' ?? false; // ❌ Won'
 **Fix:**
 
 ```javascript
-const skill = workerData.skills?.[0]?.name;  // ✅ Optional chaining
-const skills = workerData.skills ?? [];      // ✅ Proper null coalescing
-const isProgrammer = skills[0] === 'Programming'; // ✅ Safe access
+const skills = workerData.skills ?? [];      // ✅ Null coalescing fallback
+const isProgrammer = skills.length > 0 && skills[0] == 'Programming'; // ✅ Safe comparison
 ```
 
 ---
@@ -499,7 +498,7 @@ const total = numbers.reduce((acc, num) => acc + num, 0);
     "severity_override": "WARNING",
     "custom_settings": {
       "allowed_single_letters": ["i", "j", "k"],
-      "additional_functional_methods": ["groupBy"]
+      "additional_functional_methods": []
     }
     }
 }
