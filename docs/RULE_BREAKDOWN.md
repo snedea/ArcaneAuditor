@@ -51,6 +51,13 @@ let myVariable = "value";    // ✅ Use 'let' for mutable values
 **Description:** Ensures script files follow proper variable declaration and export patterns
 **Applies to:** Standalone .script files
 
+**Why This Rule Combines Multiple Checks:**
+This rule addresses two distinct quality concerns for standalone script files in a single efficient pass:
+1. **Code Quality:** Modern variable declarations (`const`/`let` vs `var`)
+2. **Dead Code Detection:** Unused variables and export consistency
+
+Since both checks require parsing the same script structure and variable declarations, combining them avoids duplicate AST traversal and provides comprehensive script file validation.
+
 **What it catches:**
 
 - Top-level variables declared but not exported and not used internally
