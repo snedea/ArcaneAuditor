@@ -1013,10 +1013,10 @@ function processData() {
 
 ```json
 {
-  "widget": {
-    "visible": "true",  // ❌ String instead of boolean
-    "enabled": "false"  // ❌ String instead of boolean
-  }
+  "type": "text",
+  "id": "welcomeMessage",
+  "visible": "true",  // ❌ String instead of boolean
+  "enabled": "false"  // ❌ String instead of boolean
 }
 ```
 
@@ -1024,10 +1024,10 @@ function processData() {
 
 ```json
 {
-  "widget": {
-    "visible": true,    // ✅ Proper boolean
-    "enabled": false    // ✅ Proper boolean
-  }
+  "type": "text",
+  "id": "welcomeMessage",
+  "visible": true,    // ✅ Proper boolean
+  "enabled": false    // ✅ Proper boolean
 }
 ```
 
