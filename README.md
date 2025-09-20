@@ -66,10 +66,6 @@ arcane-auditor/
 │   ├── models.py                     # Data models
 │   └── processor.py                  # Main processing logic
 │
-├── llm_integration/                  # LLM integration (future)
-│   ├── client.py
-│   └── prompts.py
-│
 ├── parser/                           # PMD parsing and validation
 │   ├── app_parser.py                 # Main application parser
 │   ├── config.py                     # Parser configuration
