@@ -23,7 +23,7 @@ The rules are organized into four main categories:
 
 **Severity:** WARNING
 **Description:** Ensures scripts use 'let' or 'const' instead of 'var' (best practice)
-**Applies to:** PMD embedded scripts
+**Applies to:** PMD embedded scripts and standalone .script files
 
 **What it catches:**
 
@@ -48,31 +48,31 @@ let myVariable = "value";    // ✅ Use 'let' for mutable values
 ### ScriptFileVarUsageRule - Script File Variable Usage Rule
 
 **Severity:** WARNING
-**Description:** Ensures script files follow proper variable declaration and export patterns
+**Description:** Ensures script files follow proper variable export patterns and removes dead code
 **Applies to:** Standalone .script files
 
-**Why This Rule Combines Multiple Checks:**
-This rule addresses two distinct quality concerns for standalone script files in a single efficient pass:
-1. **Code Quality:** Modern variable declarations (`const`/`let` vs `var`)
-2. **Dead Code Detection:** Unused variables and export consistency
+**Why This Rule Focuses on Export Patterns:**
+This rule addresses export-specific quality concerns unique to standalone script files:
+1. **Dead Code Detection:** Variables declared but never exported or used internally
+2. **Export Consistency:** Variables exported but not properly declared at top level
 
-Since both checks require parsing the same script structure and variable declarations, combining them avoids duplicate AST traversal and provides comprehensive script file validation.
+Note: Variable declaration style (`var` vs `const`/`let`) is handled by `ScriptVarUsageRule` which applies to both PMD embedded scripts and standalone script files.
 
 **What it catches:**
 
 - Top-level variables declared but not exported and not used internally
 - Variables exported but not declared at top level
-- Usage of `var` instead of `const`/`let` in script files
 
 **Example violations:**
 
 ```javascript
 // In util.script
-var getCurrentTime = function() { return date:now(); };  // ❌ Should use 'const'
+const getCurrentTime = function() { return date:now(); };
 const unusedHelper = function() { return "unused"; };    // ❌ Not exported or used
 
 {
-  "getCurrentTime": getCurrentTime  // ❌ unusedHelper is unused
+  "getCurrentTime": getCurrentTime,  // ❌ unusedHelper is dead code
+  "nonExistentFunction": nonExistentFunction  // ❌ Exported but not declared
 }
 ```
 
@@ -80,12 +80,12 @@ const unusedHelper = function() { return "unused"; };    // ❌ Not exported or 
 
 ```javascript
 // In util.script
-const getCurrentTime = function() { return date:now(); };  // ✅ Use 'const'
+const getCurrentTime = function() { return date:now(); };
 const helperFunction = function() { return "helper"; };    // ✅ Will be exported
 
 {
   "getCurrentTime": getCurrentTime,
-  "helperFunction": helperFunction  // ✅ Both functions exported
+  "helperFunction": helperFunction  // ✅ Both functions exported and declared
 }
 ```
 
@@ -99,23 +99,21 @@ You can disable specific checks if you only want certain validations:
     "enabled": true,
     "custom_settings": {
       "check_unused_variables": true,      // Dead code detection
-      "check_export_consistency": true,    // Export/declaration validation  
-      "check_var_declarations": true       // var vs const/let checking
+      "check_export_consistency": true     // Export/declaration validation
     }
   }
 }
 ```
 
-**Example: Only check var declarations (ignore dead code):**
+**Example: Only check dead code (ignore export consistency):**
 
 ```json
 {
   "ScriptFileVarUsageRule": {
     "enabled": true,
     "custom_settings": {
-      "check_unused_variables": false,     // Skip dead code detection
-      "check_export_consistency": false,   // Skip export validation
-      "check_var_declarations": true       // Only check var vs const/let
+      "check_unused_variables": true,      // Only dead code detection
+      "check_export_consistency": false    // Skip export validation
     }
   }
 }

@@ -17,7 +17,7 @@ from parser.rules.script.logic.null_safety import ScriptNullSafetyRule
 from parser.rules.script.logic.verbose_boolean import ScriptVerboseBooleanCheckRule
 from parser.rules.script.logic.return_consistency import ScriptFunctionReturnConsistencyRule
 from parser.rules.base import Finding
-from parser.models import ProjectContext, PMDModel
+from parser.models import ProjectContext, PMDModel, ScriptModel
 
 
 class TestScriptVarUsageRule:
@@ -51,6 +51,30 @@ class TestScriptVarUsageRule:
         findings = list(self.rule.analyze(self.context))
         assert len(findings) == 2
         assert all(f.rule_id == "ScriptVarUsageRule" for f in findings)
+
+    def test_analyze_standalone_script_with_var_declaration(self):
+        """Test analysis when standalone script contains 'var' declarations."""
+        script_content = """var getCurrentTime = function() {
+    return date:now();
+};
+
+var helper = function() {
+    return "helper";
+};
+
+{
+  "getCurrentTime": getCurrentTime,
+  "helper": helper
+}"""
+        
+        script_model = ScriptModel(source=script_content, file_path="util.script")
+        self.context.scripts["util.script"] = script_model
+        
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 2  # Should find both var declarations
+        assert all(f.rule_id == "ScriptVarUsageRule" for f in findings)
+        assert all("var" in f.message.lower() for f in findings)
+        assert all("const" in f.message.lower() or "let" in f.message.lower() for f in findings)
 
 
 class TestScriptConsoleLogRule:

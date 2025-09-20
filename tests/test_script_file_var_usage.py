@@ -18,13 +18,13 @@ class TestScriptFileVarUsageRule:
     
     def test_rule_metadata(self):
         """Test rule metadata is correctly defined."""
-        assert self.rule.DESCRIPTION == "Ensures script files follow proper variable declaration and export patterns"
+        assert self.rule.DESCRIPTION == "Ensures script files follow proper variable export patterns and removes dead code"
         assert self.rule.SEVERITY == "WARNING"
     
     def test_proper_script_file_pattern(self):
-        """Test script file with proper variable declaration and export pattern."""
-        # This is the pattern from util.script
-        script_content = """var getCurrentTime = function() {
+        """Test script file with proper export pattern (no issues)."""
+        # This is a proper pattern - const declaration with proper export
+        script_content = """const getCurrentTime = function() {
   return date:getTodaysDate(date:getDateTimeZone('US/Pacific'));
 };
 
@@ -37,11 +37,8 @@ class TestScriptFileVarUsageRule:
         
         findings = list(self.rule.analyze(self.context))
         
-        # Should have one finding about using 'var' instead of 'const'
-        assert len(findings) == 1
-        assert "var" in findings[0].message.lower()
-        assert "const" in findings[0].message.lower()
-        assert findings[0].file_path == "util.script"
+        # Should have no findings - this is a perfect pattern
+        assert len(findings) == 0
     
     def test_script_with_unexported_variables(self):
         """Test script file with variables that aren't exported."""
@@ -88,33 +85,6 @@ const unusedFunction = function() {
         assert len(undeclared_findings) == 1
         assert "undeclaredFunction" in undeclared_findings[0].message
     
-    def test_script_with_var_declarations(self):
-        """Test script file using 'var' declarations."""
-        script_content = """var helper = function() {
-  return "helper";
-};
-
-var utils = {
-  format: function(str) { return str; }
-};
-
-{
-  "helper": helper,
-  "utils": utils
-}"""
-        
-        script_model = ScriptModel(source=script_content, file_path="test.script")
-        self.context.scripts["test.script"] = script_model
-        
-        findings = list(self.rule.analyze(self.context))
-        
-        # Should find recommendations to use const/let
-        var_findings = [f for f in findings if "var" in f.message.lower() and "const" in f.message.lower()]
-        assert len(var_findings) == 2  # Both 'helper' and 'utils'
-        
-        var_names = [f.message for f in var_findings]
-        assert any("helper" in msg for msg in var_names)
-        assert any("utils" in msg for msg in var_names)
     
     def test_script_with_perfect_pattern(self):
         """Test script file with perfect const/let usage and proper exports."""
@@ -179,39 +149,6 @@ const formatDate = function(date) {
         # Should handle parsing errors gracefully
         assert len(findings) == 0  # Rule should skip unparseable content
 
-    def test_configurable_checks_var_only(self):
-        """Test that only var declaration checking can be enabled."""
-        # Configure rule to only check var declarations
-        config = {
-            "check_unused_variables": False,
-            "check_export_consistency": False,
-            "check_var_declarations": True
-        }
-        rule = ScriptFileVarUsageRule(config)
-        
-        script_content = """var getCurrentTime = function() {
-    return date:now();
-};
-
-const unusedFunction = function() {
-    return "unused";
-};
-
-{
-  "getCurrentTime": getCurrentTime
-}"""
-        
-        script_model = ScriptModel(source=script_content, file_path="var_only.script")
-        context = ProjectContext()
-        context.scripts["var_only.script"] = script_model
-        
-        findings = list(rule.analyze(context))
-        
-        # Should only find the var declaration issue, not the unused variable
-        assert len(findings) == 1
-        assert "var" in findings[0].message.lower()
-        assert "const" in findings[0].message.lower()
-        assert "unused" not in findings[0].message.lower()
 
     def test_configurable_checks_dead_code_only(self):
         """Test that only dead code detection can be enabled."""
@@ -251,12 +188,11 @@ const unusedFunction = function() {
         # Configure rule to disable all checks
         config = {
             "check_unused_variables": False,
-            "check_export_consistency": False,
-            "check_var_declarations": False
+            "check_export_consistency": False
         }
         rule = ScriptFileVarUsageRule(config)
         
-        script_content = """var getCurrentTime = function() {
+        script_content = """const getCurrentTime = function() {
     return date:now();
 };
 

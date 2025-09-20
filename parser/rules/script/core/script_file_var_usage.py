@@ -6,7 +6,7 @@ from ....models import ProjectContext, ScriptModel
 class ScriptFileVarUsageRule(Rule):
     """Validates variable usage patterns in standalone script files (.script)."""
     
-    DESCRIPTION = "Ensures script files follow proper variable declaration and export patterns"
+    DESCRIPTION = "Ensures script files follow proper variable export patterns and removes dead code"
     SEVERITY = "WARNING"
 
     def __init__(self, config: Dict[str, Any] = None):
@@ -16,7 +16,6 @@ class ScriptFileVarUsageRule(Rule):
         # Allow users to disable specific checks
         self.check_unused_variables = self.config.get("check_unused_variables", True)
         self.check_export_consistency = self.config.get("check_export_consistency", True)
-        self.check_var_declarations = self.config.get("check_var_declarations", True)
 
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze standalone script files for variable usage patterns."""
@@ -199,15 +198,3 @@ class ScriptFileVarUsageRule(Rule):
                     file_path=script_model.file_path
                 )
         
-        # Issue 3: Recommend const/let over var for all variables (top-level and function-scoped)
-        if self.check_var_declarations:
-            for var_name, var_info in declared_vars.items():
-                if var_info['type'] == 'VAR':
-                    scope_msg = "top-level" if var_info.get('scope') == 'top-level' else "function-scoped"
-                    yield Finding(
-                        rule=self,
-                        message=f"Script file uses 'var' for {scope_msg} variable '{var_name}'. Consider using 'const' for functions or 'let' for variables.",
-                        line=var_info['line'],
-                        column=1,
-                        file_path=script_model.file_path
-                    )

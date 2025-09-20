@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel
+from ....models import ProjectContext, PMDModel, ScriptModel
 
 
 class ScriptVarUsageRule(Rule):
@@ -10,9 +10,14 @@ class ScriptVarUsageRule(Rule):
     SEVERITY = "WARNING"
 
     def analyze(self, context):
-        """Main entry point - analyze all PMD models in the context."""
+        """Main entry point - analyze all PMD models and standalone script files in the context."""
+        # Analyze PMD embedded scripts
         for pmd_model in context.pmds.values():
             yield from self.visit_pmd(pmd_model)
+        
+        # Analyze standalone script files
+        for script_model in context.scripts.values():
+            yield from self._analyze_script_file(script_model)
 
     def visit_pmd(self, pmd_model: PMDModel):
         """Analyzes script fields in a PMD model."""
@@ -51,3 +56,10 @@ class ScriptVarUsageRule(Rule):
                             column=1,
                             file_path=file_path
                         )
+
+    def _analyze_script_file(self, script_model: ScriptModel) -> Generator[Finding, None, None]:
+        """Analyze standalone script files for var usage."""
+        try:
+            yield from self._check_var_usage(script_model.source, "script", script_model.file_path, 1)
+        except Exception as e:
+            print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
