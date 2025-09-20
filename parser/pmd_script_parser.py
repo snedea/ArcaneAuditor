@@ -19,6 +19,6 @@ def load_grammar():
 # Load the grammar and create parser
 try:
     pmd_script_grammar = load_grammar()
-    pmd_script_parser = Lark(pmd_script_grammar, start='program', parser='lalr')
+    pmd_script_parser = Lark(pmd_script_grammar, start='program', parser='earley')
 except Exception as e:
     print(f"Warning: Failed to load grammar: {e}")
