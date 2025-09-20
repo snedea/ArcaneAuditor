@@ -70,6 +70,16 @@ def review_app(
         rules_engine = RulesEngine(config)
         findings = rules_engine.run(context)
         
+        # Auto-detect format based on output file extension if not explicitly specified
+        if output_file and output_format == "console":  # Default format
+            file_ext = output_file.suffix.lower()
+            if file_ext == '.xlsx':
+                output_format = "excel"
+                typer.echo("Auto-detected Excel format based on .xlsx extension")
+            elif file_ext == '.json':
+                output_format = "json" 
+                typer.echo("Auto-detected JSON format based on .json extension")
+        
         # Format output based on selected format
         try:
             format_type = OutputFormat(output_format.lower())
