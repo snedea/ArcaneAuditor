@@ -18,14 +18,14 @@ body {
   margin: 0;
   display: flex;
   place-items: center;
-  min-width: 320px;
+  min-width: 1024px;
   min-height: 100vh;
   background-color: #1a202c;
   color: #e2e8f0;
 }
 
 #root {
-  max-width: 1280px;
+  max-width: 95vw;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
@@ -33,9 +33,9 @@ body {
 
 /* Dark theme - optimized for developer tools */
 
-/* Custom styles for Extend Reviewer */
+/* Custom styles for Extend Reviewer - Desktop Optimized */
 .app {
-  max-width: 800px;
+  max-width: 90vw;
   margin: 0 auto;
   padding: 20px;
   color: #e2e8f0;
@@ -304,18 +304,15 @@ input[type="text"] {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-@media (max-width: 768px) {
-  .md\:grid-cols-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
+/* Mobile support removed - desktop-only application */
 
-/* Summary layout improvements */
+/* Summary layout improvements - optimized for desktop */
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
   margin-top: 1rem;
+  max-width: none;
 }
 
 .summary-item {
