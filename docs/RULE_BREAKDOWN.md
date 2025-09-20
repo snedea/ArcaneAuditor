@@ -48,7 +48,7 @@ let myVariable = "value";    // ✅ Use 'let' for mutable values
 ### ScriptFileVarUsageRule - Script File Variable Usage Rule
 
 **Severity:** WARNING
-**Description:** Validates variable declaration and export patterns in standalone script files
+**Description:** Ensures script files follow proper variable declaration and export patterns
 **Applies to:** Standalone .script files
 
 **What it catches:**
@@ -61,7 +61,7 @@ let myVariable = "value";    // ✅ Use 'let' for mutable values
 
 ```javascript
 // In util.script
-var getCurrentTime = function() { return new Date(); };  // ❌ Should use 'const'
+var getCurrentTime = function() { return date:now(); };  // ❌ Should use 'const'
 const unusedHelper = function() { return "unused"; };    // ❌ Not exported or used
 
 {
@@ -73,7 +73,7 @@ const unusedHelper = function() { return "unused"; };    // ❌ Not exported or 
 
 ```javascript
 // In util.script
-const getCurrentTime = function() { return new Date(); };  // ✅ Use 'const'
+const getCurrentTime = function() { return date:now(); };  // ✅ Use 'const'
 const helperFunction = function() { return "helper"; };    // ✅ Will be exported
 
 {
