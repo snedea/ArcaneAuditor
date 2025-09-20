@@ -130,7 +130,7 @@ You can disable dead code detection if you want to keep unused helper functions:
 
 ```javascript
 function processData(data) {
-    if (data) {                    // Level 1
+    if (!empty data) {                    // Level 1
         if (data.isValid) {        // Level 2
             if (data.hasContent) { // Level 3
                 if (data.content.length > 0) { // Level 4
@@ -148,11 +148,11 @@ function processData(data) {
 
 ```javascript
 function processData(data) {
-    if (!data || !data.isValid || !data.hasContent) {
+    if (empty data || !data.isValid || !data.hasContent) {
         return null;
     }
   
-    if (data.content.length === 0) {
+    if (empty data.content) {
         return null;
     }
   
@@ -178,7 +178,7 @@ function processData(data) {
 
 ```javascript
 function processOrder(order) {
-    if (order.type === 'premium') {        // +1
+    if (order.type == 'premium') {        // +1
         if (order.amount > 1000) {         // +1
             if (order.customer.vip) {      // +1
                 // ... complex logic
@@ -188,9 +188,9 @@ function processOrder(order) {
         } else if (order.amount > 500) {   // +1
             // ... logic
         }
-    } else if (order.type === 'standard') { // +1
-        for (let item of order.items) {    // +1
-            if (item.category === 'electronics') { // +1
+    } else if (order.type == 'standard') { // +1
+        for (var i = 0; i < order.items.length; i++) {    // +1
+            if (order.items[i].category == 'electronics') { // +1
                 // ... logic
             }
         }
@@ -203,11 +203,11 @@ function processOrder(order) {
 
 ```javascript
 function processOrder(order) {
-    if (order.type === 'premium') {
+    if (order.type == 'premium') {
         return processPremiumOrder(order);
     }
   
-    if (order.type === 'standard') {
+    if (order.type == 'standard') {
         return processStandardOrder(order);
     }
   
@@ -293,12 +293,7 @@ function createUser(name, email, phone, address, age, department) { // ❌ 6 par
 **Fix:**
 
 ```javascript
-function createUser(userInfo) { // ✅ Single parameter object
-    const { name, email, phone, address, age, department } = userInfo;
-    // ... function body
-}
-
-// Or break into smaller functions
+// Break into smaller functions
 function createUser(personalInfo, contactInfo, workInfo) { // ✅ 3 logical groups
     // ... function body
 }
@@ -309,12 +304,12 @@ function createUser(personalInfo, contactInfo, workInfo) { // ✅ 3 logical grou
 ### ScriptConsoleLogRule - Script Console Log Rule
 
 **Severity:** WARNING
-**Description:** Ensures scripts don't contain console.log statements (production code)
+**Description:** Ensures scripts don't contain console log statements (production code)
 **Applies to:** PMD embedded scripts and standalone .script files
 
 **What it catches:**
 
-- `console.log()` statements that should be removed before production
+- `console log` statements that should be removed before production
 - Debug statements left in production code
 - Logging that should use proper logging mechanisms
 
@@ -322,7 +317,7 @@ function createUser(personalInfo, contactInfo, workInfo) { // ✅ 3 logical grou
 
 ```javascript
 function processData(data) {
-    console.log("Processing data:", data); // ❌ Debug statement
+    console.debug("Processing data:", data); // ❌ Debug statement
     return data.map(item => item.value);
 }
 ```
@@ -331,10 +326,8 @@ function processData(data) {
 
 ```javascript
 function processData(data) {
-    // Use proper error handling instead of console.log
-    if (!data || !Array.isArray(data)) {
-        throw new Error("Invalid data provided");
-    }
+    // Comment out or remove
+    // console.debug("Processing data:", data);
     return data.map(item => item.value);
 }
 ```
@@ -494,7 +487,7 @@ const result = departments
     .filter(x => x.active);  // Which 'x' is which?
 
 // ❌ Non-descriptive reduce parameters
-const total = numbers.reduce((a, b) => a + b, 0);
+const total = numbers.reduce((a, b) => {a + b});
 ```
 
 **Fix:**
@@ -510,7 +503,7 @@ const result = departments
     .filter(team => team.active);
 
 // ✅ Descriptive reduce parameters
-const total = numbers.reduce((acc, num) => acc + num, 0);
+const total = numbers.reduce((acc, num) => {acc + num});
 ```
 
 **Special Cases:**
@@ -575,13 +568,13 @@ function processUser(user) {
 ### ScriptStringConcatRule - Script String Concat Rule
 
 **Severity:** INFO
-**Description:** Recommends using template literals instead of string concatenation
+**Description:** Recommends using PMD template syntax instead of string concatenation
 **Applies to:** PMD embedded scripts and standalone .script files
 
 **What it catches:**
 
 - String concatenation using + operator
-- Code that would be more readable with template literals
+- Code that would be more readable with PMD template syntax
 
 **Example violations:**
 
@@ -592,7 +585,7 @@ const message = "Hello " + userName + ", welcome to " + appName; // ❌ String c
 **Fix:**
 
 ```javascript
-const message = `Hello {{userName}}, welcome to {{appName}}`; // ✅ Template literal
+const message = `Hello {{userName}}, welcome to {{appName}}`; // ✅ PMD template syntax
 ```
 
 ---
