@@ -6,8 +6,6 @@ This script handles the complete setup for external users.
 
 import subprocess
 import sys
-import os
-import platform
 from pathlib import Path
 
 def check_python_version():

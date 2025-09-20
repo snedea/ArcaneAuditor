@@ -3,10 +3,9 @@ Unit tests for the ModelParser class.
 """
 import pytest
 import json
-from pathlib import Path
 from unittest.mock import Mock
 from parser.app_parser import ModelParser
-from parser.models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation
+from parser.models import ProjectContext
 
 
 class TestModelParser:
