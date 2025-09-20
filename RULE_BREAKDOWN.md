@@ -823,7 +823,7 @@ function processData() {
 ```json
 {
   "outboundEndpoints": [{
-    "name": "SendData",
+    "name": "sendData",
     "onSend": "<%
       self.data = {:}; // ❌ Anti-pattern that should be avoided in outbound endpoints
       return self.data;
@@ -837,9 +837,10 @@ function processData() {
 ```json
 {
   "outboundEndpoints": [{
-    "name": "SendData",
+    "name": "sendData",
     "onSend": "<%
-      return someData; // ✅ Return data directly without anti-pattern
+      let postData = {'name': workerName.value}; // ✅ Use a more descriptive local variable
+      return postData;
     %>"
   }]
 }
@@ -847,7 +848,7 @@ function processData() {
 
 ---
 
-### EndpointUrlBaseUrlTypeRule - Endpoint URL Base URL Type Rule
+### EndpointUrlBaseUrlTypeRule - Endpoint Base URL Type Rule
 
 **Severity:** INFO
 **Description:** Ensures endpoints specify appropriate baseUrlType
