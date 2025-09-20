@@ -418,4 +418,3 @@ class TestPMDScriptGrammar:
         ast = pmd_script_parser.parse(empty_block)
         assert ast is not None, f"Empty braces should parse (as block): {empty_block}"
         
-        # Note: For empty sets, users should use: new Set() or Set.of() syntax

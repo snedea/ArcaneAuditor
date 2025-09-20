@@ -99,7 +99,7 @@ class ScriptNestingLevelRule(Rule):
                 current_depth += 1
                 max_nesting = max(max_nesting, current_depth)
             
-            elif node.data in ['block', 'if_statement', 'while_statement', 'for_statement', 'do_statement']:
+            elif node.data in ['block', 'if_statement', 'while_statement', 'for_statement', 'for_var_statement', 'do_statement']:
                 # Control flow structures add nesting
                 current_depth += 1
                 max_nesting = max(max_nesting, current_depth)
