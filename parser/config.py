@@ -64,6 +64,7 @@ class RulesConfig(BaseModel):
     # General Structure Rules
     FooterPodRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures footer widgets utilize pods")
     StringBooleanRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures boolean values are not stored as strings")
+    PMDSectionOrderingRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures PMD file sections follow consistent ordering for better readability")
 
 
 class FileProcessingConfig(BaseModel):

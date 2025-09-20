@@ -134,6 +134,14 @@
       "enabled": true,
       "severity_override": "INFO",
       "custom_settings": {}
+    },
+    "PMDSectionOrderingRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {
+        "section_order": ["id", "securityDomains", "endPoints", "presentation", "onLoad", "onSubmit", "outboundData", "include", "script"],
+        "enforce_order": true
+      }
     }
   },
   "file_processing": {

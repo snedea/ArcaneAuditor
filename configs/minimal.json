@@ -134,6 +134,11 @@
       "enabled": false,
       "severity_override": null,
       "custom_settings": {}
+    },
+    "PMDSectionOrderingRule": {
+      "enabled": false,
+      "severity_override": null,
+      "custom_settings": {}
     }
   },
   "file_processing": {
