@@ -36,6 +36,13 @@ class ScriptDescriptiveParameterRule(Rule):
                 if field_value and len(field_value.strip()) > 0:
                     yield from self._check_parameter_names(field_value, field_name, pmd_model.file_path, line_offset)
         
+        # Analyze POD embedded scripts
+        for pod_model in context.pods.values():
+            script_fields = self.find_pod_script_fields(pod_model)
+            for field_path, field_value, field_name, line_offset in script_fields:
+                if field_value and len(field_value.strip()) > 0:
+                    yield from self._check_parameter_names(field_value, field_name, pod_model.file_path, line_offset)
+        
         # Analyze standalone script files
         for script_model in context.scripts.values():
             yield from self._analyze_script_file(script_model)
