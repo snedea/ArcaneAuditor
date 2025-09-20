@@ -1,0 +1,57 @@
+{
+  "rules": {
+    "ScriptNullSafetyRule": {
+      "enabled": true,
+      "severity_override": "ERROR",
+      "custom_settings": {}
+    },
+    "ScriptConsoleLogRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptEmptyFunctionRule": {
+      "enabled": true,
+      "severity_override": "INFO",
+      "custom_settings": {}
+    },
+    "ScriptUnusedVariableRule": {
+      "enabled": true,
+      "severity_override": "INFO",
+      "custom_settings": {}
+    },
+    "ScriptFunctionReturnConsistencyRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "WidgetIdRequiredRule": {
+      "enabled": true,
+      "severity_override": "ERROR",
+      "custom_settings": {}
+    },
+    "EndpointFailOnStatusCodesRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "PMDSectionOrderingRule": {
+      "enabled": false,
+      "custom_settings": {}
+    },
+    "ScriptComplexityRule": {
+      "enabled": true,
+      "severity_override": "INFO",
+      "custom_settings": {
+        "max_complexity": 15
+      }
+    },
+    "ScriptLongFunctionRule": {
+      "enabled": true,
+      "severity_override": "INFO",
+      "custom_settings": {
+        "max_lines": 75
+      }
+    }
+  }
+}

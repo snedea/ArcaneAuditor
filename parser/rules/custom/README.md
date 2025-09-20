@@ -1,6 +1,6 @@
 # Custom Rules Development Guide
 
-This directory allows you to create custom validation rules for the Extend Reviewer without modifying the official codebase. This is perfect for:
+This directory allows you to create custom validation rules for the Arcane Auditor without modifying the official codebase. This is perfect for:
 
 - **Adding organization-specific rules**
 - **Extending functionality** without waiting for official releases
@@ -26,10 +26,12 @@ custom/
 ## 🏷️ Naming Conventions
 
 ### Rule IDs
+
 - **Official rules**: Use descriptive class names (e.g., `ScriptVarUsageRule`, `WidgetIdRequiredRule`)
 - **Custom rules**: Use descriptive class names with `Custom` prefix (e.g., `CustomScriptMyRule`)
 
 ### Class Names
+
 - **Script rules**: `CustomScript[Description]Rule` (e.g., `CustomScriptNamingRule`)
 - **Structure rules**: `CustomStructure[Description]Rule` (e.g., `CustomStructureValidationRule`)
 
@@ -48,15 +50,15 @@ class CustomScriptMyRule(Rule):
         self.ID = "RULE000"  # Base class default
         self.SEVERITY = "WARNING"   # ERROR, WARNING, INFO
         self.DESCRIPTION = "Description of what this rule checks"
-    
+  
     def analyze(self, context: ProjectContext) -> List[Finding]:
         """Main analysis method - required by all rules."""
         findings = []
-        
+      
         for pmd_file in context.pmds.values():
             # Your analysis logic here
             pass
-        
+      
         return findings
 ```
 
@@ -67,20 +69,21 @@ If you create example rules for demonstration purposes, you can exclude them fro
 ```python
 class MyExampleRule(Rule):
     """Example rule for demonstration purposes."""
-    
+  
     IS_EXAMPLE = True  # This flag excludes the rule from automatic discovery
-    
+  
     def __init__(self):
         super().__init__()
         self.ID = "RULE000"  # Base class default
         self.SEVERITY = "INFO"
         self.DESCRIPTION = "This is just an example"
-    
+  
     def analyze(self, context: ProjectContext) -> List[Finding]:
         return []  # Example rule - no actual analysis
 ```
 
 **Benefits of using `IS_EXAMPLE = True`:**
+
 - ✅ Example rules won't run during normal analysis
 - ✅ Keeps example code visible for reference
 - ✅ Prevents confusion with production rules
@@ -89,34 +92,36 @@ class MyExampleRule(Rule):
 ### 3. Rule Types
 
 #### Script Rules
+
 For analyzing PMD Script content:
 
 ```python
 def analyze(self, context: ProjectContext) -> List[Finding]:
     findings = []
-    
+  
     for pmd_file in context.pmds.values():
         if pmd_file.script:
             # Parse script content
             script_ast = self._parse_script_content(pmd_file.script)
-            
+          
             # Analyze the AST
             findings.extend(self._analyze_script_ast(script_ast, pmd_file))
-    
+  
     return findings
 ```
 
 #### Structure Rules
+
 For analyzing PMD structure/configuration:
 
 ```python
 def analyze(self, context: ProjectContext) -> List[Finding]:
     findings = []
-    
+  
     for pmd_file in context.pmds.values():
         # Analyze PMD structure (widgets, endpoints, etc.)
         findings.extend(self._analyze_pmd_structure(pmd_file))
-    
+  
     return findings
 ```
 
@@ -136,6 +141,7 @@ findings.append(finding)
 ## 🔧 Available Utilities
 
 ### Script Parsing
+
 ```python
 # Parse script content into AST
 script_ast = self._parse_script_content(pmd_file.script_content)
@@ -148,6 +154,7 @@ script_fields = self.find_script_fields(pmd_file)
 ```
 
 ### Line Number Calculation
+
 ```python
 from ...line_number_utils import LineNumberUtils
 
@@ -158,6 +165,7 @@ line_number = LineNumberUtils.get_line_number(
 ```
 
 ### Common Validations
+
 ```python
 from ...common_validations import validate_lower_camel_case
 
@@ -169,6 +177,7 @@ if not validate_lower_camel_case(variable_name):
 ## 📋 Best Practices
 
 ### 1. Error Handling
+
 Always wrap parsing and analysis in try-catch blocks:
 
 ```python
@@ -181,16 +190,19 @@ except Exception as e:
 ```
 
 ### 2. Performance
+
 - Avoid parsing the same content multiple times
 - Cache expensive computations when possible
 - Use efficient data structures for large files
 
 ### 3. Documentation
+
 - Include clear rule descriptions
 - Provide helpful error messages
 - Add examples in your rule's docstring
 
 ### 4. Testing
+
 - Test your rules with various PMD files
 - Include edge cases (empty files, malformed content)
 - Verify rule IDs don't conflict with existing rules
@@ -206,17 +218,21 @@ except Exception as e:
 ## 🔍 Debugging
 
 ### Check Rule Discovery
+
 Your rules should appear in the discovery output:
+
 ```
 Discovered rule: CustomScriptMyRule
 ```
 
 ### Test with Sample Files
+
 ```bash
 uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
 ```
 
 ### Common Issues
+
 - **Rule not discovered**: Check `__init__.py` files exist
 - **Import errors**: Verify import paths are correct
 - **Parse errors**: Add try-catch blocks around parsing
@@ -225,6 +241,7 @@ uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
 ## 📚 Examples
 
 See `examples/example_custom_rule.py` for a complete implementation showing:
+
 - Rule structure and initialization
 - Script content parsing
 - AST analysis
@@ -234,6 +251,7 @@ See `examples/example_custom_rule.py` for a complete implementation showing:
 ## 🤝 Contributing Back
 
 If you create useful custom rules, consider:
+
 - Sharing them with the community
 - Proposing them as official rules
 - Contributing to the main codebase

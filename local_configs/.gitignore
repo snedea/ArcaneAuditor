@@ -1,0 +1,12 @@
+# Local Configurations - Personal Developer Settings
+#
+# This directory contains personal developer configurations and
+# should never be committed to version control. These files are
+# completely local to each developer's environment.
+
+# Ignore everything in this directory
+*
+
+# Except these files
+!.gitignore
+!README.md

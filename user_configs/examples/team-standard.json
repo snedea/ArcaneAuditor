@@ -1,0 +1,51 @@
+{
+  "rules": {
+    "ScriptConsoleLogRule": {
+      "enabled": true,
+      "severity_override": "ERROR",
+      "custom_settings": {}
+    },
+    "ScriptNullSafetyRule": {
+      "enabled": true,
+      "severity_override": "ERROR",
+      "custom_settings": {}
+    },
+    "ScriptEmptyFunctionRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptComplexityRule": {
+      "enabled": true,
+      "severity_override": "ERROR",
+      "custom_settings": {
+        "max_complexity": 8
+      }
+    },
+    "ScriptLongFunctionRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {
+        "max_lines": 40
+      }
+    },
+    "PMDSectionOrderingRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {
+        "section_order": ["id", "securityDomains", "endPoints", "presentation", "onLoad", "onSubmit", "outboundData", "include", "script"],
+        "enforce_order": true
+      }
+    },
+    "WidgetIdRequiredRule": {
+      "enabled": true,
+      "severity_override": "ERROR",
+      "custom_settings": {}
+    },
+    "EndpointFailOnStatusCodesRule": {
+      "enabled": true,
+      "severity_override": "ERROR",
+      "custom_settings": {}
+    }
+  }
+}

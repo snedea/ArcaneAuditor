@@ -4,6 +4,7 @@ from file_processing import FileProcessor
 from parser.rules_engine import RulesEngine
 from parser.app_parser import ModelParser
 from parser.config import ExtendReviewerConfig
+from parser.config_manager import load_configuration, get_config_manager
 from output.formatter import OutputFormatter, OutputFormat
 
 app = typer.Typer()
@@ -20,21 +21,16 @@ def review_app(
     """
     typer.echo(f"Starting review for '{zip_filepath.name}'...")
     
-    # Load configuration if provided
-    config = None
-    if config_file:
-        if not config_file.exists():
-            typer.secho(f"Configuration file not found: {config_file}", fg=typer.colors.RED)
-            raise typer.Exit(1)
-        try:
-            config = ExtendReviewerConfig.from_file(str(config_file))
-            typer.echo(f"Loaded configuration from {config_file}")
-        except Exception as e:
-            typer.secho(f"Error loading configuration: {e}", fg=typer.colors.RED)
-            raise typer.Exit(1)
-    else:
-        config = ExtendReviewerConfig()  # Use default configuration
-        typer.echo("Using default configuration (no config file specified)")
+    # Load configuration using the layered configuration system
+    try:
+        config = load_configuration(str(config_file) if config_file else None)
+        if config_file:
+            typer.echo(f"Loaded configuration: {config_file}")
+        else:
+            typer.echo("Using default configuration with layered loading")
+    except Exception as e:
+        typer.secho(f"Error loading configuration: {e}", fg=typer.colors.RED)
+        raise typer.Exit(1)
     
     # This is the entry point to our pipeline.
     processor = FileProcessor()
@@ -218,6 +214,62 @@ def list_rules():
             typer.echo()
     
     typer.echo(f"Total: {len(discovered_rules)} rules discovered")
+
+
+@app.command()
+def list_configs():
+    """List all available configurations and their safety status."""
+    typer.echo("🧙‍♂️ Arcane Auditor Configuration Status\n")
+    
+    config_manager = get_config_manager()
+    
+    # List available configurations
+    available_configs = config_manager.list_available_configs()
+    
+    if not available_configs:
+        typer.echo("No configurations found.")
+        return
+    
+    typer.echo("📁 Available Configurations:")
+    for directory, configs in available_configs.items():
+        if directory == "local_configs":
+            icon = "🏠"
+            desc = "Personal overrides (highest priority)"
+        elif directory == "user_configs":
+            icon = "🛡️"
+            desc = "Team/project configs (update-safe)"
+        else:
+            icon = "🔒"
+            desc = "App defaults (may be updated)"
+        
+        typer.echo(f"\n{icon} {directory}/ - {desc}")
+        for config in configs:
+            typer.echo(f"  - {config}")
+    
+    # Check safety status
+    typer.echo("\n🛡️ Configuration Safety Status:")
+    safety_status = config_manager.validate_config_safety()
+    
+    for directory, status in safety_status.items():
+        if "Protected" in status:
+            color = typer.colors.GREEN
+            icon = "✅"
+        elif "Warning" in status:
+            color = typer.colors.YELLOW
+            icon = "⚠️"
+        elif "App-managed" in status:
+            color = typer.colors.BLUE
+            icon = "🔒"
+        else:
+            color = typer.colors.RED
+            icon = "❌"
+        
+        typer.secho(f"{icon} {directory}/: {status}", fg=color)
+    
+    typer.echo("\n💡 Usage Examples:")
+    typer.echo("  uv run main.py review-app myapp.zip --config team-standard")
+    typer.echo("  uv run main.py review-app myapp.zip --config user_configs/my-config.json")
+    typer.echo("  uv run main.py list-configs  # Show this information")
 
 
 if __name__ == "__main__":

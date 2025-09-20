@@ -11,6 +11,27 @@ Arcane Auditor channels ancient wisdom through **28 comprehensive validation rul
 - **Structure Validation (4 Rules)**: Widget configurations, required fields, component validation
 - **PMD Organization (1 Rule)**: File structure and section ordering for consistency
 
+## 🛡️ Update-Safe Configuration System
+
+Arcane Auditor features a **layered configuration system** that protects your customizations during app updates:
+
+- **🔒 App Configs** (`configs/`) - Base configurations (updated with app)
+- **🛡️ User Configs** (`user_configs/`) - Team/project settings (update-safe)
+- **🏠 Local Configs** (`local_configs/`) - Personal overrides (highest priority)
+
+```bash
+# List all available configurations and safety status
+uv run main.py list-configs
+
+# Use team configuration (searches all directories)
+uv run main.py review-app myapp.zip --config team-standard
+
+# Use explicit path
+uv run main.py review-app myapp.zip --config user_configs/my-config.json
+```
+
+Your customizations in `user_configs/` and `local_configs/` are **completely protected** from app updates! 🛡️
+
 ## 🚀 Quick Start
 
 ### Installation
@@ -47,8 +68,11 @@ python start_web_interface.py
 # Analyze a PMD application with arcane wisdom
 uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
 
-# Use custom magical configuration
-uv run main.py review-app your-app.zip --config custom-config.json
+# Use custom magical configuration (supports layered loading)
+uv run main.py review-app your-app.zip --config team-standard
+
+# List available configurations
+uv run main.py list-configs
 ```
 
 ## 📁 Project Structure
