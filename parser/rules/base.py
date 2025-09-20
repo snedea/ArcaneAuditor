@@ -209,18 +209,16 @@ class Rule(ABC):
         script_fields = []
         script_pattern = r'<%.*?%>'
         
-        # Search endpoints in seed for script content
+        # Search endpoints in seed for script content (any field with <% %>)
         if pod_model.seed.endPoints:
             for i, endpoint in enumerate(pod_model.seed.endPoints):
                 if isinstance(endpoint, dict):
-                    for script_field in ['onReceive', 'onSend', 'onError']:
-                        if script_field in endpoint and isinstance(endpoint[script_field], str):
-                            script_content = endpoint[script_field]
-                            if re.search(script_pattern, script_content, re.DOTALL):
-                                field_path = f"seed.endPoints[{i}].{script_field}"
-                                display_name = f"endpoint '{endpoint.get('name', f'endpoint_{i}')}' {script_field}"
-                                line_offset = self._calculate_pod_script_line_offset(pod_model.source_content, script_content)
-                                script_fields.append((field_path, script_content, display_name, line_offset))
+                    for field_name, field_value in endpoint.items():
+                        if isinstance(field_value, str) and re.search(script_pattern, field_value, re.DOTALL):
+                            field_path = f"seed.endPoints[{i}].{field_name}"
+                            display_name = f"endpoint '{endpoint.get('name', f'endpoint_{i}')}' {field_name}"
+                            line_offset = self._calculate_pod_script_line_offset(pod_model.source_content, field_value)
+                            script_fields.append((field_path, field_value, display_name, line_offset))
         
         # Search template widgets for script content (e.g., onClick, onLoad handlers)
         template_scripts = self._find_template_script_fields(pod_model.seed.template, "seed.template")
@@ -234,19 +232,15 @@ class Rule(ABC):
         script_pattern = r'<%.*?%>'
         
         def _search_widget(widget: Dict[str, Any], widget_path: str):
-            # Common script fields in widgets
-            script_field_names = ['onClick', 'onLoad', 'onFocus', 'onBlur', 'onChange', 'onSubmit']
-            
-            for field_name in script_field_names:
-                if field_name in widget and isinstance(widget[field_name], str):
-                    script_content = widget[field_name]
-                    if re.search(script_pattern, script_content, re.DOTALL):
-                        field_path = f"{widget_path}.{field_name}"
-                        widget_type = widget.get('type', 'unknown')
-                        widget_id = widget.get('id', 'unnamed')
-                        display_name = f"{widget_type} widget '{widget_id}' {field_name}"
-                        line_offset = 1  # POD script line calculation would be more complex
-                        script_fields.append((field_path, script_content, display_name, line_offset))
+            # Search all widget fields for script content (any field with <% %>)
+            for field_name, field_value in widget.items():
+                if isinstance(field_value, str) and re.search(script_pattern, field_value, re.DOTALL):
+                    field_path = f"{widget_path}.{field_name}"
+                    widget_type = widget.get('type', 'unknown')
+                    widget_id = widget.get('id', 'unnamed')
+                    display_name = f"{widget_type} widget '{widget_id}' {field_name}"
+                    line_offset = 1  # POD script line calculation would be more complex
+                    script_fields.append((field_path, field_value, display_name, line_offset))
             
             # Recursively search children
             if 'children' in widget and isinstance(widget['children'], list):
