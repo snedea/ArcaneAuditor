@@ -1,7 +1,0 @@
-var getCurrentTime = function() {
-  return date:getTodaysDate(date:getDateTimeZone('US/Pacific'));
-};
-
-{
-  "getCurrentTime": getCurrentTime
-}

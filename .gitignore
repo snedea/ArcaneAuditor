@@ -206,3 +206,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Sample/Test Data
+# These directories contain test data, sample files, and working directories
+# that should not be tracked in the repository
+samples/
+temp/

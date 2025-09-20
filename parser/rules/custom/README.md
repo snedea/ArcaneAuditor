@@ -213,7 +213,7 @@ Discovered rule: CustomScriptMyRule
 
 ### Test with Sample Files
 ```bash
-uv run main.py review-app sample_extend_code/template_bad_nkhlsq.zip
+uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
 ```
 
 ### Common Issues

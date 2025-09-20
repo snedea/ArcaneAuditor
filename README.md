@@ -44,7 +44,7 @@ python start_web_interface.py
 
 ```bash
 # Analyze a PMD application
-uv run main.py review-app sample_extend_code/template_bad_nkhlsq.zip
+uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
 
 # Use custom configuration
 uv run main.py review-app your-app.zip --config custom-config.json
@@ -147,7 +147,7 @@ extend-reviewer/
 │   ├── test_pmd_structure_rules.py
 │   └── test_rules_engine.py
 │
-├── sample_extend_code/               # Sample PMD applications for testing
+├── samples/                          # Sample PMD applications (gitignored)
 │   ├── appManifest.json
 │   ├── model/
 │   ├── presentation/
@@ -254,7 +254,7 @@ uv run pytest tests/test_all_structure_rules.py
 uv run pytest tests/test_rules_engine.py
 
 # Test with sample data
-uv run main.py review-app sample_extend_code/template_bad_nkhlsq.zip
+uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
 ```
 
 ### Configuration
