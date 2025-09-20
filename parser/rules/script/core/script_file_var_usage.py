@@ -1,6 +1,6 @@
 from typing import Generator, Set, Dict, Any
 from ...base import Rule, Finding
-from ....models import , PODModelProjectContext, ScriptModel
+from ....models import ProjectContext, ScriptModel
 
 
 class ScriptFileVarUsageRule(Rule):

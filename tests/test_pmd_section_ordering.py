@@ -24,8 +24,8 @@ class TestPMDSectionOrderingRule:
     def test_default_section_order(self):
         """Test that default section order is correctly configured."""
         expected_order = [
-            "id", "securityDomains", "endPoints", "presentation", 
-            "onLoad", "onSubmit", "outboundData", "include", "script"
+            "id", "securityDomains", "include", "script", "endPoints", 
+            "onSubmit", "outboundData", "onLoad", "presentation"
         ]
         assert self.rule.section_order == expected_order
     
@@ -43,10 +43,11 @@ class TestPMDSectionOrderingRule:
         # Simulate a PMD with correct ordering
         source_content = """{
   "id": "test-page",
+  "include": [],
+  "script": "<% %>",
   "endPoints": [],
-  "presentation": {},
   "onLoad": "<% %>",
-  "script": "<% %>"
+  "presentation": {}
 }"""
         
         pmd_model = PMDModel(
@@ -92,8 +93,8 @@ class TestPMDSectionOrderingRule:
         """Test PMD file with only some sections present."""
         source_content = """{
   "id": "test-page",
-  "presentation": {},
-  "script": "<% %>"
+  "script": "<% %>",
+  "presentation": {}
 }"""
         
         pmd_model = PMDModel(
