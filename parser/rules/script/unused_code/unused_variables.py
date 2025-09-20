@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel
+from ....models import ProjectContext, PMDModel, PODModel
 
 
 class ScriptUnusedVariableRule(Rule):
@@ -10,9 +10,18 @@ class ScriptUnusedVariableRule(Rule):
     SEVERITY = "WARNING"
 
     def analyze(self, context):
-        """Main entry point - analyze all PMD models in the context."""
+        """Main entry point - analyze all PMD models, POD models, and standalone script files in the context."""
+        # Analyze PMD embedded scripts
         for pmd_model in context.pmds.values():
             yield from self.visit_pmd(pmd_model)
+        
+        # Analyze POD embedded scripts
+        for pod_model in context.pods.values():
+            yield from self.visit_pod(pod_model)
+        
+        # Analyze standalone script files
+        for script_model in context.scripts.values():
+            yield from self._analyze_script_file(script_model)
 
     def visit_pmd(self, pmd_model: PMDModel):
         """Analyzes script fields in a PMD model with scope awareness."""
@@ -28,6 +37,35 @@ class ScriptUnusedVariableRule(Rule):
                     field_value, field_name, pmd_model.file_path, 
                     is_global_scope, global_functions, line_offset
                 )
+
+    def visit_pod(self, pod_model: PODModel):
+        """Analyzes script fields in a POD model."""
+        script_fields = self.find_pod_script_fields(pod_model)
+        
+        # PODs don't have a global script section like PMDs, so no global functions
+        global_functions = set()
+        
+        for field_path, field_value, field_name, line_offset in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                # POD scripts are typically local scope (widget handlers, endpoint handlers)
+                is_global_scope = False
+                yield from self._check_unused_variables_with_scope(
+                    field_value, field_name, pod_model.file_path, 
+                    is_global_scope, global_functions, line_offset
+                )
+
+    def _analyze_script_file(self, script_model):
+        """Analyze standalone script files for unused variables."""
+        try:
+            # Standalone scripts don't have global functions from other sections
+            global_functions = set()
+            is_global_scope = True  # The entire script file is global scope
+            yield from self._check_unused_variables_with_scope(
+                script_model.source, "script", script_model.file_path, 
+                is_global_scope, global_functions, 1
+            )
+        except Exception as e:
+            print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
 
     def _build_global_function_registry(self, pmd_model: PMDModel):
         """Build a registry of functions declared in the global script section."""

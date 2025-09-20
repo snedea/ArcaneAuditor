@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Generator
 from lark import Tree
 
 from parser.rules.base import Rule, Finding
-from parser.models import PMDModel
+from parser.models import PMDModel, PODModel
 
 
 class ScriptFunctionParameterCountRule(Rule):

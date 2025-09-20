@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import Rule, Finding
-from ....models import , PODModelProjectContext, PMDModel
+from ....models import ProjectContext, PMDModel, PODModel
 
 
 class ScriptComplexityRule(Rule):
