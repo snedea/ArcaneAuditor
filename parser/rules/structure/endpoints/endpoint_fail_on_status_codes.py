@@ -1,6 +1,6 @@
 from ...base import Rule, Finding
 from ...line_number_utils import LineNumberUtils
-from ....models import PMDModel
+from ....models import PMDModel, PODModel
 from typing import Dict, Any, List
 
 
@@ -11,9 +11,14 @@ class EndpointFailOnStatusCodesRule(Rule):
     SEVERITY = "SEVERE"
 
     def analyze(self, context):
-        """Main entry point - analyze all PMD models in the context."""
+        """Main entry point - analyze all PMD models and POD models in the context."""
+        # Analyze PMD models
         for pmd_model in context.pmds.values():
             yield from self.visit_pmd(pmd_model)
+        
+        # Analyze POD models
+        for pod_model in context.pods.values():
+            yield from self.visit_pod(pod_model)
     
     def visit_pmd(self, pmd_model: PMDModel):
         """Analyzes endpoints for proper failOnStatusCodes structure."""
@@ -30,20 +35,28 @@ class EndpointFailOnStatusCodesRule(Rule):
                     if isinstance(endpoint, dict):
                         yield from self._check_endpoint_fail_on_status_codes(endpoint, pmd_model, 'outbound', i)
 
-    def _check_endpoint_fail_on_status_codes(self, endpoint, pmd_model, endpoint_type, index):
+    def visit_pod(self, pod_model: PODModel):
+        """Analyzes endpoints in POD seed configuration."""
+        # Check POD endpoints (assuming they're inbound-type based on user guidance)
+        if pod_model.seed.endPoints:
+            for i, endpoint in enumerate(pod_model.seed.endPoints):
+                if isinstance(endpoint, dict):
+                    yield from self._check_endpoint_fail_on_status_codes(endpoint, pod_model, 'pod', i)
+
+    def _check_endpoint_fail_on_status_codes(self, endpoint, model, endpoint_type, index):
         """Check if an endpoint has proper failOnStatusCodes structure."""
         endpoint_name = endpoint.get('name')
         fail_on_status_codes = endpoint.get('failOnStatusCodes', None)
         
         # Check if failOnStatusCodes exists
         if fail_on_status_codes is None:
-            line_number = self._get_endpoint_line_number(pmd_model, endpoint_name, endpoint_type)
+            line_number = self._get_endpoint_line_number(model, endpoint_name, endpoint_type)
             yield Finding(
                 rule=self,
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is missing required 'failOnStatusCodes' field.",
                 line=line_number,
                 column=1,
-                file_path=pmd_model.file_path
+                file_path=model.file_path
             )
             return
 
@@ -59,24 +72,32 @@ class EndpointFailOnStatusCodesRule(Rule):
         
         # If there are missing codes, yield a finding
         if missing_codes:
-            line_number = self._get_fail_on_status_codes_line_number(pmd_model, endpoint_name, endpoint_type)
+            line_number = self._get_fail_on_status_codes_line_number(model, endpoint_name, endpoint_type)
             missing_codes_str = ', '.join(sorted(missing_codes))
             yield Finding(
                 rule=self,
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is missing required status codes: {missing_codes_str}.",
                 line=line_number,
                 column=1,
-                file_path=pmd_model.file_path
+                file_path=model.file_path
             )
 
-    def _get_endpoint_line_number(self, pmd_model: PMDModel, endpoint_name: str, endpoint_type: str) -> int:
+    def _get_endpoint_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:
         """Get line number for the endpoint."""
-        if endpoint_name:
-            return LineNumberUtils.find_field_line_number(pmd_model, 'name', endpoint_name)
+        if endpoint_name and hasattr(model, 'source_content'):
+            # For PMD models, use the existing line number utility
+            if isinstance(model, PMDModel):
+                return LineNumberUtils.find_field_line_number(model, 'name', endpoint_name)
+            # For POD models, return a basic line number (could be enhanced later)
+            return 1
         return 1
 
-    def _get_fail_on_status_codes_line_number(self, pmd_model: PMDModel, endpoint_name: str, endpoint_type: str) -> int:
+    def _get_fail_on_status_codes_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:
         """Get line number for the failOnStatusCodes field."""
-        if endpoint_name:
-            return LineNumberUtils.find_field_after_entity(pmd_model, 'name', endpoint_name, 'failOnStatusCodes')
+        if endpoint_name and hasattr(model, 'source_content'):
+            # For PMD models, use the existing line number utility
+            if isinstance(model, PMDModel):
+                return LineNumberUtils.find_field_after_entity(model, 'name', endpoint_name, 'failOnStatusCodes')
+            # For POD models, return a basic line number (could be enhanced later)
+            return 1
         return 1
