@@ -56,16 +56,16 @@ class CustomScriptMyRule(Rule):
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Main analysis method - yields findings as they're discovered."""
         
-        # Analyze PMD embedded scripts
+        # Analyze embedded scripts in all supported file types
         for pmd_model in context.pmds.values():
-            yield from self._analyze_pmd_scripts(pmd_model)
+            yield from self._analyze_embedded_scripts(pmd_model)
         
         # Analyze standalone script files
         for script_model in context.scripts.values():
             yield from self._analyze_script_file(script_model)
     
-    def _analyze_pmd_scripts(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
-        """Analyze script content within PMD files."""
+    def _analyze_embedded_scripts(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
+        """Analyze embedded script content using automatic field discovery."""
         script_fields = self.find_script_fields(pmd_model)
         
         for field_path, field_value, field_name, line_offset in script_fields:
@@ -124,9 +124,9 @@ class MyExampleRule(Rule):
 
 ### 3. Rule Categories
 
-#### Script Rules (Dual Analysis)
+#### Script Rules (Comprehensive Analysis)
 
-Script rules analyze **both** PMD embedded scripts and standalone `.script` files:
+Script rules analyze scripts across **all supported file types** (PMD embedded scripts, standalone `.script` files, and more):
 
 ```python
 class CustomScriptSecurityRule(Rule):
@@ -136,16 +136,20 @@ class CustomScriptSecurityRule(Rule):
     SEVERITY = "ERROR"
     
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
-        # Analyze PMD embedded scripts (onLoad, script, onSubmit, etc.)
+        # Analyze embedded scripts in all supported file types
         for pmd_model in context.pmds.values():
             script_fields = self.find_script_fields(pmd_model)
             for field_path, field_value, field_name, line_offset in script_fields:
                 if field_value and len(field_value.strip()) > 0:
                     yield from self._check_security(field_value, pmd_model.file_path, line_offset)
         
-        # Analyze standalone script files (util.script, helper.script, etc.)
+        # Analyze standalone script files
         for script_model in context.scripts.values():
             yield from self._check_security(script_model.source, script_model.file_path, 1)
+        
+        # Note: The system automatically discovers script content in all supported file types.
+        # When POD files and other script-containing files are added, your rule will
+        # automatically analyze them without requiring code changes!
     
     def _check_security(self, script_content: str, file_path: str, line_offset: int) -> Generator[Finding, None, None]:
         # Your security analysis logic here
@@ -318,16 +322,16 @@ def _check_script_content(self, script_content: str, file_path: str, line_offset
         return  # Exit gracefully
 ```
 
-### 2. Dual Script Analysis Pattern
+### 2. Comprehensive Script Analysis Pattern
 
-Always implement both PMD and standalone script analysis:
+Always implement analysis for all script-containing file types:
 
 ```python
 def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
-    """Standard dual analysis pattern."""
-    # PMD embedded scripts
+    """Standard comprehensive analysis pattern."""
+    # Embedded scripts in all supported file types
     for pmd_model in context.pmds.values():
-        yield from self._analyze_pmd_scripts(pmd_model)
+        yield from self._analyze_embedded_scripts(pmd_model)
     
     # Standalone script files  
     for script_model in context.scripts.values():
@@ -382,7 +386,7 @@ class CustomScriptComplexityRule(Rule):
 
 1. **Copy the example**: Start with `examples/_example_custom_rule.py`
 2. **Update the structure**: Use the generator-based pattern
-3. **Implement dual analysis**: Support both PMD and standalone scripts
+3. **Implement comprehensive analysis**: Support all script-containing file types
 4. **Add your logic**: Implement your specific validation
 5. **Place in user/**: Move your rule to `user/` directory
 6. **Test**: Run the tool to see your rule in action
@@ -403,7 +407,7 @@ class CustomScriptCommentRule(Rule):
     SEVERITY = "INFO"
     
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
-        # Analyze PMD embedded scripts
+        # Analyze embedded scripts in all supported file types
         for pmd_model in context.pmds.values():
             script_fields = self.find_script_fields(pmd_model)
             for field_path, field_value, field_name, line_offset in script_fields:
@@ -474,7 +478,7 @@ uv run main.py review-app samples/archives/template_bad_nkhlsq.zip --config user
 - **Import errors**: Verify import paths are correct (use relative imports)
 - **Parse errors**: Add try-catch blocks around `_parse_script_content()`
 - **Generator errors**: Make sure to use `yield` instead of `return` for findings
-- **Missing script analysis**: Ensure you implement both PMD and standalone script analysis
+- **Missing script analysis**: Ensure you implement comprehensive script analysis for all supported file types
 - **Class name conflicts**: Ensure unique class names with `Custom` prefix
 
 ## 📚 Examples
@@ -484,7 +488,7 @@ uv run main.py review-app samples/archives/template_bad_nkhlsq.zip --config user
 See `examples/_example_custom_rule.py` for a complete implementation showing:
 
 - Generator-based rule structure
-- Dual script analysis (PMD + standalone)
+- Comprehensive script analysis (all supported file types)
 - Proper error handling
 - AST parsing and analysis
 - Finding generation with automatic field population
