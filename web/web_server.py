@@ -1,5 +1,5 @@
 """
-Web server for Extend Reviewer - provides a web interface for the code review tool.
+Web server for Arcane Auditor - provides a mystical web interface for the code review tool.
 This wraps the existing CLI functionality in a FastAPI web server for internal team use.
 """
 
@@ -31,8 +31,8 @@ from parser.rules.base import Finding
 
 # Create FastAPI app
 app = FastAPI(
-    title="Extend Reviewer Web",
-    description="Web interface for Workday Extend application code review",
+    title="Arcane Auditor Web",
+    description="Mystical web interface for Workday Extend application code review",
     version="1.0.0"
 )
 
@@ -106,32 +106,103 @@ async def serve_frontend():
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Extend Reviewer Web</title>
+        <title>Arcane Auditor Web</title>
         <style>
-            body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-            .upload-area { border: 2px dashed #ccc; padding: 40px; text-align: center; margin: 20px 0; }
-            .upload-area.dragover { border-color: #007bff; background-color: #f8f9fa; }
-            button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
-            button:hover { background: #0056b3; }
-            .results { margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 4px; }
-            .finding { margin: 10px 0; padding: 10px; border-left: 4px solid #dc3545; background: white; }
-            .finding.severe { border-left-color: #dc3545; }
-            .finding.warning { border-left-color: #ffc107; }
-            .finding.info { border-left-color: #17a2b8; }
+            body { 
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                max-width: 900px; 
+                margin: 50px auto; 
+                padding: 20px; 
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+                color: #e0e6ed;
+                min-height: 100vh;
+            }
+            .header { 
+                text-align: center; 
+                margin-bottom: 40px; 
+                background: rgba(255, 255, 255, 0.1);
+                padding: 30px;
+                border-radius: 15px;
+                border: 2px solid #4a90e2;
+                box-shadow: 0 8px 32px rgba(74, 144, 226, 0.3);
+            }
+            .header h1 { 
+                color: #4a90e2; 
+                font-size: 2.5em; 
+                margin: 0;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            }
+            .header p { 
+                color: #b8c5d6; 
+                font-size: 1.2em; 
+                margin: 10px 0 0 0;
+            }
+            .upload-area { 
+                border: 2px dashed #4a90e2; 
+                padding: 40px; 
+                text-align: center; 
+                margin: 20px 0; 
+                border-radius: 15px;
+                background: rgba(74, 144, 226, 0.1);
+                transition: all 0.3s ease;
+            }
+            .upload-area.dragover { 
+                border-color: #ffd700; 
+                background: rgba(255, 215, 0, 0.2);
+                transform: scale(1.02);
+            }
+            button { 
+                background: linear-gradient(45deg, #4a90e2, #357abd); 
+                color: white; 
+                padding: 12px 24px; 
+                border: none; 
+                border-radius: 8px; 
+                cursor: pointer; 
+                font-size: 1.1em;
+                font-weight: bold;
+                box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4);
+                transition: all 0.3s ease;
+            }
+            button:hover { 
+                background: linear-gradient(45deg, #357abd, #2968a3); 
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(74, 144, 226, 0.6);
+            }
+            .results { 
+                margin-top: 20px; 
+                padding: 25px; 
+                background: rgba(255, 255, 255, 0.1); 
+                border-radius: 15px; 
+                border: 1px solid rgba(74, 144, 226, 0.3);
+                backdrop-filter: blur(10px);
+            }
+            .finding { 
+                margin: 15px 0; 
+                padding: 15px; 
+                border-left: 4px solid #dc3545; 
+                background: rgba(255, 255, 255, 0.05); 
+                border-radius: 8px;
+                color: #e0e6ed;
+            }
+            .finding.severe { border-left-color: #ff6b6b; }
+            .finding.warning { border-left-color: #ffd93d; }
+            .finding.info { border-left-color: #6bcf7f; }
         </style>
     </head>
     <body>
-        <h1>🔍 Extend Reviewer Web</h1>
-        <p>Upload a Workday Extend application ZIP file to analyze it for code quality issues.</p>
+        <div class="header">
+            <h1>🧙‍♂️ Arcane Auditor</h1>
+            <p>Channel ancient wisdom through mystical code analysis for Workday Extend applications</p>
+        </div>
         
         <div class="upload-area" id="uploadArea">
-            <p>📁 Drag and drop your ZIP file here, or click to select</p>
+            <p>✨ Drag and drop your mystical ZIP file here, or click to summon the file selector</p>
             <input type="file" id="fileInput" accept=".zip" style="display: none;">
-            <button onclick="document.getElementById('fileInput').click()">Choose File</button>
+            <button onclick="document.getElementById('fileInput').click()">🔮 Summon File</button>
         </div>
         
         <div id="results" class="results" style="display: none;">
-            <h3>Analysis Results</h3>
+            <h3>🔮 Mystical Analysis Results</h3>
             <div id="resultsContent"></div>
         </div>
 
