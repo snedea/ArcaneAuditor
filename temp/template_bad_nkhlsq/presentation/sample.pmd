@@ -3,15 +3,7 @@
   "endPoints": [
     {
       "name": "GetCurrentWorker",
-      "url": "https://api.workday.com/common/v1/workers/me",
-      "failOnStatusCodes": [
-        {
-          "code": "400"
-        },
-        {
-          "code": "403"
-        }
-      ]
+      "url": "https://api.workday.com/common/v1/workers/me"
     },
     {
       "name": "getWorkerByName",
@@ -20,9 +12,6 @@
       "failOnStatusCodes": [
         {
           "code": "400"
-        },
-        {
-          "code": "403"
         }
       ]
     }
@@ -68,6 +57,7 @@
   "onLoad": "<% pageVariables.isGood = true; %>",
   "onSubmit": "<%
                   if(!pageVariables.isGood){
+                      myFunc();
                       textWidget.setError('Not good!')
                   }
                  %>",
@@ -98,6 +88,13 @@
   "script": "<%
                 const myFunc = function(){
                     return true;
+                }
+
+                const failNull = function(){
+                  const workerData = {'skills': []};
+                  const isProgrammer = workerData.skills[0] == 'Programming' ?? false; // This won't work like expected!
+
+                  // missing return!
                 }
                %>"
 }
