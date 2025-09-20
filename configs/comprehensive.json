@@ -90,6 +90,11 @@
       "severity_override": null,
       "custom_settings": {}
     },
+    "ScriptUnusedScriptIncludesRule": {
+      "enabled": true,
+      "severity_override": "ERROR",
+      "custom_settings": {}
+    },
     "EndpointFailOnStatusCodesRule": {
       "enabled": true,
       "severity_override": "ERROR",
