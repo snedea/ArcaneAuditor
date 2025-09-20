@@ -30,6 +30,11 @@
       "severity_override": null,
       "custom_settings": {}
     },
+    "ScriptFileVarUsageRule": {
+      "enabled": true,
+      "severity_override": "ERROR",
+      "custom_settings": {}
+    },
     "ScriptVariableNamingRule": {
       "enabled": true,
       "severity_override": null,
