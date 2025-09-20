@@ -6,7 +6,7 @@ from typing import Dict, Any, List
 class EndpointOnSendSelfDataRule(Rule):
     """Validates that endpoints don't use the anti-pattern 'self.data = {:}' in onSend scripts."""
     
-    DESCRIPTION = "Ensures endpoints don't use anti-pattern 'self.data = {:}' in onSend scripts"
+    DESCRIPTION = "Ensures outbound endpoints don't use anti-pattern 'self.data = {:}' in onSend scripts"
     SEVERITY = "WARNING"
 
     def analyze(self, context):
@@ -15,14 +15,8 @@ class EndpointOnSendSelfDataRule(Rule):
             yield from self.visit_pmd(pmd_model)
     
     def visit_pmd(self, pmd_model: PMDModel):
-        """Analyzes endpoints for anti-pattern usage."""
-        # Check inbound endpoints
-        if pmd_model.inboundEndpoints:
-            for i, endpoint in enumerate(pmd_model.inboundEndpoints):
-                if isinstance(endpoint, dict):
-                    yield from self._check_endpoint_anti_pattern(endpoint, pmd_model, 'inbound', i)
-        
-        # Check outbound endpoints
+        """Analyzes outbound endpoints for anti-pattern usage."""
+        # Only check outbound endpoints - this anti-pattern only applies to outbound
         if pmd_model.outboundEndpoints:
             if isinstance(pmd_model.outboundEndpoints, list):
                 for i, endpoint in enumerate(pmd_model.outboundEndpoints):

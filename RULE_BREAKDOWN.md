@@ -810,21 +810,22 @@ function processData() {
 ### EndpointOnSendSelfDataRule - Endpoint On Send Self Data Rule
 
 **Severity:** WARNING
-**Description:** Ensures endpoints don't use the anti-pattern 'self.data = {:}' in onSend scripts
-**Applies to:** PMD endpoint definitions
+**Description:** Ensures outbound endpoints don't use the anti-pattern 'self.data = {:}' in onSend scripts
+**Applies to:** PMD outbound endpoint definitions only
 
 **What it catches:**
 
-- Usage of the anti-pattern `self.data = {:}` in onSend scripts
-- Endpoints that use outdated or problematic data initialization patterns
+- Usage of the anti-pattern `self.data = {:}` in outbound endpoint onSend scripts
+- Outbound endpoints that use outdated or problematic data initialization patterns
 
 **Example violations:**
 
 ```json
 {
-  "endPoints": [{
+  "outboundEndpoints": [{
+    "name": "SendData",
     "onSend": "<%
-      self.data = {:}; // ❌ Anti-pattern that should be avoided
+      self.data = {:}; // ❌ Anti-pattern that should be avoided in outbound endpoints
       return self.data;
     %>"
   }]
@@ -835,7 +836,8 @@ function processData() {
 
 ```json
 {
-  "endPoints": [{
+  "outboundEndpoints": [{
+    "name": "SendData",
     "onSend": "<%
       return someData; // ✅ Return data directly without anti-pattern
     %>"
