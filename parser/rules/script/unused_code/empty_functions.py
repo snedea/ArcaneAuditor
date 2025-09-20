@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel
+from ....models import ProjectContext, PMDModel, PODModel
 
 
 class ScriptEmptyFunctionRule(Rule):
@@ -10,9 +10,18 @@ class ScriptEmptyFunctionRule(Rule):
     SEVERITY = "SEVERE"
 
     def analyze(self, context):
-        """Main entry point - analyze all PMD models in the context."""
+        """Main entry point - analyze all PMD models, POD models, and standalone script files in the context."""
+        # Analyze PMD embedded scripts
         for pmd_model in context.pmds.values():
             yield from self.visit_pmd(pmd_model)
+        
+        # Analyze POD embedded scripts
+        for pod_model in context.pods.values():
+            yield from self.visit_pod(pod_model)
+        
+        # Analyze standalone script files
+        for script_model in context.scripts.values():
+            yield from self._analyze_script_file(script_model)
 
     def visit_pmd(self, pmd_model: PMDModel):
         """Analyzes script fields in a PMD model."""
@@ -22,6 +31,21 @@ class ScriptEmptyFunctionRule(Rule):
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
                 yield from self._check_empty_functions(field_value, field_name, pmd_model.file_path, line_offset)
+
+    def visit_pod(self, pod_model: PODModel):
+        """Analyzes script fields in a POD model."""
+        script_fields = self.find_pod_script_fields(pod_model)
+        
+        for field_path, field_value, field_name, line_offset in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                yield from self._check_empty_functions(field_value, field_name, pod_model.file_path, line_offset)
+
+    def _analyze_script_file(self, script_model):
+        """Analyze standalone script files for empty functions."""
+        try:
+            yield from self._check_empty_functions(script_model.source, "script", script_model.file_path, 1)
+        except Exception as e:
+            print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
 
     def _check_empty_functions(self, script_content, field_name, file_path, line_offset=1):
         """Check for empty functions in script content using Lark grammar."""

@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel, ScriptModel
+from ....models import , PODModelProjectContext, PMDModel, ScriptModel
 
 
 class ScriptVarUsageRule(Rule):
@@ -15,6 +15,10 @@ class ScriptVarUsageRule(Rule):
         for pmd_model in context.pmds.values():
             yield from self.visit_pmd(pmd_model)
         
+        # Analyze POD embedded scripts
+        for pod_model in context.pods.values():
+            yield from self.visit_pod(pod_model)
+        
         # Analyze standalone script files
         for script_model in context.scripts.values():
             yield from self._analyze_script_file(script_model)
@@ -27,6 +31,14 @@ class ScriptVarUsageRule(Rule):
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
                 yield from self._check_var_usage(field_value, field_name, pmd_model.file_path, line_offset)
+
+    def visit_pod(self, pod_model: PODModel):
+        """Analyzes script fields in a POD model."""
+        script_fields = self.find_pod_script_fields(pod_model)
+        
+        for field_path, field_value, field_name, line_offset in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                yield from self._check_var_usage(field_value, field_name, pod_model.file_path, line_offset)
 
     def _check_var_usage(self, script_content, field_name, file_path, line_offset=1):
         """Check for use of 'var' in script content using Lark grammar."""

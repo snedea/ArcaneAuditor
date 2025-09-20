@@ -1,7 +1,7 @@
 from typing import Generator, List, Optional, Dict, Set, Tuple
 from lark import Tree
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel
+from ....models import ProjectContext, PMDModel, PODModel
 from ...line_number_utils import LineNumberUtils
 
 
@@ -13,6 +13,7 @@ class ScriptNullSafetyRule(Rule):
 
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze scripts for unsafe property access patterns, considering conditional execution contexts."""
+        # Analyze PMD embedded scripts
         for pmd_model in context.pmds.values():
             # Use the generic script field finder to detect all fields containing <% %> patterns
             script_fields = self.find_script_fields(pmd_model)
@@ -20,7 +21,15 @@ class ScriptNullSafetyRule(Rule):
             for field_path, field_value, field_name, line_offset in script_fields:
                 if field_value and len(field_value.strip()) > 0:
                     yield from self._check_null_safety(field_value, field_name, pmd_model.file_path, line_offset, pmd_model)
+        
+        # Analyze POD embedded scripts
+        for pod_model in context.pods.values():
+            script_fields = self.find_pod_script_fields(pod_model)
             
+            for field_path, field_value, field_name, line_offset in script_fields:
+                if field_value and len(field_value.strip()) > 0:
+                    yield from self._check_null_safety(field_value, field_name, pod_model.file_path, line_offset, None)
+                
         # Analyze standalone script files
         for script_model in context.scripts.values():
             yield from self._analyze_standalone_script(script_model)

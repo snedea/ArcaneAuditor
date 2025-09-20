@@ -28,6 +28,10 @@ class ScriptFunctionParameterCountRule(Rule):
         for pmd_model in context.pmds.values():
             yield from self.visit_pmd(pmd_model)
         
+        # Analyze POD embedded scripts
+        for pod_model in context.pods.values():
+            yield from self.visit_pod(pod_model)
+        
         # Analyze standalone script files
         for script_model in context.scripts.values():
             yield from self._analyze_script_file(script_model)
@@ -40,6 +44,14 @@ class ScriptFunctionParameterCountRule(Rule):
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
                 yield from self._check_function_parameters(field_value, field_name, pmd_model.file_path, line_offset)
+
+    def visit_pod(self, pod_model: PODModel):
+        """Analyzes script fields in a POD model."""
+        script_fields = self.find_pod_script_fields(pod_model)
+        
+        for field_path, field_value, field_name, line_offset in script_fields:
+            if field_value and len(field_value.strip()) > 0:
+                yield from self._check_function_parameters(field_value, field_name, pod_model.file_path, line_offset)
 
     def _analyze_script_file(self, script_model):
         """Analyze standalone script files for function parameter count."""
