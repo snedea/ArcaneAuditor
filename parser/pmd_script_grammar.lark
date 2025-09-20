@@ -97,7 +97,10 @@
     | ternary_expression assignment_operator expression_sequence -> assignment_operator_expression
 
 // Precedence Level: Ternary (Right-associative)
-?ternary_expression: logical_or_expression ("?" assignment_expression ":" assignment_expression)?
+?ternary_expression: null_coalescing_expression ("?" assignment_expression ":" assignment_expression)?
+
+// Precedence Level: Null Coalescing (Left-associative)
+?null_coalescing_expression: logical_or_expression ("??" logical_or_expression)*
 
 // Precedence Level: Logical OR
 ?logical_or_expression: logical_and_expression ("||" logical_and_expression)*

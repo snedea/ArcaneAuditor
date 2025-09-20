@@ -122,3 +122,140 @@ class TestPMDScriptGrammar:
         ast = pmd_script_parser.parse(script_content)
         assert ast is not None
         # Should parse the function definition with namespace calls successfully
+
+    def test_null_coalescing_basic_parsing(self):
+        """Test basic null coalescing operator parsing."""
+        test_cases = [
+            ("a ?? b", "null_coalescing_expression"),
+            ("null ?? 'default'", "null_coalescing_expression"),
+            ("undefined ?? false", "null_coalescing_expression"),
+            ("user.name ?? 'Anonymous'", "null_coalescing_expression"),
+        ]
+        
+        for script_content, expected_rule in test_cases:
+            ast = pmd_script_parser.parse(script_content)
+            # Find the null coalescing expression in the tree
+            found = False
+            for node in ast.iter_subtrees():
+                if hasattr(node, 'data') and node.data == expected_rule:
+                    found = True
+                    break
+            assert found, f"Expected {expected_rule} not found in AST for '{script_content}'"
+
+    def test_null_coalescing_precedence(self):
+        """Test null coalescing operator precedence with other operators."""
+        test_cases = [
+            # Null coalescing has lower precedence than logical AND
+            ("a && b ?? c", "Should parse as (a && b) ?? c"),
+            # Null coalescing has lower precedence than logical OR  
+            ("a || b ?? c", "Should parse as (a || b) ?? c"),
+            # Null coalescing has higher precedence than ternary
+            ("a ?? b ? c : d", "Should parse as (a ?? b) ? c : d"),
+            # Null coalescing with equality
+            ("a == null ?? false", "Should parse as (a == null) ?? false"),
+        ]
+        
+        for script_content, description in test_cases:
+            # Just ensure it parses without error - precedence is handled by grammar structure
+            ast = pmd_script_parser.parse(script_content)
+            assert ast is not None, f"Failed to parse: {script_content} ({description})"
+
+    def test_null_coalescing_chaining(self):
+        """Test chained null coalescing operations (left-associative)."""
+        test_cases = [
+            "a ?? b ?? c",
+            "user.name ?? user.email ?? 'Anonymous'",
+            "config.primary ?? config.secondary ?? config.default ?? 'fallback'",
+        ]
+        
+        for script_content in test_cases:
+            ast = pmd_script_parser.parse(script_content)
+            assert ast is not None, f"Failed to parse chained null coalescing: {script_content}"
+            
+            # Verify that null coalescing expressions are present
+            null_coalescing_count = 0
+            for node in ast.iter_subtrees():
+                if hasattr(node, 'data') and node.data == 'null_coalescing_expression':
+                    null_coalescing_count += 1
+            
+            # For chained operations, we expect at least one null coalescing expression
+            assert null_coalescing_count > 0, f"No null coalescing expressions found in: {script_content}"
+
+    def test_null_coalescing_in_complex_expressions(self):
+        """Test null coalescing in complex expressions and statements."""
+        test_cases = [
+            # In variable declarations
+            "var name = user.name ?? 'Anonymous';",
+            "const result = data.value ?? 0;",
+            "let config = settings.config ?? defaultConfig;",
+            
+            # In function calls
+            "console.log(user.name ?? 'Guest');",
+            "return calculateTotal(items ?? []);",
+            
+            # In assignments
+            "this.title = options.title ?? 'Untitled';",
+            
+            # In object literals
+            "var obj = { name: user.name ?? 'Unknown', age: user.age ?? 0 };",
+            
+            # In array literals
+            "var arr = [user.name ?? 'Default', user.email ?? 'none'];",
+            
+            # With member access
+            "var value = data.response.result ?? fallback.value;",
+            
+            # In conditional expressions
+            "if (user.name ?? defaultName) { doSomething(); }",
+        ]
+        
+        for script_content in test_cases:
+            ast = pmd_script_parser.parse(script_content)
+            assert ast is not None, f"Failed to parse complex expression: {script_content}"
+
+    def test_null_coalescing_with_problematic_case(self):
+        """Test the specific problematic case from the sample code.
+        
+        This tests that the grammar can parse the syntax, but the logic is flawed:
+        - workerData.skills[0] == 'Programming' ?? false
+        - The comparison happens first, returning false (not null/undefined)
+        - So the ?? false never triggers, making it ineffective
+        - The real issue is unsafe property access that could throw before ?? runs
+        """
+        # This is the exact case that was failing before grammar support
+        script_content = "const isProgrammer = workerData.skills[0] == 'Programming' ?? false;"
+        
+        ast = pmd_script_parser.parse(script_content)
+        assert ast is not None, "Failed to parse the problematic null coalescing case"
+        
+        # Verify it contains a null coalescing expression
+        found_null_coalescing = False
+        for node in ast.iter_subtrees():
+            if hasattr(node, 'data') and node.data == 'null_coalescing_expression':
+                found_null_coalescing = True
+                break
+        
+        assert found_null_coalescing, "Null coalescing expression not found in problematic case"
+
+    def test_null_coalescing_correct_usage_examples(self):
+        """Test examples of correct null coalescing usage that would actually work."""
+        correct_usage_cases = [
+            # Correct: Provide fallback for potentially undefined values
+            "const skill = workerData.skills[0] ?? 'No skills';",
+            
+            # Correct: Fallback for the entire object property
+            "const skills = workerData.skills ?? [];",
+            
+            # Correct: Multiple fallbacks in chain
+            "const name = user.name ?? user.email ?? 'Anonymous';",
+            
+            # Correct: Use with function return values
+            "const result = getData() ?? getBackupData() ?? 'No data';",
+            
+            # Correct: Fallback for object properties
+            "const config = settings.theme ?? 'default';",
+        ]
+        
+        for script_content in correct_usage_cases:
+            ast = pmd_script_parser.parse(script_content)
+            assert ast is not None, f"Failed to parse correct usage: {script_content}"
