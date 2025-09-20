@@ -41,9 +41,7 @@ custom/
 
 ## 📝 Creating a Custom Rule
 
-### 1. Modern Rule Structure (Generator-Based)
-
-**Current Architecture (2025):**
+### 1. Rule Structure (Generator-Based)
 ```python
 from typing import Generator
 from ...base import Rule, Finding
@@ -100,17 +98,7 @@ class CustomScriptMyRule(Rule):
             print(f"Error parsing script in {file_path}: {e}")
 ```
 
-### 2. Key Architectural Changes
-
-**⚠️ Important Updates from Previous Versions:**
-
-1. **Generator-Based:** Rules now use `Generator[Finding, None, None]` instead of `List[Finding]`
-2. **Dual Script Analysis:** Modern rules analyze both PMD embedded scripts AND standalone `.script` files
-3. **Automatic Field Discovery:** Use `self.find_script_fields()` for PMD script field detection
-4. **Built-in Parsing:** Use `self._parse_script_content()` for AST parsing
-5. **Error Handling:** Always wrap parsing in try-catch blocks
-
-### 3. Excluding Example Rules
+### 2. Excluding Example Rules
 
 If you create example rules for demonstration purposes, exclude them from automatic discovery:
 
@@ -134,11 +122,11 @@ class MyExampleRule(Rule):
 - ✅ Prevents confusion with production rules
 - ✅ Allows sharing example code without side effects
 
-### 4. Rule Categories
+### 3. Rule Categories
 
 #### Script Rules (Dual Analysis)
 
-Modern script rules analyze **both** PMD embedded scripts and standalone `.script` files:
+Script rules analyze **both** PMD embedded scripts and standalone `.script` files:
 
 ```python
 class CustomScriptSecurityRule(Rule):
@@ -226,10 +214,10 @@ class CustomEndpointRule(Rule):
                 )
 ```
 
-### 5. Creating Findings (Modern Pattern)
+### 4. Creating Findings
 
 ```python
-# Modern Finding creation with automatic field population
+# Finding creation with automatic field population
 finding = Finding(
     rule=self,  # Rule instance - automatically populates rule_id, severity, description
     message="Detailed description of the issue and how to fix it",
@@ -308,7 +296,7 @@ if not validate_lower_camel_case(variable_name):
 
 ## 📋 Best Practices
 
-### 1. Modern Error Handling
+### 1. Error Handling
 
 Always wrap parsing and analysis in try-catch blocks:
 
@@ -393,7 +381,7 @@ class CustomScriptComplexityRule(Rule):
 ### Quick Start Steps
 
 1. **Copy the example**: Start with `examples/_example_custom_rule.py`
-2. **Update the structure**: Use the modern generator-based pattern
+2. **Update the structure**: Use the generator-based pattern
 3. **Implement dual analysis**: Support both PMD and standalone scripts
 4. **Add your logic**: Implement your specific validation
 5. **Place in user/**: Move your rule to `user/` directory
@@ -495,7 +483,7 @@ uv run main.py review-app samples/archives/template_bad_nkhlsq.zip --config user
 
 See `examples/_example_custom_rule.py` for a complete implementation showing:
 
-- Modern generator-based rule structure
+- Generator-based rule structure
 - Dual script analysis (PMD + standalone)
 - Proper error handling
 - AST parsing and analysis
