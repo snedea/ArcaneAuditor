@@ -316,7 +316,7 @@ Create custom configurations in JSON format:
     },
     "ScriptVarUsageRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "ScriptMagicNumberRule": {

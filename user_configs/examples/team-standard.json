@@ -2,12 +2,12 @@
   "rules": {
     "ScriptConsoleLogRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "ScriptNullSafetyRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "ScriptEmptyFunctionRule": {
@@ -17,7 +17,7 @@
     },
     "ScriptComplexityRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {
         "max_complexity": 8
       }
@@ -38,12 +38,12 @@
     },
     "WidgetIdRequiredRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "EndpointFailOnStatusCodesRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     }
   }

@@ -43,7 +43,7 @@ Edit `user_configs/my-config.json` to match your team's needs:
   "rules": {
     "ScriptComplexityRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {
         "max_complexity": 8
       }
@@ -77,11 +77,11 @@ Perfect for enforcing team-wide coding standards:
   "rules": {
     "ScriptConsoleLogRule": {
       "enabled": true,
-      "severity_override": "ERROR"
+      "severity_override": "SEVERE"
     },
     "ScriptNullSafetyRule": {
       "enabled": true,
-      "severity_override": "ERROR"
+      "severity_override": "SEVERE"
     },
     "PMDSectionOrderingRule": {
       "enabled": true,
@@ -102,7 +102,7 @@ Focuses on essential rules for new developers:
   "rules": {
     "ScriptNullSafetyRule": {
       "enabled": true,
-      "severity_override": "ERROR"
+      "severity_override": "SEVERE"
     },
     "ScriptConsoleLogRule": {
       "enabled": true,
@@ -114,7 +114,7 @@ Focuses on essential rules for new developers:
     },
     "WidgetIdRequiredRule": {
       "enabled": true,
-      "severity_override": "ERROR"
+      "severity_override": "SEVERE"
     }
   }
 }

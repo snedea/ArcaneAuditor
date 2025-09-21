@@ -269,7 +269,7 @@ class CustomPMDSectionValidationRule(Rule):
     },
     "CustomPMDSectionValidationRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {
         "required_sections": ["id", "presentation", "endPoints"],
         "max_endpoints": 5

@@ -128,9 +128,9 @@ This means your local configurations **always win**! 🏆
 ```json
 {
   "rules": {
-    "ScriptNullSafetyRule": { "enabled": true, "severity_override": "ERROR" },
+    "ScriptNullSafetyRule": { "enabled": true, "severity_override": "SEVERE" },
     "ScriptEmptyFunctionRule": { "enabled": true },
-    "WidgetIdRequiredRule": { "enabled": true, "severity_override": "ERROR" }
+    "WidgetIdRequiredRule": { "enabled": true, "severity_override": "SEVERE" }
   }
 }
 ```

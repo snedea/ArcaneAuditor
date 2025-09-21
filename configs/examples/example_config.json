@@ -31,7 +31,7 @@
     },
     "WidgetIdRequiredRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "WidgetIdLowerCamelCaseRule": {

@@ -145,7 +145,7 @@ class TestFinding:
         """Test Finding with different rule."""
         rule1 = MockRule()
         rule1.ID = "RULE001"
-        rule1.SEVERITY = "ERROR"
+        rule1.SEVERITY = "SEVERE"
         
         rule2 = MockRule()
         rule2.ID = "RULE002"

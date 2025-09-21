@@ -2,7 +2,7 @@
   "rules": {
     "ScriptNullSafetyRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "ScriptConsoleLogRule": {
@@ -27,7 +27,7 @@
     },
     "WidgetIdRequiredRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "EndpointFailOnStatusCodesRule": {

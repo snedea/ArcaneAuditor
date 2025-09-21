@@ -13,7 +13,7 @@ class SeverityLevel(str, Enum):
     """Severity levels for findings."""
     INFO = "INFO"
     WARNING = "WARNING"
-    ERROR = "ERROR"
+    SEVERE = "SEVERE"
 
 
 class RuleConfig(BaseModel):
@@ -102,7 +102,7 @@ class ExtendReviewerConfig(BaseModel):
     output: OutputConfig = Field(default_factory=OutputConfig, description="Output formatting settings")
     
     # Global settings
-    fail_on_error: bool = Field(default=False, description="Exit with error code if any ERROR severity findings are found")
+    fail_on_severe: bool = Field(default=False, description="Exit with error code if any SEVERE severity findings are found")
     fail_on_warning: bool = Field(default=False, description="Exit with error code if any WARNING severity findings are found")
     quiet: bool = Field(default=False, description="Suppress non-essential output")
     

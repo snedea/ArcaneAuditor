@@ -22,7 +22,7 @@
     },
     "ScriptConsoleLogRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "ScriptVarUsageRule": {
@@ -32,7 +32,7 @@
     },
     "ScriptFileVarUsageRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "ScriptVariableNamingRule": {
@@ -52,12 +52,12 @@
     },
     "ScriptNullSafetyRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "ScriptFunctionReturnConsistencyRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "ScriptStringConcatRule": {
@@ -80,7 +80,7 @@
     },
     "ScriptEmptyFunctionRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "ScriptUnusedFunctionRule": {
@@ -100,12 +100,12 @@
     },
     "ScriptUnusedScriptIncludesRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "EndpointFailOnStatusCodesRule": {
       "enabled": true,
-      "severity_override": "ERROR",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "EndpointNameLowerCamelCaseRule": {
