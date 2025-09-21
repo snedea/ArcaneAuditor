@@ -166,7 +166,7 @@ class TestFinding:
         )
         
         assert finding1.rule_id == "MockRule"
-        assert finding1.severity == "ERROR"
+        assert finding1.severity == "SEVERE"
         assert finding2.rule_id == "MockRule"
         assert finding2.severity == "INFO"
     
