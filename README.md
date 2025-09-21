@@ -39,40 +39,113 @@ Your customizations in `user_configs/` and `local_configs/` are **completely pro
 
 ## 🚀 Quick Start
 
+### Prerequisites
+
+Before installing Arcane Auditor, you'll need:
+
+#### 1. **Python 3.8+** 
+- **Windows**: Download from [python.org](https://www.python.org/downloads/) or install via [Microsoft Store](https://www.microsoft.com/store/productId/9NRWMJP3717K)
+- **macOS**: `brew install python` or download from [python.org](https://www.python.org/downloads/)  
+- **Linux**: `sudo apt install python3 python3-pip` (Ubuntu/Debian) or `sudo yum install python3 python3-pip` (RHEL/CentOS)
+
+#### 2. **Git** (for cloning the repository)
+- **Windows**: Download from [git-scm.com](https://git-scm.com/download/win)
+- **macOS**: `brew install git` or download from [git-scm.com](https://git-scm.com/download/mac)
+- **Linux**: `sudo apt install git` (Ubuntu/Debian) or `sudo yum install git` (RHEL/CentOS)
+
+#### 3. **UV** (Modern Python package manager - **recommended**)
+```bash
+# Install UV (cross-platform)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or on Windows (PowerShell)
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or using pip (if you prefer)
+pip install uv
+```
+
+> **💡 Why UV?** UV is 10-100x faster than pip and handles dependencies more reliably. [Learn more](https://github.com/astral-sh/uv)
+
 ### Installation
 
+#### **Option A: Using UV (Recommended)**
+
 ```bash
-# Clone the repository (SSH)
+# Clone the repository (SSH - if you have GitHub SSH keys)
 git clone git@github.com:Developers-and-Dragons/ArcaneAuditor.git arcane-auditor
-# Or using HTTPS
-# git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git arcane-auditor
+
+# Or using HTTPS (works for everyone)
+git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git arcane-auditor
 
 cd arcane-auditor
 
-# Install dependencies
+# Install dependencies (UV handles Python version and virtual environment automatically)
 uv sync
 
-# Run analysis on a Workday Extend application (CLI)
-# Supports PMD, Pod, and Script files
+# Run analysis on a Workday Extend application
 uv run main.py review-app your-app.zip
 
 # Try with included sample (contains intentional violations)
 uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
 ```
 
-### Web Interface (Recommended)
-
-For a user-friendly mystical web interface:
+#### **Option B: Using Traditional pip**
 
 ```bash
-# One-time setup (requires Node.js)
-python web/setup_web_interface.py
+# Clone the repository
+git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git arcane-auditor
+cd arcane-auditor
+
+# Create virtual environment (recommended)
+python -m venv .venv
+
+# Activate virtual environment
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run analysis
+python main.py review-app your-app.zip
+```
+
+### Verify Installation
+
+```bash
+# Check that everything is working
+uv run main.py --help
+
+# Run a quick test with sample data
+uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
+```
+
+You should see mystical analysis output with validation findings! 🔮
+
+### Web Interface (Recommended)
+
+For a user-friendly mystical web interface, you'll need **Node.js 16+**:
+
+#### **Install Node.js** (if not already installed)
+- **Windows/macOS**: Download from [nodejs.org](https://nodejs.org/) 
+- **Linux**: `sudo apt install nodejs npm` (Ubuntu/Debian) or use [NodeSource](https://github.com/nodesource/distributions)
+- **Using Package Managers**: `brew install node` (macOS) or `choco install nodejs` (Windows)
+
+#### **Setup Web Interface**
+```bash
+# One-time setup (installs frontend dependencies automatically)
+uv run python web/setup_web_interface.py
 
 # Start the web server
-python web/start_web_interface.py
+uv run python web/start_web_interface.py
 
 # Open http://localhost:8000 in your browser to access the Arcane Auditor
 ```
+
+> **🌐 Web Interface Benefits:** Drag-and-drop file upload, interactive results, configuration management, and beautiful mystical UI!
 
 ### Basic Usage
 
