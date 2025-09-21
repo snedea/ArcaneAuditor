@@ -128,13 +128,12 @@ For a user-friendly mystical web interface, you'll need **Node.js 16+**:
 #### **Install Node.js** (if not already installed)
 
 - **Windows/macOS**: Download from [nodejs.org](https://nodejs.org/)
-- **Linux**: `sudo apt install nodejs npm` (Ubuntu/Debian) or use [NodeSource](https://github.com/nodesource/distributions)
 - **Using Package Managers**: `brew install node` (macOS) or `choco install nodejs` (Windows)
 
 #### **Setup Web Interface**
 
 ```bash
-# One-time setup (installs frontend dependencies automatically)
+# One-time setup (assumes UV! - installs frontend dependencies automatically)
 uv run python web/setup_web_interface.py
 
 # Start the web server
@@ -152,7 +151,7 @@ uv run python web/start_web_interface.py
 uv run main.py review-app myapp_abcdef.zip
 
 # Use custom magical configuration (supports layered loading)
-uv run main.py review-app your-app.zip --config team-standard
+uv run main.py review-app myapp_abcdef.zip --config team-standard
 
 # List available configurations
 uv run main.py list-configs
