@@ -17,15 +17,15 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'SEVERE':
-        return <AlertTriangle className="inline-icon text-red-400" />;
+        return <span className="inline-icon">🚨</span>;
       case 'WARNING':
-        return <AlertTriangle className="inline-icon text-yellow-400" />;
+        return <span className="inline-icon">⚠️</span>;
       case 'INFO':
-        return <Info className="inline-icon text-blue-400" />;
+        return <span className="inline-icon">ℹ️</span>;
       case 'HINT':
-        return <CheckCircle className="inline-icon text-green-400" />;
+        return <span className="inline-icon">💡</span>;
       default:
-        return <Info className="inline-icon text-gray-400" />;
+        return <span className="inline-icon">ℹ️</span>;
     }
   };
 
