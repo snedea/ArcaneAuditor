@@ -125,7 +125,7 @@ body {
 }
 
 .finding.severe::before {
-  content: "⚠️";
+  content: "🚨";
   position: absolute;
   left: -30px;
   top: 15px;
@@ -556,7 +556,7 @@ input[type="text"] {
 }
 
 .severity-count-badge.severe::before {
-  content: "⚠️ ";
+  content: "🚨 ";
 }
 
 .severity-count-badge.warning {
