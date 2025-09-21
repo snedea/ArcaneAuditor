@@ -166,11 +166,16 @@ async def serve_frontend():
                 box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4);
                 transition: all 0.3s ease;
             }
-            button:hover { 
-                background: linear-gradient(45deg, #357abd, #2968a3); 
-                transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(74, 144, 226, 0.6);
-            }
+               button:hover {
+                   background: linear-gradient(45deg, #357abd, #2968a3);
+                   transform: translateY(-2px);
+                   box-shadow: 0 6px 20px rgba(74, 144, 226, 0.6);
+               }
+               button:focus {
+                   outline: 3px solid #4a90e2;
+                   outline-offset: 2px;
+                   background: linear-gradient(45deg, #357abd, #2968a3);
+               }
             .results { 
                 margin-top: 20px; 
                 padding: 25px; 

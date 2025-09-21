@@ -76,6 +76,12 @@ body {
   color: #d1d9e6;
 }
 
+.upload-area:focus {
+  outline: 3px solid #4299e1;
+  outline-offset: 2px;
+  border-color: #4299e1;
+}
+
 .upload-area:hover,
 .upload-area.dragover {
   border-color: #4299e1;
@@ -113,23 +119,59 @@ body {
 }
 
 .finding.severe {
-  border-left-color: #fc8181;
+  border-left-color: #ef4444;
   background: #2d1b1b;
+  position: relative;
+}
+
+.finding.severe::before {
+  content: "⚠️";
+  position: absolute;
+  left: -30px;
+  top: 15px;
+  font-size: 1.2em;
 }
 
 .finding.warning {
-  border-left-color: #f6e05e;
+  border-left-color: #f59e0b;
   background: #2d2a1b;
+  position: relative;
+}
+
+.finding.warning::before {
+  content: "⚠️";
+  position: absolute;
+  left: -30px;
+  top: 15px;
+  font-size: 1.2em;
 }
 
 .finding.info {
-  border-left-color: #63b3ed;
+  border-left-color: #3b82f6;
   background: #1b2d2d;
+  position: relative;
+}
+
+.finding.info::before {
+  content: "ℹ️";
+  position: absolute;
+  left: -30px;
+  top: 15px;
+  font-size: 1.2em;
 }
 
 .finding.hint {
-  border-left-color: #68d391;
+  border-left-color: #10b981;
   background: #1b2d1b;
+  position: relative;
+}
+
+.finding.hint::before {
+  content: "💡";
+  position: absolute;
+  left: -30px;
+  top: 15px;
+  font-size: 1.2em;
 }
 
 .finding-header {
@@ -139,7 +181,7 @@ body {
 
 .finding-details {
   font-size: 0.9em;
-  color: #a0aec0;
+  color: #cbd5e0;
 }
 
 .summary {
@@ -173,7 +215,13 @@ button {
   cursor: pointer;
   font-size: 16px;
   font-weight: 500;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+button:focus {
+  outline: 3px solid #4299e1;
+  outline-offset: 2px;
+  background: #3182ce;
 }
 
 button:hover {
@@ -183,7 +231,7 @@ button:hover {
 button:disabled {
   background: #4a5568;
   cursor: not-allowed;
-  color: #a0aec0;
+  color: #cbd5e0;
 }
 
 button.secondary {
@@ -271,7 +319,7 @@ button.secondary:hover {
 }
 
 .configuration-panel .rule-description {
-  color: #a0aec0;
+  color: #cbd5e0;
   font-size: 0.9em;
   margin-top: 5px;
 }
@@ -367,7 +415,7 @@ input[type="text"] {
 
 .summary-label {
   font-size: 0.875rem;
-  color: #a0aec0;
+  color: #cbd5e0;
 }
 
 .severity-section {
@@ -435,7 +483,18 @@ input[type="text"] {
   background: #1a202c;
   border-bottom: 1px solid #4a5568;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+}
+
+.file-header:focus {
+  outline: 3px solid #4299e1;
+  outline-offset: -2px;
+  background: #2d3748;
+}
+
+.file-header:focus-visible {
+  outline: 3px solid #4299e1;
+  outline-offset: -2px;
 }
 
 .file-header:hover {
@@ -457,7 +516,7 @@ input[type="text"] {
 }
 
 .file-path {
-  color: #a0aec0;
+  color: #cbd5e0;
   font-size: 0.875rem;
   margin-left: 0.5rem;
   opacity: 0.8;
@@ -491,23 +550,43 @@ input[type="text"] {
 }
 
 .severity-count-badge.severe {
-  background: #fed7d7;
-  color: #c53030;
+  background: #dc2626;
+  color: #ffffff;
+  border: 2px solid #ef4444;
+}
+
+.severity-count-badge.severe::before {
+  content: "⚠️ ";
 }
 
 .severity-count-badge.warning {
-  background: #fef5e7;
-  color: #dd6b20;
+  background: #d97706;
+  color: #ffffff;
+  border: 2px solid #f59e0b;
+}
+
+.severity-count-badge.warning::before {
+  content: "⚠️ ";
 }
 
 .severity-count-badge.info {
-  background: #ebf8ff;
-  color: #3182ce;
+  background: #2563eb;
+  color: #ffffff;
+  border: 2px solid #3b82f6;
+}
+
+.severity-count-badge.info::before {
+  content: "ℹ️ ";
 }
 
 .severity-count-badge.hint {
-  background: #f0fff4;
-  color: #38a169;
+  background: #059669;
+  color: #ffffff;
+  border: 2px solid #10b981;
+}
+
+.severity-count-badge.hint::before {
+  content: "💡 ";
 }
 
 .file-findings {
