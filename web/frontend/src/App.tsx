@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Settings, Download } from 'lucide-react';
+import { FileText, Settings } from 'lucide-react';
 import { AnalysisResult, Finding } from './types/analysis';
 import FileUpload from './components/FileUpload';
 import ResultsDisplay from './components/ResultsDisplay';
@@ -48,7 +48,7 @@ function App() {
           <FileText className="inline-icon" />
           Arcane Auditor 🧙‍♂️
         </h1>
-        <p>Cast mystical spells to reveal code quality issues in your Workday Extend applications</p>
+        <p>Reveal code quality issues in your Workday Extend applications</p>
       </header>
 
       {!analysisResult && !isAnalyzing && !error && (
