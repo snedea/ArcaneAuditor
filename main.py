@@ -25,19 +25,23 @@ def review_app(
     try:
         config = load_configuration(str(config_file) if config_file else None)
         if config_file:
-            typer.echo(f"Loaded configuration: {config_file}")
+            typer.echo(f"📋 Loaded configuration: {config_file}")
         else:
-            typer.echo("Using default configuration with layered loading")
+            typer.echo("📋 Using default configuration with layered loading")
     except Exception as e:
-        typer.secho(f"Error loading configuration: {e}", fg=typer.colors.RED)
+        typer.secho(f"❌ Configuration Error: {e}", fg=typer.colors.RED)
+        typer.echo("💡 Try using --config with a valid configuration file, or run without --config for defaults")
         raise typer.Exit(1)
     
     # This is the entry point to our pipeline.
+    typer.echo("📁 Extracting and processing files...")
     processor = FileProcessor()
     source_files_map = processor.process_zip_file(zip_filepath)
+    typer.echo(f"✅ Found {len(source_files_map)} relevant files to analyze")
 
     if not source_files_map:
-        typer.secho("No source files found to analyze. Exiting.", fg=typer.colors.RED)
+        typer.secho("❌ No source files found to analyze.", fg=typer.colors.RED)
+        typer.echo("💡 Make sure your ZIP contains .pmd, .pod, .script, .amd, or .smd files")
         raise typer.Exit(1)
         
     # --- Next Step: Pass 'source_files_map' to the Parser ---
@@ -50,21 +54,42 @@ def review_app(
         typer.echo(f"  - Ready to parse: {path_key}")
 
     # --- Parse Files into App File Models ---
-    typer.echo("\nParsing files into App File models...")
+    typer.echo("🔍 Parsing files into App File models...")
     try:
         pmd_parser = ModelParser()
         context = pmd_parser.parse_files(source_files_map)
-        typer.echo(f"Parsed {len(context.pmds)} PMD files, {len(context.scripts)} script files")
+        
+        # Better summary of what was parsed
+        parsed_summary = []
+        if context.pmds: parsed_summary.append(f"{len(context.pmds)} PMD files")
+        if context.scripts: parsed_summary.append(f"{len(context.scripts)} script files")
+        if context.pods: parsed_summary.append(f"{len(context.pods)} Pod files")
+        if context.smds: parsed_summary.append(f"{len(context.smds)} SMD files")
+        if context.amd: parsed_summary.append("1 AMD file")
+        
+        if parsed_summary:
+            typer.echo(f"✅ Parsed: {', '.join(parsed_summary)}")
+        else:
+            typer.echo("⚠️ No files were successfully parsed")
         
     except Exception as e:
-        typer.secho(f"Error parsing files: {e}", fg=typer.colors.RED)
+        typer.secho(f"❌ Parsing Error: {e}", fg=typer.colors.RED)
+        typer.echo("💡 Check that your files are valid Workday Extend format")
         raise typer.Exit(1)
 
     # --- Run Rules Analysis ---
-    typer.echo("\nRunning PMD Script Analysis...")
+    typer.echo("🔮 Initializing rules engine...")
     try:
         rules_engine = RulesEngine(config)
+        typer.echo(f"✅ Loaded {len(rules_engine.rules)} validation rules")
+        
+        typer.echo("🧙‍♂️ Casting analysis spells...")
         findings = rules_engine.run(context)
+        
+        if findings:
+            typer.echo(f"✅ Analysis complete. Found {len(findings)} issue(s).")
+        else:
+            typer.echo("✅ Analysis complete. No issues found! 🎉")
         
         # Auto-detect format based on output file extension if not explicitly specified
         if output_file and output_format == "console":  # Default format
@@ -80,7 +105,8 @@ def review_app(
         try:
             format_type = OutputFormat(output_format.lower())
         except ValueError:
-            typer.secho(f"Invalid output format: {output_format}. Use: console, json, summary, or excel", fg=typer.colors.RED)
+            typer.secho(f"❌ Invalid output format: {output_format}", fg=typer.colors.RED)
+            typer.echo("💡 Valid formats: console, json, summary, excel")
             raise typer.Exit(1)
         
         formatter = OutputFormatter(format_type)
@@ -121,7 +147,8 @@ def review_app(
             raise typer.Exit(0)  # Exit code 0 for no issues
             
     except Exception as e:
-        typer.secho(f"Error running analysis: {e}", fg=typer.colors.RED)
+        typer.secho(f"❌ Analysis Error: {e}", fg=typer.colors.RED)
+        typer.echo("💡 This might be due to unsupported syntax or corrupted files")
         raise typer.Exit(3)  # Exit code 3 for analysis errors
 
 
