@@ -1,6 +1,5 @@
-from typing import Generator
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel, PodModel
+from ....models import PMDModel, PodModel
 
 
 class ScriptUnusedFunctionParametersRule(Rule):

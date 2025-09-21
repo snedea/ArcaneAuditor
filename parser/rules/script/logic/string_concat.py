@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Generator
+from typing import Dict, Any
 from lark import Tree
 
 from parser.rules.base import Rule, Finding

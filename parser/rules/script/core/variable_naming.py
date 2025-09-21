@@ -1,6 +1,5 @@
-from typing import Generator
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel, PodModel
+from ....models import PMDModel, PodModel
 from ...common_validations import validate_script_variable_camel_case
 
 

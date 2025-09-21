@@ -1,4 +1,4 @@
-from typing import Generator, Set, Dict, List
+from typing import Set, Dict
 from ...base import Rule, Finding
 from ....models import ProjectContext, PMDModel, PodModel
 

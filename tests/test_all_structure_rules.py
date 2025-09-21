@@ -2,7 +2,6 @@
 Comprehensive unit tests for all PMD Structure Rules.
 """
 import pytest
-from unittest.mock import Mock, patch
 from parser.rules.structure.widgets.widget_id_required import WidgetIdRequiredRule
 from parser.rules.structure.widgets.widget_id_lower_camel_case import WidgetIdLowerCamelCaseRule
 from parser.rules.structure.endpoints.endpoint_name_lower_camel_case import EndpointNameLowerCamelCaseRule

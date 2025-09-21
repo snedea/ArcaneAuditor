@@ -2,7 +2,6 @@
 Comprehensive unit tests for all PMD Script Rules.
 """
 import pytest
-from unittest.mock import Mock, patch
 from parser.rules.script.core.var_usage import ScriptVarUsageRule
 from parser.rules.script.core.console_log import ScriptConsoleLogRule
 from parser.rules.script.core.variable_naming import ScriptVariableNamingRule

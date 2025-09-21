@@ -1,6 +1,6 @@
-from typing import Generator, Dict, Any
+from typing import Generator
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel, SMDModel
+from ....models import ProjectContext, PMDModel
 
 
 class PMDSecurityDomainRule(Rule):

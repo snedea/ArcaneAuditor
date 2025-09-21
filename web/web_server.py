@@ -3,10 +3,7 @@ Web server for Arcane Auditor - provides a mystical web interface for the code r
 This wraps the existing CLI functionality in a FastAPI web server for internal team use.
 """
 
-import os
 import json
-import tempfile
-import shutil
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime

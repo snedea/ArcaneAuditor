@@ -5,7 +5,7 @@ This rule flags functions that have too many parameters, indicating they may be 
 and should be refactored. The default threshold is 4 parameters.
 """
 
-from typing import List, Dict, Any, Generator
+from typing import List, Dict, Any
 from lark import Tree
 
 from parser.rules.base import Rule, Finding

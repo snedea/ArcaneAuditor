@@ -9,10 +9,9 @@ Configurations are loaded in priority order:
 
 This ensures user customizations survive application updates.
 """
-import json
 from pathlib import Path
-from typing import Dict, Any, Optional, Union
-from .config import ArcaneAuditorConfig, RulesConfig, RuleConfig
+from typing import Dict, Optional
+from .config import ArcaneAuditorConfig
 
 
 class ConfigurationManager:

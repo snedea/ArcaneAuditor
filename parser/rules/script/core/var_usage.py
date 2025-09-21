@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel, PodModel, ScriptModel
+from ....models import PMDModel, PodModel, ScriptModel
 
 
 class ScriptVarUsageRule(Rule):

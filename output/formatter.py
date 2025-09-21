@@ -2,7 +2,7 @@
 Output formatting module for Arcane Auditor.
 Provides various output formats with emojis and better formatting.
 """
-from typing import List, Dict, Any, Optional
+from typing import List, Dict
 from pathlib import Path
 import json
 from enum import Enum

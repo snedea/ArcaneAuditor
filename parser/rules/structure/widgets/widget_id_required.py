@@ -9,7 +9,6 @@ This tool focuses on structure and naming compliance for code reviewers.
 """
 from ...base import Rule, Finding
 from ....models import PMDModel, PodModel
-from typing import Dict, Any, List
 
 
 class WidgetIdRequiredRule(Rule):

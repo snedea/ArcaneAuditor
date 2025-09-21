@@ -2,7 +2,7 @@
 Enhanced base class for validation rules with common validation patterns.
 """
 from abc import ABC, abstractmethod
-from typing import Generator, List, Dict, Any
+from typing import List, Dict, Any
 from .base import Rule, Finding
 from ..models import PMDModel, PodModel
 

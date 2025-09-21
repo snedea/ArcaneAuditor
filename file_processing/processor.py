@@ -6,7 +6,7 @@ import zipfile
 import logging
 from pathlib import Path
 import tempfile
-from typing import List, Dict, Set, Optional
+from typing import Dict, Set, Optional
 
 from .config import FileProcessorConfig, DEFAULT_RELEVANT_EXTENSIONS
 from .models import SourceFile

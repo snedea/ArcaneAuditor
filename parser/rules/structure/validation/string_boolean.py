@@ -1,6 +1,5 @@
 from ...base import Rule, Finding
 from ....models import PMDModel, PodModel
-from typing import Dict, Any, List
 
 
 class StringBooleanRule(Rule):

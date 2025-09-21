@@ -2,7 +2,6 @@
 Utility functions for calculating line numbers in validation rules.
 Consolidates common line numbering patterns to reduce duplication.
 """
-from typing import Optional
 from ..models import PMDModel
 
 

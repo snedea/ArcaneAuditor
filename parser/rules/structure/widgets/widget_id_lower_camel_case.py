@@ -1,4 +1,3 @@
-from ...base import Rule, Finding
 from ...base_validation import ValidationRule
 from ...common_validations import validate_lower_camel_case
 from ...line_number_utils import LineNumberUtils

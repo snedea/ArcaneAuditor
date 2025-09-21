@@ -6,7 +6,6 @@ This script handles dependency installation and server startup.
 
 import subprocess
 import sys
-import os
 from pathlib import Path
 
 def check_dependencies():

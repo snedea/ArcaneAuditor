@@ -1,6 +1,5 @@
 from ...base import Rule, Finding
 from ....models import PMDModel
-from typing import Dict, Any, List
 
 
 class EndpointOnSendSelfDataRule(Rule):
