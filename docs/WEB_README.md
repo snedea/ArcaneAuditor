@@ -83,7 +83,7 @@ The web server is a single file (`web_server.py`) that wraps your existing CLI f
 ## 📁 File Structure
 
 ```
-extend-reviewer/
+arcane-auditor/
 ├── web_server.py              # Main FastAPI web server
 ├── web_server_start.py        # Startup script with dependency management
 ├── web_frontend/              # React frontend

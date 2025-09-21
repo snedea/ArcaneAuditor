@@ -25,7 +25,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from file_processing import FileProcessor
 from parser.rules_engine import RulesEngine
 from parser.app_parser import ModelParser
-from parser.config import ExtendReviewerConfig
+from parser.config import ArcaneAuditorConfig
 from output.formatter import OutputFormatter, OutputFormat
 from parser.rules.base import Finding
 
@@ -78,18 +78,18 @@ class AnalysisResult:
         self.timestamp = datetime.now().isoformat()
 
 
-def save_config(name: str, config: ExtendReviewerConfig) -> str:
+def save_config(name: str, config: ArcaneAuditorConfig) -> str:
     """Save configuration to file."""
     config_path = CONFIG_DIR / f"{name}.json"
     config.to_file(str(config_path))
     return str(config_path)
 
 
-def load_config(name: str) -> Optional[ExtendReviewerConfig]:
+def load_config(name: str) -> Optional[ArcaneAuditorConfig]:
     """Load configuration from file."""
     config_path = CONFIG_DIR / f"{name}.json"
     if config_path.exists():
-        return ExtendReviewerConfig.from_file(str(config_path))
+        return ArcaneAuditorConfig.from_file(str(config_path))
     return None
 
 
@@ -341,7 +341,7 @@ async def analyze_file(
             # Try to load default configuration, fallback to fresh config if not found
             config = load_config("default")
             if not config:
-                config = ExtendReviewerConfig()  # Use fresh default configuration
+                config = ArcaneAuditorConfig()  # Use fresh default configuration
         
         # Process the file using existing core logic
         processor = FileProcessor()
@@ -401,7 +401,7 @@ async def analyze_file(
 @app.get("/api/rules")
 async def list_rules():
     """List all available rules and their current status."""
-    config = ExtendReviewerConfig()
+    config = ArcaneAuditorConfig()
     
     rules_info = []
     rule_configs = config.rules.model_dump()
@@ -428,7 +428,7 @@ async def save_configuration(
     """Save a configuration preset."""
     try:
         config_dict = json.loads(config_data)
-        config = ExtendReviewerConfig(**config_dict)
+        config = ArcaneAuditorConfig(**config_dict)
         config_path = save_config(name, config)
         return {"message": f"Configuration '{name}' saved successfully", "path": config_path}
     except Exception as e:

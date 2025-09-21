@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Setup script for Extend Reviewer Web Interface.
+Setup script for Arcane Auditor Web Interface.
 This script handles the complete setup for external users.
 """
 
@@ -94,7 +94,7 @@ def create_startup_script():
     """Create a simple startup script."""
     startup_script = """#!/usr/bin/env python3
 \"\"\"
-Start the Extend Reviewer Web Interface
+Start the Arcane Auditor Web Interface
 \"\"\"
 
 import subprocess
@@ -109,7 +109,7 @@ def main():
         sys.exit(1)
     
     # Start the server
-    print("🚀 Starting Extend Reviewer Web Interface...")
+    print("🚀 Starting Arcane Auditor Web Interface...")
     print("📍 Server will be available at: http://localhost:8000")
     print("📝 Press Ctrl+C to stop the server")
     print()
@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
 def create_readme():
     """Create a README for the web interface."""
-    readme_content = """# Extend Reviewer Web Interface Setup
+    readme_content = """# Arcane Auditor Web Interface Setup
 
 ## Prerequisites
 
@@ -220,12 +220,12 @@ npm run build
 
 def main():
     """Main setup function."""
-    print("🔍 Extend Reviewer Web Interface Setup")
+    print("🔍 Arcane Auditor Web Interface Setup")
     print("=" * 50)
     
     # Check if we're in the right directory
     if not Path("main.py").exists():
-        print("❌ Please run this script from the extend-reviewer root directory")
+        print("❌ Please run this script from the arcane-auditor root directory")
         sys.exit(1)
     
     # Check prerequisites

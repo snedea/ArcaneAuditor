@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Start the Extend Reviewer Web Interface
+Start the Arcane Auditor Web Interface
 """
 
 import subprocess

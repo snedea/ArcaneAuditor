@@ -3,7 +3,7 @@ from pathlib import Path
 from file_processing import FileProcessor
 from parser.rules_engine import RulesEngine
 from parser.app_parser import ModelParser
-from parser.config import ExtendReviewerConfig
+from parser.config import ArcaneAuditorConfig
 from parser.config_manager import load_configuration, get_config_manager
 from output.formatter import OutputFormatter, OutputFormat
 
@@ -158,12 +158,12 @@ def review_app(
 
 @app.command()
 def generate_config(
-    output_file: Path = typer.Option("extend-reviewer-config.json", "--output", "-o", help="Output file path for the configuration")
+    output_file: Path = typer.Option("arcane-auditor-config.json", "--output", "-o", help="Output file path for the configuration")
 ):
     """
     Generate a default configuration file with all rules enabled.
     """
-    config = ExtendReviewerConfig()
+    config = ArcaneAuditorConfig()
     config.to_file(str(output_file))
     typer.echo(f"Generated default configuration file: {output_file}")
     typer.echo("You can now edit this file to enable/disable rules and customize settings.")
@@ -174,7 +174,7 @@ def list_rules():
     """
     List all available rules and their current status.
     """
-    config = ExtendReviewerConfig()
+    config = ArcaneAuditorConfig()
     typer.echo("Available rules:")
     typer.echo("=" * 80)
     

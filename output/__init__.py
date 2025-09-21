@@ -1,1 +1,1 @@
-"""Output formatting module for Extend Reviewer."""
+"""Output formatting module for Arcane Auditor."""

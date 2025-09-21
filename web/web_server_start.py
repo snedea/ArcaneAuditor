@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple script to start the Extend Reviewer web server.
+Simple script to start the Arcane Auditor web server.
 This script handles dependency installation and server startup.
 """
 
@@ -53,7 +53,7 @@ def build_frontend():
 
 def start_server():
     """Start the web server."""
-    print("🚀 Starting Extend Reviewer Web Server...")
+    print("🚀 Starting Arcane Auditor Web Server...")
     print("📍 Server will be available at: http://localhost:8000")
     print("📝 Press Ctrl+C to stop the server")
     print()
@@ -71,12 +71,12 @@ def start_server():
 
 def main():
     """Main function."""
-    print("🔍 Extend Reviewer Web Server Setup")
+    print("🔍 Arcane Auditor Web Server Setup")
     print("=" * 40)
     
     # Check if we're in the right directory
     if not Path("main.py").exists():
-        print("❌ Please run this script from the extend-reviewer root directory")
+        print("❌ Please run this script from the arcane-auditor root directory")
         sys.exit(1)
     
     # Check dependencies

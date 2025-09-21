@@ -1,7 +1,7 @@
 """
 Custom Rules Package
 
-This package is for user-defined validation rules that extend the Extend Reviewer.
+This package is for user-defined validation rules that extend the Arcane Auditor.
 
 IMPORTANT: 
 - Use CUSTOM### rule IDs (e.g., CUSTOM001, CUSTOM002) to avoid conflicts with official rules

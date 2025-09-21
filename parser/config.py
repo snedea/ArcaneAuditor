@@ -1,5 +1,5 @@
 """
-Configuration models for the extend-reviewer tool.
+Configuration models for the Arcane Auditor tool.
 
 This module defines the configuration structure for controlling rule execution,
 file processing settings, and other tool behaviors.
@@ -95,8 +95,8 @@ class OutputConfig(BaseModel):
     max_findings_per_rule: Optional[int] = Field(default=None, description="Maximum findings per rule (None = unlimited)")
 
 
-class ExtendReviewerConfig(BaseModel):
-    """Main configuration model for the extend-reviewer tool."""
+class ArcaneAuditorConfig(BaseModel):
+    """Main configuration model for the Arcane Auditor tool."""
     rules: RulesConfig = Field(default_factory=RulesConfig, description="Rule configuration")
     file_processing: FileProcessingConfig = Field(default_factory=FileProcessingConfig, description="File processing settings")
     output: OutputConfig = Field(default_factory=OutputConfig, description="Output formatting settings")

@@ -7,13 +7,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from .models import ProjectContext
 from . import rules
 from .rules.base import Rule, Finding
-from .config import ExtendReviewerConfig
+from .config import ArcaneAuditorConfig
 
 class RulesEngine:
     """Discovers, loads, and runs all analysis rules."""
 
-    def __init__(self, config: Optional[ExtendReviewerConfig] = None):
-        self.config = config or ExtendReviewerConfig()
+    def __init__(self, config: Optional[ArcaneAuditorConfig] = None):
+        self.config = config or ArcaneAuditorConfig()
         self.rules = self._discover_rules()
 
     def _discover_rules(self) -> List[Rule]:

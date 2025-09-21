@@ -12,7 +12,7 @@ This ensures user customizations survive application updates.
 import json
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
-from .config import ExtendReviewerConfig, RulesConfig, RuleConfig
+from .config import ArcaneAuditorConfig, RulesConfig, RuleConfig
 
 
 class ConfigurationManager:
@@ -33,7 +33,7 @@ class ConfigurationManager:
             self.base_path / "configs"          # Lowest priority - app defaults
         ]
     
-    def load_config(self, config_name: Optional[str] = None) -> ExtendReviewerConfig:
+    def load_config(self, config_name: Optional[str] = None) -> ArcaneAuditorConfig:
         """Load configuration with layered priority system.
         
         Args:
@@ -41,13 +41,13 @@ class ConfigurationManager:
                         If None, loads 'default' configuration.
         
         Returns:
-            Merged ExtendReviewerConfig with all applicable layers applied.
+            Merged ArcaneAuditorConfig with all applicable layers applied.
         """
         # Handle explicit file paths
         if config_name and ('/' in config_name or '\\' in config_name or config_name.endswith('.json')):
             config_path = Path(config_name)
             if config_path.exists():
-                return ExtendReviewerConfig.from_file(str(config_path))
+                return ArcaneAuditorConfig.from_file(str(config_path))
             else:
                 raise FileNotFoundError(f"Configuration file not found: {config_path}")
         
@@ -65,10 +65,10 @@ class ConfigurationManager:
             # Fallback to default configuration
             default_config_file = self.base_path / "configs" / "default.json"
             if default_config_file.exists():
-                return ExtendReviewerConfig.from_file(str(default_config_file))
+                return ArcaneAuditorConfig.from_file(str(default_config_file))
             else:
                 # Ultimate fallback - use built-in defaults
-                return ExtendReviewerConfig()
+                return ArcaneAuditorConfig()
         
         # Load and merge configurations (lowest priority first)
         merged_config = None
@@ -76,18 +76,18 @@ class ConfigurationManager:
             try:
                 if merged_config is None:
                     # First configuration becomes the base
-                    merged_config = ExtendReviewerConfig.from_file(str(config_file))
+                    merged_config = ArcaneAuditorConfig.from_file(str(config_file))
                 else:
                     # Merge higher priority configuration over base
-                    overlay_config = ExtendReviewerConfig.from_file(str(config_file))
+                    overlay_config = ArcaneAuditorConfig.from_file(str(config_file))
                     merged_config = self._merge_configurations(merged_config, overlay_config)
             except Exception as e:
                 print(f"Warning: Failed to load configuration {config_file}: {e}")
                 continue
         
-        return merged_config or ExtendReviewerConfig()
+        return merged_config or ArcaneAuditorConfig()
     
-    def _merge_configurations(self, base: ExtendReviewerConfig, overlay: ExtendReviewerConfig) -> ExtendReviewerConfig:
+    def _merge_configurations(self, base: ArcaneAuditorConfig, overlay: ArcaneAuditorConfig) -> ArcaneAuditorConfig:
         """Merge two configurations with overlay taking priority.
         
         Args:
@@ -147,7 +147,7 @@ class ConfigurationManager:
         
         # Create merged configuration
         try:
-            return ExtendReviewerConfig(**merged_data)
+            return ArcaneAuditorConfig(**merged_data)
         except Exception as e:
             print(f"Warning: Failed to create merged configuration: {e}")
             return base  # Return base configuration as fallback
@@ -215,7 +215,7 @@ def get_config_manager() -> ConfigurationManager:
     return _config_manager
 
 
-def load_configuration(config_name: Optional[str] = None) -> ExtendReviewerConfig:
+def load_configuration(config_name: Optional[str] = None) -> ArcaneAuditorConfig:
     """Convenience function to load configuration using the global manager.
     
     Args:
