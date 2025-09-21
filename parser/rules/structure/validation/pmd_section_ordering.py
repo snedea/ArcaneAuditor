@@ -49,11 +49,11 @@ class PMDSectionOrderingRule(Rule):
 
     def _extract_root_key_order(self, pmd_model: PMDModel) -> List[str]:
         """Extract the order of root-level keys from the PMD source."""
-        # Parse the JSON to get the actual key order
-        # Note: Python's json.loads() preserves order in Python 3.7+
         # The Workday Extend compiler ensures valid JSON structure
+        # If JSON parsing fails, it's a real issue that should be reported
         pmd_data = json.loads(pmd_model.source_content)
         return list(pmd_data.keys())
+
 
     def _check_section_ordering(self, actual_order: List[str], pmd_model: PMDModel) -> Generator[Finding, None, None]:
         """Check if the actual order matches the configured order."""
