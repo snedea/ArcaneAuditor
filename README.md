@@ -7,10 +7,11 @@
 Arcane Auditor channels ancient wisdom through **30 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
 
 - **📄 PMD Files**: Page definitions with embedded scripts, endpoints, and presentation layers
-- **🧩 Pod Files**: Pod files with template widgets and endpoint configurations  
+- **🧩 Pod Files**: Pod files with template widgets and endpoint configurations
 - **📜 Script Files**: Standalone .script files with function libraries and utilities
 
 **Rule Categories:**
+
 - **Script Quality (20 Rules)**: Script syntax, complexity, naming conventions, unused code detection
 - **Endpoint Validation (4 Rules)**: API endpoint compliance, error handling, naming conventions
 - **Structure Validation (4 Rules)**: Widget configurations, required fields, component validation
@@ -43,17 +44,18 @@ Your customizations in `user_configs/` and `local_configs/` are **completely pro
 
 Before installing Arcane Auditor, you'll need:
 
-#### 1. **Python 3.8+** 
+#### 1. **Python 3.8+**
+
 - **Windows**: Download from [python.org](https://www.python.org/downloads/) or install via [Microsoft Store](https://www.microsoft.com/store/productId/9NRWMJP3717K)
-- **macOS**: `brew install python` or download from [python.org](https://www.python.org/downloads/)  
-- **Linux**: `sudo apt install python3 python3-pip` (Ubuntu/Debian) or `sudo yum install python3 python3-pip` (RHEL/CentOS)
+- **macOS**: `brew install python` or download from [python.org](https://www.python.org/downloads/)
 
 #### 2. **Git** (for cloning the repository)
+
 - **Windows**: Download from [git-scm.com](https://git-scm.com/download/win)
 - **macOS**: `brew install git` or download from [git-scm.com](https://git-scm.com/download/mac)
-- **Linux**: `sudo apt install git` (Ubuntu/Debian) or `sudo yum install git` (RHEL/CentOS)
 
 #### 3. **UV** (Modern Python package manager - **recommended**)
+
 ```bash
 # Install UV (cross-platform)
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -85,9 +87,6 @@ uv sync
 
 # Run analysis on a Workday Extend application
 uv run main.py review-app your-app.zip
-
-# Try with included sample (contains intentional violations)
-uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
 ```
 
 #### **Option B: Using Traditional pip**
@@ -118,9 +117,6 @@ python main.py review-app your-app.zip
 ```bash
 # Check that everything is working
 uv run main.py --help
-
-# Run a quick test with sample data
-uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
 ```
 
 You should see mystical analysis output with validation findings! 🔮
@@ -130,11 +126,13 @@ You should see mystical analysis output with validation findings! 🔮
 For a user-friendly mystical web interface, you'll need **Node.js 16+**:
 
 #### **Install Node.js** (if not already installed)
-- **Windows/macOS**: Download from [nodejs.org](https://nodejs.org/) 
+
+- **Windows/macOS**: Download from [nodejs.org](https://nodejs.org/)
 - **Linux**: `sudo apt install nodejs npm` (Ubuntu/Debian) or use [NodeSource](https://github.com/nodesource/distributions)
 - **Using Package Managers**: `brew install node` (macOS) or `choco install nodejs` (Windows)
 
 #### **Setup Web Interface**
+
 ```bash
 # One-time setup (installs frontend dependencies automatically)
 uv run python web/setup_web_interface.py
@@ -151,7 +149,7 @@ uv run python web/start_web_interface.py
 
 ```bash
 # Analyze a PMD application with arcane wisdom
-uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
+uv run main.py review-app myapp_abcdef.zip
 
 # Use custom magical configuration (supports layered loading)
 uv run main.py review-app your-app.zip --config team-standard
@@ -255,12 +253,6 @@ arcane-auditor/
 │   ├── test_pmd_structure_rules_integration.py
 │   ├── test_pmd_structure_rules.py
 │   └── test_rules_engine.py
-│
-├── samples/                          # Sample PMD applications (gitignored)
-│   ├── appManifest.json
-│   ├── model/
-│   ├── presentation/
-│   └── template_bad_nkhlsq.zip      # Sample with violations
 ```
 
 ## 🔧 Validation Rules
@@ -376,7 +368,7 @@ uv run pytest tests/test_all_structure_rules.py
 uv run pytest tests/test_rules_engine.py
 
 # Test with sample data
-uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
+uv run main.py review-app myapp_abcdef.zip
 ```
 
 ### Configuration
@@ -410,16 +402,19 @@ Create custom configurations in JSON format:
 ## 📚 Documentation
 
 ### Core Documentation
+
 - **[📜 Rule Breakdown](docs/RULE_BREAKDOWN.md)**: Comprehensive guide to all 30 validation rules with examples
 - **[🌐 Web Interface Guide](docs/WEB_README.md)**: Complete web interface setup and usage documentation
 - **[⚙️ Configuration Guide](configs/README.md)**: Layered configuration system and rule customization
 
 ### Advanced Guides
+
 - **[🔧 Custom Rules Development](parser/rules/custom/README.md)**: Create your own validation rules
 - **[👥 User Configuration Examples](user_configs/README.md)**: Team and personal configuration templates
 - **[🏠 Local Configuration Guide](local_configs/README.md)**: Personal overrides and local settings
 
 ### Quick Reference
+
 - **[📊 Sample Applications](samples/README.md)**: Test files and example Workday Extend applications
 - **[📄 License](LICENSE)**: MIT License details and usage rights
 
