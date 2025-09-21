@@ -44,11 +44,19 @@ function App() {
   return (
     <div className="app">
       <header>
-        <h1>
-          <FileText className="inline-icon" />
-          Arcane Auditor 🧙‍♂️
-        </h1>
-        <p>Reveal code quality issues in your Workday Extend applications</p>
+        <div className="header-content">
+          <img 
+            src="/assets/arcane-auditor-logo.png" 
+            alt="Arcane Auditor Logo" 
+            className="app-logo"
+          />
+          <div className="header-text">
+            <h1>
+              Arcane Auditor 🧙‍♂️
+            </h1>
+            <p>Cast mystical spells to reveal code quality issues in your Workday Extend applications</p>
+          </div>
+        </div>
       </header>
 
       {!analysisResult && !isAnalyzing && !error && (
