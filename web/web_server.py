@@ -135,27 +135,6 @@ async def serve_frontend():
                 margin: 0;
                 text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
             }
-               .header-content {
-                   display: flex;
-                   align-items: center;
-                   gap: 20px;
-                   justify-content: center;
-                   flex-wrap: wrap;
-               }
-               .app-logo {
-                   height: 80px;
-                   width: auto;
-                   filter: drop-shadow(0 4px 8px rgba(74, 144, 226, 0.3));
-                   transition: transform 0.3s ease;
-               }
-               .app-logo:hover {
-                   transform: scale(1.05);
-               }
-               .header-text {
-                   text-align: center;
-                   flex: 1;
-                   min-width: 300px;
-               }
                .header p {
                    color: #b8c5d6;
                    font-size: 1.2em;
@@ -220,13 +199,8 @@ async def serve_frontend():
     </head>
     <body>
            <div class="header">
-               <div class="header-content">
-                   <img src="/assets/arcane-auditor-logo.png" alt="Arcane Auditor Logo" class="app-logo">
-                   <div class="header-text">
-                       <h1>🧙‍♂️ Arcane Auditor</h1>
-                       <p>Channel ancient wisdom through mystical code analysis for Workday Extend applications</p>
-                   </div>
-               </div>
+               <h1>🧙‍♂️ Arcane Auditor</h1>
+               <p>Channel ancient wisdom through mystical code analysis for Workday Extend applications</p>
            </div>
         
         <div class="upload-area" id="uploadArea">

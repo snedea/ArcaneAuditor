@@ -52,31 +52,6 @@ body {
   box-sizing: border-box;
 }
 
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.app-logo {
-  height: 80px;
-  width: auto;
-  filter: drop-shadow(0 4px 8px rgba(74, 144, 226, 0.3));
-  transition: transform 0.3s ease;
-}
-
-.app-logo:hover {
-  transform: scale(1.05);
-}
-
-.header-text {
-  text-align: center;
-  flex: 1;
-  min-width: 300px;
-}
-
 .app h1 {
   color: #4a90e2;
   margin-bottom: 10px;
