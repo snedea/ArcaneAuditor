@@ -9,6 +9,7 @@ interface ResultsDisplayProps {
 
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
+  const [filterFileType, setFilterFileType] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'severity' | 'line' | 'rule'>('severity');
   const [sortFilesBy, setSortFilesBy] = useState<'alphabetical' | 'issue-count'>('alphabetical');
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
@@ -31,6 +32,32 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
   const getSeverityCounts = (findings: Finding[]) => {
     return findings.reduce((acc, finding) => {
       acc[finding.severity] = (acc[finding.severity] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  };
+
+  const getFileTypeFromPath = (filePath: string): string => {
+    const extension = filePath.split('.').pop()?.toLowerCase() || '';
+    switch (extension) {
+      case 'pmd':
+        return 'PMD Files';
+      case 'pod':
+        return 'POD Files';
+      case 'script':
+        return 'Script Files';
+      case 'json':
+        return 'JSON Files';
+      case 'xml':
+        return 'XML Files';
+      default:
+        return 'Other Files';
+    }
+  };
+
+  const getFileTypeCounts = (findings: Finding[]) => {
+    return findings.reduce((acc, finding) => {
+      const fileType = getFileTypeFromPath(finding.file_path);
+      acc[fileType] = (acc[fileType] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
   };
@@ -79,9 +106,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
     setExpandedFiles(new Set());
   };
 
-  const filteredFindings = result.findings.filter(finding => 
-    filterSeverity === 'all' || finding.severity === filterSeverity
-  );
+  const filteredFindings = result.findings.filter(finding => {
+    const severityMatch = filterSeverity === 'all' || finding.severity === filterSeverity;
+    const fileTypeMatch = filterFileType === 'all' || getFileTypeFromPath(finding.file_path) === filterFileType;
+    return severityMatch && fileTypeMatch;
+  });
 
   // Sort findings within each file group instead of globally
   const sortFindingsInGroup = (findings: Finding[]) => {
@@ -101,6 +130,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
   };
 
   const severityCounts = getSeverityCounts(result.findings);
+  const fileTypeCounts = getFileTypeCounts(result.findings);
 
   const downloadResults = async () => {
     try {
@@ -182,6 +212,21 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
             </div>
           </div>
         )}
+
+        {Object.keys(fileTypeCounts).length > 0 && (
+          <div className="severity-section">
+            <h5>Issues by File Type:</h5>
+            <div className="severity-badges">
+              {Object.entries(fileTypeCounts).map(([fileType, count]) => (
+                <div key={fileType} className="severity-badge">
+                  <FileText className="inline-icon" />
+                  <span className="severity-count">{count}</span>
+                  <span className="severity-name">{fileType.toLowerCase()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {result.findings.length === 0 ? (
@@ -206,6 +251,23 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
                 {Object.entries(severityCounts).map(([severity, count]) => (
                   <option key={severity} value={severity}>
                     {severity} ({count})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label htmlFor="file-type-filter">Filter by file type:</label>
+              <select
+                id="file-type-filter"
+                value={filterFileType}
+                onChange={(e) => setFilterFileType(e.target.value)}
+                className="border rounded px-2 py-1"
+              >
+                <option value="all">All File Types ({result.findings.length})</option>
+                {Object.entries(fileTypeCounts).map(([fileType, count]) => (
+                  <option key={fileType} value={fileType}>
+                    {fileType} ({count})
                   </option>
                 ))}
               </select>
