@@ -110,8 +110,9 @@ async def serve_frontend():
         <style>
             body { 
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-                max-width: 900px; 
-                margin: 50px auto; 
+                width: 100%;
+                max-width: none; 
+                margin: 0; 
                 padding: 20px; 
                 background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
                 color: #d1d9e6;
