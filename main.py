@@ -83,7 +83,7 @@ def review_app(
         rules_engine = RulesEngine(config)
         typer.echo(f"✅ Loaded {len(rules_engine.rules)} validation rules")
         
-        typer.echo("🧙‍♂️ Casting analysis spells...")
+        typer.echo("🔮 Invoking analysis...")
         findings = rules_engine.run(context)
         
         if findings:
@@ -246,7 +246,7 @@ def list_rules():
 @app.command()
 def list_configs():
     """List all available configurations and their safety status."""
-    typer.echo("🧙‍♂️ Arcane Auditor Configuration Status\n")
+    typer.echo("🔮 Arcane Auditor Configuration Status\n")
     
     config_manager = get_config_manager()
     

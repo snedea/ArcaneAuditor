@@ -19,7 +19,7 @@ def main():
         sys.exit(1)
     
     # Start the server from the web directory
-    print("🧙‍♂️ Starting Arcane Auditor Web Interface...")
+    print("🔮 Starting Arcane Auditor Web Interface...")
     print("📍 Server will be available at: http://localhost:8000")
     print("📝 Press Ctrl+C to stop the server")
     print()

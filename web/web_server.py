@@ -199,7 +199,7 @@ async def serve_frontend():
     </head>
     <body>
            <div class="header">
-               <h1>🧙‍♂️ Arcane Auditor</h1>
+               <h1>🔮 Arcane Auditor</h1>
                <p>Channel ancient wisdom through mystical code analysis for Workday Extend applications</p>
            </div>
         

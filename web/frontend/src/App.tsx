@@ -46,7 +46,7 @@ function App() {
       <header>
         <h1>
           <FileText className="inline-icon" />
-          Arcane Auditor 🧙‍♂️
+          Arcane Auditor 🔮
         </h1>
         <p>Cast mystical spells to reveal code quality issues in your Workday Extend applications</p>
       </header>

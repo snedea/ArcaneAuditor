@@ -56,7 +56,7 @@ class OutputFormatter:
         output = []
         
         # Header with emojis
-        output.append("🧙‍♂️ **Arcane Auditor Analysis Results**")
+        output.append("🔮 **Arcane Auditor Analysis Results**")
         output.append("=" * 50)
         
         # Summary statistics

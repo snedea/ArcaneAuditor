@@ -1,4 +1,4 @@
-# Custom Rules Development Guide 🧙‍♂️
+# Custom Rules Development Guide 🔮
 
 *Create mystical validation rules for the Arcane Auditor*
 
@@ -522,6 +522,6 @@ If you create useful custom rules, consider:
 - **Creating rule templates** - Help other developers get started
 
 
-**Happy mystical rule development! 🧙‍♂️✨**
+**Happy mystical rule development! 🔮✨**
 
 *The Arcane Auditor's power grows with each custom rule you create!*
