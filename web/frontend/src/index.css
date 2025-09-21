@@ -368,8 +368,6 @@ input[type="text"] {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-/* Mobile support removed - desktop-only application */
-
 /* Summary layout improvements - optimized for desktop */
 .summary-grid {
   display: grid;

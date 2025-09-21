@@ -138,13 +138,13 @@ class PMDSectionOrderingRule(Rule):
     def _get_key_line_number(self, pmd_model: PMDModel, key: str) -> int:
         """Get the line number where a root-level key is defined."""
         try:
-            from ...line_number_utils import LineNumberUtils
-            return LineNumberUtils.find_field_line_number(pmd_model, key, None)
-        except:
-            # Fallback: search for the key in the source content
             if pmd_model.source_content:
                 lines = pmd_model.source_content.split('\n')
                 for i, line in enumerate(lines):
-                    if f'"{key}"' in line and line.strip().startswith(f'"{key}"'):
-                        return i + 1
+                    # Look for the key at the start of a line (root level)
+                    stripped_line = line.strip()
+                    if stripped_line.startswith(f'"{key}":'):
+                        return i + 1  # Convert to 1-based line numbering
             return 1  # Fallback to line 1
+        except Exception:
+            return 1

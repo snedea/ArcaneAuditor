@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, RotateCcw, Filter, AlertTriangle, Info, CheckCircle, ChevronDown, ChevronRight, FileText } from 'lucide-react';
+import { Download, RotateCcw, Filter, CheckCircle, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import { AnalysisResult, Finding } from '../types/analysis';
 
 interface ResultsDisplayProps {
@@ -45,10 +45,10 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
         return 'POD Files';
       case 'script':
         return 'Script Files';
-      case 'json':
-        return 'JSON Files';
-      case 'xml':
-        return 'XML Files';
+      case 'smd':
+        return 'SMD File';
+      case 'amd':
+        return 'AMD File';
       default:
         return 'Other Files';
     }
