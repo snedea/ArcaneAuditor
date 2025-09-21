@@ -42,8 +42,11 @@ Your customizations in `user_configs/` and `local_configs/` are **completely pro
 ### Installation
 
 ```bash
-# Clone the repository
-git clone <repository-url>
+# Clone the repository (SSH)
+git clone git@github.com:Developers-and-Dragons/ArcaneAuditor.git arcane-auditor
+# Or using HTTPS
+# git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git arcane-auditor
+
 cd arcane-auditor
 
 # Install dependencies
