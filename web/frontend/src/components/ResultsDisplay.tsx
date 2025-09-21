@@ -9,7 +9,8 @@ interface ResultsDisplayProps {
 
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'severity' | 'file' | 'rule'>('severity');
+  const [sortBy, setSortBy] = useState<'severity' | 'line' | 'rule'>('severity');
+  const [sortFilesBy, setSortFilesBy] = useState<'alphabetical' | 'issue-count'>('alphabetical');
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
 
   const getSeverityIcon = (severity: string) => {
@@ -35,7 +36,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
   };
 
   const groupFindingsByFile = (findings: Finding[]) => {
-    return findings.reduce((acc, finding) => {
+    const grouped = findings.reduce((acc, finding) => {
       const filePath = finding.file_path || 'Unknown';
       if (!acc[filePath]) {
         acc[filePath] = [];
@@ -43,6 +44,20 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
       acc[filePath].push(finding);
       return acc;
     }, {} as Record<string, Finding[]>);
+
+    // Sort file groups based on user preference
+    const sortedEntries = Object.entries(grouped).sort(([fileA, findingsA], [fileB, findingsB]) => {
+      switch (sortFilesBy) {
+        case 'alphabetical':
+          return fileA.localeCompare(fileB);
+        case 'issue-count':
+          return findingsB.length - findingsA.length; // Most issues first
+        default:
+          return 0;
+      }
+    });
+
+    return Object.fromEntries(sortedEntries);
   };
 
   const toggleFileExpansion = (filePath: string) => {
@@ -68,19 +83,22 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
     filterSeverity === 'all' || finding.severity === filterSeverity
   );
 
-  const sortedFindings = [...filteredFindings].sort((a, b) => {
-    switch (sortBy) {
-      case 'severity':
-        const severityOrder = { SEVERE: 0, WARNING: 1, INFO: 2, HINT: 3 };
-        return severityOrder[a.severity] - severityOrder[b.severity];
-      case 'file':
-        return a.file_path.localeCompare(b.file_path);
-      case 'rule':
-        return a.rule_id.localeCompare(b.rule_id);
-      default:
-        return 0;
-    }
-  });
+  // Sort findings within each file group instead of globally
+  const sortFindingsInGroup = (findings: Finding[]) => {
+    return [...findings].sort((a, b) => {
+      switch (sortBy) {
+        case 'severity':
+          const severityOrder = { SEVERE: 0, WARNING: 1, INFO: 2, HINT: 3 };
+          return severityOrder[a.severity] - severityOrder[b.severity];
+        case 'line':
+          return a.line - b.line;
+        case 'rule':
+          return a.rule_id.localeCompare(b.rule_id);
+        default:
+          return 0;
+      }
+    });
+  };
 
   const severityCounts = getSeverityCounts(result.findings);
 
@@ -194,7 +212,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
             </div>
 
             <div className="flex items-center gap-2">
-              <label htmlFor="sort-by">Sort by:</label>
+              <label htmlFor="sort-by">Sort issues by:</label>
               <select
                 id="sort-by"
                 value={sortBy}
@@ -202,8 +220,21 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
                 className="border rounded px-2 py-1"
               >
                 <option value="severity">Severity</option>
-                <option value="file">File</option>
+                <option value="line">Line Number</option>
                 <option value="rule">Rule ID</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label htmlFor="sort-files-by">Sort files by:</label>
+              <select
+                id="sort-files-by"
+                value={sortFilesBy}
+                onChange={(e) => setSortFilesBy(e.target.value as any)}
+                className="border rounded px-2 py-1"
+              >
+                <option value="alphabetical">Alphabetical</option>
+                <option value="issue-count">Issue Count</option>
               </select>
             </div>
           </div>
@@ -252,20 +283,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, onReset }) => {
                   
                   {isExpanded && (
                     <div className="file-findings">
-                      {fileFindings
-                        .sort((a, b) => {
-                          switch (sortBy) {
-                            case 'severity':
-                              const severityOrder = { SEVERE: 0, WARNING: 1, INFO: 2, HINT: 3 };
-                              return severityOrder[a.severity] - severityOrder[b.severity];
-                            case 'line':
-                              return a.line - b.line;
-                            case 'rule':
-                              return a.rule_id.localeCompare(b.rule_id);
-                            default:
-                              return 0;
-                          }
-                        })
+                      {sortFindingsInGroup(fileFindings)
                         .map((finding, index) => (
                           <div key={index} className={`finding ${finding.severity.toLowerCase()}`}>
                             <div className="finding-header">
