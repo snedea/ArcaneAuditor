@@ -138,7 +138,7 @@ class TestPMDSectionOrderingRule:
     
     
     def test_pmd_with_invalid_json(self):
-        """Test PMD file with invalid JSON (fallback parsing)."""
+        """Test PMD file with invalid JSON (should be handled by compiler)."""
         source_content = """invalid json content
   "id": "test-page"
   "presentation": {}
@@ -151,11 +151,14 @@ class TestPMDSectionOrderingRule:
         )
         self.context.pmds["test-page"] = pmd_model
         
+        # Since we removed the fallback parsing, invalid JSON should be caught
+        # by the exception handler in _analyze_pmd_section_order
         findings = list(self.rule.analyze(self.context))
         
-        # Should handle gracefully (may or may not find issues depending on fallback parsing)
-        # The important thing is it doesn't crash
+        # Should handle gracefully and return empty findings list
+        # (the exception is caught and logged as a warning)
         assert isinstance(findings, list)
+        assert len(findings) == 0
 
 
 if __name__ == "__main__":
