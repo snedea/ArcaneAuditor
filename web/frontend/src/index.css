@@ -4,7 +4,7 @@
   font-weight: 400;
 
   color-scheme: dark;
-  color: #e0e6ed;
+  color: #d1d9e6;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
 
   font-synthesis: none;
@@ -21,7 +21,7 @@ body {
   min-width: 1024px;
   min-height: 100vh;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-  color: #e0e6ed;
+  color: #d1d9e6;
 }
 
 #root {
@@ -38,7 +38,7 @@ body {
   max-width: 90vw;
   margin: 0 auto;
   padding: 20px;
-  color: #e0e6ed;
+  color: #d1d9e6;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 20px;
   border: 1px solid rgba(74, 144, 226, 0.3);
@@ -67,7 +67,7 @@ body {
   cursor: pointer;
   transition: all 0.3s ease;
   background-color: #2d3748;
-  color: #e2e8f0;
+  color: #d1d9e6;
 }
 
 .upload-area:hover,
@@ -87,7 +87,7 @@ body {
   background: #2d3748;
   border-radius: 8px;
   text-align: left;
-  color: #e2e8f0;
+  color: #d1d9e6;
   border: 1px solid #4a5568;
 }
 
@@ -98,7 +98,7 @@ body {
   background: #1a202c;
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-  color: #e2e8f0;
+  color: #d1d9e6;
   border: 1px solid #4a5568;
 }
 
@@ -137,7 +137,7 @@ body {
   padding: 15px;
   border-radius: 8px;
   margin-bottom: 20px;
-  color: #e2e8f0;
+  color: #d1d9e6;
   border: 1px solid #718096;
 }
 
@@ -178,7 +178,7 @@ button:disabled {
 
 button.secondary {
   background: #4a5568;
-  color: #e2e8f0;
+  color: #d1d9e6;
 }
 
 button.secondary:hover {
@@ -213,16 +213,16 @@ button.secondary:hover {
   border-radius: 8px;
   padding: 20px;
   margin-top: 20px;
-  color: #e2e8f0;
+  color: #d1d9e6;
 }
 
 .configuration-panel h3 {
-  color: #f7fafc;
+  color: #e2e8f0;
   margin-top: 0;
 }
 
 .configuration-panel h4 {
-  color: #f7fafc;
+  color: #e2e8f0;
   margin-bottom: 15px;
 }
 
@@ -231,7 +231,7 @@ button.secondary:hover {
 }
 
 .configuration-panel label {
-  color: #e2e8f0;
+  color: #d1d9e6;
   font-weight: 500;
 }
 
@@ -244,7 +244,7 @@ button.secondary:hover {
   border: 1px solid #4a5568;
   border-radius: 4px;
   padding: 8px 12px;
-  color: #e2e8f0;
+  color: #d1d9e6;
   background-color: #1a202c;
 }
 
@@ -257,7 +257,7 @@ button.secondary:hover {
 }
 
 .configuration-panel .rule-item strong {
-  color: #f7fafc;
+  color: #e2e8f0;
 }
 
 .configuration-panel .rule-description {
@@ -350,7 +350,7 @@ input[type="text"] {
 .summary-filename {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #e2e8f0;
+  color: #d1d9e6;
   margin-bottom: 0.5rem;
   word-break: break-all;
 }
@@ -370,7 +370,7 @@ input[type="text"] {
   font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 0.75rem;
-  color: #e2e8f0;
+  color: #d1d9e6;
 }
 
 .severity-badges {
@@ -392,13 +392,13 @@ input[type="text"] {
 .severity-count {
   font-weight: bold;
   font-size: 1.125rem;
-  color: #e2e8f0;
+  color: #d1d9e6;
 }
 
 .severity-name {
   font-size: 0.875rem;
   text-transform: capitalize;
-  color: #e2e8f0;
+  color: #d1d9e6;
 }
 
 /* File grouping styles */
@@ -439,7 +439,7 @@ input[type="text"] {
 
 .file-name {
   font-weight: 600;
-  color: #f7fafc;
+  color: #e2e8f0;
   font-size: 1rem;
 }
 
@@ -462,7 +462,7 @@ input[type="text"] {
 
 .file-count {
   font-weight: 600;
-  color: #e2e8f0;
+  color: #d1d9e6;
   background: #4a5568;
   padding: 0.25rem 0.75rem;
   border-radius: 4px;

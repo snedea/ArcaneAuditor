@@ -114,7 +114,7 @@ async def serve_frontend():
                 margin: 50px auto; 
                 padding: 20px; 
                 background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-                color: #e0e6ed;
+                color: #d1d9e6;
                 min-height: 100vh;
             }
             .header { 
@@ -182,7 +182,7 @@ async def serve_frontend():
                 border-left: 4px solid #dc3545; 
                 background: rgba(255, 255, 255, 0.05); 
                 border-radius: 8px;
-                color: #e0e6ed;
+                color: #d1d9e6;
             }
             .finding.severe { border-left-color: #ff6b6b; }
             .finding.warning { border-left-color: #ffd93d; }
