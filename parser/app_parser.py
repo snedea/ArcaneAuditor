@@ -4,7 +4,7 @@ Parser to convert source files into PMD models for analysis.
 import json
 from pathlib import Path
 from typing import Dict, Any
-from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation, PODModel, PODSeed
+from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation, PODModel, PODSeed, SMDModel
 from .pmd_preprocessor import preprocess_pmd_content
 
 
@@ -45,8 +45,7 @@ class ModelParser:
         elif extension == '.amd':
             self._parse_amd_file(file_path, source_file, context)
         elif extension == '.smd':
-            # TODO: Implement SMD parsing
-            print(f"{extension} parsing not yet implemented for {file_path}")
+            self._parse_smd_file(file_path, source_file, context)
         elif extension == '.pod':
             self._parse_pod_file(file_path, source_file, context)
         elif extension == '.script':
@@ -195,4 +194,46 @@ class ModelParser:
                 
         except Exception as e:
             print(f"Failed to parse POD file {file_path}: {e}")
+            raise
+
+    def _parse_smd_file(self, file_path: str, source_file: Any, context: ProjectContext):
+        """Parse a .smd file into an SMDModel."""
+        try:
+            content = source_file.content.strip()
+            path_obj = Path(file_path)
+            
+            # Parse JSON content
+            smd_data = json.loads(content)
+            
+            # Create SMD model
+            smd_model = SMDModel(
+                id=smd_data.get('id', path_obj.stem),
+                applicationId=smd_data.get('applicationId', ''),
+                siteId=smd_data.get('siteId', ''),
+                languages=smd_data.get('languages', []),
+                siteAuth=smd_data.get('siteAuth'),
+                errorPageConfigurations=smd_data.get('errorPageConfigurations', []),
+                file_path=file_path,
+                source_content=content
+            )
+            
+            # Add to context
+            context.smds[smd_model.id] = smd_model
+            print(f"Parsed SMD: {smd_model.id}")
+            
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error in SMD file {file_path}: {e}")
+            # Create a basic SMD model as fallback
+            smd_model = SMDModel(
+                id=Path(file_path).stem,
+                applicationId='',
+                siteId='',
+                file_path=file_path,
+                source_content=content
+            )
+            context.smds[smd_model.id] = smd_model
+            print(f"Parsed SMD (fallback): {smd_model.id}")
+            
+        except Exception as e:
+            print(f"Failed to parse SMD file {file_path}: {e}")
             raise

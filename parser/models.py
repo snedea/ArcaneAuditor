@@ -201,8 +201,38 @@ class AMDModel(BaseModel):
     flows: Optional[Dict[str, Any]] = Field(default_factory=dict)
     file_path: str = Field(..., exclude=True)
     
-# NOTE: You would continue to define models for .pod and .smd files here
-# in a similar fashion.
+class SMDModel(BaseModel):
+    """Model representing an SMD (Site Model Definition) file."""
+    id: str
+    applicationId: str
+    siteId: str
+    languages: List[Dict[str, str]] = Field(default_factory=list)
+    siteAuth: Optional[Dict[str, Any]] = None
+    errorPageConfigurations: List[Dict[str, Any]] = Field(default_factory=list)
+    
+    # Metadata
+    file_path: str = Field(..., exclude=True)
+    source_content: str = Field(default="", exclude=True)
+    
+    def get_language_codes(self) -> List[str]:
+        """Get list of language codes from the SMD."""
+        return [lang.get("code", "") for lang in self.languages if lang.get("code")]
+    
+    def get_auth_schemes(self) -> List[str]:
+        """Get list of authentication schemes."""
+        if not self.siteAuth or "authTypes" not in self.siteAuth:
+            return []
+        return [auth.get("scheme", "") for auth in self.siteAuth["authTypes"] if auth.get("scheme")]
+    
+    def get_error_pages(self) -> List[Dict[str, str]]:
+        """Get list of error page configurations."""
+        return [
+            {
+                "statusCode": config.get("statusCode", ""),
+                "pageId": config.get("page", {}).get("id", "") if config.get("page") else ""
+            }
+            for config in self.errorPageConfigurations
+        ]
 
 # -----------------------------------------------------------------------------
 # 🗂️ The Central Project Context
@@ -215,7 +245,7 @@ class ProjectContext:
         self.scripts: Dict[str, ScriptModel] = {}    # Maps file name to ScriptModel
         self.amd: AMDModel = None          # Assumes one .amd file per app
         self.pods: Dict[str, PODModel] = {}          # Maps podId to PODModel
-        # self.smd: Optional[SMDModel] = None        # Placeholder for SMD
+        self.smds: Dict[str, SMDModel] = {}          # Maps smdId to SMDModel
         self.parsing_errors: List[str] = []          # To track files that failed validation
 
     def get_script_by_name(self, name: str) -> Optional[ScriptModel]:
@@ -229,3 +259,7 @@ class ProjectContext:
     def get_pod_by_id(self, pod_id: str) -> Optional[PODModel]:
         """Retrieves a POD model by its podId."""
         return self.pods.get(pod_id)
+    
+    def get_smd_by_id(self, smd_id: str) -> Optional[SMDModel]:
+        """Retrieves an SMD model by its id."""
+        return self.smds.get(smd_id)
