@@ -98,12 +98,12 @@ class ScriptUnusedVariableRule(Rule):
             # Check for unused variables in this scope
             for var_name, var_info in declared_vars.items():
                 if var_name not in used_vars:
-                    # Special handling for global functions - they might be used by widgets/endpoints
-                    if is_global_scope and scope_type == 'global' and var_name in global_functions:
-                        # For now, we'll still flag them but with a different message
-                        scope_context = " (global function - may be used by widgets/endpoints)"
-                    else:
-                        scope_context = f" in {scope_type} '{scope_name}'" if scope_name != 'global' else ""
+                    # Skip function declarations - they're handled by ScriptUnusedFunctionRule
+                    if var_info.get('is_function', False):
+                        continue
+                    
+                    # Regular unused variable handling
+                    scope_context = f" in {scope_type} '{scope_name}'" if scope_name != 'global' else ""
                     
                     # Use line_offset as base, add relative line if available
                     relative_line = var_info.get('line', 1) or 1
@@ -171,16 +171,19 @@ class ScriptUnusedVariableRule(Rule):
                                 line_number = child.line
                                 break
                     
-                    current_scope['declared_vars'][var_name] = {
-                        'line': line_number,
-                        'type': 'variable'
-                    }
-                    
                     # Check if this is a function declaration
+                    is_function = False
                     if len(node.children) >= 2:
                         func_expr = node.children[1]
                         if hasattr(func_expr, 'data') and func_expr.data == 'function_expression':
                             current_scope['functions'][var_name] = func_expr
+                            is_function = True
+                    
+                    current_scope['declared_vars'][var_name] = {
+                        'line': line_number,
+                        'type': 'function' if is_function else 'variable',
+                        'is_function': is_function
+                    }
                             
             elif node.data == 'identifier_expression':
                 # Handle variable usage
