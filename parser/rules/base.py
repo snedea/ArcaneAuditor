@@ -56,6 +56,7 @@ class Rule(ABC):
     def find_script_fields(self, pmd_model: PMDModel) -> List[Tuple[str, str, str, int]]:
         """
         Recursively find all fields in a PMD model that contain script content (<% %>).
+        Uses caching to avoid repeated expensive parsing operations.
         
         Args:
             pmd_model: The PMD model to search
@@ -67,6 +68,18 @@ class Rule(ABC):
             - field_name: Just the field name for display purposes
             - line_offset: Line number where the script starts in the original file
         """
+        # Check if we have cached script fields
+        cached_fields = pmd_model.get_cached_script_fields()
+        if cached_fields is not None:
+            return cached_fields
+        
+        # If not cached, extract and cache them
+        script_fields = self._extract_script_fields(pmd_model)
+        pmd_model.set_cached_script_fields(script_fields)
+        return script_fields
+    
+    def _extract_script_fields(self, pmd_model: PMDModel) -> List[Tuple[str, str, str, int]]:
+        """Internal method to extract script fields without caching."""
         script_fields = []
         script_pattern = r'<%.*?%>'
         
@@ -171,14 +184,23 @@ class Rule(ABC):
                 yield from self.traverse_widgets_recursively(children, children_path)
     
     def _parse_script_content(self, script_content: str):
-        """Parse script content using the PMD script grammar."""
+        """Parse script content using the PMD script grammar with caching support."""
         try:
-            from ..pmd_script_parser import pmd_script_parser
             # Strip PMD wrappers if present
             content = self._strip_pmd_wrappers(script_content)
             if not content:
                 return None
-            return pmd_script_parser.parse(content)
+            
+            # Use a simple hash-based cache to avoid re-parsing the same content
+            cache_key = hash(content)
+            if not hasattr(self, '_script_ast_cache'):
+                self._script_ast_cache = {}
+            
+            if cache_key not in self._script_ast_cache:
+                from ..pmd_script_parser import pmd_script_parser
+                self._script_ast_cache[cache_key] = pmd_script_parser.parse(content)
+            
+            return self._script_ast_cache[cache_key]
         except Exception as e:
             print(f"Failed to parse script content: {e}")
             return None

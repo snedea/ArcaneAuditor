@@ -49,6 +49,8 @@ class PMDModel(BaseModel):
     _onLoad_ast: Optional[Tree] = PrivateAttr(default=None)
     # Private attribute to cache the parsed AST of the page-level 'script'
     _script_ast: Optional[Tree] = PrivateAttr(default=None)
+    # Private attribute to cache extracted script fields
+    _cached_script_fields: Optional[List[tuple]] = PrivateAttr(default=None)
     # Private attribute to store line mappings for script fields
     _line_mappings: Optional[Dict[str, List[int]]] = PrivateAttr(default=None)
 
@@ -96,6 +98,14 @@ class PMDModel(BaseModel):
         # For now, return the first line of the script field
         # This could be enhanced to map specific lines within the script
         return self._line_mappings[field_path][0] if self._line_mappings[field_path] else processed_line
+    
+    def get_cached_script_fields(self) -> Optional[List[tuple]]:
+        """Get the cached script fields if available."""
+        return self._cached_script_fields
+    
+    def set_cached_script_fields(self, script_fields: List[tuple]):
+        """Set the cached script fields."""
+        self._cached_script_fields = script_fields
 
 class PODSeed(BaseModel):
     """Represents the seed configuration within a POD file."""
