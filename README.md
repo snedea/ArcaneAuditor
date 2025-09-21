@@ -55,6 +55,9 @@ uv sync
 # Run analysis on a Workday Extend application (CLI)
 # Supports PMD, Pod, and Script files
 uv run main.py review-app your-app.zip
+
+# Try with included sample (contains intentional violations)
+uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
 ```
 
 ### Web Interface (Recommended)
@@ -333,9 +336,19 @@ Create custom configurations in JSON format:
 
 ## 📚 Documentation
 
-- **docs/RULE_BREAKDOWN.md**: Detailed rule descriptions with examples
-- **docs/WEB_README.md**: Web interface documentation
-- **parser/rules/custom/README.md**: Custom rules development guide
+### Core Documentation
+- **[📜 Rule Breakdown](docs/RULE_BREAKDOWN.md)**: Comprehensive guide to all 30 validation rules with examples
+- **[🌐 Web Interface Guide](docs/WEB_README.md)**: Complete web interface setup and usage documentation
+- **[⚙️ Configuration Guide](configs/README.md)**: Layered configuration system and rule customization
+
+### Advanced Guides
+- **[🔧 Custom Rules Development](parser/rules/custom/README.md)**: Create your own validation rules
+- **[👥 User Configuration Examples](user_configs/README.md)**: Team and personal configuration templates
+- **[🏠 Local Configuration Guide](local_configs/README.md)**: Personal overrides and local settings
+
+### Quick Reference
+- **[📊 Sample Applications](samples/README.md)**: Test files and example Workday Extend applications
+- **[📄 License](LICENSE)**: MIT License details and usage rights
 
 ## 📄 License
 
