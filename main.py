@@ -79,6 +79,7 @@ def review_app(
 
     # --- Run Rules Analysis ---
     typer.echo("🔮 Initializing rules engine...")
+    findings = []  # Initialize findings before try block
     try:
         rules_engine = RulesEngine(config)
         typer.echo(f"✅ Loaded {len(rules_engine.rules)} validation rules")
@@ -135,21 +136,24 @@ def review_app(
                 typer.echo(f"Excel file created at: {formatted_output}")
             else:
                 typer.echo(formatted_output)
-        
-        # Set appropriate exit code based on findings
-        if findings:
-            severe_count = len([f for f in findings if f.severity == "SEVERE"])
-            if severe_count > 0:
-                raise typer.Exit(2)  # Exit code 2 for severe issues
-            else:
-                raise typer.Exit(1)  # Exit code 1 for warnings/info
-        else:
-            raise typer.Exit(0)  # Exit code 0 for no issues
-            
+                
     except Exception as e:
         typer.secho(f"❌ Analysis Error: {e}", fg=typer.colors.RED)
         typer.echo("💡 This might be due to unsupported syntax or corrupted files")
         raise typer.Exit(3)  # Exit code 3 for analysis errors
+    
+    # Set appropriate exit code based on findings (outside try block)
+    if findings:
+        severe_count = len([f for f in findings if f.severity == "SEVERE"])
+        if severe_count > 0:
+            typer.echo(f"🚨 Analysis completed with {severe_count} severe issue(s)")
+            raise typer.Exit(2)  # Exit code 2 for severe issues
+        else:
+            typer.echo("⚠️ Analysis completed with warnings/info issues")
+            raise typer.Exit(1)  # Exit code 1 for warnings/info
+    else:
+        typer.echo("✅ Analysis completed successfully - no issues found!")
+        raise typer.Exit(0)  # Exit code 0 for no issues
 
 
 @app.command()
