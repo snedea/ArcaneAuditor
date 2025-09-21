@@ -111,12 +111,14 @@ async def serve_frontend():
             body { 
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
                 width: 100%;
-                max-width: none; 
+                max-width: 100vw; 
                 margin: 0; 
                 padding: 20px; 
                 background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
                 color: #d1d9e6;
                 min-height: 100vh;
+                box-sizing: border-box;
+                overflow-x: hidden;
             }
             .header { 
                 text-align: center; 

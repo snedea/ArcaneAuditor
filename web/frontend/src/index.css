@@ -22,14 +22,17 @@ body {
   min-height: 100vh;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   color: #d1d9e6;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 #root {
   width: 100%;
-  max-width: none;
-  margin: 0;
+  max-width: 100vw;
+  margin: 0 auto;
   padding: 0;
   text-align: center;
+  box-sizing: border-box;
 }
 
 /* Dark theme - optimized for developer tools */
@@ -37,8 +40,8 @@ body {
 /* Custom styles for Arcane Auditor - Desktop Optimized */
 .app {
   width: 100%;
-  max-width: none;
-  margin: 0;
+  max-width: 100vw;
+  margin: 0 auto;
   padding: 20px;
   color: #d1d9e6;
   background: rgba(255, 255, 255, 0.05);
@@ -46,6 +49,7 @@ body {
   border: none;
   backdrop-filter: blur(10px);
   box-shadow: none;
+  box-sizing: border-box;
 }
 
 .app h1 {
@@ -85,6 +89,7 @@ body {
 
 .results {
   width: 100%;
+  max-width: 100%;
   margin-top: 20px;
   padding: 20px;
   background: #2d3748;
@@ -92,6 +97,8 @@ body {
   text-align: left;
   color: #d1d9e6;
   border: 1px solid #4a5568;
+  box-sizing: border-box;
+  overflow-x: auto;
 }
 
 .finding {
@@ -411,11 +418,13 @@ input[type="text"] {
 
 .file-group {
   width: 100%;
+  max-width: 100%;
   margin-bottom: 1rem;
   border: 1px solid #4a5568;
   border-radius: 8px;
   overflow: hidden;
   background: #2d3748;
+  box-sizing: border-box;
 }
 
 .file-header {
