@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Generator, Dict, Any, List, Tuple
 from dataclasses import dataclass
-from ..models import ProjectContext, PMDModel, PODModel
+from ..models import ProjectContext, PMDModel, PodModel
 import re
 
 @dataclass
@@ -212,14 +212,14 @@ class Rule(ABC):
             return content[2:-2].strip()
         return content
     
-    # POD-specific utility methods
+    # Pod-specific utility methods
     
-    def find_pod_script_fields(self, pod_model: PODModel) -> List[Tuple[str, str, str, int]]:
+    def find_pod_script_fields(self, pod_model: PodModel) -> List[Tuple[str, str, str, int]]:
         """
-        Find all script content within POD endpoints and template widgets.
+        Find all script content within Pod endpoints and template widgets.
         
         Args:
-            pod_model: The POD model to search
+            pod_model: The Pod model to search
             
         Returns:
             List of tuples containing:
@@ -282,11 +282,11 @@ class Rule(ABC):
         return script_fields
     
     def _calculate_pod_script_line_offset(self, file_content: str, script_content: str) -> int:
-        """Calculate the line number where script content starts in a POD file."""
+        """Calculate the line number where script content starts in a Pod file."""
         if not file_content or not script_content:
             return 1
         
-        # For PODs, this is more complex since scripts can be in various places
+        # For Pods, this is more complex since scripts can be in various places
         # For now, return a basic line number - this could be enhanced later
         lines = file_content.split('\n')
         for i, line in enumerate(lines):
@@ -294,12 +294,12 @@ class Rule(ABC):
                 return i + 1
         return 1
     
-    def find_pod_widgets(self, pod_model: PODModel) -> List[Tuple[str, Dict[str, Any]]]:
+    def find_pod_widgets(self, pod_model: PodModel) -> List[Tuple[str, Dict[str, Any]]]:
         """
-        Find all widgets in a POD template with their paths.
+        Find all widgets in a Pod template with their paths.
         
         Args:
-            pod_model: The POD model to search
+            pod_model: The Pod model to search
             
         Returns:
             List of tuples containing:

@@ -107,8 +107,8 @@ class PMDModel(BaseModel):
         """Set the cached script fields."""
         self._cached_script_fields = script_fields
 
-class PODSeed(BaseModel):
-    """Represents the seed configuration within a POD file."""
+class PodSeed(BaseModel):
+    """Represents the seed configuration within a Pod file."""
     parameters: Optional[List[str]] = Field(default_factory=list)
     endPoints: Optional[List[dict]] = Field(default_factory=list)
     template: Optional[Dict[str, Any]] = Field(default_factory=dict)
@@ -119,10 +119,10 @@ class PODSeed(BaseModel):
     # - Any widget that can have children arrays with nested widgets
     # Additional seed properties can be added as needed
 
-class PODModel(BaseModel):
+class PodModel(BaseModel):
     """Represents the structure of a .pod file."""
     podId: str
-    seed: PODSeed
+    seed: PodSeed
     file_path: str = Field(..., exclude=True)
     source_content: str = Field(default="", exclude=True)
     
@@ -244,7 +244,7 @@ class ProjectContext:
         self.pmds: Dict[str, PMDModel] = {}          # Maps pageId to PMDModel
         self.scripts: Dict[str, ScriptModel] = {}    # Maps file name to ScriptModel
         self.amd: AMDModel = None          # Assumes one .amd file per app
-        self.pods: Dict[str, PODModel] = {}          # Maps podId to PODModel
+        self.pods: Dict[str, PodModel] = {}          # Maps podId to PodModel
         self.smds: Dict[str, SMDModel] = {}          # Maps smdId to SMDModel
         self.parsing_errors: List[str] = []          # To track files that failed validation
 
@@ -256,8 +256,8 @@ class ProjectContext:
         """Retrieves a PMD model by its pageId."""
         return self.pmds.get(page_id)
     
-    def get_pod_by_id(self, pod_id: str) -> Optional[PODModel]:
-        """Retrieves a POD model by its podId."""
+    def get_pod_by_id(self, pod_id: str) -> Optional[PodModel]:
+        """Retrieves a Pod model by its podId."""
         return self.pods.get(pod_id)
     
     def get_smd_by_id(self, smd_id: str) -> Optional[SMDModel]:

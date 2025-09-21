@@ -8,7 +8,7 @@ Note: Basic structural validation (missing required fields, etc.) is handled by 
 This tool focuses on structure and naming compliance for code reviewers.
 """
 from ...base import Rule, Finding
-from ....models import PMDModel, PODModel
+from ....models import PMDModel, PodModel
 from typing import Dict, Any, List
 
 
@@ -44,7 +44,7 @@ class WidgetIdRequiredRule(Rule):
         if pmd_model.presentation.title and isinstance(pmd_model.presentation.title, dict):
             yield from self._check_widget_id(pmd_model.presentation.title, pmd_model.file_path, pmd_model, 'title', "title", 0)
 
-    def visit_pod(self, pod_model: PODModel):
+    def visit_pod(self, pod_model: PodModel):
         """Analyzes the template widgets within a POD model."""
         if not pod_model.seed.template:
             return

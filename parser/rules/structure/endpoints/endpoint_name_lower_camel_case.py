@@ -2,7 +2,7 @@ from ...base import Rule, Finding
 from ...base_validation import ValidationRule
 from ...common_validations import validate_lower_camel_case
 from ...line_number_utils import LineNumberUtils
-from ....models import PMDModel, PODModel
+from ....models import PMDModel, PodModel
 from typing import Dict, Any, List
 
 
@@ -71,7 +71,7 @@ class EndpointNameLowerCamelCaseRule(ValidationRule):
         
         return 1  # Default fallback
     
-    def get_entities_to_validate_pod(self, pod_model: PODModel) -> List[Dict[str, Any]]:
+    def get_entities_to_validate_pod(self, pod_model: PodModel) -> List[Dict[str, Any]]:
         """Get all endpoints from POD seed to validate."""
         entities = []
         

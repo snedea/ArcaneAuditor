@@ -1,5 +1,5 @@
 from ...base import Rule, Finding
-from ....models import PMDModel, PODModel
+from ....models import PMDModel, PodModel
 from typing import Dict, Any, List
 
 
@@ -27,7 +27,7 @@ class StringBooleanRule(Rule):
         # Check the raw source content for string boolean patterns
         yield from self._check_source_content_for_string_booleans(pmd_model)
 
-    def visit_pod(self, pod_model: PODModel):
+    def visit_pod(self, pod_model: PodModel):
         """Analyzes the POD model for string boolean values."""
         if not pod_model.source_content:
             return

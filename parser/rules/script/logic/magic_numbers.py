@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel, PODModel
+from ....models import ProjectContext, PMDModel, PodModel
 
 
 class ScriptMagicNumberRule(Rule):
@@ -31,7 +31,7 @@ class ScriptMagicNumberRule(Rule):
             if field_value and len(field_value.strip()) > 0:
                 yield from self._check_magic_numbers(field_value, field_name, pmd_model.file_path, line_offset)
 
-    def visit_pod(self, pod_model: PODModel):
+    def visit_pod(self, pod_model: PodModel):
         """Analyzes script fields in a POD model."""
         script_fields = self.find_pod_script_fields(pod_model)
         

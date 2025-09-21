@@ -1,7 +1,7 @@
 from typing import Generator, List, Optional, Dict, Set, Tuple
 from lark import Tree
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel, PODModel
+from ....models import ProjectContext, PMDModel, PodModel
 from ...line_number_utils import LineNumberUtils
 
 

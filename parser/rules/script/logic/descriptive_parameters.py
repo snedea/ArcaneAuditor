@@ -1,6 +1,6 @@
 from typing import Generator, Set, Dict, List
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel, PODModel, ScriptModel
+from ....models import ProjectContext, PMDModel, PodModel, ScriptModel
 import re
 
 

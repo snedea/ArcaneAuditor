@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel, PODModel
+from ....models import ProjectContext, PMDModel, PodModel
 
 
 class ScriptUnusedVariableRule(Rule):
@@ -38,7 +38,7 @@ class ScriptUnusedVariableRule(Rule):
                     is_global_scope, global_functions, line_offset
                 )
 
-    def visit_pod(self, pod_model: PODModel):
+    def visit_pod(self, pod_model: PodModel):
         """Analyzes script fields in a POD model."""
         script_fields = self.find_pod_script_fields(pod_model)
         

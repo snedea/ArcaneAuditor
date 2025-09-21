@@ -7,7 +7,7 @@
 Arcane Auditor channels ancient wisdom through **29 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
 
 - **📄 PMD Files**: Page definitions with embedded scripts, endpoints, and presentation layers
-- **🧩 POD Files**: Portable Object Definitions with template widgets and endpoint configurations  
+- **🧩 Pod Files**: Pod files with template widgets and endpoint configurations  
 - **📜 Script Files**: Standalone .script files with function libraries and utilities
 
 **Rule Categories:**
@@ -50,7 +50,7 @@ cd arcane-auditor
 uv sync
 
 # Run analysis on a Workday Extend application (CLI)
-# Supports PMD, POD, and Script files
+# Supports PMD, Pod, and Script files
 uv run main.py review-app your-app.zip
 ```
 

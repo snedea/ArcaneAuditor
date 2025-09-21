@@ -1,6 +1,6 @@
 from ...base import Rule, Finding
 from ...line_number_utils import LineNumberUtils
-from ....models import PMDModel, PODModel
+from ....models import PMDModel, PodModel
 from typing import Dict, Any, List
 
 
@@ -35,7 +35,7 @@ class EndpointBaseUrlTypeRule(Rule):
                     if isinstance(endpoint, dict):
                         yield from self._check_endpoint_url(endpoint, pmd_model, 'outbound', i)
 
-    def visit_pod(self, pod_model: PODModel):
+    def visit_pod(self, pod_model: PodModel):
         """Analyzes endpoints in POD seed configuration."""
         # Check POD endpoints for URL violations
         if pod_model.seed.endPoints:

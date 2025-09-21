@@ -1,6 +1,6 @@
 from ...base import Rule, Finding
 from ...line_number_utils import LineNumberUtils
-from ....models import PMDModel, PODModel
+from ....models import PMDModel, PodModel
 from typing import Dict, Any, List
 
 
@@ -35,7 +35,7 @@ class EndpointFailOnStatusCodesRule(Rule):
                     if isinstance(endpoint, dict):
                         yield from self._check_endpoint_fail_on_status_codes(endpoint, pmd_model, 'outbound', i)
 
-    def visit_pod(self, pod_model: PODModel):
+    def visit_pod(self, pod_model: PodModel):
         """Analyzes endpoints in POD seed configuration."""
         # Check POD endpoints (assuming they're inbound-type based on user guidance)
         if pod_model.seed.endPoints:

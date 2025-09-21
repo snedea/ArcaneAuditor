@@ -148,7 +148,7 @@ class CustomScriptSecurityRule(Rule):
             yield from self._check_security(script_model.source, script_model.file_path, 1)
         
         # Note: The system automatically discovers script content in all supported file types.
-        # When POD files and other script-containing files are added, your rule will
+        # When Pod files and other script-containing files are added, your rule will
         # automatically analyze them without requiring code changes!
     
     def _check_security(self, script_content: str, file_path: str, line_offset: int) -> Generator[Finding, None, None]:

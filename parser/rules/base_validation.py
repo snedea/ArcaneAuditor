@@ -4,7 +4,7 @@ Enhanced base class for validation rules with common validation patterns.
 from abc import ABC, abstractmethod
 from typing import Generator, List, Dict, Any
 from .base import Rule, Finding
-from ..models import PMDModel, PODModel
+from ..models import PMDModel, PodModel
 
 
 class ValidationRule(Rule, ABC):
@@ -47,12 +47,12 @@ class ValidationRule(Rule, ABC):
         return 1
     
     def analyze(self, context):
-        """Main entry point - analyze all PMD models and POD models in the context."""
+        """Main entry point - analyze all PMD models and Pod models in the context."""
         # Analyze PMD models
         for pmd_model in context.pmds.values():
             yield from self.visit_pmd(pmd_model)
         
-        # Analyze POD models
+        # Analyze Pod models
         for pod_model in context.pods.values():
             yield from self.visit_pod(pod_model)
     
@@ -77,20 +77,20 @@ class ValidationRule(Rule, ABC):
                         file_path=pmd_model.file_path
                     )
     
-    def get_entities_to_validate_pod(self, pod_model: PODModel) -> List[Dict[str, Any]]:
+    def get_entities_to_validate_pod(self, pod_model: PodModel) -> List[Dict[str, Any]]:
         """
-        Return a list of entities to validate from a POD model.
-        Override this method to provide POD-specific entity extraction.
-        Default implementation returns empty list (no POD validation).
+        Return a list of entities to validate from a Pod model.
+        Override this method to provide Pod-specific entity extraction.
+        Default implementation returns empty list (no Pod validation).
         """
         return []
     
-    def get_line_number_pod(self, pod_model: PODModel, entity_info: Dict[str, Any]) -> int:
-        """Get line number for the entity in a POD file. Override for custom line tracking."""
+    def get_line_number_pod(self, pod_model: PodModel, entity_info: Dict[str, Any]) -> int:
+        """Get line number for the entity in a Pod file. Override for custom line tracking."""
         return 1
     
-    def visit_pod(self, pod_model: PODModel):
-        """Validate entities in the POD model."""
+    def visit_pod(self, pod_model: PodModel):
+        """Validate entities in the Pod model."""
         entities = self.get_entities_to_validate_pod(pod_model)
         
         for entity_info in entities:

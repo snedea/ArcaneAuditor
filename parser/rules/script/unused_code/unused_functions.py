@@ -1,6 +1,6 @@
 from typing import Generator, Set, Dict, List
 from ...base import Rule, Finding
-from ....models import ProjectContext, PMDModel, PODModel
+from ....models import ProjectContext, PMDModel, PodModel
 
 
 class ScriptUnusedFunctionRule(Rule):
@@ -42,7 +42,7 @@ class ScriptUnusedFunctionRule(Rule):
                     all_declared_functions, all_function_calls
                 )
 
-    def visit_pod(self, pod_model: PODModel):
+    def visit_pod(self, pod_model: PodModel):
         """Analyzes script fields in a POD model for unused functions."""
         script_fields = self.find_pod_script_fields(pod_model)
         
@@ -222,7 +222,7 @@ class ScriptUnusedFunctionRule(Rule):
         _search_function_calls(ast)
         return function_calls
 
-    def _build_pod_function_registry(self, pod_model: PODModel) -> Dict[str, Dict]:
+    def _build_pod_function_registry(self, pod_model: PodModel) -> Dict[str, Dict]:
         """Build a registry of all functions declared in the POD model."""
         function_registry = {}
         script_fields = self.find_pod_script_fields(pod_model)
@@ -236,7 +236,7 @@ class ScriptUnusedFunctionRule(Rule):
         
         return function_registry
 
-    def _build_pod_function_call_registry(self, pod_model: PODModel) -> Set[str]:
+    def _build_pod_function_call_registry(self, pod_model: PodModel) -> Set[str]:
         """Build a registry of all function calls in the POD model."""
         all_function_calls = set()
         script_fields = self.find_pod_script_fields(pod_model)
