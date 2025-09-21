@@ -366,7 +366,7 @@ uv run pytest tests/test_all_script_rules.py
 uv run pytest tests/test_all_structure_rules.py
 uv run pytest tests/test_rules_engine.py
 
-# Test with sample data
+# Test with your own Workday Extend application
 uv run main.py review-app myapp_abcdef.zip
 ```
 
@@ -414,7 +414,6 @@ Create custom configurations in JSON format:
 
 ### Quick Reference
 
-- **[📊 Sample Applications](samples/README.md)**: Test files and example Workday Extend applications
 - **[📄 License](LICENSE)**: MIT License details and usage rights
 
 ## 📄 License
