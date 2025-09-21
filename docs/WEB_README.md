@@ -8,7 +8,7 @@ A mystical web-based interface for the Arcane Auditor, designed for the Develope
 
 ```bash
 # Run the startup script (handles everything automatically)
-python web_server_start.py
+python web/start_web_interface.py
 ```
 
 The server will be available at: http://localhost:8000

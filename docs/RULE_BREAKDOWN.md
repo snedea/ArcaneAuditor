@@ -1,8 +1,8 @@
 # Arcane Auditor Rules Grimoire 📜
 
-*Ancient wisdom distilled into 29 mystical validation rules*
+*Ancient wisdom distilled into 30 mystical validation rules*
 
-This grimoire provides a comprehensive overview of all **29 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify. These rules help catch code quality issues, style violations, and structural problems that compilers can't detect but are important for code reviewers to identify.
+This grimoire provides a comprehensive overview of all **30 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify. These rules help catch code quality issues, style violations, and structural problems that compilers can't detect but are important for code reviewers to identify.
 
 ## Rule Categories
 
@@ -11,7 +11,7 @@ The rules are organized into four main categories:
 - **Script Rules (20 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
 - **Endpoint Rules (4 Rules)**: API endpoint validation and compliance for PMD and Pod files
 - **Structure Rules (4 Rules)**: Widget and structural validation for PMD and Pod files
-- **PMD Rules (1 Rule)**: PMD-specific file structure and organization validation
+- **PMD Rules (2 Rules)**: PMD-specific file structure, organization, and security validation
 
 ---
 
@@ -1061,7 +1061,7 @@ function processData() {
 
 ---
 
-## PMD Rules (1 Rule)
+## PMD Rules (2 Rules)
 
 ### PMDSectionOrderingRule - PMD Section Ordering Rule
 
@@ -1160,15 +1160,67 @@ Each rule supports:
 }
 ```
 
+### PMDSecurityDomainRule - PMD Security Domain Rule
+
+**Severity:** SEVERE
+**Description:** Ensures PMD pages have at least one security domain defined (excludes microConclusion and error pages)
+**Applies to:** PMD file security configuration
+
+**What it catches:**
+
+- PMD pages missing `securityDomains` list
+- Empty `securityDomains` arrays
+- Enforces security best practices for Workday applications
+
+**Smart Exclusions:**
+
+- **MicroConclusion pages**: Pages with `presentation.microConclusion: true` are excluded
+- **Error pages**: Pages whose ID appears in SMD `errorPageConfigurations` are excluded
+- Only enforces security domains on pages that actually need them
+
+**Example violations:**
+
+```javascript
+// ❌ Missing security domains
+{
+  "id": "myPage",
+  "presentation": {
+    "body": { ... }
+  }
+}
+
+// ✅ Proper security domains
+{
+  "id": "myPage", 
+  "securityDomains": ["workday-common"],
+  "presentation": {
+    "body": { ... }
+  }
+}
+
+// ✅ MicroConclusion page (excluded)
+{
+  "id": "microPage",
+  "presentation": {
+    "microConclusion": true,
+    "body": { ... }
+  }
+}
+```
+
+**Configuration:**
+
+Currently uses strict mode - all PMD pages require security domains unless specifically excluded.
+
 ---
 
 ## Summary
 
-The Arcane Auditor channels mystical powers through **29 rules** across **4 categories**:
+The Arcane Auditor channels mystical powers through **30 rules** across **4 categories**:
 
 - ✅ **20 Script Rules** - Code quality for PMD and standalone scripts
 - ✅ **4 Endpoint Rules** - API validation and compliance
 - ✅ **4 Structure Rules** - Widget and component validation
-- ✅ **1 PMD Rule** - File organization and structure
+- ✅ **2 PMD Rules** - File organization, structure, and security
 
 These rules help maintain consistent, high-quality Workday Extend applications by catching issues that compilers aren't designed to catch, but are important for maintainability, performance, and team collaboration.

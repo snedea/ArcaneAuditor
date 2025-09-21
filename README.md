@@ -1,10 +1,10 @@
 ![Arcane Auditor Logo](assets/arcane-auditor-logo.png)
 
-*A mystical code review tool for Workday Extend applications that validates PMD, POD, and Script syntax, structure compliance, and coding best practices.*
+*A mystical code review tool for Workday Extend applications that validates PMD, Pod, and Script syntax, structure compliance, and coding best practices.*
 
 ## 🎯 Overview
 
-Arcane Auditor channels ancient wisdom through **29 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
+Arcane Auditor channels ancient wisdom through **30 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
 
 - **📄 PMD Files**: Page definitions with embedded scripts, endpoints, and presentation layers
 - **🧩 Pod Files**: Pod files with template widgets and endpoint configurations  
@@ -14,7 +14,7 @@ Arcane Auditor channels ancient wisdom through **29 comprehensive validation rul
 - **Script Quality (20 Rules)**: Script syntax, complexity, naming conventions, unused code detection
 - **Endpoint Validation (4 Rules)**: API endpoint compliance, error handling, naming conventions
 - **Structure Validation (4 Rules)**: Widget configurations, required fields, component validation
-- **PMD Organization (1 Rule)**: File structure and section ordering for consistency
+- **PMD Organization (2 Rules)**: File structure, section ordering, and security domain validation
 
 ## 🛡️ Update-Safe Configuration System
 
@@ -193,6 +193,7 @@ arcane-auditor/
 **Core Rules** (`parser/rules/script/core/`)
 
 - **ScriptVarUsageRule**: Var Usage Rule - Prefer `let`/`const` over `var`
+- **ScriptFileVarUsageRule**: File Var Usage Rule - Script file variable usage patterns
 - **ScriptConsoleLogRule**: Console Log Rule - Avoid console statements in production
 - **ScriptVariableNamingRule**: Variable Naming Rule - Use lowerCamelCase convention
 
@@ -201,17 +202,22 @@ arcane-auditor/
 - **ScriptNestingLevelRule**: Nesting Level Rule - Limit code nesting depth
 - **ScriptComplexityRule**: Cyclomatic Complexity Rule - Control function complexity
 - **ScriptLongFunctionRule**: Long Function Rule - Limit function length
+- **ScriptFunctionParameterCountRule**: Function Parameter Count Rule - Limit function parameters
 
 **Unused Code Rules** (`parser/rules/script/unused_code/`)
 
 - **ScriptUnusedVariableRule**: Unused Variables Rule - Remove unused variables
 - **ScriptUnusedFunctionParametersRule**: Unused Parameters Rule - Remove unused function parameters
+- **ScriptUnusedFunctionRule**: Unused Functions Rule - Remove unused functions
+- **ScriptUnusedScriptIncludesRule**: Unused Script Includes Rule - Remove unused script imports
 - **ScriptEmptyFunctionRule**: Empty Functions Rule - Remove empty functions
 
 **Logic Rules** (`parser/rules/script/logic/`)
 
 - **ScriptMagicNumberRule**: Magic Numbers Rule - Use named constants
 - **ScriptNullSafetyRule**: Null Safety Rule - Proper null checking
+- **ScriptDescriptiveParameterRule**: Descriptive Parameters Rule - Use descriptive parameter names
+- **ScriptFunctionalMethodUsageRule**: Functional Method Usage Rule - Prefer functional programming methods
 - **ScriptVerboseBooleanCheckRule**: Verbose Boolean Rule - Simplify boolean expressions
 - **ScriptFunctionReturnConsistencyRule**: Return Consistency Rule - Consistent return patterns
 - **ScriptStringConcatRule**: String Concatenation Rule - Use template literals instead of string concatenation
@@ -228,12 +234,19 @@ arcane-auditor/
 - **EndpointNameLowerCamelCaseRule**: Endpoint Name Lower Camel Case Rule - Endpoint names follow convention
 - **EndpointOnSendSelfDataRule**: Endpoint On Send Self Data Rule - Avoid self.data anti-pattern
 - **EndpointFailOnStatusCodesRule**: Endpoint Fail On Status Codes Rule - Proper error handling
-- **EndpointUrlBaseUrlTypeRule**: Endpoint URL Base URL Type Rule - Consistent URL configuration
+- **EndpointBaseUrlTypeRule**: Endpoint Base URL Type Rule - Consistent URL configuration
 
 **Validation Rules** (`parser/rules/structure/validation/`)
 
 - **FooterPodRequiredRule**: Footer Pod Required Rule - Footer must use pod structure
 - **StringBooleanRule**: String Boolean Rule - Use boolean values, not strings
+
+#### PMD Rules
+
+**Organization Rules** (`parser/rules/structure/validation/`)
+
+- **PMDSectionOrderingRule**: PMD Section Ordering Rule - Consistent file structure and section ordering
+- **PMDSecurityDomainRule**: PMD Security Domain Rule - Ensure security domains are defined (with smart exclusions)
 
 #### Custom Rules
 

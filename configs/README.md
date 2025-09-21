@@ -7,7 +7,7 @@ This directory contains pre-configured spell sets for the Arcane Auditor. Choose
 ## Available Configurations
 
 ### 🚀 **default.json** (Recommended)
-- **All 29 rules enabled** with their default settings
+- **All 30 rules enabled** with their default settings
 - Includes comprehensive analysis for PMD, Pod, and standalone .script files
 - Best for teams that want comprehensive code quality analysis
 - Good starting point for most users
@@ -24,7 +24,7 @@ This directory contains pre-configured spell sets for the Arcane Auditor. Choose
 - **Note:** PMDSectionOrderingRule is disabled (style preference)
 
 ### 🎯 **comprehensive.json** (Production Ready)
-- **All 29 rules enabled** with optimized severity levels
+- **All 30 rules enabled** with optimized severity levels
 - **ERROR severity** for critical issues (console.log, null safety, etc.)
 - **WARNING severity** for structure issues (PMD section ordering)
 - **INFO severity** for preferences (string booleans, footer pods)
