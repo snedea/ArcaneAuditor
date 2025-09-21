@@ -71,7 +71,31 @@ pip install uv
 
 ### Installation
 
-#### **Option A: Using UV (Recommended)**
+#### **Option A: Download Release (Easiest)**
+
+```bash
+# Download the latest release ZIP from GitHub
+# Visit: https://github.com/Developers-and-Dragons/ArcaneAuditor/releases
+# Download arcane-auditor-v0.1.0.zip and extract it
+
+# Or using command line (Windows PowerShell)
+Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.1.0.zip" -OutFile "arcane-auditor.zip"
+Expand-Archive -Path "arcane-auditor.zip" -DestinationPath "."
+cd ArcaneAuditor-0.1.0
+
+# Or using command line (macOS)
+curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.1.0.zip"
+unzip arcane-auditor.zip
+cd ArcaneAuditor-0.1.0
+
+# Install dependencies (UV handles Python version and virtual environment automatically)
+uv sync
+
+# Run analysis on a Workday Extend application
+uv run main.py review-app your-app.zip
+```
+
+#### **Option B: Git Clone (For Developers)**
 
 ```bash
 # Clone the repository (SSH - if you have GitHub SSH keys)
@@ -89,7 +113,7 @@ uv sync
 uv run main.py review-app your-app.zip
 ```
 
-#### **Option B: Using Traditional pip**
+#### **Option C: Using Traditional pip**
 
 ```bash
 # Clone the repository
@@ -102,7 +126,7 @@ python -m venv .venv
 # Activate virtual environment
 # Windows:
 .venv\Scripts\activate
-# macOS/Linux:
+# macOS:
 source .venv/bin/activate
 
 # Install dependencies
