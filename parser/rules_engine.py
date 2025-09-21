@@ -1,6 +1,7 @@
 import inspect
 import pkgutil
 from typing import List, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # --- Local Imports ---
 from .models import ProjectContext
@@ -82,14 +83,47 @@ class RulesEngine:
             return []
             
         print(f"\nRunning {len(self.rules)} rule(s)...")
-        for rule in self.rules:
-            try:
-                # The 'analyze' method is a generator, so we consume it into a list.
-                findings_from_rule = list(rule.analyze(context))
-                if findings_from_rule:
-                    all_findings.extend(findings_from_rule)
-            except Exception as e:
-                print(f"Error running rule {rule.__class__.__name__}: {e}")
+        
+        # For small rule counts, use serial processing to avoid overhead
+        if len(self.rules) <= 5:
+            print("Using serial rule execution (small rule count)")
+            for rule in self.rules:
+                try:
+                    # The 'analyze' method is a generator, so we consume it into a list.
+                    findings_from_rule = list(rule.analyze(context))
+                    if findings_from_rule:
+                        all_findings.extend(findings_from_rule)
+                except Exception as e:
+                    print(f"Rule {rule.__class__.__name__} failed: {e}")
+        else:
+            # Use parallel processing for larger rule sets
+            max_workers = min(8, len(self.rules))  # Cap at 8 workers for rules
+            print(f"Using parallel rule execution ({max_workers} workers for {len(self.rules)} rules)")
+            
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Submit all rule execution tasks
+                future_to_rule = {
+                    executor.submit(self._run_rule_safe, rule, context): rule
+                    for rule in self.rules
+                }
+                
+                # Collect results as they complete
+                for future in as_completed(future_to_rule):
+                    rule = future_to_rule[future]
+                    try:
+                        findings_from_rule = future.result()
+                        if findings_from_rule:
+                            all_findings.extend(findings_from_rule)
+                    except Exception as e:
+                        print(f"Error running rule {rule.__class__.__name__}: {e}")
         
         print(f"Analysis complete. Found {len(all_findings)} issue(s).")
         return all_findings
+    
+    def _run_rule_safe(self, rule: Rule, context: ProjectContext) -> List[Finding]:
+        """Thread-safe wrapper for running a single rule."""
+        try:
+            return list(rule.analyze(context))
+        except Exception as e:
+            print(f"Rule {rule.__class__.__name__} failed: {e}")
+            return []

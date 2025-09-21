@@ -4,6 +4,7 @@ Parser to convert source files into PMD models for analysis.
 import json
 from pathlib import Path
 from typing import Dict, Any
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation, PodModel, PodSeed, SMDModel
 from .pmd_preprocessor import preprocess_pmd_content
 
@@ -17,6 +18,7 @@ class ModelParser:
     def parse_files(self, source_files_map: Dict[str, Any]) -> ProjectContext:
         """
         Parse source files into a ProjectContext with populated models.
+        Uses parallel processing for improved performance with large applications.
         
         Args:
             source_files_map: Dictionary mapping file paths to SourceFile objects
@@ -26,14 +28,70 @@ class ModelParser:
         """
         context = ProjectContext()
         
-        for file_path, source_file in source_files_map.items():
-            try:
-                self._parse_single_file(file_path, source_file, context)
-            except Exception as e:
-                print(f"Failed to parse {file_path}: {e}")
-                context.parsing_errors.append(f"{file_path}: {e}")
+        # For small numbers of files, use serial processing to avoid overhead
+        if len(source_files_map) <= 3:
+            print("Using serial file parsing (small file count)")
+            for file_path, source_file in source_files_map.items():
+                try:
+                    self._parse_single_file(file_path, source_file, context)
+                except Exception as e:
+                    print(f"Failed to parse {file_path}: {e}")
+                    context.parsing_errors.append(f"{file_path}: {e}")
+        else:
+            # Use parallel processing for larger applications
+            max_workers = min(10, len(source_files_map))  # Cap at 10 workers
+            print(f"Using parallel file parsing ({max_workers} workers for {len(source_files_map)} files)")
+            
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Submit all parsing tasks
+                future_to_file = {
+                    executor.submit(self._parse_single_file_safe, file_path, source_file): file_path
+                    for file_path, source_file in source_files_map.items()
+                }
+                
+                # Collect results as they complete
+                for future in as_completed(future_to_file):
+                    file_path = future_to_file[future]
+                    try:
+                        result = future.result()
+                        if result:
+                            # Merge the result into the main context
+                            parsed_context, error = result
+                            self._merge_context(context, parsed_context)
+                            if error:
+                                context.parsing_errors.append(f"{file_path}: {error}")
+                    except Exception as e:
+                        print(f"Failed to parse {file_path}: {e}")
+                        context.parsing_errors.append(f"{file_path}: {e}")
         
         return context
+    
+    def _parse_single_file_safe(self, file_path: str, source_file: Any):
+        """Thread-safe version of _parse_single_file that returns a new context."""
+        try:
+            temp_context = ProjectContext()
+            self._parse_single_file(file_path, source_file, temp_context)
+            return temp_context, None
+        except Exception as e:
+            return None, str(e)
+    
+    def _merge_context(self, main_context: ProjectContext, temp_context: ProjectContext):
+        """Merge a temporary context into the main context (thread-safe)."""
+        # Merge PMDs
+        main_context.pmds.update(temp_context.pmds)
+        
+        # Merge Scripts
+        main_context.scripts.update(temp_context.scripts)
+        
+        # Merge Pods
+        main_context.pods.update(temp_context.pods)
+        
+        # Merge SMDs
+        main_context.smds.update(temp_context.smds)
+        
+        # Handle AMD (only one expected)
+        if temp_context.amd:
+            main_context.amd = temp_context.amd
     
     def _parse_single_file(self, file_path: str, source_file: Any, context: ProjectContext):
         """Parse a single source file based on its extension."""
