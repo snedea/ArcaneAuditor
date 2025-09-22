@@ -436,10 +436,6 @@ Create custom configurations in JSON format:
 - **[👥 User Configuration Examples](user_configs/README.md)**: Team and personal configuration templates
 - **[🏠 Local Configuration Guide](local_configs/README.md)**: Personal overrides and local settings
 
-### Quick Reference
-
-- **[📄 License](LICENSE)**: MIT License details and usage rights
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
