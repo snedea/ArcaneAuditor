@@ -11,6 +11,11 @@ class WidgetIdLowerCamelCaseRule(ValidationRule):
     DESCRIPTION = "Ensures widget IDs follow lowerCamelCase naming convention (style guide for PMD and POD files)"
     SEVERITY = "WARNING"
     
+    # Widget types that do not require or support ID values
+    WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {
+        'footer', 'item', 'group'
+    }
+    
     def __init__(self):
         super().__init__(
             self.__class__.__name__,
@@ -25,21 +30,26 @@ class WidgetIdLowerCamelCaseRule(ValidationRule):
         if not pmd_model.presentation:
             return entities
         
-        # Check body widgets recursively
-        if pmd_model.presentation.body and isinstance(pmd_model.presentation.body, dict):
-            children = pmd_model.presentation.body.get("children", [])
-            if isinstance(children, list):
-                for widget, path, index in self.traverse_widgets_recursively(children, "body.children"):
-                    if isinstance(widget, dict) and 'id' in widget:
-                        entities.append({
-                            'entity': widget,
-                            'entity_type': 'widget',
-                            'entity_name': widget.get('id', 'unknown'),
-                            'entity_context': 'body',
-                            'entity_path': path,
-                            'entity_index': index
-                        })
+        # Use generic traversal to handle different layout types
+        presentation_dict = pmd_model.presentation.__dict__
         
+        # Traverse all presentation sections (body, title, footer, etc.)
+        for section_name, section_data in presentation_dict.items():
+            if isinstance(section_data, dict):
+                # Use generic traversal for each section
+                for widget, path, index in self.traverse_presentation_structure(section_data, section_name):
+                    if isinstance(widget, dict) and 'id' in widget:
+                        # Skip widget types that are excluded from ID requirements
+                        widget_type = widget.get('type', 'unknown')
+                        if widget_type not in self.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT:
+                            entities.append({
+                                'entity': widget,
+                                'entity_type': 'widget',
+                                'entity_name': widget.get('id', 'unknown'),
+                                'entity_context': section_name,
+                                'entity_path': path,
+                                'entity_index': index
+                            })
         
         return entities
     

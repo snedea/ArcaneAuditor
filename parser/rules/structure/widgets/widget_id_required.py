@@ -16,6 +16,11 @@ class WidgetIdRequiredRule(Rule):
     
     DESCRIPTION = "Ensures all widgets have an 'id' field set (structure validation for PMD and POD files)"
     SEVERITY = "WARNING"
+    
+    # Widget types that do not require or support ID values
+    WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {
+        'footer', 'item', 'group'
+    }
 
     def analyze(self, context):
         """Main entry point - analyze all PMD models and POD models in the context."""
@@ -32,16 +37,15 @@ class WidgetIdRequiredRule(Rule):
         if not pmd_model.presentation:
             return
 
-        # Check body widgets recursively
-        if pmd_model.presentation.body and isinstance(pmd_model.presentation.body, dict):
-            children = pmd_model.presentation.body.get("children", [])
-            if isinstance(children, list):
-                for widget, path, index in self.traverse_widgets_recursively(children, "body.children"):
-                    yield from self._check_widget_id(widget, pmd_model.file_path, pmd_model, 'body', path, index)
-
-        # Check title widgets
-        if pmd_model.presentation.title and isinstance(pmd_model.presentation.title, dict):
-            yield from self._check_widget_id(pmd_model.presentation.title, pmd_model.file_path, pmd_model, 'title', "title", 0)
+        # Use generic traversal to handle different layout types
+        presentation_dict = pmd_model.presentation.__dict__
+        
+        # Traverse all presentation sections (body, title, footer, etc.)
+        for section_name, section_data in presentation_dict.items():
+            if isinstance(section_data, dict):
+                # Use generic traversal for each section
+                for widget, path, index in self.traverse_presentation_structure(section_data, section_name):
+                    yield from self._check_widget_id(widget, pmd_model.file_path, pmd_model, section_name, path, index)
 
     def visit_pod(self, pod_model: PodModel):
         """Analyzes the template widgets within a POD model."""
@@ -73,8 +77,8 @@ class WidgetIdRequiredRule(Rule):
 
         widget_type = widget.get('type', 'unknown')
 
-        # Skip title and footer widget types from requiring ID
-        if widget_type in ['title', 'footer']:
+        # Skip widget types that are excluded from ID requirements
+        if widget_type in self.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT:
             return
 
         if 'id' not in widget:

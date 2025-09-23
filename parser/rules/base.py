@@ -29,6 +29,7 @@ class Rule(ABC):
     ID: str = "RULE000"
     DESCRIPTION: str = "This is a base rule."
     SEVERITY: str = "INFO" # Can be 'INFO', 'WARNING', 'ERROR'
+    
 
     @abstractmethod
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
@@ -182,6 +183,74 @@ class Rule(ABC):
             if isinstance(children, list) and children:
                 children_path = f"{current_path}.children"
                 yield from self.traverse_widgets_recursively(children, children_path)
+
+    def traverse_presentation_structure(self, presentation_data: Dict[str, Any], base_path: str = "") -> Generator[Tuple[Dict[str, Any], str, int], None, None]:
+        """
+        Generic traversal of PMD presentation structure that handles different layout types.
+        
+        This method can handle:
+        - Standard sections with 'children' arrays
+        - areaLayout with 'primaryLayout' and 'secondaryLayout' 
+        - basicFormLayout with 'sections' containing widgets
+        - hubs and other layout types
+        - Any nested structure containing widgets
+        
+        Args:
+            presentation_data: The presentation dictionary to traverse
+            base_path: Base path for tracking widget locations
+            
+        Yields:
+            Tuples of (widget, full_path, index) for each widget found
+        """
+        if not isinstance(presentation_data, dict):
+            return
+            
+        # Known widget container field names
+        WIDGET_CONTAINERS = {
+            'children', 'primaryLayout', 'secondaryLayout', 'sections', 
+            'items', 'navigationTasks'
+        }
+        
+        # Known layout types that may contain nested structures
+        LAYOUT_TYPES = {
+            'areaLayout', 'basicFormLayout', 'section', 'hub',
+            'layout', 'panelList', 'grid', 'fieldSet'
+        }
+        
+        def _traverse_container(container_data: Any, container_path: str, container_name: str = ""):
+            """Recursively traverse a container that may hold widgets."""
+            if isinstance(container_data, list):
+                # Direct list of widgets
+                for i, item in enumerate(container_data):
+                    if isinstance(item, dict):
+                        item_path = f"{container_path}.{i}" if container_path else str(i)
+                        yield (item, item_path, i)
+                        
+                        # Recursively check for nested containers
+                        yield from _traverse_container(item, item_path)
+            elif isinstance(container_data, dict):
+                # Check if this is a widget with nested containers
+                widget_type = container_data.get('type', '')
+                
+                # Look for known widget container fields
+                for field_name in WIDGET_CONTAINERS:
+                    if field_name in container_data:
+                        field_data = container_data[field_name]
+                        field_path = f"{container_path}.{field_name}" if container_path else field_name
+                        yield from _traverse_container(field_data, field_path, field_name)
+                
+                # For layout types, also check for any array fields that might contain widgets
+                if widget_type in LAYOUT_TYPES:
+                    for key, value in container_data.items():
+                        if key not in WIDGET_CONTAINERS and isinstance(value, list):
+                            # Check if this list contains widget-like objects
+                            if value and isinstance(value[0], dict) and 'type' in value[0]:
+                                field_path = f"{container_path}.{key}" if container_path else key
+                                yield from _traverse_container(value, field_path, key)
+        
+        # Start traversal from the presentation data
+        yield from _traverse_container(presentation_data, base_path)
+    
     
     def _parse_script_content(self, script_content: str):
         """Parse script content using the PMD script grammar with caching support."""
