@@ -152,21 +152,26 @@ class ArcaneAuditorHandler(SimpleHTTPRequestHandler):
             # Try direct import first (if dependencies are available)
             from file_processing.processor import FileProcessor
             from parser.rules_engine import RulesEngine
+            from parser.app_parser import ModelParser
             
             # Process the file
             processor = FileProcessor()
-            pmd_model = processor.process_zip_file(zip_path)
+            source_files_map = processor.process_zip_file(zip_path)
+            
+            # Parse files into context
+            pmd_parser = ModelParser()
+            context = pmd_parser.parse_files(source_files_map)
             
             # Run rules
             rules_engine = RulesEngine()
-            findings = rules_engine.analyze_pmd_model(pmd_model)
+            findings = rules_engine.run(context)
             
             # Format results
             zip_filename = Path(zip_path).name
             result = {
                 'zip_filename': zip_filename,
-                'total_files': len(pmd_model.files) if hasattr(pmd_model, 'files') else 0,
-                'total_rules': len(rules_engine.get_enabled_rules()),
+                'total_files': len(source_files_map),
+                'total_rules': len(rules_engine.rules),
                 'findings': [
                     {
                         'file_path': finding.file_path,
@@ -199,21 +204,26 @@ import sys
 sys.path.insert(0, r"{project_root_str}")
 from file_processing.processor import FileProcessor
 from parser.rules_engine import RulesEngine
+from parser.app_parser import ModelParser
 import json
 
 # Process the file
 processor = FileProcessor()
-pmd_model = processor.process_zip_file(r"{zip_path_str}")
+source_files_map = processor.process_zip_file(r"{zip_path_str}")
+
+# Parse files into context
+pmd_parser = ModelParser()
+context = pmd_parser.parse_files(source_files_map)
 
 # Run rules
 rules_engine = RulesEngine()
-findings = rules_engine.analyze_pmd_model(pmd_model)
+findings = rules_engine.run(context)
 
 # Format results
 result = {{
     "zip_filename": r"{zip_filename_str}",
-    "total_files": len(pmd_model.files) if hasattr(pmd_model, "files") else 0,
-    "total_rules": len(rules_engine.get_enabled_rules()),
+    "total_files": len(source_files_map),
+    "total_rules": len(rules_engine.rules),
     "findings": [
         {{
             "file_path": finding.file_path,
