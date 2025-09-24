@@ -98,7 +98,6 @@ class RulesEngine:
         else:
             # Use parallel processing for larger rule sets
             max_workers = min(8, len(self.rules))  # Cap at 8 workers for rules
-            print(f"Using parallel rule execution ({max_workers} workers for {len(self.rules)} rules)")
             
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 # Submit all rule execution tasks
