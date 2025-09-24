@@ -56,6 +56,17 @@ class ArcaneAuditorApp {
         uploadArea.addEventListener('dragover', (e) => this.handleDragOver(e));
         uploadArea.addEventListener('dragleave', (e) => this.handleDragLeave(e));
         uploadArea.addEventListener('drop', (e) => this.handleDrop(e));
+
+        // File header clicks for expansion (event delegation)
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.file-header')) {
+                const fileHeader = e.target.closest('.file-header');
+                const filePath = fileHeader.getAttribute('data-file-path');
+                if (filePath) {
+                    this.toggleFileExpansion(filePath);
+                }
+            }
+        });
         
         // Button click handler
         const chooseFileBtn = document.getElementById('choose-file-btn');
@@ -366,7 +377,7 @@ class ArcaneAuditorApp {
                     
                     return `
                         <div class="file-group">
-                            <div class="file-header" onclick="app.toggleFileExpansion('${filePath}')">
+                            <div class="file-header" data-file-path="${filePath.replace(/"/g, '&quot;')}">
                                 <div class="file-header-left">
                                     ${isExpanded ? '▼' : '▶'}
                                     📄
