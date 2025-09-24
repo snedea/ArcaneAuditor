@@ -469,15 +469,23 @@ class ArcaneAuditorApp {
             alert('Download failed. Please try again.');
         }
     }
+
+    resetForNewUpload() {
+        this.hideAllSections();
+        document.getElementById('upload-section').style.display = 'block';
+        this.currentResult = null;
+        this.filteredFindings = [];
+        this.expandedFiles.clear();
+        
+        // Reset the file input to allow re-uploading the same file
+        const fileInput = document.getElementById('file-input');
+        fileInput.value = '';
+    }
 }
 
 // Global functions for HTML onclick handlers
 function resetInterface() {
-    app.hideAllSections();
-    document.getElementById('upload-section').style.display = 'block';
-    app.currentResult = null;
-    app.filteredFindings = [];
-    app.expandedFiles.clear();
+    app.resetForNewUpload();
 }
 
 function downloadResults() {
