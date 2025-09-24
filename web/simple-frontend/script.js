@@ -438,7 +438,8 @@ class ArcaneAuditorApp {
     // Utility methods
     getSeverityCounts(findings) {
         return findings.reduce((acc, finding) => {
-            acc[finding.severity] = (acc[finding.severity] || 0) + 1;
+            const severity = finding.severity || 'unknown';
+            acc[severity] = (acc[severity] || 0) + 1;
             return acc;
         }, {});
     }
@@ -452,6 +453,9 @@ class ArcaneAuditorApp {
     }
 
     getFileTypeFromPath(filePath) {
+        if (!filePath || typeof filePath !== 'string') {
+            return 'Unknown';
+        }
         const extension = filePath.split('.').pop()?.toLowerCase() || '';
         switch (extension) {
             case 'pmd': return 'PMD Files';
