@@ -175,6 +175,25 @@ The web interface provides:
 
 > **🌐 Web Interface Benefits:** Drag-and-drop file upload, interactive results, configuration management, beautiful mystical UI, and modern FastAPI backend with automatic API documentation!
 
+#### **API Endpoints**
+
+The FastAPI server provides the following REST API endpoints:
+
+- **`POST /api/upload`** - Upload ZIP file for analysis
+  - Returns: `{"job_id": "uuid", "status": "queued"}`
+  - Content-Type: `multipart/form-data`
+
+- **`GET /api/job/{job_id}`** - Get analysis job status and results
+  - Returns: `{"job_id": "uuid", "status": "completed|running|failed", "result": {...}}`
+
+- **`GET /api/download/{job_id}`** - Download analysis results as Excel file
+  - Returns: Excel file (.xlsx) with findings and summary
+
+- **`GET /api/health`** - Health check endpoint
+  - Returns: `{"status": "healthy"}`
+
+- **`GET /docs`** - Interactive API documentation (Swagger UI)
+
 ### Basic Usage
 
 ```bash
