@@ -163,60 +163,33 @@ class ScriptVerboseBooleanCheckRule(Rule):
         operator = condition_info['operator']
         comparison = condition_info['comparison']
         
-        # Check for verbose patterns
-        if operator == '==' and comparison == 'true':
-            if true_return == 'true' and false_return == 'false':
-                if pattern_type == "ternary":
-                    return {
-                        'pattern': f"{variable} == true ? true : false",
-                        'suggestion': f"{variable}"
-                    }
-                else:
-                    return {
-                        'pattern': f"if({variable} == true) return true else return false",
-                        'suggestion': f"return {variable}"
-                    }
+        # Only check for verbose patterns where we return boolean literals
+        if true_return not in ['true', 'false'] or false_return not in ['true', 'false']:
+            return None
         
-        elif operator == '!=' and comparison == 'true':
-            if true_return == 'false' and false_return == 'true':
-                if pattern_type == "ternary":
-                    return {
-                        'pattern': f"{variable} != true ? false : true",
-                        'suggestion': f"{variable}"
-                    }
-                else:
-                    return {
-                        'pattern': f"if({variable} != true) return false else return true",
-                        'suggestion': f"return {variable}"
-                    }
+        # Determine if this is a verbose pattern and what the suggestion should be
+        if true_return == 'true' and false_return == 'false':
+            # Pattern: if(condition) return true else return false
+            # Suggestion: just the condition
+            suggestion = variable
+        elif true_return == 'false' and false_return == 'true':
+            # Pattern: if(condition) return false else return true  
+            # Suggestion: negated condition
+            suggestion = f"!{variable}"
+        else:
+            # Not a verbose boolean pattern
+            return None
         
-        elif operator == '==' and comparison == 'false':
-            if true_return == 'false' and false_return == 'true':
-                if pattern_type == "ternary":
-                    return {
-                        'pattern': f"{variable} == false ? false : true",
-                        'suggestion': f"!{variable}"
-                    }
-                else:
-                    return {
-                        'pattern': f"if({variable} == false) return false else return true",
-                        'suggestion': f"return !{variable}"
-                    }
+        # Generate the pattern description based on type
+        if pattern_type == "ternary":
+            pattern = f"{variable} ? {true_return} : {false_return}"
+        else:
+            pattern = f"if({variable}) return {true_return} else return {false_return}"
         
-        elif operator == '!=' and comparison == 'false':
-            if true_return == 'true' and false_return == 'false':
-                if pattern_type == "ternary":
-                    return {
-                        'pattern': f"{variable} != false ? true : false",
-                        'suggestion': f"{variable}"
-                    }
-                else:
-                    return {
-                        'pattern': f"if({variable} != false) return true else return false",
-                        'suggestion': f"return {variable}"
-                    }
-        
-        return None
+        return {
+            'pattern': pattern,
+            'suggestion': suggestion
+        }
 
     def _extract_condition_info(self, condition_node):
         """Extract information about a comparison condition."""
@@ -229,6 +202,39 @@ class ScriptVerboseBooleanCheckRule(Rule):
                 # Extract the inner expression from the parentheses
                 inner_expression = condition_node.children[0]
                 return self._extract_condition_info(inner_expression)
+        
+        # Handle function calls that return boolean values (like empty())
+        if condition_node.data == 'call_expression':
+            function_name = self._extract_function_name(condition_node)
+            if function_name in ['empty', 'notEmpty', 'hasValue', 'isNull', 'isNotNull']:
+                return {
+                    'variable': self._extract_function_call_string(condition_node),
+                    'operator': 'function_call',
+                    'comparison': 'boolean_function'
+                }
+        
+        # Handle PMD-specific expressions that return boolean values
+        if condition_node.data == 'empty_expression':
+            if len(condition_node.children) > 1:
+                # Extract the argument to empty (without parentheses)
+                argument = condition_node.children[1]
+                argument_str = self._extract_expression_string(argument)
+                return {
+                    'variable': f"empty {argument_str}",
+                    'operator': 'function_call',
+                    'comparison': 'boolean_function'
+                }
+        
+        if condition_node.data == 'empty_function_expression':
+            if len(condition_node.children) > 2:
+                # Extract the argument to empty() (with parentheses)
+                argument = condition_node.children[2]
+                argument_str = self._extract_expression_string(argument)
+                return {
+                    'variable': f"empty({argument_str})",
+                    'operator': 'function_call',
+                    'comparison': 'boolean_function'
+                }
         
         if condition_node.data == 'equality_expression':
             if len(condition_node.children) >= 2:
@@ -263,6 +269,57 @@ class ScriptVerboseBooleanCheckRule(Rule):
                 return node.children[0].value
         return None
 
+    def _extract_function_name(self, node):
+        """Extract function name from a call expression node."""
+        if hasattr(node, 'data') and node.data == 'call_expression':
+            if len(node.children) > 0:
+                function_node = node.children[0]
+                if hasattr(function_node, 'data') and function_node.data == 'identifier_expression':
+                    if len(function_node.children) > 0 and hasattr(function_node.children[0], 'value'):
+                        return function_node.children[0].value
+        return None
+
+    def _extract_function_call_string(self, node):
+        """Extract the full function call string for display purposes."""
+        if hasattr(node, 'data') and node.data == 'call_expression':
+            if len(node.children) > 0:
+                function_node = node.children[0]
+                if hasattr(function_node, 'data') and function_node.data == 'identifier_expression':
+                    if len(function_node.children) > 0 and hasattr(function_node.children[0], 'value'):
+                        function_name = function_node.children[0].value
+                        # For now, just return the function name. In a more sophisticated implementation,
+                        # we could reconstruct the full call with arguments
+                        return f"{function_name}(...)"
+        return None
+
+    def _extract_expression_string(self, node):
+        """Extract a string representation of an expression for display purposes."""
+        if hasattr(node, 'data'):
+            if node.data == 'member_dot_expression':
+                if len(node.children) >= 2:
+                    left = self._extract_expression_string(node.children[0])
+                    # The second child might be a token (leaf) or a node
+                    if hasattr(node.children[1], 'value'):
+                        right = node.children[1].value
+                    else:
+                        right = self._extract_expression_string(node.children[1])
+                    return f"{left}.{right}"
+            elif node.data == 'identifier_expression':
+                if len(node.children) > 0 and hasattr(node.children[0], 'value'):
+                    return node.children[0].value
+            elif node.data == 'literal_expression':
+                if len(node.children) > 0 and hasattr(node.children[0], 'value'):
+                    return str(node.children[0].value)
+            elif node.data == 'call_expression':
+                if len(node.children) > 0:
+                    function_name = self._extract_function_name(node)
+                    if function_name:
+                        return f"{function_name}(...)"
+            elif node.data == 'parenthesized_expression':
+                if len(node.children) > 0:
+                    return f"({self._extract_expression_string(node.children[0])})"
+        return "..."
+
     def _extract_boolean_literal(self, node):
         """Extract boolean literal value from a node."""
         # Check if it's a literal_expression with boolean value
@@ -291,7 +348,20 @@ class ScriptVerboseBooleanCheckRule(Rule):
                 return_node = stmt_node.children[1]  # The actual return value
                 return self._extract_boolean_literal(return_node)
         
-        return None
+        elif stmt_node.data == 'statement_list':
+            # Handle statement lists - look for the first non-empty statement
+            if len(stmt_node.children) > 0:
+                for child in stmt_node.children:
+                    if hasattr(child, 'data') and child.data != 'empty_statement':
+                        return self._extract_simple_return_value(child)
+        
+        elif stmt_node.data == 'expression_statement':
+            # Handle expression statements like "true;" or "false;"
+            if len(stmt_node.children) > 0:
+                return self._extract_boolean_literal(stmt_node.children[0])
+        
+        # Direct boolean literal (like "true;" or "false;")
+        return self._extract_boolean_literal(stmt_node)
 
     def _get_line_number_from_node(self, node, line_offset):
         """Get line number from an AST node."""
