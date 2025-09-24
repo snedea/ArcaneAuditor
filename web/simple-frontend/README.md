@@ -1,40 +1,22 @@
 # Simple HTML Frontend for Arcane Auditor
 
-This is a lightweight, Node.js-free alternative to the React frontend. It provides the same core functionality using only HTML, CSS, and vanilla JavaScript.
-
 ## Features
 
 - **File Upload**: Drag & drop or click to select ZIP files
 - **Results Display**: Interactive filtering and sorting of findings
 - **Excel Export**: Download results as Excel files
-- **Responsive Design**: Works on desktop and mobile
 - **No Dependencies**: Pure HTML/CSS/JavaScript - no build process required
-
-## Comparison with React Frontend
-
-| Feature | React Frontend | Simple HTML Frontend |
-|---------|----------------|---------------------|
-| **Dependencies** | Node.js, npm, React, Vite | None |
-| **Build Process** | `npm install && npm run build` | None |
-| **File Size** | ~500KB+ (bundled) | ~50KB (uncompressed) |
-| **Development** | Hot reload, JSX, TypeScript | Direct HTML editing |
-| **Security Risk** | npm supply chain vulnerabilities | Minimal |
-| **Functionality** | Full featured | Core features only |
-| **Maintenance** | Complex build pipeline | Simple file updates |
 
 ## Usage
 
 1. **Start the server**:
+
    ```bash
    python web/simple_server.py --port 8080 --open-browser
    ```
-
 2. **Open your browser** to `http://localhost:8080`
-
 3. **Upload a ZIP file** containing your Workday Extend application
-
 4. **View results** with filtering and sorting options
-
 5. **Download Excel** export if needed
 
 ## File Structure
@@ -61,24 +43,16 @@ The simple server provides these endpoints:
 
 ## Advantages
 
-✅ **No Node.js required** - Eliminates supply chain risks  
-✅ **Instant deployment** - No build process needed  
-✅ **Easy to modify** - Direct HTML/CSS/JS editing  
-✅ **Lightweight** - Minimal file size  
-✅ **Self-contained** - All code in 3 files  
-✅ **Fast loading** - No JavaScript framework overhead  
-
-## Limitations
-
-❌ **No hot reload** - Manual refresh required for changes  
-❌ **No TypeScript** - Plain JavaScript only  
-❌ **No component system** - Monolithic structure  
-❌ **Limited interactivity** - Basic DOM manipulation  
-❌ **No state management** - Simple global variables  
+✅ **Instant deployment** - No build process needed
+✅ **Easy to modify** - Direct HTML/CSS/JS editing
+✅ **Lightweight** - Minimal file size
+✅ **Self-contained** - All code in 3 files
+✅ **Fast loading** - No JavaScript framework overhead
 
 ## When to Use
 
 **Use Simple HTML Frontend when:**
+
 - Security is a primary concern (no Node.js)
 - You want minimal dependencies
 - You need quick deployment
@@ -86,6 +60,7 @@ The simple server provides these endpoints:
 - You don't need advanced UI features
 
 **Use React Frontend when:**
+
 - You need advanced UI interactions
 - You want modern development tools
 - You're comfortable with Node.js
