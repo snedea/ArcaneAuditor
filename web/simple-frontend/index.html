@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcane Auditor - Simple Interface</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔮 Arcane Auditor</h1>
+            <p>Cast mystical spells to reveal code quality issues in your Workday Extend applications</p>
+        </header>
+
+        <main>
+            <!-- Upload Section -->
+            <section id="upload-section" class="upload-section">
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-content">
+                        <div class="upload-icon">📁</div>
+                        <h3>Upload Your Extend Application</h3>
+                        <p>Drag and drop your ZIP file here, or click to select</p>
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+                            Choose ZIP File
+                        </button>
+                        <input type="file" id="file-input" accept=".zip" style="display: none;">
+                        <p class="upload-hint">Supported: .zip files containing Workday Extend applications</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading Section -->
+            <section id="loading-section" class="loading-section" style="display: none;">
+                <div class="loading-content">
+                    <div class="spinner"></div>
+                    <p>🔄 Analyzing your application... Please wait</p>
+                </div>
+            </section>
+
+            <!-- Error Section -->
+            <section id="error-section" class="error-section" style="display: none;">
+                <div class="error-content">
+                    <h3>❌ Analysis Error</h3>
+                    <p id="error-message"></p>
+                    <button class="btn btn-primary" onclick="resetInterface()">Try Again</button>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="results-section" class="results-section" style="display: none;">
+                <div class="results-header">
+                    <h3>📊 Analysis Results</h3>
+                    <div class="results-actions">
+                        <button class="btn btn-secondary" onclick="downloadResults()">
+                            📥 Download Excel
+                        </button>
+                        <button class="btn btn-primary" onclick="resetInterface()">
+                            🔄 Analyze Another
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary -->
+                <div class="summary" id="summary">
+                    <!-- Summary content will be populated by JavaScript -->
+                </div>
+
+                <!-- Filters -->
+                <div class="filters" id="filters">
+                    <!-- Filter controls will be populated by JavaScript -->
+                </div>
+
+                <!-- Findings -->
+                <div class="findings" id="findings">
+                    <!-- Findings will be populated by JavaScript -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
