@@ -13,7 +13,7 @@ class WidgetIdLowerCamelCaseRule(ValidationRule):
     
     # Widget types that do not require or support ID values
     WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {
-        'footer', 'item', 'group'
+        'footer', 'item', 'group', 'title'
     }
     
     def __init__(self):
