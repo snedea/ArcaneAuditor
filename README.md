@@ -147,31 +147,36 @@ You should see mystical analysis output with validation findings! 🔮
 
 ### Web Interface (Recommended)
 
-For a user-friendly mystical web interface:
+For a user-friendly mystical web interface with FastAPI backend:
 
 #### **Start Web Interface**
 
 ```bash
-# Start the simple HTML web server
+# Start the FastAPI web server
 # Make sure you're in the project directory with dependencies available
 # Adjust port as necessary
-uv run python web/server.py --port 8081
+uv run python web/fastapi_server.py --port 8081
 
 # Or if you have a virtual environment activated:
-python web/server.py --port 8081
+python web/fastapi_server.py --port 8081
 
 # Open your browser to: http://localhost:8081
+# API documentation available at: http://localhost:8081/docs
 ```
 
 The web interface provides:
 
 - **Drag & drop file upload** for ZIP files
 - **Real-time analysis** with all validation rules
+- **Asynchronous processing** - Multiple users can upload files simultaneously
+- **Streaming file upload** - Handles large files without memory exhaustion
+- **Real-time status updates** - Live progress tracking with job polling
 - **Dark/light mode** toggle
 - **Results filtering** and sorting
 - **Excel export** functionality
+- **Automatic API documentation** - Interactive Swagger UI at `/docs`
 
-> **🌐 Web Interface Benefits:** Drag-and-drop file upload, interactive results, configuration management, and beautiful mystical UI!
+> **🌐 Web Interface Benefits:** Drag-and-drop file upload, interactive results, configuration management, beautiful mystical UI, and modern FastAPI backend with automatic API documentation!
 
 ### Basic Usage
 
@@ -272,13 +277,13 @@ arcane-auditor/
 │   │
 │
 ├── web/                              # Web interface (Node.js-free!)
-│   ├── server.py                     # Python web server
-│   ├── simple-frontend/               # HTML/CSS/JS frontend
-│   │   ├── index.html                 # Main HTML page
-│   │   ├── style.css                  # Styling with dark mode
-│   │   ├── script.js                  # Client-side functionality
-│   │   └── README.md                  # Frontend documentation
-│   └── uploads/                       # Temporary upload directory
+│   ├── fastapi_server.py            # FastAPI web server
+│   ├── simple-frontend/              # HTML/CSS/JS frontend
+│   │   ├── index.html                # Main HTML page
+│   │   ├── style.css                 # Styling with dark mode
+│   │   ├── script.js                 # Client-side functionality
+│   │   └── README.md                 # Frontend documentation
+│   └── uploads/                      # Temporary upload directory
 │
 ├── tests/                            # Unit tests
 │   ├── test_app_parser.py
