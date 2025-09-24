@@ -155,10 +155,10 @@ For a user-friendly mystical web interface with FastAPI backend:
 # Start the FastAPI web server
 # Make sure you're in the project directory with dependencies available
 # Adjust port as necessary
-uv run python web/fastapi_server.py --port 8081
+uv run python web/server.py --port 8081
 
 # Or if you have a virtual environment activated:
-python web/fastapi_server.py --port 8081
+python web/server.py --port 8081
 
 # Open your browser to: http://localhost:8081
 # API documentation available at: http://localhost:8081/docs
@@ -169,12 +169,9 @@ The web interface provides:
 - **Drag & drop file upload** for ZIP files
 - **Real-time analysis** with all validation rules
 - **Asynchronous processing** - Multiple users can upload files simultaneously
-- **Streaming file upload** - Handles large files without memory exhaustion
-- **Real-time status updates** - Live progress tracking with job polling
 - **Dark/light mode** toggle
 - **Results filtering** and sorting
 - **Excel export** functionality
-- **Automatic API documentation** - Interactive Swagger UI at `/docs`
 
 > **🌐 Web Interface Benefits:** Drag-and-drop file upload, interactive results, configuration management, beautiful mystical UI, and modern FastAPI backend with automatic API documentation!
 
@@ -277,7 +274,7 @@ arcane-auditor/
 │   │
 │
 ├── web/                              # Web interface (Node.js-free!)
-│   ├── fastapi_server.py            # FastAPI web server
+│   ├── server.py                      # FastAPI web server
 │   ├── simple-frontend/              # HTML/CSS/JS frontend
 │   │   ├── index.html                # Main HTML page
 │   │   ├── style.css                 # Styling with dark mode
