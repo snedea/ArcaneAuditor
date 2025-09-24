@@ -26,7 +26,21 @@ class ArcaneAuditorApp {
         uploadArea.addEventListener('dragover', (e) => this.handleDragOver(e));
         uploadArea.addEventListener('dragleave', (e) => this.handleDragLeave(e));
         uploadArea.addEventListener('drop', (e) => this.handleDrop(e));
-        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        // Button click handler
+        const chooseFileBtn = document.getElementById('choose-file-btn');
+        chooseFileBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent upload area click
+            fileInput.click();
+        });
+        
+        // Upload area click handler (for clicking outside the button)
+        uploadArea.addEventListener('click', (e) => {
+            // Only trigger if clicking on the upload area itself, not the button
+            if (e.target === uploadArea || e.target.classList.contains('upload-content')) {
+                fileInput.click();
+            }
+        });
     }
 
     handleDragOver(e) {
