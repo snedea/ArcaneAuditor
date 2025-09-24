@@ -85,14 +85,27 @@ class ScriptNullSafetyRule(Rule):
         return 'presentation' in field_name and ('widgets' in field_name or 'value' in field_name or 'onChange' in field_name)
     
     def _get_endpoint_safe_variables(self, field_name: str, pmd_model: PMDModel) -> Set[str]:
-        """Get safe variables from endpoint exclude conditions."""
+        """Get safe variables from endpoint exclude conditions and adjacent fields."""
         safe_variables = set()
         
         # Find the endpoint that contains this field
         endpoint = self._find_endpoint_for_field(field_name, pmd_model)
-        if endpoint and 'exclude' in endpoint:
-            exclude_condition = endpoint['exclude']
-            safe_variables.update(self._extract_checked_variables(exclude_condition))
+        if endpoint:
+            # Check exclude condition (endpoints only have exclude, not render)
+            if 'exclude' in endpoint:
+                exclude_condition = endpoint['exclude']
+                safe_variables.update(self._extract_checked_variables(exclude_condition))
+            
+            # Check adjacent fields for null safety conditions
+            # If this is a 'url' or 'onSend' field, check if 'exclude' protects it
+            if 'url' in field_name or 'onSend' in field_name:
+                # The exclude condition above already protects these fields
+                pass
+            else:
+                # For other fields, check if they contain null safety checks
+                for field_key, field_value in endpoint.items():
+                    if isinstance(field_value, str) and field_value.strip().startswith('<%'):
+                        safe_variables.update(self._extract_checked_variables(field_value))
         
         return safe_variables
     
@@ -120,14 +133,30 @@ class ScriptNullSafetyRule(Rule):
         return None
     
     def _get_widget_safe_variables(self, field_name: str, pmd_model: PMDModel) -> Set[str]:
-        """Get safe variables from widget render conditions."""
+        """Get safe variables from widget render conditions and adjacent fields."""
         safe_variables = set()
         
         # Find the widget that contains this field
         widget = self._find_widget_for_field(field_name, pmd_model)
-        if widget and 'render' in widget:
-            render_condition = widget['render']
-            safe_variables.update(self._extract_checked_variables(render_condition))
+        if widget:
+            # Check render condition (widgets only have render, not exclude)
+            if 'render' in widget:
+                render_condition = widget['render']
+                safe_variables.update(self._extract_checked_variables(render_condition))
+            
+            # Check adjacent fields for null safety conditions
+            # If this is a 'value' field, check if 'render' protects it
+            if 'value' in field_name:
+                # The render condition above already protects the value field
+                pass
+            elif 'onChange' in field_name:
+                # onChange is also protected by render conditions
+                pass
+            else:
+                # For other fields, check if they contain null safety checks
+                for field_key, field_value in widget.items():
+                    if isinstance(field_value, str) and field_value.strip().startswith('<%'):
+                        safe_variables.update(self._extract_checked_variables(field_value))
         
         return safe_variables
     
@@ -195,14 +224,33 @@ class ScriptNullSafetyRule(Rule):
             return set()
 
     def _extract_variables_from_ast(self, ast: Tree, variables: Set[str]):
-        """Recursively extract variable names from an AST."""
+        """Recursively extract variable names and property chains that are checked in conditions."""
         if not hasattr(ast, 'data') or not hasattr(ast, 'children'):
             return
         
+        # Check for empty/not_empty expressions - these indicate null safety checks
+        if ast.data in ['empty_expression', 'not_empty_expression', 'empty_function_expression']:
+            # Extract the variable/chain being checked
+            if len(ast.children) > 1:
+                checked_expr = ast.children[1]
+                if checked_expr.data == 'identifier_expression' and len(checked_expr.children) > 0:
+                    identifier = checked_expr.children[0].value if hasattr(checked_expr.children[0], 'value') else str(checked_expr.children[0])
+                    variables.add(identifier)
+                elif checked_expr.data == 'member_dot_expression':
+                    # Extract the full property chain being checked
+                    chain = self._extract_property_chain(checked_expr)
+                    if chain:
+                        # Add the root variable and the full chain
+                        root_var = chain.split('.')[0]
+                        variables.add(root_var)
+                        variables.add(chain)
+        
         # Check for identifier expressions
-        if ast.data == 'identifier_expression' and len(ast.children) > 0:
+        elif ast.data == 'identifier_expression' and len(ast.children) > 0:
             identifier = ast.children[0].value if hasattr(ast.children[0], 'value') else str(ast.children[0])
             variables.add(identifier)
+        
+        # Check for member dot expressions
         elif ast.data == 'member_dot_expression':
             # Extract the root variable from property access
             if len(ast.children) > 0:
@@ -210,6 +258,10 @@ class ScriptNullSafetyRule(Rule):
                 if root_obj.data == 'identifier_expression' and len(root_obj.children) > 0:
                     identifier = root_obj.children[0].value if hasattr(root_obj.children[0], 'value') else str(root_obj.children[0])
                     variables.add(identifier)
+                # Also extract the full chain
+                chain = self._extract_property_chain(ast)
+                if chain:
+                    variables.add(chain)
         
         # Recursively check children
         for child in ast.children:
@@ -259,59 +311,26 @@ class ScriptNullSafetyRule(Rule):
         
         root_object = parts[0]
         
-        # If the root object is known to be safe due to conditional execution,
-        # only consider direct property access on that variable as safe
-        if root_object in safe_variables:
-            # For chains like "getUser.data.something", if "getUser.data" is safe,
-            # then "getUser.data.something" is only safe if it's a direct property access
-            if len(parts) == 2:
-                # Direct property access on safe variable is safe
-                return False
-            else:
-                # Nested property access on safe variable needs further checking
-                # Check if the remaining chain (after the safe variable) is protected
-                remaining_chain = '.'.join(parts[1:])
-                if self._is_protected_chain(ast, remaining_chain):
-                    return False
-                # Also check if any partial chain from the safe variable onwards is protected
-                for i in range(1, len(parts)):
-                    partial_chain = '.'.join(parts[:i+1])
-                    if self._is_protected_chain(ast, partial_chain):
-                        return False
-                # If no protection found, this nested access is unsafe
-                return True
-        
-        # Global objects are guaranteed to exist, but their properties are not
-        # So we need to check if the chain is protected or if it's just a direct property access
-        if self._is_global_object(root_object):
-            # For global objects, only direct property access (like "self.data") is safe
-            # Nested access (like "self.data.name") needs protection
-            if len(parts) == 2:
-                # Direct property access on global object is safe
-                return False
-            else:
-                # Nested property access on global object needs protection
-                # Check if the chain is protected
-                if self._is_protected_chain(ast, chain):
-                    return False
-                # Check if any partial chain is protected
-                for i in range(1, len(parts)):
-                    partial_chain = '.'.join(parts[:i+1])
-                    if self._is_protected_chain(ast, partial_chain):
-                        return False
-                # If no protection found, this nested access is unsafe
-                return True
-            
-        if self._is_protected_chain(ast, chain):
+        # Check if the entire chain is safe (e.g., from render/exclude conditions)
+        if chain in safe_variables:
             return False
-            
-        # Check if any parent chain is protected
+        
+        # Check if the root object is safe
+        if root_object in safe_variables:
+            # If the root is safe, check if any parent chain is also safe
+            for i in range(1, len(parts)):
+                partial_chain = '.'.join(parts[:i+1])
+                if partial_chain in safe_variables:
+                    return False
+        
+        # Check if any parent chain is safe
         for i in range(len(parts) - 1):
             partial_chain = '.'.join(parts[:i+1])
-            if self._is_protected_chain(ast, partial_chain):
+            if partial_chain in safe_variables:
                 return False
-                
-        return True
+        
+        # If no safe variables found, use the standard unsafe chain logic
+        return self._is_unsafe_chain(ast, chain)
 
 
     def _find_unsafe_property_accesses(self, ast: Tree) -> List[dict]:
@@ -411,14 +430,29 @@ class ScriptNullSafetyRule(Rule):
     
 
     def _is_unsafe_chain(self, ast: Tree, chain: str) -> bool:
-        """Check if a property access chain is unsafe (lacks null safety)."""
+        """Check if a property access chain is unsafe (lacks null safety) based on depth and specific patterns."""
         # Split the chain to get individual parts
         parts = chain.split('.')
 
         if len(parts) < 2:
             return False
         
-        # Check if this is a safe property pattern
+        # Only flag chains that are deep enough to be potentially unsafe
+        # Target patterns: getData.data[0], getData.invoke().foo, myVal.worker.firstName
+        # Don't flag: getData.data, myVal.worker, widget.value
+        
+        # Check if this is a high-risk pattern that should always be flagged
+        if self._is_high_risk_pattern(chain):
+            return not self._is_protected_chain(ast, chain)
+        
+        # For other patterns, only flag if they meet specific criteria:
+        # 1. Must be at least 3 levels deep (obj.prop.subprop)
+        # 2. Must not be a safe pattern
+        # 3. Must not be a global object
+        if len(parts) < 3:
+            return False  # Don't flag shallow access like "obj.property"
+        
+        # Check if this is a safe property pattern (widget properties, etc.)
         if self._is_safe_property_pattern(chain):
             return False
         
@@ -439,31 +473,60 @@ class ScriptNullSafetyRule(Rule):
             
         return True
 
+    def _is_high_risk_pattern(self, chain: str) -> bool:
+        """Check if a property access chain represents a high-risk pattern that should always be flagged."""
+        # Array access patterns - these are always risky
+        if '[' in chain and ']' in chain:
+            return True
+        
+        # Method chaining patterns - calling a method and then accessing properties
+        # Pattern: obj.method().property
+        if '.invoke().' in chain or '.get().' in chain or '.find().' in chain:
+            return True
+        
+        # Deep property chains that are commonly unsafe (3+ levels)
+        # Pattern: obj.data.property or obj.response.property
+        parts = chain.split('.')
+        if len(parts) >= 3:
+            if any(pattern in chain for pattern in [
+                '.data.', '.response.', '.result.', '.payload.', '.content.'
+            ]):
+                return True
+        
+        # API response patterns that are commonly unsafe
+        # Pattern: apiCall.data[0].property or apiCall.response.items[0]
+        if any(pattern in chain for pattern in [
+            '.data[', '.response[', '.result[', '.items[', '.list['
+        ]):
+            return True
+        
+        return False
+
     def _is_safe_property_pattern(self, chain: str) -> bool:
         """Check if a property access chain represents a safe pattern that doesn't need null safety checks."""
-        # Widget method calls and properties
+        # Widget method calls and properties - these are safe in PMD context
         if any(pattern in chain for pattern in [
             'widget.setError', 'widget.clearError', 'widget.setValue',
             'widget.value', 'widget.selectedEntries', 'widget.children', 'widget.childrenMap', 
-            'widget.label', 'widget.data', 'widget.getChildren'
+            'widget.label', 'widget.data', 'widget.getChildren', 'widget.setEnabled'
         ]):
             return True
         
-        # Array method calls
+        # Array method calls - these are safe
         if any(pattern in chain for pattern in [
-            '.filter', '.map', '.sort', '.distinct', '.find', '.forEach', '.reduce'
+            '.filter', '.map', '.sort', '.distinct', '.find', '.forEach', '.reduce', '.add', '.size'
         ]):
             return True
         
-        # Common API response properties
+        # Global object properties that are safe
         if any(pattern in chain for pattern in [
-            '.data'
+            'site.applicationId', 'pageVariables.', 'sessionVariables.', 'queryParams.', 'self.data'
         ]):
             return True
         
-        # Common expression methods
+        # Collection method calls that are safe
         if any(pattern in chain for pattern in [
-            '.format', '.toJson', '.value'
+            '.add', '.find', '.size', '.length'
         ]):
             return True
         
