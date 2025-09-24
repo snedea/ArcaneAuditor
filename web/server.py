@@ -330,7 +330,7 @@ print(json.dumps(result))
                     ws = wb.create_sheet(sheet_name)
                     
                     # Headers
-                    headers = ["Rule ID", "Severity", "Line", "Column", "Message", "File Path"]
+                    headers = ["Rule ID", "Severity", "Line", "Message", "File Path"]
                     ws.append(headers)
                     
                     # Style headers
@@ -348,7 +348,6 @@ print(json.dumps(result))
                             finding.get('rule_id', ''),
                             finding.get('severity', ''),
                             finding.get('line', ''),
-                            finding.get('column', ''),
                             finding.get('message', ''),
                             finding.get('file_path', '')
                         ]
@@ -402,13 +401,12 @@ print(json.dumps(result))
                 
                 output = io.StringIO()
                 writer = csv.writer(output)
-                writer.writerow(['File Path', 'Line', 'Column', 'Rule ID', 'Message', 'Severity'])
+                writer.writerow(['File Path', 'Line', 'Rule ID', 'Message', 'Severity'])
                 
                 for finding in findings:
                     writer.writerow([
                         finding.get('file_path', ''),
                         finding.get('line', ''),
-                        finding.get('column', ''),
                         finding.get('rule_id', ''),
                         finding.get('message', ''),
                         finding.get('severity', '')

@@ -329,7 +329,7 @@ class ArcaneAuditorApp {
                                                 <strong>[${finding.rule_id}:${finding.line}]</strong> ${finding.message}
                                             </div>
                                             <div class="finding-details">
-                                                ${finding.column ? `<span><strong>Position:</strong> Line ${finding.line}, Column ${finding.column}</span>` : ''}
+                                                <span><strong>Line:</strong> ${finding.line}</span>
                                             </div>
                                         </div>
                                     `).join('')}
