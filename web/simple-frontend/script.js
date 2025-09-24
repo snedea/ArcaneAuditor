@@ -242,11 +242,11 @@ class ArcaneAuditorApp {
                     <div class="summary-label">Rules Executed</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-number summary-number-orange">${severityCounts.error || 0}</div>
+                    <div class="summary-number summary-number-orange">${result.summary?.by_severity?.error || 0}</div>
                     <div class="summary-label">Errors</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-number summary-number-yellow">${severityCounts.warning || 0}</div>
+                    <div class="summary-number summary-number-yellow">${result.summary?.by_severity?.warning || 0}</div>
                     <div class="summary-label">Warnings</div>
                 </div>
             </div>
@@ -582,6 +582,7 @@ class ArcaneAuditorApp {
 
 // Initialize the app
 const app = new ArcaneAuditorApp();
+window.app = app; // Make app globally accessible
 
 // Global functions for HTML onclick handlers
 function resetInterface() {
