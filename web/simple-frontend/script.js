@@ -105,13 +105,21 @@ class ArcaneAuditorApp {
     }
 
     async uploadFile(file) {
+        // Client-side file size validation
+        const maxFileSize = 100 * 1024 * 1024; // 100MB
+        if (file.size > maxFileSize) {
+            this.showError(`File too large. Maximum size: ${maxFileSize / (1024 * 1024)}MB`);
+            return;
+        }
+
         const formData = new FormData();
         formData.append('file', file);
 
         try {
             this.showLoading();
+            this.updateLoadingMessage('Uploading file...');
 
-            const response = await fetch('/api/analyze', {
+            const response = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData,
             });
@@ -119,14 +127,69 @@ class ArcaneAuditorApp {
             const data = await response.json();
 
             if (response.ok) {
-                this.currentResult = data;
-                this.filteredFindings = data.findings;
-                this.showResults();
+                if (data.job_id) {
+                    // New async API - poll for results
+                    await this.pollJobStatus(data.job_id);
+                } else {
+                    // Legacy sync API - show results immediately
+                    this.currentResult = data;
+                    this.filteredFindings = data.findings;
+                    this.showResults();
+                }
             } else {
                 throw new Error(data.detail || 'Analysis failed');
             }
         } catch (error) {
             this.showError(error.message || 'Upload failed');
+        }
+    }
+
+    async pollJobStatus(jobId) {
+        const maxAttempts = 60; // 5 minutes with 5-second intervals
+        let attempts = 0;
+
+        const poll = async () => {
+            try {
+                const response = await fetch(`/api/job/${jobId}`);
+                const jobData = await response.json();
+
+                if (response.ok) {
+                    if (jobData.status === 'completed') {
+                        this.currentResult = jobData.result;
+                        this.currentResult.job_id = jobId; // Store job_id for download
+                        this.filteredFindings = jobData.result.findings;
+                        this.showResults();
+                        return;
+                    } else if (jobData.status === 'failed') {
+                        throw new Error(jobData.error || 'Analysis failed');
+                    } else if (jobData.status === 'running' || jobData.status === 'queued') {
+                        // Update loading message with status
+                        this.updateLoadingMessage(`Analysis ${jobData.status}...`);
+                        
+                        // Continue polling
+                        attempts++;
+                        if (attempts < maxAttempts) {
+                            setTimeout(poll, 5000); // Poll every 5 seconds
+                        } else {
+                            throw new Error('Analysis timed out');
+                        }
+                    }
+                } else {
+                    throw new Error('Failed to check job status');
+                }
+            } catch (error) {
+                this.showError(error.message || 'Job polling failed');
+            }
+        };
+
+        poll();
+    }
+
+    updateLoadingMessage(message) {
+        const loadingSection = document.getElementById('loading-section');
+        const loadingText = loadingSection.querySelector('.loading-text');
+        if (loadingText) {
+            loadingText.textContent = message;
         }
     }
 
@@ -473,15 +536,13 @@ class ArcaneAuditorApp {
 
     async downloadResults() {
         try {
-            const response = await fetch('/api/download/excel', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    findings: this.currentResult.findings
-                }),
-            });
+            // Get the current job ID from the results
+            const jobId = this.currentResult?.job_id;
+            if (!jobId) {
+                throw new Error('No job ID available for download');
+            }
+
+            const response = await fetch(`/api/download/${jobId}`);
 
             if (response.ok) {
                 const blob = await response.blob();
@@ -493,6 +554,8 @@ class ArcaneAuditorApp {
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
+            } else {
+                throw new Error('Download failed');
             }
         } catch (error) {
             console.error('Download failed:', error);
