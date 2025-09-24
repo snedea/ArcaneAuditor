@@ -153,7 +153,7 @@ class Rule(ABC):
             content = content[2:-2].strip()
         
         # Unescape all escape sequences that were escaped during JSON processing
-        # We need to be careful with single quotes - they should remain escaped for valid JavaScript
+        # We need to be careful with single quotes - they should remain escaped for valid PMD Script
         import codecs
         
         # First, handle the case where we have double backslashes (from PMD source)
@@ -166,7 +166,7 @@ class Rule(ABC):
         content = content.replace('\\r', '\r')
         content = content.replace('\\"', '"')
         
-        # Note: We do NOT unescape single quotes - they should remain as \' for valid JavaScript
+        # Note: We do NOT unescape single quotes - they should remain as \' for valid PMD Script
         
         return content
 
