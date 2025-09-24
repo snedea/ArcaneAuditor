@@ -141,10 +141,10 @@ def run_analysis_background(job: AnalysisJob):
         result = {
             "findings": [
                 {
-                    "rule": finding.rule_id,
+                    "rule_id": finding.rule_id,
                     "severity": finding.severity,
                     "message": finding.message,
-                    "file": finding.file_path,
+                    "file_path": finding.file_path,
                     "line": finding.line,
                     "column": finding.column
                 }
