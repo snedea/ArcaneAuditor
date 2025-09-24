@@ -88,7 +88,7 @@ class ScriptEmptyFunctionRule(Rule):
         if function_body and self._is_empty_function_body(function_body):
             violations.append({
                 'message': "Function has empty body - implement the function or remove it",
-                'line': function_node.line + line_offset - 1
+                'line': function_node.meta.line + line_offset - 1
             })
     
     def _is_empty_function_body(self, function_body):

@@ -152,8 +152,22 @@ class Rule(ABC):
         if content.startswith('<%') and content.endswith('%>'):
             content = content[2:-2].strip()
         
-        # Convert escaped newlines to actual newlines for proper line number tracking
+        # Unescape all escape sequences that were escaped during JSON processing
+        # We need to be careful with single quotes - they should remain escaped for valid JavaScript
+        import codecs
+        
+        # First, handle the case where we have double backslashes (from PMD source)
+        # Convert \\' to \' (double backslash + quote becomes escaped quote)
+        content = content.replace('\\\\', '\\')
+        
+        # Then handle other escape sequences
         content = content.replace('\\n', '\n')
+        content = content.replace('\\t', '\t')
+        content = content.replace('\\r', '\r')
+        content = content.replace('\\"', '"')
+        
+        # Note: We do NOT unescape single quotes - they should remain as \' for valid JavaScript
+        
         return content
 
     def traverse_widgets_recursively(self, widgets: List[Dict[str, Any]], widget_path: str = "") -> Generator[Tuple[Dict[str, Any], str, int], None, None]:
@@ -273,13 +287,6 @@ class Rule(ABC):
         except Exception as e:
             print(f"Failed to parse script content: {e}")
             return None
-    
-    def _strip_pmd_wrappers(self, script_content):
-        """Strip <% and %> wrappers from PMD script content."""
-        content = script_content.strip()
-        if content.startswith('<%') and content.endswith('%>'):
-            return content[2:-2].strip()
-        return content
     
     # Pod-specific utility methods
     

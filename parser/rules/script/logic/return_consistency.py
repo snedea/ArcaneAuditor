@@ -89,7 +89,7 @@ class ScriptFunctionReturnConsistencyRule(Rule):
             if return_analysis == 'inconsistent':
                 violations.append({
                     'message': "Function has inconsistent return pattern - some paths return values, others don't",
-                    'line': function_node.line + line_offset - 1
+                    'line': function_node.meta.line + line_offset - 1
                 })
     
     def _analyze_return_consistency(self, node):

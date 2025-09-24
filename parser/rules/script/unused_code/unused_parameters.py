@@ -104,7 +104,7 @@ class ScriptUnusedFunctionParametersRule(Rule):
                 if param_name not in used_params:
                     violations.append({
                         'message': f"Function parameter '{param_name}' is declared but never used",
-                        'line': param_node.line + line_offset - 1
+                        'line': param_node.meta.line + line_offset - 1
                     })
     
     def _collect_identifiers(self, node, identifiers):

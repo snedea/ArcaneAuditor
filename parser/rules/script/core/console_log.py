@@ -110,10 +110,10 @@ class ScriptConsoleLogRule(Rule):
     def _get_line_number_from_node(self, node):
         """Get the line number from an AST node."""
         if hasattr(node, 'line'):
-            return node.line
+            return node.meta.line
         elif hasattr(node, 'children') and len(node.children) > 0:
             # Try to get line from first child
             child = node.children[0]
             if hasattr(child, 'line'):
-                return child.line
+                return child.meta.line
         return 1  # Default fallback

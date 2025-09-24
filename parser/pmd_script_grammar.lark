@@ -14,7 +14,6 @@
     | continue_statement
     | break_statement
     | return_statement
-    | labelled_statement
 
 ?block: "{" statement_list? "}"
 
@@ -52,7 +51,6 @@
 
 ?return_statement: RETURN [single_expression] eos?
 
-?labelled_statement: IDENTIFIER ":" statement
 
 ?formal_parameter_list: IDENTIFIER ("," IDENTIFIER)*
 
@@ -66,10 +64,12 @@
 
 // Unified rule to handle all curly brace expressions: objects, empty objects, and sets
 // This structure is unambiguous and resolves the conflict with block when using Earley parser
-?curly_literal: "{" property_name_and_value_list ","? "}" -> object_literal
+?curly_literal: "{" "}" -> empty_set_literal
     | "{" ":" "}" -> empty_object_literal
-    | "{" expression_sequence ","? "}" -> set_literal_with_elements
-    | "{" "}" -> empty_set_literal
+    | "{" single_expression _curly_tail
+
+_curly_tail: ":" single_expression ("," property_assignment)* ","? "}"
+    | ("," single_expression)* ","? "}"
 
 ?property_name_and_value_list: property_assignment ("," property_assignment)*
 
@@ -101,7 +101,10 @@
     | ternary_expression assignment_operator expression_sequence -> assignment_operator_expression
 
 // Precedence Level: Ternary (Right-associative)
-?ternary_expression: null_coalescing_expression ("?" assignment_expression ":" assignment_expression)?
+?ternary_expression: elvis_expression ("?" assignment_expression ":" assignment_expression)?
+
+// Precedence Level: Elvis Operator (Left-associative)
+?elvis_expression: null_coalescing_expression ("?:" null_coalescing_expression)*
 
 // Precedence Level: Null Coalescing (Left-associative)
 ?null_coalescing_expression: logical_or_expression ("??" logical_or_expression)*
@@ -206,7 +209,7 @@ TO: "to"
 
 IDENTIFIER: /[a-zA-Z_$][a-zA-Z0-9_$]*/
 NAMESPACE_IDENTIFIER: /[a-zA-Z_$][a-zA-Z0-9_$]*:[a-zA-Z_$][a-zA-Z0-9_$]*/
-STRING_LITERAL: /"([^"\\\r\n]|\\[^\r\n]|\\\r?\n)*"|'([^'\\\r\n]|\\[^\r\n]|\\\r?\n)*'/
+STRING_LITERAL: /"([^"\\]|\\.)*"|'([^'\\]|\\.)*'/
 TEMPLATE_LITERAL: /`([^`\\\r\n]|\\[^\r\n]|\\\r?\n)*`/
 
 // Punctuation and Operators
@@ -234,6 +237,7 @@ NOT_EQUALS: "!="
 AND: "&&"
 OR: "||"
 NULL_COALESCING: "??"
+NULL_COALESCING_ALT: "?:"
 MULTIPLY_ASSIGN: "*="
 DIVIDE_ASSIGN: "/="
 MODULUS_ASSIGN: "%="
@@ -243,3 +247,4 @@ ARROW: "=>"
 
 // Ignored tokens
 %ignore /(\/\*.*?\*\/|\/\/[^\r\n]*|[\t\u000B\u000C\u0020\u00A0]+|[\r\n\u2028\u2029])+/
+
