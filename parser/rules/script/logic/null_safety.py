@@ -298,18 +298,75 @@ class ScriptNullSafetyRule(Rule):
     def _find_unsafe_property_accesses(self, ast: Tree) -> List[dict]:
         """Find property access chains that lack null safety."""
         unsafe_accesses = []       
+        all_chains = []
+        seen_chains = set()  # Track seen chains to avoid duplicates
 
-        # Find all member access expressions
+        # First, collect all member access expressions and their chains
         for node in ast.iter_subtrees():
             if node.data == 'member_dot_expression':
                 chain = self._extract_property_chain(node)
                 if chain and self._is_unsafe_chain(ast, chain):
-                    unsafe_accesses.append({
-                        'chain': chain,
-                        'line': getattr(node.meta, 'line', 1)
-                    })
+                    line = getattr(node.meta, 'line', 1)
+                    chain_key = (chain, line)  # Use chain and line as key
+                    
+                    # Only add if we haven't seen this exact chain on this line before
+                    if chain_key not in seen_chains:
+                        seen_chains.add(chain_key)
+                        all_chains.append({
+                            'chain': chain,
+                            'line': line,
+                            'node': node
+                        })
+
+        # Filter out redundant chains - only keep the longest/most specific ones
+        filtered_chains = self._filter_redundant_chains(all_chains)
+        
+        for chain_info in filtered_chains:
+            unsafe_accesses.append({
+                'chain': chain_info['chain'],
+                'line': chain_info['line']
+            })
 
         return unsafe_accesses
+
+    def _filter_redundant_chains(self, all_chains: List[dict]) -> List[dict]:
+        """Filter out redundant property access chains, keeping only the longest/most specific ones."""
+        if not all_chains:
+            return []
+        
+        # Group chains by line number first
+        line_groups = {}
+        for chain_info in all_chains:
+            line = chain_info['line']
+            if line not in line_groups:
+                line_groups[line] = []
+            line_groups[line].append(chain_info)
+        
+        filtered_chains = []
+        
+        # Process each line separately
+        for line, chains_on_line in line_groups.items():
+            # Sort chains on this line by length (longest first)
+            sorted_chains = sorted(chains_on_line, key=lambda x: len(x['chain'].split('.')), reverse=True)
+            
+            # Keep only chains that are not prefixes of longer chains on the same line
+            for chain_info in sorted_chains:
+                chain = chain_info['chain']
+                is_redundant = False
+                
+                # Check if this chain is a prefix of any already filtered chain on this line
+                for filtered_chain_info in filtered_chains:
+                    if filtered_chain_info['line'] == line:  # Only check chains on the same line
+                        filtered_chain = filtered_chain_info['chain']
+                        if filtered_chain.startswith(chain + '.'):
+                            # The filtered chain is longer and starts with this chain, so this one is redundant
+                            is_redundant = True
+                            break
+                
+                if not is_redundant:
+                    filtered_chains.append(chain_info)
+        
+        return filtered_chains
     
     def _extract_property_chain(self, node: Tree) -> Optional[str]:
         """Extract the full property access chain from a member_dot_expression."""
@@ -342,6 +399,10 @@ class ScriptNullSafetyRule(Rule):
         if len(parts) < 2:
             return False
         
+        # Check if this is a safe property pattern
+        if self._is_safe_property_pattern(chain):
+            return False
+        
         # Check if the root object is a known global/library object
         root_object = parts[0]
         if self._is_global_object(root_object):
@@ -358,6 +419,36 @@ class ScriptNullSafetyRule(Rule):
                 return False
             
         return True
+
+    def _is_safe_property_pattern(self, chain: str) -> bool:
+        """Check if a property access chain represents a safe pattern that doesn't need null safety checks."""
+        # Widget method calls and properties
+        if any(pattern in chain for pattern in [
+            'widget.setError', 'widget.clearError', 'widget.setValue',
+            'widget.value', 'widget.selectedEntries', 'widget.children', 'widget.childrenMap', 
+            'widget.label', 'widget.data', 'widget.getChildren'
+        ]):
+            return True
+        
+        # Array method calls
+        if any(pattern in chain for pattern in [
+            '.filter', '.map', '.sort', '.distinct', '.find', '.forEach', '.reduce'
+        ]):
+            return True
+        
+        # Common API response properties
+        if any(pattern in chain for pattern in [
+            '.data'
+        ]):
+            return True
+        
+        # Common expression methods
+        if any(pattern in chain for pattern in [
+            '.format', '.toJson', '.value'
+        ]):
+            return True
+        
+        return False
 
     def _is_global_object(self, object_name: str) -> bool:
         """Check if an object name refers to a known global/library object."""
