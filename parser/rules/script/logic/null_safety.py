@@ -218,16 +218,35 @@ class ScriptNullSafetyRule(Rule):
 
     def _find_unsafe_property_accesses_with_context(self, ast: Tree, safe_variables: Set[str]) -> List[dict]:
         """Find unsafe property accesses, excluding variables known to be safe due to conditional execution."""
-        unsafe_accesses = []
-        
+        unsafe_accesses = []       
+        all_chains = []
+        seen_chains = set()  # Track seen chains to avoid duplicates
+
+        # First, collect all member access expressions and their chains
         for node in ast.iter_subtrees():
             if node.data == 'member_dot_expression':
                 chain = self._extract_property_chain(node)
                 if chain and self._is_unsafe_chain_with_context(ast, chain, safe_variables):
-                    unsafe_accesses.append({
-                        'chain': chain,
-                        'line': getattr(node.meta, 'line', 1)
-                    })
+                    line = getattr(node.meta, 'line', 1)
+                    chain_key = (chain, line)  # Use chain and line as key
+                    
+                    # Only add if we haven't seen this exact chain on this line before
+                    if chain_key not in seen_chains:
+                        seen_chains.add(chain_key)
+                        all_chains.append({
+                            'chain': chain,
+                            'line': line,
+                            'node': node
+                        })
+
+        # Filter out redundant chains - only keep the longest/most specific ones
+        filtered_chains = self._filter_redundant_chains(all_chains)
+        
+        for chain_info in filtered_chains:
+            unsafe_accesses.append({
+                'chain': chain_info['chain'],
+                'line': chain_info['line']
+            })
         
         return unsafe_accesses
 
