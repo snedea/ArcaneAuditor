@@ -207,6 +207,10 @@ from parser.rules_engine import RulesEngine
 from parser.app_parser import ModelParser
 import json
 
+# Redirect stdout to stderr for debug messages, then restore for JSON output
+original_stdout = sys.stdout
+sys.stdout = sys.stderr
+
 # Process the file
 processor = FileProcessor()
 source_files_map = processor.process_zip_file(r"{zip_path_str}")
@@ -218,6 +222,9 @@ context = pmd_parser.parse_files(source_files_map)
 # Run rules
 rules_engine = RulesEngine()
 findings = rules_engine.run(context)
+
+# Restore stdout for JSON output
+sys.stdout = original_stdout
 
 # Format results
 result = {{
@@ -242,9 +249,15 @@ print(json.dumps(result))
                 ], capture_output=True, text=True, cwd=project_root)
                 
                 if result.returncode == 0:
-                    return json_module.loads(result.stdout.strip())
+                    stdout_content = result.stdout.strip()
+                    if not stdout_content:
+                        raise Exception("uv run produced no output")
+                    try:
+                        return json_module.loads(stdout_content)
+                    except json_module.JSONDecodeError as e:
+                        raise Exception(f"uv run produced invalid JSON: {e}. Output: {stdout_content[:200]}")
                 else:
-                    raise Exception(f"uv run failed: {result.stderr}")
+                    raise Exception(f"uv run failed (code {result.returncode}): {result.stderr}")
                     
             except (FileNotFoundError, subprocess.SubprocessError):
                 # uv not available or failed, fall back to demo mode
