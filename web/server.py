@@ -153,9 +153,9 @@ def run_analysis_background(job: AnalysisJob):
             "summary": {
                 "total_findings": len(findings),
                 "by_severity": {
-                    "error": len([f for f in findings if f.severity == "error"]),
-                    "warning": len([f for f in findings if f.severity == "warning"]),
-                    "info": len([f for f in findings if f.severity == "info"])
+                    "error": len([f for f in findings if f.severity == "SEVERE"]),
+                    "warning": len([f for f in findings if f.severity == "WARNING"]),
+                    "info": len([f for f in findings if f.severity == "INFO"])
                 }
             }
         }
