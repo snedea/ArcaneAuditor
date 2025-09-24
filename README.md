@@ -147,24 +147,25 @@ You should see mystical analysis output with validation findings! 🔮
 
 ### Web Interface (Recommended)
 
-For a user-friendly mystical web interface, you'll need **Node.js 16+**:
+For a user-friendly mystical web interface:
 
-#### **Install Node.js** (if not already installed)
-
-- **Windows/macOS**: Download from [nodejs.org](https://nodejs.org/)
-- **Using Package Managers**: `brew install node` (macOS) or `choco install nodejs` (Windows)
-
-#### **Setup Web Interface**
+#### **Start Web Interface**
 
 ```bash
-# One-time setup (assumes UV! - installs frontend dependencies automatically)
-uv run python web/setup_web_interface.py
+# Start the simple HTML web server
+python web/server.py --port 8081
 
-# Start the web server
-uv run python web/start_web_interface.py
-
-# Open http://localhost:8000 in your browser to access the Arcane Auditor
+# Open your browser to: http://localhost:8081
 ```
+
+The web interface provides:
+
+- **Drag & drop file upload** for ZIP files
+- **Real-time analysis** with all validation rules
+- **Dark/light mode** toggle
+- **Results filtering** and sorting
+- **Excel export** functionality
+- **No Node.js dependency** - pure Python + HTML/CSS/JS
 
 > **🌐 Web Interface Benefits:** Drag-and-drop file upload, interactive results, configuration management, and beautiful mystical UI!
 
@@ -191,8 +192,7 @@ arcane-auditor/
 ├── README.md                         # This file
 ├── LICENSE                           # MIT License
 ├── docs/                             # Documentation
-│   ├── RULE_BREAKDOWN.md             # Detailed rule documentation
-│   └── WEB_README.md                 # Web interface documentation
+│   └── RULE_BREAKDOWN.md             # Detailed rule documentation
 │
 ├── file_processing/                  # File processing pipeline
 │   ├── config.py                     # Configuration models
@@ -266,6 +266,15 @@ arcane-auditor/
 │   │       └── user/                 # User's actual custom rules
 │   │           └── __init__.py
 │   │
+│
+├── web/                              # Web interface (Node.js-free!)
+│   ├── server.py                     # Python web server
+│   ├── simple-frontend/               # HTML/CSS/JS frontend
+│   │   ├── index.html                 # Main HTML page
+│   │   ├── style.css                  # Styling with dark mode
+│   │   ├── script.js                  # Client-side functionality
+│   │   └── README.md                  # Frontend documentation
+│   └── uploads/                       # Temporary upload directory
 │
 ├── tests/                            # Unit tests
 │   ├── test_app_parser.py
@@ -427,7 +436,6 @@ Create custom configurations in JSON format:
 ### Core Documentation
 
 - **[📜 Rule Breakdown](docs/RULE_BREAKDOWN.md)**: Comprehensive guide to all 30 validation rules with examples
-- **[🌐 Web Interface Guide](docs/WEB_README.md)**: Complete web interface setup and usage documentation
 - **[⚙️ Configuration Guide](configs/README.md)**: Layered configuration system and rule customization
 
 ### Advanced Guides
