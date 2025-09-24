@@ -278,11 +278,124 @@ print(json.dumps(result))
             
             # Create Excel file
             try:
-                from output.formatter import ExcelFormatter
-                formatter = ExcelFormatter()
-                excel_data = formatter.format_findings(findings)
+                import openpyxl
+                from openpyxl.styles import Font, PatternFill, Alignment
+                from openpyxl.utils import get_column_letter
+                from pathlib import Path
+                
+                # Create workbook
+                wb = openpyxl.Workbook()
+                
+                # Remove default sheet
+                wb.remove(wb.active)
+                
+                # Group findings by file
+                findings_by_file = {}
+                for finding in findings:
+                    file_path = finding.get('file_path', 'Unknown')
+                    if file_path not in findings_by_file:
+                        findings_by_file[file_path] = []
+                    findings_by_file[file_path].append(finding)
+                
+                # Create summary sheet
+                summary_sheet = wb.create_sheet("Summary")
+                summary_sheet.append(["Analysis Summary"])
+                summary_sheet.append(["Total Issues", len(findings)])
+                
+                # Count by severity
+                severe_count = len([f for f in findings if f.get('severity') == 'SEVERE'])
+                warning_count = len([f for f in findings if f.get('severity') == 'WARNING'])
+                info_count = len([f for f in findings if f.get('severity') == 'INFO'])
+                
+                summary_sheet.append(["Severe", severe_count])
+                summary_sheet.append(["Warnings", warning_count])
+                summary_sheet.append(["Info", info_count])
+                summary_sheet.append([])
+                summary_sheet.append(["File", "Issues", "Severe", "Warnings", "Info"])
+                
+                # Style summary sheet
+                summary_sheet['A1'].font = Font(bold=True, size=14)
+                for row in range(1, 8):
+                    summary_sheet[f'A{row}'].font = Font(bold=True)
+                
+                # Create sheets for each file
+                for file_path, file_findings in findings_by_file.items():
+                    # Clean sheet name (Excel has restrictions)
+                    sheet_name = Path(file_path).stem[:31]  # Excel sheet name limit
+                    sheet_name = "".join(c for c in sheet_name if c.isalnum() or c in (' ', '-', '_')).strip()
+                    if not sheet_name:
+                        sheet_name = "Unknown"
+                    
+                    ws = wb.create_sheet(sheet_name)
+                    
+                    # Headers
+                    headers = ["Rule ID", "Severity", "Line", "Column", "Message", "File Path"]
+                    ws.append(headers)
+                    
+                    # Style headers
+                    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+                    header_font = Font(color="FFFFFF", bold=True)
+                    for col_num, header in enumerate(headers, 1):
+                        cell = ws.cell(row=1, column=col_num)
+                        cell.fill = header_fill
+                        cell.font = header_font
+                        cell.alignment = Alignment(horizontal="center")
+                    
+                    # Add findings
+                    for finding in file_findings:
+                        row = [
+                            finding.get('rule_id', ''),
+                            finding.get('severity', ''),
+                            finding.get('line', ''),
+                            finding.get('column', ''),
+                            finding.get('message', ''),
+                            finding.get('file_path', '')
+                        ]
+                        ws.append(row)
+                        
+                        # Color code by severity
+                        severity_colors = {
+                            "SEVERE": "FFCCCC",    # Light red
+                            "WARNING": "FFFFCC",  # Light yellow
+                            "INFO": "CCE5FF",     # Light blue
+                            "HINT": "E6FFE6"      # Light green
+                        }
+                        
+                        severity = finding.get('severity', '')
+                        if severity in severity_colors:
+                            fill = PatternFill(start_color=severity_colors[severity], 
+                                             end_color=severity_colors[severity], 
+                                             fill_type="solid")
+                            for col_num in range(1, len(headers) + 1):
+                                ws.cell(row=ws.max_row, column=col_num).fill = fill
+                    
+                    # Auto-adjust column widths
+                    for column in ws.columns:
+                        max_length = 0
+                        column_letter = get_column_letter(column[0].column)
+                        for cell in column:
+                            try:
+                                if len(str(cell.value)) > max_length:
+                                    max_length = len(str(cell.value))
+                            except:
+                                pass
+                        adjusted_width = min(max_length + 2, 50)  # Cap at 50
+                        ws.column_dimensions[column_letter].width = adjusted_width
+                    
+                    # Update summary sheet
+                    file_severe_count = len([f for f in file_findings if f.get('severity') == 'SEVERE'])
+                    file_warning_count = len([f for f in file_findings if f.get('severity') == 'WARNING'])
+                    file_info_count = len([f for f in file_findings if f.get('severity') == 'INFO'])
+                    summary_sheet.append([file_path, len(file_findings), file_severe_count, file_warning_count, file_info_count])
+                
+                # Save to bytes
+                import io
+                output = io.BytesIO()
+                wb.save(output)
+                excel_data = output.getvalue()
+                
             except ImportError:
-                # If ExcelFormatter isn't available, create a simple CSV
+                # If openpyxl isn't available, create a simple CSV
                 import csv
                 import io
                 
@@ -301,6 +414,12 @@ print(json.dumps(result))
                     ])
                 
                 excel_data = output.getvalue().encode()
+                # Change content type to CSV if openpyxl not available
+                self.send_header('Content-type', 'text/csv')
+                self.send_header('Content-Disposition', 'attachment; filename="arcane-auditor-results.csv"')
+                self.end_headers()
+                self.wfile.write(excel_data)
+                return
             
             # Send response
             self.send_response(200)
