@@ -166,7 +166,10 @@ class ScriptUnusedVariableRule(Rule):
                     line_number = None
                     if hasattr(node, 'children') and len(node.children) > 0:
                         for child in node.children:
-                            if hasattr(child, 'line') and child.line is not None:
+                            if hasattr(child, 'meta') and hasattr(child.meta, 'line'):
+                                line_number = child.meta.line
+                                break
+                            elif hasattr(child, 'line') and child.line is not None:
                                 line_number = child.line
                                 break
                     
@@ -215,8 +218,15 @@ class ScriptUnusedVariableRule(Rule):
                 for param_child in child.children:
                     if hasattr(param_child, 'value'):
                         param_name = param_child.value
+                        # Get line number from param_child
+                        line_number = None
+                        if hasattr(param_child, 'meta') and hasattr(param_child.meta, 'line'):
+                            line_number = param_child.meta.line
+                        elif hasattr(param_child, 'line'):
+                            line_number = param_child.line
+                        
                         func_scope['declared_vars'][param_name] = {
-                            'line': getattr(param_child, 'line', None),
+                            'line': line_number,
                             'type': 'parameter'
                         }
                 break

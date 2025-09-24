@@ -143,20 +143,10 @@ class ScriptUnusedFunctionRule(Rule):
         
         def _search_functions(node, current_line_offset=0):
             if hasattr(node, 'data'):
+                # Skip function_expression nodes - they are handled by variable_declaration
+                # The function_expression node contains parameters, not the function name
                 if node.data == 'function_expression':
-                    # Handle direct function declarations (function name() { ... })
-                    if len(node.children) >= 2:
-                        # First child should be 'function' keyword
-                        # Second child should be the function name
-                        if hasattr(node.children[1], 'value'):
-                            func_name = node.children[1].value
-                            line_number = getattr(node.children[1], 'line', 1) + line_offset - 1
-                            
-                            functions[func_name] = {
-                                'line': line_number,
-                                'field': field_name,
-                                'type': 'function'
-                            }
+                    pass
                 
                 elif node.data == 'variable_declaration':
                     # Check if this is a function assignment (let func = function() { ... } or let func = () => { ... })
@@ -169,7 +159,13 @@ class ScriptUnusedFunctionRule(Rule):
                             func_expr.data in ['function_expression', 'arrow_function', 'arrow_function_expression']):
                             
                             func_name = var_name_node.value
-                            line_number = getattr(var_name_node, 'line', 1) + line_offset - 1
+                            # Get line number from var_name_node
+                            base_line = 1
+                            if hasattr(var_name_node, 'meta') and hasattr(var_name_node.meta, 'line'):
+                                base_line = var_name_node.meta.line
+                            elif hasattr(var_name_node, 'line'):
+                                base_line = var_name_node.line
+                            line_number = base_line + line_offset - 1
                             
                             functions[func_name] = {
                                 'line': line_number,
@@ -191,16 +187,7 @@ class ScriptUnusedFunctionRule(Rule):
         
         def _search_function_calls(node):
             if hasattr(node, 'data'):
-                if node.data == 'call_expression':
-                    # Extract function name from call expression
-                    if len(node.children) > 0:
-                        func_name_node = node.children[0]
-                        if hasattr(func_name_node, 'data') and func_name_node.data == 'identifier_expression':
-                            if len(func_name_node.children) > 0:
-                                func_name = func_name_node.children[0].value
-                                function_calls.add(func_name)
-                
-                elif node.data == 'arguments_expression':
+                if node.data == 'arguments_expression':
                     # Handle function calls with arguments (func(arg1, arg2))
                     if len(node.children) > 0:
                         func_name_node = node.children[0]
@@ -209,10 +196,44 @@ class ScriptUnusedFunctionRule(Rule):
                                 func_name = func_name_node.children[0].value
                                 function_calls.add(func_name)
                 
-                elif node.data == 'identifier_expression':
-                    # This might be a function call in some contexts
-                    # We'll be conservative and not assume all identifiers are function calls
-                    pass
+                elif node.data == 'call_expression':
+                    # Extract function name from call expression
+                    if len(node.children) > 0:
+                        func_name_node = node.children[0]
+                        if hasattr(func_name_node, 'data') and func_name_node.data == 'identifier_expression':
+                            if len(func_name_node.children) > 0:
+                                func_name = func_name_node.children[0].value
+                                function_calls.add(func_name)
+                
+                elif node.data == 'statement_list':
+                    # Handle function calls within statement lists
+                    # Look for identifier_expression followed by parenthesized_expression
+                    children = node.children if hasattr(node, 'children') else []
+                    for i in range(len(children) - 1):
+                        current = children[i]
+                        next_node = children[i + 1]
+                        
+                        if (hasattr(current, 'data') and current.data == 'identifier_expression' and
+                            hasattr(next_node, 'data') and next_node.data == 'parenthesized_expression'):
+                            # This looks like a function call
+                            if len(current.children) > 0:
+                                func_name = current.children[0].value
+                                function_calls.add(func_name)
+                
+                elif node.data == 'member_dot_expression':
+                    # Handle method calls like obj.method()
+                    if len(node.children) >= 2:
+                        # Check if this is followed by a call expression
+                        # This is a bit tricky - we need to check the parent context
+                        pass
+                
+                elif node.data == 'curly_literal_expression':
+                    # Handle object literal exports like { "funcName": funcName }
+                    self._extract_object_literal_exports(node, function_calls)
+                
+                elif node.data == 'curly_literal':
+                    # Handle object literal exports like { "funcName": funcName }
+                    self._extract_object_literal_exports(node, function_calls)
             
             # Recursively search children
             if hasattr(node, 'children'):
@@ -221,6 +242,34 @@ class ScriptUnusedFunctionRule(Rule):
         
         _search_function_calls(ast)
         return function_calls
+
+    def _extract_object_literal_exports(self, node, function_calls):
+        """Extract function references from object literal exports."""
+        if not hasattr(node, 'children'):
+            return
+        
+        # Handle curly_literal structure: literal_expression, identifier_expression, property_expression_assignment, ...
+        children = node.children
+        i = 0
+        while i < len(children):
+            child = children[i]
+            
+            # Look for identifier_expression (function references)
+            if hasattr(child, 'data') and child.data == 'identifier_expression':
+                if len(child.children) > 0:
+                    func_name = child.children[0].value
+                    function_calls.add(func_name)
+            
+            # Look for property_expression_assignment
+            elif hasattr(child, 'data') and child.data == 'property_expression_assignment':
+                if len(child.children) >= 2:
+                    value_node = child.children[1]
+                    if hasattr(value_node, 'data') and value_node.data == 'identifier_expression':
+                        if len(value_node.children) > 0:
+                            func_name = value_node.children[0].value
+                            function_calls.add(func_name)
+            
+            i += 1
 
     def _build_pod_function_registry(self, pod_model: PodModel) -> Dict[str, Dict]:
         """Build a registry of all functions declared in the POD model."""
