@@ -124,31 +124,31 @@ def run_analysis_background(job: AnalysisJob):
             job.error = "No PMD Script files found in the uploaded ZIP"
             job.status = "failed"
             job.end_time = time.time()
-                return
+            return
             
         # Create project context
         parser = ModelParser()
         context = parser.parse_files(source_files_map)
         
-                # Run analysis
+        # Run analysis
         config_manager = ConfigurationManager()
         config = config_manager.load_config("comprehensive")
         rules_engine = RulesEngine(config)
         
-            findings = rules_engine.run(context)
-            
+        findings = rules_engine.run(context)
+        
         # Convert findings to serializable format
-            result = {
+        result = {
             "findings": [
                 {
                     "rule_id": finding.rule_id,
                     "severity": finding.severity,
                     "message": finding.message,
-            "file_path": finding.file_path,
-            "line": finding.line,
+                    "file_path": finding.file_path,
+                    "line": finding.line,
                     "column": finding.column
                 }
-        for finding in findings
+                for finding in findings
             ],
             "summary": {
                 "total_findings": len(findings),
