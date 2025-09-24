@@ -152,6 +152,7 @@ def run_analysis_background(job: AnalysisJob):
             ],
             "summary": {
                 "total_findings": len(findings),
+                "rules_executed": len(rules_engine.rules),
                 "by_severity": {
                     "error": len([f for f in findings if f.severity == "SEVERE"]),
                     "warning": len([f for f in findings if f.severity == "WARNING"]),
@@ -284,10 +285,10 @@ async def download_excel(job_id: str):
             
             # Add findings data
             for row, finding in enumerate(job.result["findings"], 2):
-                ws_findings.cell(row=row, column=1, value=finding["rule"])
+                ws_findings.cell(row=row, column=1, value=finding["rule_id"])
                 ws_findings.cell(row=row, column=2, value=finding["severity"])
                 ws_findings.cell(row=row, column=3, value=finding["message"])
-                ws_findings.cell(row=row, column=4, value=finding["file"])
+                ws_findings.cell(row=row, column=4, value=finding["file_path"])
                 ws_findings.cell(row=row, column=5, value=finding["line"])
             
             # Auto-adjust column widths
