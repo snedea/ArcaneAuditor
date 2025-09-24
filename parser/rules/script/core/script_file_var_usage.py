@@ -108,9 +108,9 @@ class ScriptFileVarUsageRule(Rule):
         exported_vars = set()
         
         # Look for object literal expressions (the export map)
-        # In our grammar, object literals can be either expression statements or part of other expressions
+        # In our grammar, object literals can be curly_literal_expression or curly_literal
         for node in ast.iter_subtrees():
-            if hasattr(node, 'data') and node.data == 'object_literal':
+            if hasattr(node, 'data') and node.data in ['object_literal', 'curly_literal_expression', 'curly_literal']:
                 exported_vars.update(self._extract_object_literal_references(node))
         
         return exported_vars
@@ -132,6 +132,22 @@ class ScriptFileVarUsageRule(Rule):
                             if len(value_expr.children) > 0:
                                 var_name = value_expr.children[0].value
                                 references.add(var_name)
+            
+            # Also handle direct identifier_expression nodes in curly_literal structure
+            if hasattr(obj_literal, 'children'):
+                for child in obj_literal.children:
+                    if hasattr(child, 'data') and child.data == 'identifier_expression':
+                        if len(child.children) > 0:
+                            var_name = child.children[0].value
+                            references.add(var_name)
+                    
+                    # Recursively search children for nested structures
+                    if hasattr(child, 'children'):
+                        for grandchild in child.children:
+                            if hasattr(grandchild, 'data') and grandchild.data == 'identifier_expression':
+                                if len(grandchild.children) > 0:
+                                    var_name = grandchild.children[0].value
+                                    references.add(var_name)
         except Exception as e:
             pass  # Silently handle parsing errors
         
