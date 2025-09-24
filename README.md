@@ -152,8 +152,9 @@ For a user-friendly mystical web interface:
 #### **Start Web Interface**
 
 ```bash
-# Start the simple HTML web server (no Node.js needed!)
+# Start the simple HTML web server
 # Make sure you're in the project directory with dependencies available
+# Adjust port as necessary
 uv run python web/server.py --port 8081
 
 # Or if you have a virtual environment activated:
@@ -169,7 +170,6 @@ The web interface provides:
 - **Dark/light mode** toggle
 - **Results filtering** and sorting
 - **Excel export** functionality
-- **No Node.js dependency** - pure Python + HTML/CSS/JS
 
 > **🌐 Web Interface Benefits:** Drag-and-drop file upload, interactive results, configuration management, and beautiful mystical UI!
 
