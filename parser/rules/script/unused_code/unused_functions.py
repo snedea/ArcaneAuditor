@@ -269,6 +269,14 @@ class ScriptUnusedFunctionRule(Rule):
                             func_name = value_node.children[0].value
                             function_calls.add(func_name)
             
+            # Recursively search children for nested structures
+            if hasattr(child, 'children'):
+                for grandchild in child.children:
+                    if hasattr(grandchild, 'data') and grandchild.data == 'identifier_expression':
+                        if len(grandchild.children) > 0:
+                            func_name = grandchild.children[0].value
+                            function_calls.add(func_name)
+            
             i += 1
 
     def _build_pod_function_registry(self, pod_model: PodModel) -> Dict[str, Dict]:
