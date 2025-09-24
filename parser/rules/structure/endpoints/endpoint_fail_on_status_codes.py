@@ -60,19 +60,27 @@ class EndpointFailOnStatusCodesRule(Rule):
             return
 
         codes_found = set()
-        for _, status_code_entry in enumerate(fail_on_status_codes):
-            code = status_code_entry['code']
-            codes_found.add(code)
+        for i, status_code_entry in enumerate(fail_on_status_codes):
+            if isinstance(status_code_entry, dict):
+                # Only check for 'code' field, ignore 'codeName' entirely
+                if 'code' in status_code_entry:
+                    code = status_code_entry['code']
+                    codes_found.add(code)
+                # Silently ignore entries with 'codeName' or other unexpected structures
+                continue
+            else:
+                print(f"Warning: Unexpected failOnStatusCodes entry type at index {i} in endpoint '{endpoint_name}': {type(status_code_entry)} - {status_code_entry}")
+                continue
         
-        # Check for required codes 400 and 403
-        required_codes = {'400', '403'}
+        # Check for required codes 400 and 403 (as integers)
+        required_codes = {400, 403}
         # Remove codes found from required codes. Empty set if all required codes are found.
         missing_codes = required_codes - codes_found
         
         # If there are missing codes, yield a finding
         if missing_codes:
             line_number = self._get_fail_on_status_codes_line_number(model, endpoint_name, endpoint_type)
-            missing_codes_str = ', '.join(sorted(missing_codes))
+            missing_codes_str = ', '.join(map(str, sorted(missing_codes)))
             yield Finding(
                 rule=self,
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is missing required status codes: {missing_codes_str}.",
