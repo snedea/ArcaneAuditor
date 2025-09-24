@@ -96,13 +96,11 @@ class ScriptNullSafetyRule(Rule):
                 exclude_condition = endpoint['exclude']
                 safe_variables.update(self._extract_checked_variables(exclude_condition))
             
-            # Check adjacent fields for null safety conditions
-            # If this is a 'url' or 'onSend' field, check if 'exclude' protects it
-            if 'url' in field_name or 'onSend' in field_name:
-                # The exclude condition above already protects these fields
-                pass
-            else:
-                # For other fields, check if they contain null safety checks
+            # If this field is within an endpoint that has an exclude condition,
+            # ALL script fields in that endpoint are safe (not just url/onSend)
+            # because if exclude returns true, the entire endpoint doesn't execute
+            if 'exclude' in endpoint:
+                # Extract variables from ALL script fields in this endpoint
                 for field_key, field_value in endpoint.items():
                     if isinstance(field_value, str) and field_value.strip().startswith('<%'):
                         safe_variables.update(self._extract_checked_variables(field_value))
@@ -144,16 +142,11 @@ class ScriptNullSafetyRule(Rule):
                 render_condition = widget['render']
                 safe_variables.update(self._extract_checked_variables(render_condition))
             
-            # Check adjacent fields for null safety conditions
-            # If this is a 'value' field, check if 'render' protects it
-            if 'value' in field_name:
-                # The render condition above already protects the value field
-                pass
-            elif 'onChange' in field_name:
-                # onChange is also protected by render conditions
-                pass
-            else:
-                # For other fields, check if they contain null safety checks
+            # If this field is within a widget that has a render condition,
+            # ALL script fields in that widget are safe (not just value/onChange)
+            # because if render returns false, the entire widget doesn't execute
+            if 'render' in widget:
+                # Extract variables from ALL script fields in this widget
                 for field_key, field_value in widget.items():
                     if isinstance(field_value, str) and field_value.strip().startswith('<%'):
                         safe_variables.update(self._extract_checked_variables(field_value))
