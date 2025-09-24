@@ -234,20 +234,20 @@ class ArcaneAuditorApp {
             <h4>📈 Summary</h4>
             <div class="summary-grid">
                 <div class="summary-item">
-                    <div class="summary-number summary-number-blue">${result.total_files}</div>
-                    <div class="summary-label">Files Analyzed</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-number summary-number-purple">${result.total_rules}</div>
-                    <div class="summary-label">Rules Executed</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-number summary-number-orange">${result.findings.length}</div>
+                    <div class="summary-number summary-number-blue">${result.summary?.total_findings || result.findings.length}</div>
                     <div class="summary-label">Issues Found</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-filename">${result.zip_filename}</div>
-                    <div class="summary-label">Application</div>
+                    <div class="summary-number summary-number-purple">30</div>
+                    <div class="summary-label">Rules Executed</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number summary-number-orange">${severityCounts.error || 0}</div>
+                    <div class="summary-label">Errors</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number summary-number-yellow">${severityCounts.warning || 0}</div>
+                    <div class="summary-label">Warnings</div>
                 </div>
             </div>
             
