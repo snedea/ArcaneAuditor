@@ -137,7 +137,7 @@ class ScriptNullSafetyRule(Rule):
         # Find the widget that contains this field
         widget = self._find_widget_for_field(field_name, pmd_model)
         if widget:
-            # Check render condition (widgets only have render, not exclude)
+            # Check render condition
             if 'render' in widget:
                 render_condition = widget['render']
                 safe_variables.update(self._extract_checked_variables(render_condition))
