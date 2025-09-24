@@ -26,13 +26,26 @@ class ScriptUnusedScriptIncludesRule(Rule):
             script_calls = self._get_script_calls_in_pmd(pmd_model)
             
             # Find unused includes
-            unused_scripts = included_scripts - script_calls
+            # Convert included scripts to base names for comparison
+            included_base_names = set()
+            for script_file in included_scripts:
+                base_name = self._get_script_prefix(script_file)
+                included_base_names.add(base_name)
+            
+            unused_scripts = included_base_names - script_calls
             
             for script_name in unused_scripts:
+                # Find the original script file name for the error message
+                original_script_file = None
+                for script_file in included_scripts:
+                    if self._get_script_prefix(script_file) == script_name:
+                        original_script_file = script_file
+                        break
+                
                 yield Finding(
                     rule=self,
-                    message=f"Script file '{script_name}' is included but never used. Consider removing from include array or add calls like '{self._get_script_prefix(script_name)}.functionName()'.",
-                    line=self._get_include_line_number(pmd_model, script_name),
+                    message=f"Script file '{original_script_file or script_name}' is included but never used. Consider removing from include array or add calls like '{script_name}.functionName()'.",
+                    line=self._get_include_line_number(pmd_model, original_script_file or script_name),
                     column=1,
                     file_path=pmd_model.file_path
                 )
@@ -84,9 +97,7 @@ class ScriptUnusedScriptIncludesRule(Rule):
                             
                             # Check if this looks like a script file name
                             if self._is_likely_script_name(script_name):
-                                # Add the .script extension if not present
-                                if not script_name.endswith('.script'):
-                                    script_name += '.script'
+                                # Don't add .script extension - script calls use the base name
                                 script_calls.add(script_name)
         
         except Exception:
@@ -98,13 +109,14 @@ class ScriptUnusedScriptIncludesRule(Rule):
         """Check if a name is likely a script file reference."""
         # Script names are typically camelCase identifiers
         # Common patterns: util, helper, common, etc.
-        common_script_names = {'util', 'helper', 'common', 'utils', 'helpers'}
+        common_script_names = {'util', 'helper', 'common', 'utils', 'helpers', 'bootstrapdata'}
         
         # Check if it's a known script name or follows script naming patterns
         return (
             name.lower() in common_script_names or
             name.endswith('.script') or
-            (name.islower() and len(name) > 2)  # Simple heuristic for script names
+            (name.islower() and len(name) > 2) or  # Simple heuristic for script names
+            (name[0].islower() and any(c.isupper() for c in name[1:]))  # camelCase pattern
         )
 
     def _get_script_prefix(self, script_file: str) -> str:
