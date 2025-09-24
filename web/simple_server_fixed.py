@@ -188,17 +188,22 @@ class ArcaneAuditorHandler(SimpleHTTPRequestHandler):
                 import subprocess
                 import json as json_module
                 
+                # Use proper path escaping for Windows
+                project_root_str = str(project_root).replace('\\', '\\\\')
+                zip_path_str = str(zip_path).replace('\\', '\\\\')
+                zip_filename_str = Path(zip_path).name.replace('\\', '\\\\')
+                
                 result = subprocess.run([
                     'uv', 'run', 'python', '-c', f'''
 import sys
-sys.path.insert(0, "{project_root}")
+sys.path.insert(0, r"{project_root_str}")
 from file_processing.processor import FileProcessor
 from parser.rules_engine import RulesEngine
 import json
 
 # Process the file
 processor = FileProcessor()
-pmd_model = processor.process_zip_file("{zip_path}")
+pmd_model = processor.process_zip_file(r"{zip_path_str}")
 
 # Run rules
 rules_engine = RulesEngine()
@@ -206,7 +211,7 @@ findings = rules_engine.analyze_pmd_model(pmd_model)
 
 # Format results
 result = {{
-    "zip_filename": "{Path(zip_path).name}",
+    "zip_filename": r"{zip_filename_str}",
     "total_files": len(pmd_model.files) if hasattr(pmd_model, "files") else 0,
     "total_rules": len(rules_engine.get_enabled_rules()),
     "findings": [
@@ -330,10 +335,13 @@ print(json.dumps(result))
             try:
                 import subprocess
                 
+                # Use proper path escaping for Windows
+                project_root_str = str(project_root).replace('\\', '\\\\')
+                
                 result = subprocess.run([
                     'uv', 'run', 'python', '-c', f'''
 import sys
-sys.path.insert(0, "{project_root}")
+sys.path.insert(0, r"{project_root_str}")
 from parser.rules_engine import RulesEngine
 import json
 
