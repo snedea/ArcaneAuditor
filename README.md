@@ -152,7 +152,11 @@ For a user-friendly mystical web interface:
 #### **Start Web Interface**
 
 ```bash
-# Start the simple HTML web server
+# Start the simple HTML web server (no Node.js needed!)
+# Make sure you're in the project directory with dependencies available
+uv run python web/server.py --port 8081
+
+# Or if you have a virtual environment activated:
 python web/server.py --port 8081
 
 # Open your browser to: http://localhost:8081

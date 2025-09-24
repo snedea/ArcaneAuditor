@@ -278,6 +278,7 @@ print(json.dumps(result))
             
             # Create Excel file
             try:
+                # Try to import openpyxl - if not available, fall back to CSV
                 import openpyxl
                 from openpyxl.styles import Font, PatternFill, Alignment
                 from openpyxl.utils import get_column_letter
@@ -429,6 +430,10 @@ print(json.dumps(result))
             self.wfile.write(excel_data)
             
         except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Excel download error: {str(e)}")
+            print(f"Traceback: {error_details}")
             self.send_error(500, f"Download failed: {str(e)}")
     
     def handle_get_rules(self):
