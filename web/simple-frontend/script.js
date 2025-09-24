@@ -576,6 +576,9 @@ class ArcaneAuditorApp {
     }
 }
 
+// Initialize the app
+const app = new ArcaneAuditorApp();
+
 // Global functions for HTML onclick handlers
 function resetInterface() {
     app.resetForNewUpload();
@@ -588,6 +591,3 @@ function downloadResults() {
 function toggleTheme() {
     app.toggleTheme();
 }
-
-// Initialize the app
-const app = new ArcaneAuditorApp();
