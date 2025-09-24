@@ -14,6 +14,36 @@ class ArcaneAuditorApp {
         this.expandedFiles = new Set();
         
         this.initializeEventListeners();
+        this.initializeTheme();
+    }
+
+    initializeTheme() {
+        // Check for saved theme preference or default to light mode
+        const savedTheme = localStorage.getItem('arcane-auditor-theme') || 'light';
+        this.setTheme(savedTheme);
+    }
+
+    setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+        
+        if (theme === 'dark') {
+            themeIcon.textContent = '☀️';
+            themeText.textContent = 'Light';
+        } else {
+            themeIcon.textContent = '🌙';
+            themeText.textContent = 'Dark';
+        }
+        
+        // Save preference
+        localStorage.setItem('arcane-auditor-theme', theme);
+    }
+
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        this.setTheme(newTheme);
     }
 
     initializeEventListeners() {
@@ -490,6 +520,10 @@ function resetInterface() {
 
 function downloadResults() {
     app.downloadResults();
+}
+
+function toggleTheme() {
+    app.toggleTheme();
 }
 
 // Initialize the app
