@@ -65,7 +65,13 @@ class EndpointFailOnStatusCodesRule(Rule):
                 # Only check for 'code' field, ignore 'codeName' entirely
                 if 'code' in status_code_entry:
                     code = status_code_entry['code']
-                    codes_found.add(code)
+                    # Convert to integer to handle both string and int values
+                    try:
+                        code_int = int(code)
+                        codes_found.add(code_int)
+                    except (ValueError, TypeError):
+                        print(f"Warning: Invalid status code value '{code}' at index {i} in endpoint '{endpoint_name}' - must be a number")
+                        continue
                 # Silently ignore entries with 'codeName' or other unexpected structures
                 continue
             else:
