@@ -97,16 +97,13 @@ class ArcaneAuditorHandler(SimpleHTTPRequestHandler):
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             
-            # Simple multipart parsing (for demo purposes)
-            boundary = None
-            for line in post_data.split(b'\r\n'):
-                if line.startswith(b'Content-Type: multipart/form-data'):
-                    boundary = line.split(b'boundary=')[1].decode()
-                    break
-            
-            if not boundary:
-                self.send_error(400, "Invalid multipart data")
+            # Get boundary from Content-Type header
+            content_type = self.headers.get('Content-Type', '')
+            if 'boundary=' not in content_type:
+                self.send_error(400, "No boundary found in Content-Type")
                 return
+            
+            boundary = content_type.split('boundary=')[1]
             
             # Extract file data
             file_data = None
@@ -138,6 +135,7 @@ class ArcaneAuditorHandler(SimpleHTTPRequestHandler):
                 # Send response
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
                 self.wfile.write(json.dumps(result).encode())
                 
