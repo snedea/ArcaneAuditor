@@ -81,7 +81,12 @@ class ScriptEmptyFunctionRule(Rule):
         """Analyze a specific function for empty body."""
         # Find the function body
         function_body = None
-        if len(function_node.children) > 2:  # function has body
+        
+        if len(function_node.children) == 2:
+            # Empty function: children are [function, function_body]
+            function_body = function_node.children[1]
+        elif len(function_node.children) == 3:
+            # Non-empty function: children are [function, params, source_elements]
             function_body = function_node.children[2]
         
         # Check if function body is empty
@@ -96,12 +101,22 @@ class ScriptEmptyFunctionRule(Rule):
         if not hasattr(function_body, 'children'):
             return True
         
+        # If the function body is a direct statement (like return_statement), it's not empty
+        if hasattr(function_body, 'data') and function_body.data in ['return_statement', 'expression_statement']:
+            return False
+        
+        # If the function body has no children, it's empty
+        if len(function_body.children) == 0:
+            return True
+        
         # Check if body has any meaningful statements
         for child in function_body.children:
             if hasattr(child, 'data'):
                 # If we find any statement that's not just whitespace, it's not empty
                 if child.data in ['statement', 'expression_statement', 'return_statement', 
-                                'if_statement', 'while_statement', 'for_statement']:
+                                'if_statement', 'while_statement', 'for_statement',
+                                'assignment_expression', 'call_expression', 'identifier_expression',
+                                'literal_expression', 'binary_expression', 'unary_expression']:
                     return False
         
         return True
