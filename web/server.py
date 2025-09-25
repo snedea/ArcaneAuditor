@@ -152,13 +152,13 @@ def run_analysis_background(job: AnalysisJob):
         job.start_time = time.time()
         
         # Import analysis modules here to avoid import issues
-            from file_processing.processor import FileProcessor
+        from file_processing.processor import FileProcessor
         from parser.app_parser import ModelParser
-            from parser.rules_engine import RulesEngine
+        from parser.rules_engine import RulesEngine
         from parser.config_manager import ConfigurationManager
             
         # Process ZIP file
-            processor = FileProcessor()
+        processor = FileProcessor()
         source_files_map = processor.process_zip_file(job.zip_path)
         
         if not source_files_map:
@@ -176,7 +176,7 @@ def run_analysis_background(job: AnalysisJob):
         config = config_manager.load_config("comprehensive")
         rules_engine = RulesEngine(config)
         
-findings = rules_engine.run(context)
+        findings = rules_engine.run(context)
         
         # Convert findings to serializable format
         result = {
@@ -380,7 +380,7 @@ async def health_check():
     return {"status": "healthy", "version": "0.1.3"}
 
 # Mount static files at /static to avoid conflicts with API routes
-static_dir = Path(__file__).parent / "simple-frontend"
+static_dir = Path(__file__).parent / "frontend"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 def main():
