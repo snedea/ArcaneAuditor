@@ -212,3 +212,6 @@ __marimo__/
 # that should not be tracked in the repository
 samples/
 temp/
+
+# Web uploads folder for user uploads
+web/uploads/
