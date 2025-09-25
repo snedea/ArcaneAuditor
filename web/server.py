@@ -4,16 +4,15 @@ FastAPI server for the HTML frontend of Arcane Auditor.
 This serves the simple HTML/JavaScript interface with FastAPI backend.
 """
 
-import os
+from contextlib import asynccontextmanager
 import sys
-import json
 import tempfile
 import threading
 import time
 import uuid
 import asyncio
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, Optional
 import webbrowser
 
 # Add the project root to Python path
@@ -21,8 +20,8 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # FastAPI imports
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -97,21 +96,24 @@ class AnalysisRequest(BaseModel):
     """Request model for analysis."""
     job_id: str
 
-# Initialize FastAPI app
-app = FastAPI(
-    title="Arcane Auditor API",
-    description="Workday Extend Code Review Tool API",
-    version="0.1.3"
-)
 
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     """Clean up orphaned files on server startup."""
     cleanup_orphaned_files()
     
     # Start periodic cleanup task
     import asyncio
     asyncio.create_task(periodic_cleanup())
+    yield
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="Arcane Auditor API",
+    description="Workday Extend Code Review Tool API",
+    version="0.4.0",
+    lifespan=lifespan
+)
 
 async def periodic_cleanup():
     """Run cleanup every 5 minutes."""
@@ -177,7 +179,7 @@ def run_analysis_background(job: AnalysisJob):
         rules_engine = RulesEngine(config)
         
         findings = rules_engine.run(context)
-        
+            
         # Convert findings to serializable format
         result = {
             "findings": [
@@ -188,8 +190,8 @@ def run_analysis_background(job: AnalysisJob):
                     "file_path": finding.file_path,
                     "line": finding.line,
                     "column": finding.column
-                }
-                for finding in findings
+                    }
+                    for finding in findings
             ],
             "summary": {
                 "total_findings": len(findings),
@@ -254,7 +256,7 @@ async def upload_file(file: UploadFile = File(...)):
         cleanup_old_jobs()
         
         return {"job_id": job_id, "status": "queued"}
-        
+            
     except Exception as e:
         # Clean up file if upload failed
         if zip_path.exists():
@@ -287,63 +289,127 @@ async def download_excel(job_id: str):
             raise HTTPException(status_code=500, detail="No results available")
         
         try:
-            # Generate Excel file
+            # Generate Excel file using the superior CLI method
             from openpyxl import Workbook
             from openpyxl.styles import Font, PatternFill, Alignment
+            from openpyxl.utils import get_column_letter
             from datetime import datetime
+            from pathlib import Path
             
             wb = Workbook()
             
-            # Summary sheet
-            ws_summary = wb.active
-            ws_summary.title = "Summary"
+            # Remove default sheet
+            wb.remove(wb.active)
             
-            # Add summary data
-            summary = job.result["summary"]
-            ws_summary["A1"] = "Total Findings"
-            ws_summary["B1"] = summary["total_findings"]
-            ws_summary["A2"] = "Errors"
-            ws_summary["B2"] = summary["by_severity"]["error"]
-            ws_summary["A3"] = "Warnings"
-            ws_summary["B3"] = summary["by_severity"]["warning"]
-            ws_summary["A4"] = "Info"
-            ws_summary["B4"] = summary["by_severity"]["info"]
+            # Convert web service findings to CLI format
+            findings = []
+            for finding_data in job.result["findings"]:
+                # Create a simple Finding-like object for compatibility
+                class WebFinding:
+                    def __init__(self, data):
+                        self.rule_id = data["rule_id"]
+                        self.severity = data["severity"]
+                        self.line = data["line"]
+                        self.column = data.get("column", 1)
+                        self.message = data["message"]
+                        self.file_path = data["file_path"]
+                
+                findings.append(WebFinding(finding_data))
+            
+            # Group findings by file
+            findings_by_file = {}
+            for finding in findings:
+                file_path = finding.file_path or "Unknown"
+                if file_path not in findings_by_file:
+                    findings_by_file[file_path] = []
+                findings_by_file[file_path].append(finding)
+            
+            # Create summary sheet
+            summary_sheet = wb.create_sheet("Summary")
+            summary_sheet.append(["Analysis Summary"])
+            summary_sheet.append(["Files Analyzed", len(findings_by_file)])
+            summary_sheet.append(["Rules Executed", job.result["summary"]["rules_executed"]])
+            summary_sheet.append(["Total Issues", len(findings)])
+            summary_sheet.append(["Severe", len([f for f in findings if f.severity == "SEVERE"])])
+            summary_sheet.append(["Warnings", len([f for f in findings if f.severity == "WARNING"])])
+            summary_sheet.append(["Info", len([f for f in findings if f.severity == "INFO"])])
+            summary_sheet.append([])
+            summary_sheet.append(["File", "Issues", "Severe", "Warnings", "Info"])
             
             # Style summary sheet
-            header_font = Font(bold=True)
-            for cell in ws_summary["A1:A4"]:
-                cell[0].font = header_font
+            summary_sheet['A1'].font = Font(bold=True, size=14)
+            for row in range(1, 8):
+                summary_sheet[f'A{row}'].font = Font(bold=True)
             
-            # Findings sheet
-            ws_findings = wb.create_sheet("Findings")
+            # Add file summary data
+            for file_path, file_findings in findings_by_file.items():
+                severe_count = len([f for f in file_findings if f.severity == "SEVERE"])
+                warning_count = len([f for f in file_findings if f.severity == "WARNING"])
+                info_count = len([f for f in file_findings if f.severity == "INFO"])
+                summary_sheet.append([file_path, len(file_findings), severe_count, warning_count, info_count])
             
-            # Headers
-            headers = ["Rule", "Severity", "Message", "File", "Line"]
-            for col, header in enumerate(headers, 1):
-                cell = ws_findings.cell(row=1, column=col, value=header)
-                cell.font = Font(bold=True)
-                cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
-            
-            # Add findings data
-            for row, finding in enumerate(job.result["findings"], 2):
-                ws_findings.cell(row=row, column=1, value=finding["rule_id"])
-                ws_findings.cell(row=row, column=2, value=finding["severity"])
-                ws_findings.cell(row=row, column=3, value=finding["message"])
-                ws_findings.cell(row=row, column=4, value=finding["file_path"])
-                ws_findings.cell(row=row, column=5, value=finding["line"])
-            
-            # Auto-adjust column widths
-            for column in ws_findings.columns:
-                max_length = 0
-                column_letter = column[0].column_letter
-                for cell in column:
-                    try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
-                    except:
-                        pass
-                adjusted_width = min(max_length + 2, 50)
-                ws_findings.column_dimensions[column_letter].width = adjusted_width
+            # Create sheets for each file
+            for file_path, file_findings in findings_by_file.items():
+                # Clean sheet name (Excel has restrictions)
+                sheet_name = Path(file_path).stem[:31]  # Excel sheet name limit
+                sheet_name = "".join(c for c in sheet_name if c.isalnum() or c in (' ', '-', '_')).strip()
+                if not sheet_name:
+                    sheet_name = "Unknown"
+                
+                ws = wb.create_sheet(sheet_name)
+                
+                # Headers
+                headers = ["Rule ID", "Severity", "Line", "Column", "Message", "File Path"]
+                ws.append(headers)
+                
+                # Style headers
+                header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+                header_font = Font(color="FFFFFF", bold=True)
+                for col_num, header in enumerate(headers, 1):
+                    cell = ws.cell(row=1, column=col_num)
+                    cell.fill = header_fill
+                    cell.font = header_font
+                    cell.alignment = Alignment(horizontal="center")
+                
+                # Add findings
+                for finding in file_findings:
+                    row = [
+                        finding.rule_id,
+                        finding.severity,
+                        finding.line,
+                        finding.column,
+                        finding.message,
+                        finding.file_path
+                    ]
+                    ws.append(row)
+                    
+                    # Color code by severity
+                    severity_colors = {
+                        "SEVERE": "FFCCCC",    # Light red
+                        "WARNING": "FFFFCC",  # Light yellow
+                        "INFO": "CCE5FF",     # Light blue
+                        "HINT": "E6FFE6"      # Light green
+                    }
+                    
+                    if finding.severity in severity_colors:
+                        fill = PatternFill(start_color=severity_colors[finding.severity], 
+                                         end_color=severity_colors[finding.severity], 
+                                         fill_type="solid")
+                        for col_num in range(1, len(headers) + 1):
+                            ws.cell(row=ws.max_row, column=col_num).fill = fill
+                
+                # Auto-adjust column widths
+                for column in ws.columns:
+                    max_length = 0
+                    column_letter = get_column_letter(column[0].column)
+                    for cell in column:
+                        try:
+                            if len(str(cell.value)) > max_length:
+                                max_length = len(str(cell.value))
+                        except:
+                            pass
+                    adjusted_width = min(max_length + 2, 50)
+                    ws.column_dimensions[column_letter].width = adjusted_width
             
             # Save to temporary file
             temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
@@ -388,7 +454,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="Arcane Auditor FastAPI Server")
-    parser.add_argument("--port", type=int, default=8081, help="Port to run the server on")
+    parser.add_argument("--port", type=int, default=8080, help="Port to run the server on")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Host to bind to")
     parser.add_argument("--open-browser", action="store_true", help="Open browser automatically")
     
