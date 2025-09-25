@@ -13,20 +13,20 @@ class ScriptUnusedFunctionRule(Rule):
         """Main entry point - analyze all PMD models, POD models, and standalone script files in the context."""
         # Analyze PMD embedded scripts
         for pmd_model in context.pmds.values():
-            yield from self.visit_pmd(pmd_model)
+            yield from self.visit_pmd(pmd_model, context)
         
         # Analyze POD embedded scripts
         for pod_model in context.pods.values():
-            yield from self.visit_pod(pod_model)
+            yield from self.visit_pod(pod_model, context)
         
         # Analyze standalone script files
         for script_model in context.scripts.values():
             yield from self._analyze_script_file(script_model)
 
-    def visit_pmd(self, pmd_model: PMDModel):
+    def visit_pmd(self, pmd_model: PMDModel, context=None):
         """Analyzes script fields in a PMD model for unused functions."""
         # Use the generic script field finder to detect all fields containing <% %> patterns
-        script_fields = self.find_script_fields(pmd_model)
+        script_fields = self.find_script_fields(pmd_model, context)
         
         # Build a registry of all functions declared across all script fields
         all_declared_functions = self._build_function_registry(pmd_model)
@@ -39,10 +39,10 @@ class ScriptUnusedFunctionRule(Rule):
             if field_value and len(field_value.strip()) > 0:
                 yield from self._check_unused_functions_in_field(
                     field_value, field_name, pmd_model, line_offset,
-                    all_declared_functions, all_function_calls
+                    all_declared_functions, all_function_calls, context
                 )
 
-    def visit_pod(self, pod_model: PodModel):
+    def visit_pod(self, pod_model: PodModel, context=None):
         """Analyzes script fields in a POD model for unused functions."""
         script_fields = self.find_pod_script_fields(pod_model)
         
@@ -57,7 +57,7 @@ class ScriptUnusedFunctionRule(Rule):
             if field_value and len(field_value.strip()) > 0:
                 yield from self._check_unused_functions_in_field(
                     field_value, field_name, pod_model, line_offset,
-                    all_declared_functions, all_function_calls
+                    all_declared_functions, all_function_calls, context
                 )
 
     def _analyze_script_file(self, script_model):
@@ -70,7 +70,7 @@ class ScriptUnusedFunctionRule(Rule):
             all_function_calls = set()
             
             # Build registries from the script content
-            ast = self._parse_script_content(script_model.source)
+            ast = self._parse_script_content(script_model.source, None)
             if ast:
                 field_functions = self._extract_function_declarations(ast, "script", 1)
                 all_declared_functions.update(field_functions)
@@ -81,7 +81,7 @@ class ScriptUnusedFunctionRule(Rule):
             # Check for unused functions
             yield from self._check_unused_functions_in_field(
                 script_model.source, "script", script_model, 1,
-                all_declared_functions, all_function_calls
+                all_declared_functions, all_function_calls, None
             )
         except Exception as e:
             print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
@@ -89,7 +89,7 @@ class ScriptUnusedFunctionRule(Rule):
     def _build_function_registry(self, pmd_model: PMDModel) -> Dict[str, Dict]:
         """Build a registry of all functions declared in the PMD model."""
         function_registry = {}
-        script_fields = self.find_script_fields(pmd_model)
+        script_fields = self.find_script_fields(pmd_model, None)
         
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
@@ -103,7 +103,7 @@ class ScriptUnusedFunctionRule(Rule):
     def _build_function_call_registry(self, pmd_model: PMDModel) -> Set[str]:
         """Build a registry of all function calls across the PMD model."""
         function_calls = set()
-        script_fields = self.find_script_fields(pmd_model)
+        script_fields = self.find_script_fields(pmd_model, None)
         
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
@@ -115,9 +115,9 @@ class ScriptUnusedFunctionRule(Rule):
         return function_calls
 
     def _check_unused_functions_in_field(self, script_content, field_name, pmd_model, line_offset, 
-                                       all_declared_functions, all_function_calls):
+                                       all_declared_functions, all_function_calls, context=None):
         """Check for unused functions in a specific script field."""
-        ast = self._parse_script_content(script_content)
+        ast = self._parse_script_content(script_content, context)
         if not ast:
             # If parsing fails, skip this script (compiler should have caught syntax errors)
             return
@@ -286,7 +286,7 @@ class ScriptUnusedFunctionRule(Rule):
         
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
-                ast = self._parse_script_content(field_value)
+                ast = self._parse_script_content(field_value, None)
                 if ast:
                     field_functions = self._extract_function_declarations(ast, field_name, line_offset)
                     function_registry.update(field_functions)

@@ -33,8 +33,7 @@ class ScriptUnusedVariableRule(Rule):
             if field_value and len(field_value.strip()) > 0:
                 is_global_scope = (field_name == 'script')
                 yield from self._check_unused_variables_with_scope(
-                    field_value, field_name, pmd_model.file_path, 
-                    is_global_scope, global_functions, line_offset, context
+                    field_value, field_name, pmd_model.file_path, is_global_scope, global_functions, line_offset, context
                 )
 
     def visit_pod(self, pod_model: PodModel, context=None):
@@ -49,8 +48,7 @@ class ScriptUnusedVariableRule(Rule):
                 # POD scripts are typically local scope (widget handlers, endpoint handlers)
                 is_global_scope = False
                 yield from self._check_unused_variables_with_scope(
-                    field_value, field_name, pod_model.file_path, 
-                    is_global_scope, global_functions, line_offset, context
+                    field_value, field_name, pod_model.file_path, is_global_scope, global_functions, line_offset, context
                 )
 
     def _analyze_script_file(self, script_model):
@@ -60,8 +58,7 @@ class ScriptUnusedVariableRule(Rule):
             global_functions = set()
             is_global_scope = True  # The entire script file is global scope
             yield from self._check_unused_variables_with_scope(
-                script_model.source, "script", script_model.file_path, 
-                is_global_scope, global_functions, 1, None
+                script_model.source, "script", script_model.file_path, is_global_scope, global_functions, 1, None
             )
         except Exception as e:
             print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")

@@ -18,7 +18,7 @@ class ScriptDescriptiveParameterRule(Rule):
     # Allowed single-letter parameter names (traditional index variables)
     ALLOWED_SINGLE_LETTERS = {'i', 'j', 'k'}
     
-    def __init__(self, config: Dict = None):
+    def __init__(self, config: Dict = None, context=None):
         """Initialize with optional configuration."""
         self.config = config or {}
         # Allow configuration of which single letters are acceptable
@@ -31,17 +31,17 @@ class ScriptDescriptiveParameterRule(Rule):
         """Analyze scripts for non-descriptive functional method parameters."""
         # Analyze PMD embedded scripts
         for pmd_model in context.pmds.values():
-            script_fields = self.find_script_fields(pmd_model)
+            script_fields = self.find_script_fields(pmd_model, context)
             for field_path, field_value, field_name, line_offset in script_fields:
                 if field_value and len(field_value.strip()) > 0:
-                    yield from self._check_parameter_names(field_value, field_name, pmd_model.file_path, line_offset)
+                    yield from self._check_parameter_names(field_value, field_name, pmd_model.file_path, line_offset, context)
         
         # Analyze POD embedded scripts
         for pod_model in context.pods.values():
             script_fields = self.find_pod_script_fields(pod_model)
             for field_path, field_value, field_name, line_offset in script_fields:
                 if field_value and len(field_value.strip()) > 0:
-                    yield from self._check_parameter_names(field_value, field_name, pod_model.file_path, line_offset)
+                    yield from self._check_parameter_names(field_value, field_name, pod_model.file_path, line_offset, context)
         
         # Analyze standalone script files
         for script_model in context.scripts.values():
@@ -50,15 +50,15 @@ class ScriptDescriptiveParameterRule(Rule):
     def _analyze_script_file(self, script_model: ScriptModel) -> Generator[Finding, None, None]:
         """Analyze standalone script files for descriptive parameter usage."""
         try:
-            yield from self._check_parameter_names(script_model.source, "script", script_model.file_path, 1)
+            yield from self._check_parameter_names(script_model.source, "script", script_model.file_path, 1, None)
         except Exception as e:
             print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
     
-    def _check_parameter_names(self, script_content: str, field_name: str, file_path: str, line_offset: int) -> Generator[Finding, None, None]:
+    def _check_parameter_names(self, script_content: str, field_name: str, file_path: str, line_offset: int, context=None) -> Generator[Finding, None, None]:
         """Check for non-descriptive parameter names in functional methods."""
         try:
             # Parse the script content using the built-in parser
-            ast = self._parse_script_content(script_content)
+            ast = self._parse_script_content(script_content, context)
             
             # Find all functional method calls with single-letter parameters
             violations = self._find_parameter_violations(ast, script_content)

@@ -20,7 +20,7 @@ class ScriptNullSafetyRule(Rule):
             
             for field_path, field_value, field_name, line_offset in script_fields:
                 if field_value and len(field_value.strip()) > 0:
-                    yield from self._check_null_safety(field_value, field_name, pmd_model.file_path, line_offset, pmd_model)
+                    yield from self._check_null_safety(field_value, field_name, pmd_model.file_path, line_offset, pmd_model, context)
         
         # Analyze POD embedded scripts
         for pod_model in context.pods.values():
@@ -28,16 +28,16 @@ class ScriptNullSafetyRule(Rule):
             
             for field_path, field_value, field_name, line_offset in script_fields:
                 if field_value and len(field_value.strip()) > 0:
-                    yield from self._check_null_safety(field_value, field_name, pod_model.file_path, line_offset, None)
+                    yield from self._check_null_safety(field_name, pod_model.file_path, line_offset, None, context)
                 
         # Analyze standalone script files
         for script_model in context.scripts.values():
             yield from self._analyze_standalone_script(script_model)
 
-    def _check_null_safety(self, script_content: str, field_name: str, file_path: str, line_offset: int, pmd_model: PMDModel) -> Generator[Finding, None, None]:
+    def _check_null_safety(self, script_content: str, field_name: str, file_path: str, line_offset: int, pmd_model: PMDModel, context=None) -> Generator[Finding, None, None]:
         """Check null safety for a script field, considering conditional execution contexts."""
         try:
-            ast = self._parse_script_content(script_content)
+            ast = self._parse_script_content(script_content, context)
             if not ast:
                 return
             

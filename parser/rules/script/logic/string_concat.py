@@ -36,7 +36,7 @@ class ScriptStringConcatRule(Rule):
         
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
-                yield from self._check_string_concatenation(field_value, field_name, pmd_model.file_path, line_offset)
+                yield from self._check_string_concatenation(field_value, field_name, pmd_model.file_path, line_offset, context)
     
     def visit_pod(self, pod_model: PodModel):
         """Analyzes script fields in a POD model."""
@@ -44,19 +44,19 @@ class ScriptStringConcatRule(Rule):
         
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
-                yield from self._check_string_concatenation(field_value, field_name, pod_model.file_path, line_offset)
+                yield from self._check_string_concatenation(field_value, field_name, pod_model.file_path, line_offset, context)
 
     def _analyze_script_file(self, script_model):
         """Analyze standalone script files for string concatenation."""
         try:
-            yield from self._check_string_concatenation(script_model.source, "script", script_model.file_path, 1)
+            yield from self._check_string_concatenation(script_model.source, "script", script_model.file_path, 1, None)
         except Exception as e:
             print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
     
-    def _check_string_concatenation(self, script_content, field_name, file_path, line_offset=1):
+    def _check_string_concatenation(self, script_content, field_name, file_path, line_offset=1, context=None):
         """Check for string concatenation using + operator in script content."""
         # Parse the script content using the base class method (handles PMD wrappers)
-        ast = self._parse_script_content(script_content)
+        ast = self._parse_script_content(script_content, context)
         if not ast:
             # If parsing fails, skip this script (compiler should have caught syntax errors)
             return

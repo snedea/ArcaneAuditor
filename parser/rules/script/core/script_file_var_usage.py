@@ -9,7 +9,7 @@ class ScriptFileVarUsageRule(Rule):
     DESCRIPTION = "Detects and removes dead code from standalone script files"
     SEVERITY = "WARNING"
 
-    def __init__(self, config: Dict[str, Any] = None):
+    def __init__(self, config: Dict[str, Any] = None, context=None):
         """Initialize with configurable check options."""
         self.config = config or {}
         
@@ -24,7 +24,7 @@ class ScriptFileVarUsageRule(Rule):
     def _analyze_script_file(self, script_model: ScriptModel) -> Generator[Finding, None, None]:
         """Analyze a single script file for variable usage patterns."""
         try:
-            ast = self._parse_script_content(script_model.source)
+            ast = self._parse_script_content(script_model.source, None)
             if not ast:
                 return
             

@@ -12,9 +12,9 @@ class ScriptUnusedScriptIncludesRule(Rule):
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze PMD files for unused script includes."""
         for pmd_model in context.pmds.values():
-            yield from self._analyze_pmd_script_includes(pmd_model)
+            yield from self._analyze_pmd_script_includes(pmd_model, context)
 
-    def _analyze_pmd_script_includes(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
+    def _analyze_pmd_script_includes(self, pmd_model: PMDModel, context=None) -> Generator[Finding, None, None]:
         """Analyze a PMD file for unused script includes."""
         try:
             # Get included script files
@@ -23,7 +23,7 @@ class ScriptUnusedScriptIncludesRule(Rule):
                 return
             
             # Get all script calls in the PMD
-            script_calls = self._get_script_calls_in_pmd(pmd_model)
+            script_calls = self._get_script_calls_in_pmd(pmd_model, context)
             
             # Find unused includes
             # Convert included scripts to base names for comparison
@@ -63,12 +63,12 @@ class ScriptUnusedScriptIncludesRule(Rule):
         
         return included_scripts
 
-    def _get_script_calls_in_pmd(self, pmd_model: PMDModel) -> Set[str]:
+    def _get_script_calls_in_pmd(self, pmd_model: PMDModel, context=None) -> Set[str]:
         """Find all script file calls in the PMD (script.function() pattern)."""
         script_calls = set()
         
         # Get all script fields in the PMD
-        script_fields = self.find_script_fields(pmd_model)
+        script_fields = self.find_script_fields(pmd_model, context)
         
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
