@@ -36,6 +36,31 @@ CHUNK_SIZE = 8192  # 8KB chunks for streaming
 analysis_jobs: Dict[str, 'AnalysisJob'] = {}
 job_lock = threading.Lock()
 
+def cleanup_orphaned_files():
+    """Clean up orphaned files from previous server runs."""
+    uploads_dir = Path(__file__).parent / "uploads"
+    if uploads_dir.exists():
+        current_time = time.time()
+        files_found = 0
+        files_deleted = 0
+        
+        for file_path in uploads_dir.glob("*.zip"):
+            files_found += 1
+            file_age = current_time - file_path.stat().st_mtime
+            # Delete files older than 1 hour
+            if file_age > 3600:
+                try:
+                    file_path.unlink()
+                    files_deleted += 1
+                    print(f"Cleaned up orphaned file: {file_path.name} (age: {file_age/60:.1f} minutes)")
+                except Exception as e:
+                    print(f"Failed to clean up {file_path.name}: {e}")
+            else:
+                print(f"Keeping file: {file_path.name} (age: {file_age/60:.1f} minutes)")
+        
+        print(f"Cleanup summary: {files_found} files found, {files_deleted} files deleted")
+
+
 class AnalysisJob:
     """Represents an analysis job with status tracking."""
     def __init__(self, job_id: str, zip_path: Path):
@@ -79,6 +104,22 @@ app = FastAPI(
     version="0.1.3"
 )
 
+@app.on_event("startup")
+async def startup_event():
+    """Clean up orphaned files on server startup."""
+    cleanup_orphaned_files()
+    
+    # Start periodic cleanup task
+    import asyncio
+    asyncio.create_task(periodic_cleanup())
+
+async def periodic_cleanup():
+    """Run cleanup every 5 minutes."""
+    while True:
+        await asyncio.sleep(300)  # 5 minutes
+        cleanup_orphaned_files()
+        cleanup_old_jobs()
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -111,13 +152,13 @@ def run_analysis_background(job: AnalysisJob):
         job.start_time = time.time()
         
         # Import analysis modules here to avoid import issues
-        from file_processing.processor import FileProcessor
+            from file_processing.processor import FileProcessor
         from parser.app_parser import ModelParser
-        from parser.rules_engine import RulesEngine
+            from parser.rules_engine import RulesEngine
         from parser.config_manager import ConfigurationManager
-        
+            
         # Process ZIP file
-        processor = FileProcessor()
+            processor = FileProcessor()
         source_files_map = processor.process_zip_file(job.zip_path)
         
         if not source_files_map:
@@ -135,7 +176,7 @@ def run_analysis_background(job: AnalysisJob):
         config = config_manager.load_config("comprehensive")
         rules_engine = RulesEngine(config)
         
-        findings = rules_engine.run(context)
+findings = rules_engine.run(context)
         
         # Convert findings to serializable format
         result = {
