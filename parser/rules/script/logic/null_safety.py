@@ -16,7 +16,7 @@ class ScriptNullSafetyRule(Rule):
         # Analyze PMD embedded scripts
         for pmd_model in context.pmds.values():
             # Use the generic script field finder to detect all fields containing <% %> patterns
-            script_fields = self.find_script_fields(pmd_model)
+            script_fields = self.find_script_fields(pmd_model, context)
             
             for field_path, field_value, field_name, line_offset in script_fields:
                 if field_value and len(field_value.strip()) > 0:

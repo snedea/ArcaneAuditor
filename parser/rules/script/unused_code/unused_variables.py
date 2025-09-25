@@ -12,32 +12,32 @@ class ScriptUnusedVariableRule(Rule):
         """Main entry point - analyze all PMD models, POD models, and standalone script files in the context."""
         # Analyze PMD embedded scripts
         for pmd_model in context.pmds.values():
-            yield from self.visit_pmd(pmd_model)
+            yield from self.visit_pmd(pmd_model, context)
         
         # Analyze POD embedded scripts
         for pod_model in context.pods.values():
-            yield from self.visit_pod(pod_model)
+            yield from self.visit_pod(pod_model, context)
         
         # Analyze standalone script files
         for script_model in context.scripts.values():
             yield from self._analyze_script_file(script_model)
 
-    def visit_pmd(self, pmd_model: PMDModel):
+    def visit_pmd(self, pmd_model: PMDModel, context=None):
         """Analyzes script fields in a PMD model with scope awareness."""
-        script_fields = self.find_script_fields(pmd_model)
+        script_fields = self.find_script_fields(pmd_model, context)
         
         # Build a global function registry from the main script section
-        global_functions = self._build_global_function_registry(pmd_model)
+        global_functions = self._build_global_function_registry(pmd_model, context)
         
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:
                 is_global_scope = (field_name == 'script')
                 yield from self._check_unused_variables_with_scope(
                     field_value, field_name, pmd_model.file_path, 
-                    is_global_scope, global_functions, line_offset
+                    is_global_scope, global_functions, line_offset, context
                 )
 
-    def visit_pod(self, pod_model: PodModel):
+    def visit_pod(self, pod_model: PodModel, context=None):
         """Analyzes script fields in a POD model."""
         script_fields = self.find_pod_script_fields(pod_model)
         
@@ -50,7 +50,7 @@ class ScriptUnusedVariableRule(Rule):
                 is_global_scope = False
                 yield from self._check_unused_variables_with_scope(
                     field_value, field_name, pod_model.file_path, 
-                    is_global_scope, global_functions, line_offset
+                    is_global_scope, global_functions, line_offset, context
                 )
 
     def _analyze_script_file(self, script_model):
@@ -61,25 +61,25 @@ class ScriptUnusedVariableRule(Rule):
             is_global_scope = True  # The entire script file is global scope
             yield from self._check_unused_variables_with_scope(
                 script_model.source, "script", script_model.file_path, 
-                is_global_scope, global_functions, 1
+                is_global_scope, global_functions, 1, None
             )
         except Exception as e:
             print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
 
-    def _build_global_function_registry(self, pmd_model: PMDModel):
+    def _build_global_function_registry(self, pmd_model: PMDModel, context=None):
         """Build a registry of functions declared in the global script section."""
         global_functions = set()
         
         if pmd_model.script:
-            ast = self._parse_script_content(pmd_model.script)
+            ast = self._parse_script_content(pmd_model.script, context)
             if ast:
                 global_functions = self._find_function_declarations(ast)
         
         return global_functions
 
-    def _check_unused_variables_with_scope(self, script_content, field_name, file_path, is_global_scope, global_functions, line_offset=1):
+    def _check_unused_variables_with_scope(self, script_content, field_name, file_path, is_global_scope, global_functions, line_offset=1, context=None):
         """Check for unused variables with proper scoping awareness."""
-        ast = self._parse_script_content(script_content)
+        ast = self._parse_script_content(script_content, context)
         if not ast:
             # If parsing fails, skip this script (compiler should have caught syntax errors)
             return

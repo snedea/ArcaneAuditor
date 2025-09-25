@@ -64,6 +64,12 @@ class ModelParser:
                         print(f"Failed to parse {file_path}: {e}")
                         context.parsing_errors.append(f"{file_path}: {e}")
         
+        # Pre-compute script fields for all PMD and POD models to improve rule performance
+        self._precompute_script_fields(context)
+        
+        # Pre-compute ASTs for all script fields to avoid repeated parsing
+        self._precompute_asts(context)
+        
         return context
     
     def _parse_single_file_safe(self, file_path: str, source_file: Any):
@@ -295,3 +301,77 @@ class ModelParser:
         except Exception as e:
             print(f"Failed to parse SMD file {file_path}: {e}")
             raise
+    
+    def _precompute_script_fields(self, context: ProjectContext):
+        """Pre-compute script fields for all PMD and POD models to improve rule performance."""
+        from .rules.base import Rule
+        
+        # Create a concrete rule instance to use its script field extraction methods
+        class TempRule(Rule):
+            def analyze(self, context):
+                yield from []
+        
+        temp_rule = TempRule()
+        
+        # Pre-compute PMD script fields
+        for pmd_id, pmd_model in context.pmds.items():
+            script_fields = temp_rule._extract_script_fields(pmd_model)
+            context.set_cached_pmd_script_fields(pmd_id, script_fields)
+        
+        # Pre-compute POD script fields
+        for pod_id, pod_model in context.pods.items():
+            script_fields = temp_rule._extract_pod_script_fields(pod_model)
+            context.set_cached_pod_script_fields(pod_id, script_fields)
+        
+        print(f"Pre-computed script fields for {len(context.pmds)} PMD files and {len(context.pods)} POD files")
+    
+    def _precompute_asts(self, context: ProjectContext):
+        """Pre-compute ASTs for all script fields to avoid repeated parsing."""
+        from .rules.base import Rule
+        from .pmd_script_parser import pmd_script_parser
+        
+        # Create a concrete rule instance to use its script field extraction methods
+        class TempRule(Rule):
+            def analyze(self, context):
+                yield from []
+        
+        temp_rule = TempRule()
+        
+        ast_count = 0
+        error_count = 0
+        
+        # Pre-compute ASTs for PMD script fields
+        for pmd_id, pmd_model in context.pmds.items():
+            cached_fields = context.get_cached_pmd_script_fields(pmd_id)
+            if cached_fields:
+                for field_path, field_value, field_name, line_offset in cached_fields:
+                    if field_value and len(field_value.strip()) > 0:
+                        try:
+                            parsed_script = temp_rule._strip_pmd_wrappers(field_value)
+                            if parsed_script:
+                                # Check if AST is already cached
+                                if context.get_cached_ast(parsed_script) is None:
+                                    ast = pmd_script_parser.parse(parsed_script)
+                                    context.set_cached_ast(parsed_script, ast)
+                                    ast_count += 1
+                        except Exception as e:
+                            error_count += 1
+        
+        # Pre-compute ASTs for POD script fields
+        for pod_id, pod_model in context.pods.items():
+            cached_fields = context.get_cached_pod_script_fields(pod_id)
+            if cached_fields:
+                for field_path, field_value, field_name, line_offset in cached_fields:
+                    if field_value and len(field_value.strip()) > 0:
+                        try:
+                            parsed_script = temp_rule._strip_pmd_wrappers(field_value)
+                            if parsed_script:
+                                # Check if AST is already cached
+                                if context.get_cached_ast(parsed_script) is None:
+                                    ast = pmd_script_parser.parse(parsed_script)
+                                    context.set_cached_ast(parsed_script, ast)
+                                    ast_count += 1
+                        except Exception as e:
+                            error_count += 1
+        
+        print(f"Pre-computed {ast_count} ASTs (errors: {error_count})")

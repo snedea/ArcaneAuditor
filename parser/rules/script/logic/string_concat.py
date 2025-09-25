@@ -19,7 +19,7 @@ class ScriptStringConcatRule(Rule):
         """Main entry point - analyze all PMD models, POD models, and standalone script files in the context."""
         # Analyze PMD embedded scripts
         for pmd_model in context.pmds.values():
-            yield from self.visit_pmd(pmd_model)
+            yield from self.visit_pmd(pmd_model, context)
         
         # Analyze POD embedded scripts
         for pod_model in context.pods.values():
@@ -29,10 +29,10 @@ class ScriptStringConcatRule(Rule):
         for script_model in context.scripts.values():
             yield from self._analyze_script_file(script_model)
     
-    def visit_pmd(self, pmd_model: PMDModel):
+    def visit_pmd(self, pmd_model: PMDModel, context=None):
         """Analyzes script fields in a PMD model for string concatenation issues."""
         # Use the generic script field finder to detect all fields containing <% %> patterns
-        script_fields = self.find_script_fields(pmd_model)
+        script_fields = self.find_script_fields(pmd_model, context)
         
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and len(field_value.strip()) > 0:

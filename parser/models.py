@@ -247,6 +247,13 @@ class ProjectContext:
         self.pods: Dict[str, PodModel] = {}          # Maps podId to PodModel
         self.smds: Dict[str, SMDModel] = {}          # Maps smdId to SMDModel
         self.parsing_errors: List[str] = []          # To track files that failed validation
+        
+        # Performance optimization: Cache script fields to avoid repeated extraction
+        self._cached_pmd_script_fields: Dict[str, List[tuple]] = {}
+        self._cached_pod_script_fields: Dict[str, List[tuple]] = {}
+        
+        # Performance optimization: Cache ASTs to avoid repeated parsing
+        self._cached_asts: Dict[str, Tree] = {}  # Maps script content hash to AST
 
     def get_script_by_name(self, name: str) -> Optional[ScriptModel]:
         """Retrieves a script model by its file name (e.g., 'utils.script')."""
@@ -263,3 +270,29 @@ class ProjectContext:
     def get_smd_by_id(self, smd_id: str) -> Optional[SMDModel]:
         """Retrieves an SMD model by its id."""
         return self.smds.get(smd_id)
+    
+    def get_cached_pmd_script_fields(self, pmd_id: str) -> Optional[List[tuple]]:
+        """Get cached script fields for a PMD model."""
+        return self._cached_pmd_script_fields.get(pmd_id)
+    
+    def set_cached_pmd_script_fields(self, pmd_id: str, script_fields: List[tuple]):
+        """Cache script fields for a PMD model."""
+        self._cached_pmd_script_fields[pmd_id] = script_fields
+    
+    def get_cached_pod_script_fields(self, pod_id: str) -> Optional[List[tuple]]:
+        """Get cached script fields for a POD model."""
+        return self._cached_pod_script_fields.get(pod_id)
+    
+    def set_cached_pod_script_fields(self, pod_id: str, script_fields: List[tuple]):
+        """Cache script fields for a POD model."""
+        self._cached_pod_script_fields[pod_id] = script_fields
+    
+    def get_cached_ast(self, script_content: str) -> Optional[Tree]:
+        """Get cached AST for script content."""
+        content_hash = hash(script_content)
+        return self._cached_asts.get(content_hash)
+    
+    def set_cached_ast(self, script_content: str, ast: Tree):
+        """Cache AST for script content."""
+        content_hash = hash(script_content)
+        self._cached_asts[content_hash] = ast

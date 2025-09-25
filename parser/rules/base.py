@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Generator, Dict, Any, List, Tuple
+from typing import Generator, Dict, Any, List, Tuple, Optional
 from dataclasses import dataclass
 from ..models import ProjectContext, PMDModel, PodModel
+from lark import Tree
 import re
 
 @dataclass
@@ -54,13 +55,14 @@ class Rule(ABC):
         """Optional visitor method to run logic on a single PMD model."""
         yield from []
 
-    def find_script_fields(self, pmd_model: PMDModel) -> List[Tuple[str, str, str, int]]:
+    def find_script_fields(self, pmd_model: PMDModel, context=None) -> List[Tuple[str, str, str, int]]:
         """
         Recursively find all fields in a PMD model that contain script content (<% %>).
-        Uses caching to avoid repeated expensive parsing operations.
+        Uses context-level caching to avoid repeated expensive parsing operations.
         
         Args:
             pmd_model: The PMD model to search
+            context: ProjectContext for caching (optional)
         
         Returns:
             List of tuples: (field_path, field_value, field_name, line_offset)
@@ -69,15 +71,59 @@ class Rule(ABC):
             - field_name: Just the field name for display purposes
             - line_offset: Line number where the script starts in the original file
         """
-        # Check if we have cached script fields
-        cached_fields = pmd_model.get_cached_script_fields()
-        if cached_fields is not None:
-            return cached_fields
+        # Use context-level caching if available
+        if context is not None:
+            cached_fields = context.get_cached_pmd_script_fields(pmd_model.pageId)
+            if cached_fields is not None:
+                return cached_fields
+            
+            # If not cached, extract and cache them
+            script_fields = self._extract_script_fields(pmd_model)
+            context.set_cached_pmd_script_fields(pmd_model.pageId, script_fields)
+            return script_fields
+        else:
+            # Fallback to model-level caching for backward compatibility
+            cached_fields = pmd_model.get_cached_script_fields()
+            if cached_fields is not None:
+                return cached_fields
+            
+            # If not cached, extract and cache them
+            script_fields = self._extract_script_fields(pmd_model)
+            pmd_model.set_cached_script_fields(script_fields)
+            return script_fields
+    
+    def get_cached_ast(self, script_content: str, context=None) -> Optional[Tree]:
+        """
+        Get cached AST for script content, or parse and cache it.
         
-        # If not cached, extract and cache them
-        script_fields = self._extract_script_fields(pmd_model)
-        pmd_model.set_cached_script_fields(script_fields)
-        return script_fields
+        Args:
+            script_content: The script content to parse
+            context: ProjectContext for caching (optional)
+        
+        Returns:
+            Parsed AST or None if parsing failed
+        """
+        if context is not None:
+            # Check if AST is already cached
+            cached_ast = context.get_cached_ast(script_content)
+            if cached_ast is not None:
+                return cached_ast
+            
+            # Parse and cache the AST
+            try:
+                from ..pmd_script_parser import pmd_script_parser
+                ast = pmd_script_parser.parse(script_content)
+                context.set_cached_ast(script_content, ast)
+                return ast
+            except Exception:
+                return None
+        else:
+            # Fallback to direct parsing without caching
+            try:
+                from ..pmd_script_parser import pmd_script_parser
+                return pmd_script_parser.parse(script_content)
+            except Exception:
+                return None
     
     def _extract_script_fields(self, pmd_model: PMDModel) -> List[Tuple[str, str, str, int]]:
         """Internal method to extract script fields without caching."""
@@ -266,24 +312,28 @@ class Rule(ABC):
         yield from _traverse_container(presentation_data, base_path)
     
     
-    def _parse_script_content(self, script_content: str):
-        """Parse script content using the PMD script grammar with caching support."""
+    def _parse_script_content(self, script_content: str, context=None):
+        """Parse script content using the PMD script grammar with context-level caching support."""
         try:
             # Strip PMD wrappers if present
             content = self._strip_pmd_wrappers(script_content)
             if not content:
                 return None
             
-            # Use a simple hash-based cache to avoid re-parsing the same content
-            cache_key = hash(content)
-            if not hasattr(self, '_script_ast_cache'):
-                self._script_ast_cache = {}
-            
-            if cache_key not in self._script_ast_cache:
-                from ..pmd_script_parser import pmd_script_parser
-                self._script_ast_cache[cache_key] = pmd_script_parser.parse(content)
-            
-            return self._script_ast_cache[cache_key]
+            # Use context-level caching if available
+            if context is not None:
+                return self.get_cached_ast(content, context)
+            else:
+                # Fallback to per-rule caching for backward compatibility
+                cache_key = hash(content)
+                if not hasattr(self, '_script_ast_cache'):
+                    self._script_ast_cache = {}
+                
+                if cache_key not in self._script_ast_cache:
+                    from ..pmd_script_parser import pmd_script_parser
+                    self._script_ast_cache[cache_key] = pmd_script_parser.parse(content)
+                
+                return self._script_ast_cache[cache_key]
         except Exception as e:
             print(f"Failed to parse script content: {e}")
             return None
