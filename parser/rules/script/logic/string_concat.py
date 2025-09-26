@@ -122,6 +122,10 @@ class ScriptStringConcatRule(Rule):
                 if hasattr(child, 'value') and isinstance(child.value, str) and child.value.startswith('`'):
                     return True
         
+        # Check if it's a POD parameter (valid in POD context)
+        if node.data == 'pod_parameter_expression':
+            return True
+        
         # Recursively check child nodes for string operations
         for child in node.children:
             if isinstance(child, Tree) and self._involves_string(child):
@@ -146,6 +150,10 @@ class ScriptStringConcatRule(Rule):
                 return node.children[0].value
         
         elif node.data == 'identifier_expression':
+            if len(node.children) > 0 and hasattr(node.children[0], 'value'):
+                return node.children[0].value
+        
+        elif node.data == 'pod_parameter_expression':
             if len(node.children) > 0 and hasattr(node.children[0], 'value'):
                 return node.children[0].value
         

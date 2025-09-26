@@ -19,7 +19,7 @@ class WidgetIdRequiredRule(Rule):
     
     # Widget types that do not require or support ID values
     WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {
-        'footer', 'item', 'group', 'title'
+        'footer', 'item', 'group', 'title', 'pod'
     }
 
     def analyze(self, context):
