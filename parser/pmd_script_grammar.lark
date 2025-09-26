@@ -8,12 +8,12 @@
 ?statement: block
     | variable_statement
     | empty_statement
-    | expression_statement
     | if_statement
     | iteration_statement
     | continue_statement
     | break_statement
     | return_statement
+    | expression_statement
 
 ?block: "{" statement_list? "}"
 
