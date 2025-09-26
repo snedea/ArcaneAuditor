@@ -91,17 +91,24 @@ class PMDSectionOrderingRule(Rule):
         # Get expected order for the keys that are actually present
         expected_order = self._get_expected_order_for_keys(actual_order)
         
-        # Find ordering violations
-        violations = self._find_ordering_violations(actual_order, expected_order)
+        # Check if ordering is correct
+        if actual_order == expected_order:
+            return  # No violations found
         
-        for violation in violations:
-            yield Finding(
-                rule=self,
-                message=f"PMD section '{violation['key']}' is in wrong position. Expected order: {', '.join(expected_order)}. Current position: {violation['actual_pos']}, Expected position: {violation['expected_pos']}.",
-                line=self._get_key_line_number(pmd_model, violation['key']),
-                column=1,
-                file_path=pmd_model.file_path
-            )
+        # Generate a single finding showing the full order comparison
+        current_order_str = " → ".join(actual_order)
+        expected_order_str = " → ".join(expected_order)
+        
+        # Find the first violation for line number reference
+        first_violation_line = self._get_first_violation_line(pmd_model, actual_order, expected_order)
+        
+        yield Finding(
+            rule=self,
+            message=f"PMD sections are not in the correct order. Current: [{current_order_str}] | Expected: [{expected_order_str}]",
+            line=first_violation_line,
+            column=1,
+            file_path=pmd_model.file_path
+        )
 
     def _get_expected_order_for_keys(self, actual_keys: List[str]) -> List[str]:
         """Get the expected order for only the keys that are actually present."""
@@ -119,21 +126,15 @@ class PMDSectionOrderingRule(Rule):
         
         return expected_order
 
-    def _find_ordering_violations(self, actual_order: List[str], expected_order: List[str]) -> List[Dict[str, Any]]:
-        """Find keys that are in the wrong position."""
-        violations = []
-        
+    def _get_first_violation_line(self, pmd_model: PMDModel, actual_order: List[str], expected_order: List[str]) -> int:
+        """Get the line number of the first section that's out of order."""
         for i, key in enumerate(actual_order):
             expected_index = expected_order.index(key) if key in expected_order else i
             
             if i != expected_index:
-                violations.append({
-                    'key': key,
-                    'actual_pos': i + 1,
-                    'expected_pos': expected_index + 1
-                })
+                return self._get_key_line_number(pmd_model, key)
         
-        return violations
+        return 1  # Fallback
 
     def _get_key_line_number(self, pmd_model: PMDModel, key: str) -> int:
         """Get the line number where a root-level key is defined."""
