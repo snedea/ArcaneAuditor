@@ -81,7 +81,7 @@ def get_dynamic_config_info():
                 elif config_dir.name == "user_configs":
                     config_type = "Team"
                     description = f"Team configuration with {enabled_rules} rules enabled"
-                else:
+        else:
                     config_type = "Built-in"
                     description = f"Built-in configuration with {enabled_rules} rules enabled"
                 
@@ -221,14 +221,14 @@ def run_analysis_background(job: AnalysisJob):
         job.start_time = time.time()
         
         # Import analysis modules here to avoid import issues
-        from file_processing.processor import FileProcessor
+            from file_processing.processor import FileProcessor
         from parser.app_parser import ModelParser
-        from parser.rules_engine import RulesEngine
+            from parser.rules_engine import RulesEngine
         from parser.config_manager import ConfigurationManager
-        
+            
         # Process ZIP file
         file_processing_start = time.time()
-        processor = FileProcessor()
+            processor = FileProcessor()
         source_files_map = processor.process_zip_file(job.zip_path)
         file_processing_time = time.time() - file_processing_start
         
@@ -249,14 +249,14 @@ def run_analysis_background(job: AnalysisJob):
         config_manager = ConfigurationManager()
         print(f"DEBUG: Loading configuration '{job.config}' for job {job.job_id}")
         config = config_manager.load_config(job.config)
-        print(f"DEBUG: Loaded config with {len(config.rules)} total rules")
-        enabled_rules = sum(1 for rule in config.rules.values() if rule.enabled)
+        print(f"DEBUG: Loaded config")
+        enabled_rules = sum(1 for rule_name, rule in config.rules.__dict__.items() if hasattr(rule, 'enabled') and rule.enabled)
         print(f"DEBUG: {enabled_rules} rules are enabled")
         rules_engine = RulesEngine(config)
         config_time = time.time() - config_start
         
         analysis_start = time.time()
-        findings = rules_engine.run(context)
+            findings = rules_engine.run(context)
         analysis_time = time.time() - analysis_start
         
         # Log performance metrics
@@ -269,7 +269,7 @@ def run_analysis_background(job: AnalysisJob):
         print(f"  Total: {total_time:.2f}s")
             
         # Convert findings to serializable format
-        result = {
+            result = {
             "findings": [
                 {
                     "rule_id": finding.rule_id,
@@ -353,7 +353,7 @@ async def upload_file(file: UploadFile = File(...), config: str = "default"):
         
         return {"job_id": job_id, "status": "queued", "config": config}
             
-    except Exception as e:
+        except Exception as e:
         # Clean up file if upload failed
         if zip_path.exists():
             zip_path.unlink()
