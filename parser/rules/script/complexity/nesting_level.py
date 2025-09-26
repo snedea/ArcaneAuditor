@@ -1,127 +1,16 @@
-from ...base import Rule, Finding
-from ....models import PMDModel, PodModel
+"""Script nesting level rule using unified architecture."""
+
+from ...script.shared import ScriptRuleBase
+from .nesting_level_detector import NestingLevelDetector
 
 
-class ScriptNestingLevelRule(Rule):
-    """Validates that scripts don't have excessive nesting levels."""
-    
+class ScriptNestingLevelRule(ScriptRuleBase):
+    """Rule to check for excessive nesting levels."""
+
     DESCRIPTION = "Ensures scripts don't have excessive nesting levels (max 4 levels)"
     SEVERITY = "WARNING"
+    DETECTOR = NestingLevelDetector
 
-    def analyze(self, context):
-        """Main entry point - analyze all PMD models and standalone script files in the context."""
-        # Analyze PMD embedded scripts
-        for pmd_model in context.pmds.values():
-            yield from self.visit_pmd(pmd_model, context)
-        
-        # Analyze POD embedded scripts
-        for pod_model in context.pods.values():
-            yield from self.visit_pod(pod_model, context)
-        
-        # Analyze standalone script files
-        for script_model in context.scripts.values():
-            yield from self._analyze_script_file(script_model)
-
-    def visit_pmd(self, pmd_model: PMDModel, context=None):
-        """Analyzes script fields in a PMD model."""
-        # Use the generic script field finder to detect all fields containing <% %> patterns
-        script_fields = self.find_script_fields(pmd_model, context)
-        
-        for field_path, field_value, field_name, line_offset in script_fields:
-            if field_value and len(field_value.strip()) > 0:
-                yield from self._check_nesting_level(field_value, field_name, pmd_model.file_path, line_offset, context)
-
-    def visit_pod(self, pod_model: PodModel, context=None):
-        """Analyzes script fields in a POD model."""
-        script_fields = self.find_pod_script_fields(pod_model)
-        
-        for field_path, field_value, field_name, line_offset in script_fields:
-            if field_value and len(field_value.strip()) > 0:
-                yield from self._check_nesting_level(field_value, field_name, pod_model.file_path, line_offset, context)
-
-    def _analyze_script_file(self, script_model):
-        """Analyze standalone script files for nesting levels."""
-        try:
-            yield from self._check_nesting_level(script_model.source, "script", script_model.file_path, 1, None)
-        except Exception as e:
-            print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
-
-    def _check_nesting_level(self, script_content, field_name, file_path, line_offset=1, context=None):
-        """Check for excessive nesting levels in script content using Lark grammar."""
-        # Parse the script content using Lark grammar
-        ast = self._parse_script_content(script_content, context)
-        if not ast:
-            # If parsing fails, skip this script (compiler should have caught syntax errors)
-            return
-        
-        max_nesting = 4
-        max_nesting_found = 0
-        function_context = None
-        
-        # Analyze nesting levels using AST
-        nesting_info = self._analyze_ast_nesting(ast, 0)
-        max_nesting_found = nesting_info['max_nesting']
-        function_context = nesting_info['function_context']
-        
-        if max_nesting_found > max_nesting:
-            # Create a more descriptive message with function context
-            if function_context:
-                context_info = f" in function '{function_context}'"
-            else:
-                context_info = ""
-            
-            # Use line_offset as base, add relative line if available
-            relative_line = nesting_info.get('line', 1) or 1
-            line_number = line_offset + relative_line - 1
-            
-            yield Finding(
-                rule=self,
-                message=f"File section '{field_name}' has {max_nesting_found} nesting levels{context_info} (max recommended: {max_nesting}). Consider refactoring.",
-                line=line_number,
-                column=1,
-                file_path=file_path
-            )
-    
-    def _analyze_ast_nesting(self, node, current_depth):
-        """Analyze nesting levels in AST nodes."""
-        max_nesting = current_depth
-        function_context = None
-        
-        # Check if this is a function expression
-        if hasattr(node, 'data'):
-            if node.data == 'function_expression':
-                # Extract function name if available
-                if len(node.children) > 0 and hasattr(node.children[0], 'type') and node.children[0].type == 'FUNCTION':
-                    if len(node.children) > 1 and hasattr(node.children[1], 'value'):
-                        function_context = node.children[1].value
-                # Function body adds one nesting level
-                current_depth += 1
-                max_nesting = max(max_nesting, current_depth)
-            
-            elif node.data in ['block', 'if_statement', 'while_statement', 'for_statement', 'for_var_statement', 'do_statement']:
-                # Control flow structures add nesting
-                current_depth += 1
-                max_nesting = max(max_nesting, current_depth)
-        
-        # Recursively analyze children
-        if hasattr(node, 'children'):
-            for child in node.children:
-                child_result = self._analyze_ast_nesting(child, current_depth)
-                max_nesting = max(max_nesting, child_result['max_nesting'])
-                if child_result['function_context'] and not function_context:
-                    function_context = child_result['function_context']
-        
-        # Get line number from the first token in the node
-        line_number = None
-        if hasattr(node, 'children') and len(node.children) > 0:
-            # Look for the first token with a line number
-            for child in node.children:
-                if hasattr(child, 'line') and child.line is not None:
-                    line_number = child.line
-                    break
-        
-        return {
-            'max_nesting': max_nesting,
-            'function_context': function_context,
-            'line': line_number
-        }
+    def get_description(self) -> str:
+        """Get rule description."""
+        return self.DESCRIPTION
