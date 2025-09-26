@@ -70,7 +70,7 @@ class ScriptRuleBase(Rule, ABC):
         
         # Use detector to find violations
         detector = self.DETECTOR(file_path, line_offset)
-        violations = detector.detect(ast)
+        violations = detector.detect(ast, field_name)
         
         # Convert violations to findings
         for violation in violations:

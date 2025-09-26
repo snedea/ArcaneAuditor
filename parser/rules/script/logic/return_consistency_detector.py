@@ -194,7 +194,7 @@ class ReturnConsistencyVisitor:
 class ReturnConsistencyDetector(ScriptDetector):
     """Detector for function return consistency violations."""
     
-    def detect(self, ast: Any) -> List[Violation]:
+    def detect(self, ast: Any, field_name: str = "") -> List[Violation]:
         """Detect return consistency violations in the AST."""
         violations = []
         self._check_functions_with_visitor(ast, violations)
