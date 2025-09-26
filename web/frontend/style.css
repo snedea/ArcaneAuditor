@@ -230,27 +230,38 @@ header p {
 }
 
 .config-option:hover {
-    border-color: #667eea;
-    background: var(--bg-tertiary);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px var(--shadow);
+    border-color: #4f46e5;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.15);
 }
 
 .config-option.selected {
-    border-color: #667eea;
-    background: var(--bg-tertiary);
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    border-color: #4f46e5;
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3), 0 4px 12px rgba(79, 70, 229, 0.2);
+    transform: translateY(-2px);
 }
 
-.config-option.selected::before {
-    content: "✓";
-    position: absolute;
-    top: 6px;
-    right: 8px;
-    color: #667eea;
-    font-weight: bold;
-    font-size: 1rem;
+.config-option.selected .config-name {
+    color: #1e1b4b;
+    font-weight: 700;
 }
+
+.config-option.selected .config-description {
+    color: #3730a3;
+}
+
+.config-option.selected .config-meta {
+    color: #1e1b4b;
+}
+
+.config-option.selected .config-rules-count {
+    background: rgba(79, 70, 229, 0.1);
+    color: #1e1b4b;
+    font-weight: 600;
+}
+
 
 .config-name {
     font-size: 0.95rem;
@@ -301,7 +312,7 @@ header p {
 .config-type {
     position: absolute;
     top: 4px;
-    left: 4px;
+    right: 4px;
     font-size: 0.6rem;
     font-weight: 600;
     padding: 1px 4px;
