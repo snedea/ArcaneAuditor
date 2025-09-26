@@ -6,6 +6,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parser.rules.script.unused_code.empty_functions import ScriptEmptyFunctionRule
+from parser.rules.script.unused_code.empty_function_detector import EmptyFunctionDetector
 from parser.models import PMDModel
 from parser.app_parser import ModelParser
 
@@ -24,7 +25,9 @@ class TestScriptEmptyFunctionRule:
         }
         """
         
-        violations = list(self.rule._check_empty_functions(script_content, "test", "test.pmd", 1))
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
         assert "empty body" in violations[0].message.lower()
     
@@ -36,7 +39,9 @@ class TestScriptEmptyFunctionRule:
         }
         """
         
-        violations = list(self.rule._check_empty_functions(script_content, "test", "test.pmd", 1))
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
         assert len(violations) == 0
     
     def test_function_with_comments_only(self):
@@ -47,7 +52,9 @@ class TestScriptEmptyFunctionRule:
         }
         """
         
-        violations = list(self.rule._check_empty_functions(script_content, "test", "test.pmd", 1))
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
         assert "empty body" in violations[0].message.lower()
     
@@ -59,7 +66,9 @@ class TestScriptEmptyFunctionRule:
         }
         """
         
-        violations = list(self.rule._check_empty_functions(script_content, "test", "test.pmd", 1))
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
         assert "empty body" in violations[0].message.lower()
     
@@ -71,7 +80,9 @@ class TestScriptEmptyFunctionRule:
         }
         """
         
-        violations = list(self.rule._check_empty_functions(script_content, "test", "test.pmd", 1))
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
         assert len(violations) == 0
     
     def test_function_with_expression(self):
@@ -82,7 +93,9 @@ class TestScriptEmptyFunctionRule:
         }
         """
         
-        violations = list(self.rule._check_empty_functions(script_content, "test", "test.pmd", 1))
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
         assert len(violations) == 0
     
     def test_multiple_functions(self):
@@ -100,7 +113,9 @@ class TestScriptEmptyFunctionRule:
         }
         """
         
-        violations = list(self.rule._check_empty_functions(script_content, "test", "test.pmd", 1))
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
         assert len(violations) == 2
     
     def test_no_functions(self):
@@ -110,7 +125,9 @@ class TestScriptEmptyFunctionRule:
         var y = 2;
         """
         
-        violations = list(self.rule._check_empty_functions(script_content, "test", "test.pmd", 1))
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
         assert len(violations) == 0
     
     def test_line_number_calculation(self):
@@ -120,7 +137,9 @@ class TestScriptEmptyFunctionRule:
         }
         """
         
-        violations = list(self.rule._check_empty_functions(script_content, "test", "test.pmd", 10))
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 10)
+        violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
         # The line number should be calculated based on the script content and offset
         assert violations[0].line > 0
@@ -129,7 +148,9 @@ class TestScriptEmptyFunctionRule:
         """Test that PMD wrappers are properly stripped."""
         script_content = "<% var myFunction = function() {\n} %>"
         
-        violations = list(self.rule._check_empty_functions(script_content, "test", "test.pmd", 1))
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
     
     def test_escaped_content(self):
@@ -140,7 +161,9 @@ class TestScriptEmptyFunctionRule:
         }
         """
         
-        violations = list(self.rule._check_empty_functions(script_content, "test", "test.pmd", 1))
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
     
     def test_function_with_parameters(self):
@@ -150,7 +173,9 @@ class TestScriptEmptyFunctionRule:
         }
         """
         
-        violations = list(self.rule._check_empty_functions(script_content, "test", "test.pmd", 1))
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
     
     def test_function_with_parameters_and_content(self):
@@ -161,7 +186,9 @@ class TestScriptEmptyFunctionRule:
         }
         """
         
-        violations = list(self.rule._check_empty_functions(script_content, "test", "test.pmd", 1))
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
         assert len(violations) == 0
 
 
