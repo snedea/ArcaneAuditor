@@ -258,6 +258,15 @@ class ProjectContext:
     def get_script_by_name(self, name: str) -> Optional[ScriptModel]:
         """Retrieves a script model by its file name (e.g., 'utils.script')."""
         return self.scripts.get(name)
+    
+    @property
+    def application_id(self) -> Optional[str]:
+        """Gets the applicationId from the SMD file if available."""
+        if self.smds:
+            # Return the applicationId from the first SMD file
+            smd = next(iter(self.smds.values()))
+            return smd.applicationId
+        return None
 
     def get_pmd_by_id(self, page_id: str) -> Optional[PMDModel]:
         """Retrieves a PMD model by its pageId."""

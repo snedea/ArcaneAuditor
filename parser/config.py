@@ -66,6 +66,7 @@ class RulesConfig(BaseModel):
     FooterPodRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures footer widgets utilize pods")
     StringBooleanRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures boolean values are not stored as strings")
     PMDSectionOrderingRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures PMD file sections follow consistent ordering for better readability")
+    HardcodedApplicationIdRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects hardcoded applicationId values that should be replaced with site.applicationId")
 
 
 class FileProcessingConfig(BaseModel):
