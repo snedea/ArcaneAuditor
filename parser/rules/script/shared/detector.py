@@ -28,6 +28,5 @@ class ScriptDetector(ABC):
     
     def get_line_number(self, node: Any) -> int:
         """Get line number from AST node with offset."""
-        if hasattr(node, 'meta') and hasattr(node.meta, 'line'):
-            return node.meta.line + self.line_offset - 1
-        return 1
+        from ...common import get_line_number as shared_get_line_number
+        return shared_get_line_number(node, self.line_offset)

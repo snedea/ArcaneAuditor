@@ -13,11 +13,8 @@ CONTROL_FLOW_NODES: Set[str] = {
 }
 
 
-def get_line_number(node: Any, line_offset: int = 1) -> int:
-    """Get line number from AST node with offset."""
-    if hasattr(node, 'meta') and hasattr(node.meta, 'line'):
-        return node.meta.line + line_offset - 1
-    return 1
+# Import from central common location
+from ...common import get_line_number
 
 
 def extract_expression_text(node: Any) -> str:
