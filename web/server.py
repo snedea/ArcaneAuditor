@@ -225,10 +225,12 @@ def run_analysis_background(job: AnalysisJob):
         from parser.app_parser import ModelParser
         from parser.rules_engine import RulesEngine
         from parser.config_manager import ConfigurationManager
-            
+        
         # Process ZIP file
+        file_processing_start = time.time()
         processor = FileProcessor()
         source_files_map = processor.process_zip_file(job.zip_path)
+        file_processing_time = time.time() - file_processing_start
         
         if not source_files_map:
             job.error = "No PMD Script files found in the uploaded ZIP"
@@ -237,15 +239,30 @@ def run_analysis_background(job: AnalysisJob):
             return
             
         # Create project context
+        parsing_start = time.time()
         parser = ModelParser()
         context = parser.parse_files(source_files_map)
+        parsing_time = time.time() - parsing_start
         
         # Run analysis with specified configuration
+        config_start = time.time()
         config_manager = ConfigurationManager()
         config = config_manager.load_config(job.config)
         rules_engine = RulesEngine(config)
+        config_time = time.time() - config_start
         
+        analysis_start = time.time()
         findings = rules_engine.run(context)
+        analysis_time = time.time() - analysis_start
+        
+        # Log performance metrics
+        total_time = time.time() - job.start_time
+        print(f"Performance metrics for job {job.job_id}:")
+        print(f"  File processing: {file_processing_time:.2f}s")
+        print(f"  Parsing: {parsing_time:.2f}s")
+        print(f"  Config loading: {config_time:.2f}s")
+        print(f"  Analysis: {analysis_time:.2f}s")
+        print(f"  Total: {total_time:.2f}s")
             
         # Convert findings to serializable format
         result = {
