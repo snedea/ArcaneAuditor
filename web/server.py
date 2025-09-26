@@ -247,7 +247,11 @@ def run_analysis_background(job: AnalysisJob):
         # Run analysis with specified configuration
         config_start = time.time()
         config_manager = ConfigurationManager()
+        print(f"DEBUG: Loading configuration '{job.config}' for job {job.job_id}")
         config = config_manager.load_config(job.config)
+        print(f"DEBUG: Loaded config with {len(config.rules)} total rules")
+        enabled_rules = sum(1 for rule in config.rules.values() if rule.enabled)
+        print(f"DEBUG: {enabled_rules} rules are enabled")
         rules_engine = RulesEngine(config)
         config_time = time.time() - config_start
         
@@ -302,6 +306,8 @@ def run_analysis_background(job: AnalysisJob):
 @app.post("/api/upload")
 async def upload_file(file: UploadFile = File(...), config: str = "default"):
     """Upload a ZIP file for analysis."""
+    print(f"DEBUG: Received upload request with config='{config}'")
+    
     # Validate file type
     if not file.filename.lower().endswith('.zip'):
         raise HTTPException(status_code=400, detail="Only ZIP files are allowed")
@@ -332,6 +338,7 @@ async def upload_file(file: UploadFile = File(...), config: str = "default"):
         
         # Create analysis job with configuration
         job = AnalysisJob(job_id, zip_path, config)
+        print(f"DEBUG: Created job {job_id} with config='{config}'")
         
         with job_lock:
             analysis_jobs[job_id] = job
