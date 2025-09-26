@@ -71,7 +71,7 @@ def get_dynamic_config_info():
                     performance = "Fast"
                 elif enabled_rules <= 25:
                     performance = "Balanced"
-                else:
+        else:
                     performance = "Thorough"
                 
                 # Determine config type based on directory
@@ -81,7 +81,7 @@ def get_dynamic_config_info():
                 elif config_dir.name == "user_configs":
                     config_type = "Team"
                     description = f"Team configuration with {enabled_rules} rules enabled"
-        else:
+                elif config_dir.name == "configs":
                     config_type = "Built-in"
                     description = f"Built-in configuration with {enabled_rules} rules enabled"
                 
@@ -248,11 +248,13 @@ def run_analysis_background(job: AnalysisJob):
         config_start = time.time()
         config_manager = ConfigurationManager()
         print(f"DEBUG: Loading configuration '{job.config}' for job {job.job_id}")
+        print(f"DEBUG: job.config type: {type(job.config)}, value: '{job.config}'")
         config = config_manager.load_config(job.config)
         print(f"DEBUG: Loaded config")
         enabled_rules = sum(1 for rule_name, rule in config.rules.__dict__.items() if hasattr(rule, 'enabled') and rule.enabled)
         print(f"DEBUG: {enabled_rules} rules are enabled")
         rules_engine = RulesEngine(config)
+        print(f"DEBUG: RulesEngine created with {len(rules_engine.rules)} rules")
         config_time = time.time() - config_start
         
         analysis_start = time.time()
@@ -307,6 +309,7 @@ def run_analysis_background(job: AnalysisJob):
 async def upload_file(file: UploadFile = File(...), config: str = "default"):
     """Upload a ZIP file for analysis."""
     print(f"DEBUG: Received upload request with config='{config}'")
+    print(f"DEBUG: config parameter type: {type(config)}, value: '{config}'")
     
     # Validate file type
     if not file.filename.lower().endswith('.zip'):
