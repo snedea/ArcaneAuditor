@@ -110,7 +110,7 @@ class ArcaneAuditorConfig(BaseModel):
     quiet: bool = Field(default=False, description="Suppress non-essential output")
     
     @classmethod
-    def from_file(cls, config_path: str) -> 'ExtendReviewerConfig':
+    def from_file(cls, config_path: str) -> 'ArcaneAuditorConfig':
         """Load configuration from a JSON file."""
         import json
         with open(config_path, 'r', encoding='utf-8') as f:
@@ -127,8 +127,8 @@ class ArcaneAuditorConfig(BaseModel):
         """Check if a specific rule is enabled using class name."""
         rule_config = getattr(self.rules, rule_class_name, None)
         if rule_config is None:
-            # If rule class name not found in config, assume it's disabled
-            return False
+            # If rule class name not found in config, assume it's enabled
+            return True
         return rule_config.enabled
     
     def get_rule_severity(self, rule_class_name: str, default_severity: str) -> str:
