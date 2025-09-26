@@ -35,6 +35,28 @@ CHUNK_SIZE = 8192  # 8KB chunks for streaming
 analysis_jobs: Dict[str, 'AnalysisJob'] = {}
 job_lock = threading.Lock()
 
+# Configuration metadata
+CONFIG_DESCRIPTIONS = {
+    "default": {
+        "name": "Default",
+        "description": "Standard configuration with all rules enabled",
+        "rules_count": 30,
+        "performance": "Balanced"
+    },
+    "minimal": {
+        "name": "Minimal", 
+        "description": "Fast analysis with only essential rules",
+        "rules_count": 8,
+        "performance": "Fast"
+    },
+    "comprehensive": {
+        "name": "Comprehensive",
+        "description": "Thorough analysis with all rules and enhanced severity",
+        "rules_count": 30,
+        "performance": "Thorough"
+    }
+}
+
 def cleanup_orphaned_files():
     """Clean up orphaned files from previous server runs."""
     uploads_dir = Path(__file__).parent / "uploads"
@@ -62,9 +84,10 @@ def cleanup_orphaned_files():
 
 class AnalysisJob:
     """Represents an analysis job with status tracking."""
-    def __init__(self, job_id: str, zip_path: Path):
+    def __init__(self, job_id: str, zip_path: Path, config: str = "default"):
         self.job_id = job_id
         self.zip_path = zip_path
+        self.config = config
         self.status = "queued"  # queued, running, completed, failed
         self.result = None
         self.error = None
@@ -80,7 +103,8 @@ class AnalysisJob:
             "result": self.result,
             "error": self.error,
             "start_time": self.start_time,
-            "end_time": self.end_time
+            "end_time": self.end_time,
+            "config": self.config
         }
 
 class JobStatusResponse(BaseModel):
@@ -91,6 +115,7 @@ class JobStatusResponse(BaseModel):
     error: Optional[str] = None
     start_time: Optional[float] = None
     end_time: Optional[float] = None
+    config: Optional[str] = None
 
 class AnalysisRequest(BaseModel):
     """Request model for analysis."""
@@ -173,9 +198,9 @@ def run_analysis_background(job: AnalysisJob):
         parser = ModelParser()
         context = parser.parse_files(source_files_map)
         
-        # Run analysis
+        # Run analysis with specified configuration
         config_manager = ConfigurationManager()
-        config = config_manager.load_config("comprehensive")
+        config = config_manager.load_config(job.config)
         rules_engine = RulesEngine(config)
         
         findings = rules_engine.run(context)
@@ -216,7 +241,7 @@ def run_analysis_background(job: AnalysisJob):
 
 
 @app.post("/api/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), config: str = "default"):
     """Upload a ZIP file for analysis."""
     # Validate file type
     if not file.filename.lower().endswith('.zip'):
@@ -225,6 +250,10 @@ async def upload_file(file: UploadFile = File(...)):
     # Validate file size
     if file.size and file.size > MAX_FILE_SIZE:
         raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB")
+    
+    # Validate configuration
+    if config not in CONFIG_DESCRIPTIONS:
+        raise HTTPException(status_code=400, detail=f"Invalid configuration: {config}")
     
     # Generate job ID
     job_id = str(uuid.uuid4())
@@ -241,8 +270,8 @@ async def upload_file(file: UploadFile = File(...)):
             while chunk := await file.read(CHUNK_SIZE):
                 buffer.write(chunk)
         
-        # Create analysis job
-        job = AnalysisJob(job_id, zip_path)
+        # Create analysis job with configuration
+        job = AnalysisJob(job_id, zip_path, config)
         
         with job_lock:
             analysis_jobs[job_id] = job
@@ -255,13 +284,28 @@ async def upload_file(file: UploadFile = File(...)):
         # Cleanup old jobs
         cleanup_old_jobs()
         
-        return {"job_id": job_id, "status": "queued"}
+        return {"job_id": job_id, "status": "queued", "config": config}
             
     except Exception as e:
         # Clean up file if upload failed
         if zip_path.exists():
             zip_path.unlink()
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@app.get("/api/configs")
+async def get_available_configs():
+    """Get list of available configurations."""
+    configs_dir = project_root / "configs"
+    available_configs = []
+    
+    for config_file in configs_dir.glob("*.json"):
+        config_name = config_file.stem
+        if config_name in CONFIG_DESCRIPTIONS:
+            config_info = CONFIG_DESCRIPTIONS[config_name].copy()
+            config_info["id"] = config_name
+            available_configs.append(config_info)
+    
+    return {"configs": available_configs}
 
 @app.get("/api/job/{job_id}", response_model=JobStatusResponse)
 async def get_job_status(job_id: str):

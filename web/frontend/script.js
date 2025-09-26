@@ -12,9 +12,12 @@ class ArcaneAuditorApp {
             sortFilesBy: 'alphabetical'
         };
         this.expandedFiles = new Set();
+        this.selectedConfig = 'default';
+        this.availableConfigs = [];
         
         this.initializeEventListeners();
         this.initializeTheme();
+        this.loadConfigurations();
     }
 
     initializeTheme() {
@@ -44,6 +47,56 @@ class ArcaneAuditorApp {
         const currentTheme = document.documentElement.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         this.setTheme(newTheme);
+    }
+
+    async loadConfigurations() {
+        try {
+            const response = await fetch('/api/configs');
+            const data = await response.json();
+            this.availableConfigs = data.configs;
+            this.renderConfigurations();
+        } catch (error) {
+            console.error('Failed to load configurations:', error);
+            // Fallback to default configuration
+            this.availableConfigs = [{
+                id: 'default',
+                name: 'Default',
+                description: 'Standard configuration with all rules enabled',
+                rules_count: 30,
+                performance: 'Balanced'
+            }];
+            this.renderConfigurations();
+        }
+    }
+
+    renderConfigurations() {
+        const configGrid = document.getElementById('config-grid');
+        configGrid.innerHTML = '';
+
+        this.availableConfigs.forEach(config => {
+            const configElement = document.createElement('div');
+            configElement.className = 'config-option';
+            if (config.id === this.selectedConfig) {
+                configElement.classList.add('selected');
+            }
+            
+            configElement.innerHTML = `
+                <div class="config-name">${config.name}</div>
+                <div class="config-description">${config.description}</div>
+                <div class="config-meta">
+                    <span class="config-rules-count">${config.rules_count} rules</span>
+                    <span class="config-performance ${config.performance.toLowerCase()}">${config.performance}</span>
+                </div>
+            `;
+            
+            configElement.addEventListener('click', () => this.selectConfiguration(config.id));
+            configGrid.appendChild(configElement);
+        });
+    }
+
+    selectConfiguration(configId) {
+        this.selectedConfig = configId;
+        this.renderConfigurations();
     }
 
     initializeEventListeners() {
@@ -125,6 +178,7 @@ class ArcaneAuditorApp {
 
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('config', this.selectedConfig);
 
         try {
             this.showLoading();

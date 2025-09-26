@@ -195,6 +195,108 @@ header p {
     margin-top: 15px;
 }
 
+/* Configuration Selection Styles */
+.config-selection {
+    margin-bottom: 30px;
+    padding: 25px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.config-selection h3 {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.config-option {
+    padding: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.config-option:hover {
+    border-color: #667eea;
+    background: var(--bg-tertiary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.config-option.selected {
+    border-color: #667eea;
+    background: var(--bg-tertiary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.config-option.selected::before {
+    content: "✓";
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    color: #667eea;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.config-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.config-description {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.config-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.config-rules-count {
+    background: var(--bg-tertiary);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.config-performance {
+    font-weight: 500;
+}
+
+.config-performance.fast {
+    color: #10b981;
+}
+
+.config-performance.balanced {
+    color: #f59e0b;
+}
+
+.config-performance.thorough {
+    color: #ef4444;
+}
+
 /* Loading Section */
 .loading-section {
     text-align: center;
