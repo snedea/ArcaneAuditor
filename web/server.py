@@ -50,7 +50,7 @@ def get_dynamic_config_info():
         if not config_dir.exists():
             continue
             
-        # Search for JSON files in the directory and all subdirectories
+        # Search for JSON files in the directory (not subdirectories)
         for config_file in config_dir.glob("*.json"):
             config_name = config_file.stem
         
