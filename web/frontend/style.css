@@ -327,7 +327,7 @@ header p {
 .severity-section h5 {
     font-size: 1.1rem;
     margin-bottom: 15px;
-    color: #374151;
+    color: var(--text-primary);
 }
 
 .severity-badges {

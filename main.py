@@ -1,4 +1,5 @@
 import typer
+import time
 from pathlib import Path
 from file_processing import FileProcessor
 from parser.rules_engine import RulesEngine
@@ -14,14 +15,19 @@ def review_app(
     zip_filepath: Path = typer.Argument(..., exists=True, help="Path to the application .zip file."),
     config_file: Path = typer.Option(None, "--config", "-c", help="Path to configuration file (JSON)"),
     output_format: str = typer.Option("console", "--format", "-f", help="Output format: console, json, summary, excel"),
-    output_file: Path = typer.Option(None, "--output", "-o", help="Output file path (optional)")
+    output_file: Path = typer.Option(None, "--output", "-o", help="Output file path (optional)"),
+    show_timing: bool = typer.Option(False, "--timing", "-t", help="Show detailed timing information")
 ):
     """
     Kicks off the analysis of a Workday Extend application archive.
     """
+    # Start overall timing
+    overall_start_time = time.time()
+    
     typer.echo(f"Starting review for '{zip_filepath.name}'...")
     
     # Load configuration using the layered configuration system
+    config_start_time = time.time()
     try:
         config = load_configuration(str(config_file) if config_file else None)
         if config_file:
@@ -33,11 +39,19 @@ def review_app(
         typer.echo("💡 Try using --config with a valid configuration file, or run without --config for defaults")
         raise typer.Exit(1)
     
+    config_time = time.time() - config_start_time
+    if show_timing:
+        typer.echo(f"⏱️  Configuration loading: {config_time:.2f}s")
+    
     # This is the entry point to our pipeline.
     typer.echo("📁 Extracting and processing files...")
+    file_processing_start_time = time.time()
     processor = FileProcessor()
     source_files_map = processor.process_zip_file(zip_filepath)
+    file_processing_time = time.time() - file_processing_start_time
     typer.echo(f"✅ Found {len(source_files_map)} relevant files to analyze")
+    if show_timing:
+        typer.echo(f"⏱️  File processing: {file_processing_time:.2f}s")
 
     if not source_files_map:
         typer.secho("❌ No source files found to analyze.", fg=typer.colors.RED)
@@ -55,9 +69,11 @@ def review_app(
 
     # --- Parse Files into App File Models ---
     typer.echo("🔍 Parsing files into App File models...")
+    parsing_start_time = time.time()
     try:
         pmd_parser = ModelParser()
         context = pmd_parser.parse_files(source_files_map)
+        parsing_time = time.time() - parsing_start_time
         
         # Better summary of what was parsed
         parsed_summary = []
@@ -72,6 +88,9 @@ def review_app(
         else:
             typer.echo("⚠️ No files were successfully parsed")
         
+        if show_timing:
+            typer.echo(f"⏱️  File parsing: {parsing_time:.2f}s")
+        
     except Exception as e:
         typer.secho(f"❌ Parsing Error: {e}", fg=typer.colors.RED)
         typer.echo("💡 Check that your files are valid Workday Extend format")
@@ -81,16 +100,25 @@ def review_app(
     typer.echo("🔮 Initializing rules engine...")
     findings = []  # Initialize findings before try block
     try:
+        rules_init_start_time = time.time()
         rules_engine = RulesEngine(config)
+        rules_init_time = time.time() - rules_init_start_time
         typer.echo(f"✅ Loaded {len(rules_engine.rules)} validation rules")
+        if show_timing:
+            typer.echo(f"⏱️  Rules engine initialization: {rules_init_time:.2f}s")
         
         typer.echo("🔮 Invoking analysis...")
+        analysis_start_time = time.time()
         findings = rules_engine.run(context)
+        analysis_time = time.time() - analysis_start_time
         
         if findings:
             typer.echo(f"✅ Analysis complete. Found {len(findings)} issue(s).")
         else:
             typer.echo("✅ Analysis complete. No issues found! 🎉")
+        
+        if show_timing:
+            typer.echo(f"⏱️  Analysis execution: {analysis_time:.2f}s")
         
         # Auto-detect format based on output file extension if not explicitly specified
         if output_file and output_format == "console":  # Default format
@@ -110,11 +138,16 @@ def review_app(
             typer.echo("💡 Valid formats: console, json, summary, excel")
             raise typer.Exit(1)
         
+        formatting_start_time = time.time()
         formatter = OutputFormatter(format_type)
         total_files = len(context.pmds) + len(context.scripts) + (1 if context.amd else 0)
         total_rules = len(rules_engine.rules)
         
         formatted_output = formatter.format_results(findings, total_files, total_rules)
+        formatting_time = time.time() - formatting_start_time
+        
+        if show_timing:
+            typer.echo(f"⏱️  Output formatting: {formatting_time:.2f}s")
         
         # Output to file or console
         if output_file:
@@ -141,6 +174,58 @@ def review_app(
         typer.secho(f"❌ Analysis Error: {e}", fg=typer.colors.RED)
         typer.echo("💡 This might be due to unsupported syntax or corrupted files")
         raise typer.Exit(3)  # Exit code 3 for analysis errors
+    
+    # Calculate total time and show timing summary
+    total_time = time.time() - overall_start_time
+    
+    if show_timing:
+        typer.echo("\n" + "="*60)
+        typer.echo("📊 TIMING SUMMARY")
+        typer.echo("="*60)
+        
+        # Calculate percentages
+        config_pct = (config_time / total_time) * 100 if total_time > 0 else 0
+        file_proc_pct = (file_processing_time / total_time) * 100 if total_time > 0 else 0
+        parsing_pct = (parsing_time / total_time) * 100 if total_time > 0 else 0
+        rules_init_pct = (rules_init_time / total_time) * 100 if total_time > 0 else 0
+        analysis_pct = (analysis_time / total_time) * 100 if total_time > 0 else 0
+        formatting_pct = (formatting_time / total_time) * 100 if total_time > 0 else 0
+        
+        typer.echo(f"🕐 Total Analysis Time: {total_time:.2f}s")
+        typer.echo()
+        typer.echo("📈 Stage Breakdown:")
+        typer.echo(f"  Analysis Execution: {analysis_time:.2f}s ({analysis_pct:.1f}%)")
+        typer.echo(f"  File Parsing: {parsing_time:.2f}s ({parsing_pct:.1f}%)")
+        typer.echo(f"  File Processing: {file_processing_time:.2f}s ({file_proc_pct:.1f}%)")
+        typer.echo(f"  Output Formatting: {formatting_time:.2f}s ({formatting_pct:.1f}%)")
+        typer.echo(f"  Rules Engine Init: {rules_init_time:.2f}s ({rules_init_pct:.1f}%)")
+        typer.echo(f"  Configuration Loading: {config_time:.2f}s ({config_pct:.1f}%)")
+        
+        # Performance assessment
+        typer.echo()
+        typer.echo("🎯 Performance Assessment:")
+        if total_time < 30:
+            typer.echo("  ✅ Excellent performance (<30s)")
+        elif total_time < 60:
+            typer.echo("  ✅ Good performance (<60s)")
+        elif total_time < 120:
+            typer.echo("  ⚠️  Moderate performance (<2min)")
+        else:
+            typer.echo("  ❌ Slow performance (>2min)")
+            typer.echo("  💡 Consider using --timing to identify bottlenecks")
+        
+        # Bottleneck identification
+        if analysis_pct > 70:
+            typer.echo("  🔍 Analysis execution is the primary bottleneck")
+            typer.echo("  💡 Consider disabling CPU-intensive rules for faster analysis")
+        elif parsing_pct > 30:
+            typer.echo("  🔍 File parsing is a significant bottleneck")
+            typer.echo("  💡 Consider reducing parallel workers or file size limits")
+        
+        typer.echo("="*60)
+    else:
+        typer.echo(f"\n⏱️  Total analysis time: {total_time:.2f}s")
+        typer.echo("💡 Use --timing flag for detailed performance breakdown")
     
     # Set appropriate exit code based on findings (outside try block)
     if findings:

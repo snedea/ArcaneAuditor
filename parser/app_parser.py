@@ -320,7 +320,7 @@ class ModelParser:
         
         # Pre-compute POD script fields
         for pod_id, pod_model in context.pods.items():
-            script_fields = temp_rule._extract_pod_script_fields(pod_model)
+            script_fields = temp_rule.find_pod_script_fields(pod_model)
             context.set_cached_pod_script_fields(pod_id, script_fields)
         
         print(f"Pre-computed script fields for {len(context.pmds)} PMD files and {len(context.pods)} POD files")
