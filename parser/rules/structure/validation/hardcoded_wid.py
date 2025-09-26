@@ -46,13 +46,15 @@ class HardcodedWidRule(Rule):
     
     def _check_pmd_hardcoded_wids(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
         """Check PMD file for hardcoded WID values."""
-        # Check all string values in the PMD model
-        yield from self._check_string_values_for_wids(pmd_model, pmd_model.file_path)
+        # Convert PMD model to dictionary for recursive checking
+        pmd_dict = pmd_model.model_dump(exclude={'file_path', 'source_content'})
+        yield from self._check_string_values_for_wids(pmd_dict, pmd_model.file_path)
     
     def _check_pod_hardcoded_wids(self, pod_model: PodModel) -> Generator[Finding, None, None]:
         """Check POD file for hardcoded WID values."""
-        # Check all string values in the POD model
-        yield from self._check_string_values_for_wids(pod_model, pod_model.file_path)
+        # Convert POD model to dictionary for recursive checking
+        pod_dict = pod_model.model_dump(exclude={'file_path', 'source_content'})
+        yield from self._check_string_values_for_wids(pod_dict, pod_model.file_path)
     
     def _check_string_values_for_wids(self, model: Any, file_path: str) -> Generator[Finding, None, None]:
         """Recursively check string values for hardcoded WIDs."""
