@@ -81,6 +81,11 @@ class WidgetIdRequiredRule(Rule):
         if widget_type in self.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT:
             return
 
+        # Skip column objects - they use columnId instead of id (enforced by compiler)
+        # Column objects are found in "columns" arrays and have columnId field
+        if 'columnId' in widget:
+            return
+
         if 'id' not in widget:
             # Get line number from the PMD model if available
             line_number = 1
