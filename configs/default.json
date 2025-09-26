@@ -149,6 +149,21 @@
       "custom_settings": {
         "section_order": ["id", "securityDomains", "include", "script", "endPoints", "onSubmit", "outboundData", "onLoad", "presentation"]
       }
+    },
+    "HardcodedApplicationIdRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "HardcodedWidRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "PMDSecurityDomainRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
     }
   },
   "file_processing": {

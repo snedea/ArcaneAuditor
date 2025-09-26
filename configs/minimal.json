@@ -144,6 +144,21 @@
       "enabled": false,
       "severity_override": null,
       "custom_settings": {}
+    },
+    "HardcodedApplicationIdRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "HardcodedWidRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "PMDSecurityDomainRule": {
+      "enabled": false,
+      "severity_override": null,
+      "custom_settings": {}
     }
   },
   "file_processing": {
