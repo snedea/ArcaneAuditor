@@ -9,6 +9,7 @@ This tool focuses on structure and naming compliance for code reviewers.
 """
 from ...base import Rule, Finding
 from ....models import PMDModel, PodModel
+from ...line_number_utils import LineNumberUtils
 
 
 class WidgetIdRequiredRule(Rule):
@@ -68,9 +69,9 @@ class WidgetIdRequiredRule(Rule):
                 if match:
                     index = int(match.group(1))
             
-            yield from self._check_widget_id(widget_data, pod_model.file_path, None, section, widget_path, index)
+            yield from self._check_widget_id(widget_data, pod_model.file_path, None, section, widget_path, index, pod_model)
 
-    def _check_widget_id(self, widget, file_path, pmd_model=None, section='body', widget_path="", widget_index=0):
+    def _check_widget_id(self, widget, file_path, pmd_model=None, section='body', widget_path="", widget_index=0, pod_model=None):
         """Check if a widget has an 'id' field."""
         if not isinstance(widget, dict):
             return
@@ -87,10 +88,12 @@ class WidgetIdRequiredRule(Rule):
             return
 
         if 'id' not in widget:
-            # Get line number from the PMD model if available
+            # Get line number from the PMD or POD model if available
             line_number = 1
             if pmd_model:
                 line_number = self._get_widget_line_number(pmd_model, widget_type, section, widget_path, widget_index)
+            elif pod_model:
+                line_number = self._get_pod_widget_line_number(pod_model, widget_type, widget_path, widget_index)
             
             # Create a more descriptive message with the widget path
             path_description = f" at path '{widget_path}'" if widget_path else ""
@@ -106,72 +109,79 @@ class WidgetIdRequiredRule(Rule):
     def _get_widget_line_number(self, pmd_model: PMDModel, widget_type: str, section: str, widget_path: str = "", widget_index: int = 0) -> int:
         """Get approximate line number for a widget based on its location."""
         try:
-            # Use source_content instead of reading from file_path
             if not pmd_model.source_content:
                 return 1
+            
             lines = pmd_model.source_content.split('\n')
             
-            # Look for the presentation section
-            presentation_start = -1
-            for i, line in enumerate(lines):
-                if '"presentation"' in line:
-                    presentation_start = i + 1
-                    break
-            
-            if presentation_start > 0:
-                # Look for the specific section within presentation
-                section_start = -1
-                for i in range(presentation_start, len(lines)):
-                    if f'"{section}"' in lines[i]:
-                        section_start = i + 1
-                        break
+            # Look for the section first
+            section_line = LineNumberUtils.find_section_line_number(pmd_model, section)
+            if section_line > 1:
+                # Look for the widget type in the section area
+                search_start = max(0, section_line - 1)
+                search_end = min(len(lines), section_line + 50)  # Search 50 lines after section
                 
-                if section_start > 0:
-                    # Look for the children array
-                    children_start = -1
-                    for i in range(section_start, len(lines)):
-                        if '"children"' in lines[i]:
-                            children_start = i + 1
-                            break
-                    
-                    if children_start > 0:
-                        # Count widgets until we reach the target index
-                        widget_count = 0
-                        brace_count = 0
-                        in_widget = False
-                        
-                        for i in range(children_start, len(lines)):
-                            line = lines[i]
-                            
-                            if '{' in line and not in_widget:
-                                in_widget = True
-                                brace_count = line.count('{')
-                            elif in_widget:
-                                brace_count += line.count('{') - line.count('}')
-                                
-                                if brace_count <= 0:
-                                    # End of widget
-                                    if widget_count == widget_index:
-                                        return i + 1  # Return the line number (1-based)
-                                    widget_count += 1
-                                    in_widget = False
-                                    brace_count = 0
-                        
-                        # If we didn't find the exact widget, return an estimate
-                        return children_start + widget_index * 3
-                    
-                    return section_start + widget_index * 2
+                widget_count = 0
+                for i in range(search_start, search_end):
+                    line = lines[i]
+                    # Look for the widget type
+                    if f'"type": "{widget_type}"' in line or f'"type":"{widget_type}"' in line:
+                        if widget_count == widget_index:
+                            return i + 1  # Return the line number (1-based)
+                        widget_count += 1
                 
-                return presentation_start + widget_index * 2
+                # If we found the section but not the specific widget, estimate
+                return section_line + widget_index * 3
             
-        except (FileNotFoundError, IOError):
-            pass
-        
-        # Fallback: estimate based on section and widget index
-        section_base_lines = {
-            'title': 1,
-            'body': 5,
-            'footer': 10
-        }
-        base_line = section_base_lines.get(section, 5)
-        return base_line + widget_index * 2
+            # Fallback: estimate based on section and widget index
+            section_base_lines = {
+                'title': 1,
+                'body': 5,
+                'footer': 10
+            }
+            base_line = section_base_lines.get(section, 5)
+            return base_line + widget_index * 2
+            
+        except Exception:
+            # Fallback: estimate based on section and widget index
+            section_base_lines = {
+                'title': 1,
+                'body': 5,
+                'footer': 10
+            }
+            base_line = section_base_lines.get(section, 5)
+            return base_line + widget_index * 2
+
+    def _get_pod_widget_line_number(self, pod_model: PodModel, widget_type: str, widget_path: str = "", widget_index: int = 0) -> int:
+        """Get approximate line number for a widget in a POD file based on its location."""
+        try:
+            if not pod_model.source_content:
+                return 1
+            
+            lines = pod_model.source_content.split('\n')
+            
+            # Look for the template section first
+            template_line = LineNumberUtils.find_section_line_number(pod_model, 'template')
+            if template_line > 1:
+                # Look for the widget type in the template area
+                search_start = max(0, template_line - 1)
+                search_end = min(len(lines), template_line + 50)  # Search 50 lines after template
+                
+                widget_count = 0
+                for i in range(search_start, search_end):
+                    line = lines[i]
+                    # Look for the widget type
+                    if f'"type": "{widget_type}"' in line or f'"type":"{widget_type}"' in line:
+                        if widget_count == widget_index:
+                            return i + 1  # Return the line number (1-based)
+                        widget_count += 1
+                
+                # If we found the template but not the specific widget, estimate
+                return template_line + widget_index * 3
+            
+            # Fallback: estimate based on widget index
+            return 5 + widget_index * 2
+            
+        except Exception:
+            # Fallback: estimate based on widget index
+            return 5 + widget_index * 2
