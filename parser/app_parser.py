@@ -246,15 +246,41 @@ class ModelParser:
                 
             except json.JSONDecodeError as e:
                 print(f"JSON parsing error in Pod file {file_path}: {e}")
-                # Create a basic Pod model as fallback
-                pod_model = PodModel(
-                    podId=Path(file_path).stem,
-                    seed=PodSeed(),
-                    file_path=file_path,
-                    source_content=content
-                )
-                context.pods[pod_model.podId] = pod_model
-                print(f"Parsed Pod (fallback): {pod_model.podId}")
+                
+                # Try to fix common JSON issues using the existing PMD preprocessor
+                try:
+                    from .pmd_preprocessor import preprocess_pmd_content
+                    fixed_content, _ = preprocess_pmd_content(content)
+                    pod_data = json.loads(fixed_content)
+                    
+                    # Extract seed data
+                    seed_data = pod_data.get('seed', {})
+                    seed = PodSeed(
+                        parameters=seed_data.get('parameters', []),
+                        endPoints=seed_data.get('endPoints', []),
+                        template=seed_data.get('template', {})
+                    )
+                    
+                    pod_model = PodModel(
+                        podId=pod_data.get('podId', Path(file_path).stem),
+                        seed=seed,
+                        file_path=file_path,
+                        source_content=content  # Keep original content
+                    )
+                    
+                    context.pods[pod_model.podId] = pod_model
+                    print(f"Parsed Pod (fixed): {pod_model.podId}")
+                    
+                except json.JSONDecodeError:
+                    # If fixing didn't work, create a basic Pod model as fallback
+                    pod_model = PodModel(
+                        podId=Path(file_path).stem,
+                        seed=PodSeed(),
+                        file_path=file_path,
+                        source_content=content
+                    )
+                    context.pods[pod_model.podId] = pod_model
+                    print(f"Parsed Pod (fallback): {pod_model.podId}")
                 
         except Exception as e:
             print(f"Failed to parse Pod file {file_path}: {e}")
