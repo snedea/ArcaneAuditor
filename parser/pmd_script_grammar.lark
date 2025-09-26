@@ -5,10 +5,10 @@
 
 ?source_elements: statement+
 
-?statement: block
+?statement: if_statement
+    | block
     | variable_statement
     | empty_statement
-    | if_statement
     | iteration_statement
     | continue_statement
     | break_statement
