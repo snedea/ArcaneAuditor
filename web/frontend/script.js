@@ -73,24 +73,57 @@ class ArcaneAuditorApp {
         const configGrid = document.getElementById('config-grid');
         configGrid.innerHTML = '';
 
+        // Group configurations by type
+        const configGroups = {
+            'Built-in': [],
+            'Team': [],
+            'Personal': []
+        };
+
         this.availableConfigs.forEach(config => {
-            const configElement = document.createElement('div');
-            configElement.className = 'config-option';
-            if (config.id === this.selectedConfig) {
-                configElement.classList.add('selected');
+            const configType = config.type || 'Built-in';
+            if (configGroups[configType]) {
+                configGroups[configType].push(config);
             }
+        });
+
+        // Render each group
+        Object.entries(configGroups).forEach(([groupName, configs]) => {
+            if (configs.length === 0) return;
+
+            const sectionDiv = document.createElement('div');
+            sectionDiv.className = 'config-section';
             
-            configElement.innerHTML = `
-                <div class="config-name">${config.name}</div>
-                <div class="config-description">${config.description}</div>
-                <div class="config-meta">
-                    <span class="config-rules-count">${config.rules_count} rules</span>
-                    <span class="config-performance ${config.performance.toLowerCase()}">${config.performance}</span>
-                </div>
-            `;
-            
-            configElement.addEventListener('click', () => this.selectConfiguration(config.id));
-            configGrid.appendChild(configElement);
+            const sectionTitle = document.createElement('h4');
+            sectionTitle.textContent = groupName;
+            sectionDiv.appendChild(sectionTitle);
+
+            const groupGrid = document.createElement('div');
+            groupGrid.className = 'config-grid';
+
+            configs.forEach(config => {
+                const configElement = document.createElement('div');
+                configElement.className = 'config-option';
+                if (config.id === this.selectedConfig) {
+                    configElement.classList.add('selected');
+                }
+                
+                configElement.innerHTML = `
+                    <div class="config-type ${config.type?.toLowerCase() || 'built-in'}">${config.type || 'Built-in'}</div>
+                    <div class="config-name">${config.name}</div>
+                    <div class="config-description">${config.description}</div>
+                    <div class="config-meta">
+                        <span class="config-rules-count">${config.rules_count} rules</span>
+                        <span class="config-performance ${config.performance.toLowerCase()}">${config.performance}</span>
+                    </div>
+                `;
+                
+                configElement.addEventListener('click', () => this.selectConfiguration(config.id));
+                groupGrid.appendChild(configElement);
+            });
+
+            sectionDiv.appendChild(groupGrid);
+            configGrid.appendChild(sectionDiv);
         });
     }
 

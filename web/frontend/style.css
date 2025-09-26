@@ -197,87 +197,87 @@ header p {
 
 /* Configuration Selection Styles */
 .config-selection {
-    margin-bottom: 30px;
-    padding: 25px;
+    margin-bottom: 20px;
+    padding: 15px;
     background: var(--bg-secondary);
-    border-radius: 12px;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
 }
 
 .config-selection h3 {
-    font-size: 1.3rem;
-    margin-bottom: 20px;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
     color: var(--text-primary);
     text-align: center;
 }
 
 .config-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 15px;
-    max-width: 900px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    max-width: 800px;
     margin: 0 auto;
 }
 
 .config-option {
-    padding: 20px;
+    padding: 12px;
     border: 2px solid var(--border-color);
-    border-radius: 10px;
+    border-radius: 6px;
     background: var(--bg-primary);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     position: relative;
 }
 
 .config-option:hover {
     border-color: #667eea;
     background: var(--bg-tertiary);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--shadow);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px var(--shadow);
 }
 
 .config-option.selected {
     border-color: #667eea;
     background: var(--bg-tertiary);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
 }
 
 .config-option.selected::before {
     content: "✓";
     position: absolute;
-    top: 10px;
-    right: 15px;
+    top: 6px;
+    right: 8px;
     color: #667eea;
     font-weight: bold;
-    font-size: 1.2rem;
+    font-size: 1rem;
 }
 
 .config-name {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .config-description {
-    font-size: 0.95rem;
+    font-size: 0.8rem;
     color: var(--text-secondary);
-    margin-bottom: 12px;
-    line-height: 1.4;
+    margin-bottom: 6px;
+    line-height: 1.3;
 }
 
 .config-meta {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
 }
 
 .config-rules-count {
     background: var(--bg-tertiary);
-    padding: 4px 8px;
-    border-radius: 6px;
+    padding: 2px 6px;
+    border-radius: 4px;
     font-weight: 500;
 }
 
@@ -295,6 +295,51 @@ header p {
 
 .config-performance.thorough {
     color: #ef4444;
+}
+
+/* Configuration Type Indicators */
+.config-type {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 1px 4px;
+    border-radius: 3px;
+    text-transform: uppercase;
+}
+
+.config-type.built-in {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.config-type.team {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.config-type.personal {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* Configuration Grid Grouping */
+.config-section {
+    margin-bottom: 15px;
+}
+
+.config-section h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    padding-left: 6px;
+    border-left: 2px solid #667eea;
+}
+
+.config-section .config-grid {
+    margin-bottom: 0;
 }
 
 /* Loading Section */
