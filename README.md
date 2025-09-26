@@ -4,7 +4,7 @@
 
 ## 🎯 Overview
 
-Arcane Auditor channels ancient wisdom through **30 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
+Arcane Auditor channels ancient wisdom through **32 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
 
 - **📄 PMD Files**: Page definitions with embedded scripts, endpoints, and presentation layers
 - **🧩 Pod Files**: Pod files with template widgets and endpoint configurations
@@ -14,7 +14,7 @@ Arcane Auditor channels ancient wisdom through **30 comprehensive validation rul
 
 - **Script Quality (20 Rules)**: Script syntax, complexity, naming conventions, unused code detection
 - **Endpoint Validation (4 Rules)**: API endpoint compliance, error handling, naming conventions
-- **Structure Validation (4 Rules)**: Widget configurations, required fields, component validation
+- **Structure Validation (6 Rules)**: Widget configurations, required fields, component validation, hardcoded values
 - **PMD Organization (2 Rules)**: File structure, section ordering, and security domain validation
 
 ## 🛡️ Update-Safe Configuration System
@@ -76,17 +76,17 @@ pip install uv
 ```bash
 # Download the latest release ZIP from GitHub
 # Visit: https://github.com/Developers-and-Dragons/ArcaneAuditor/releases
-# Download arcane-auditor-v0.1.0.zip and extract it
+# Download arcane-auditor-v0.5.0.zip and extract it
 
 # Or using command line (Windows PowerShell)
-Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.1.0.zip" -OutFile "arcane-auditor.zip"
+Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.5.0.zip" -OutFile "arcane-auditor.zip"
 Expand-Archive -Path "arcane-auditor.zip" -DestinationPath "."
-cd ArcaneAuditor-0.1.0
+cd ArcaneAuditor-0.5.0
 
 # Or using command line (macOS)
-curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.1.0.zip"
+curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.5.0.zip"
 unzip arcane-auditor.zip
-cd ArcaneAuditor-0.1.0
+cd ArcaneAuditor-0.5.0
 
 # Install dependencies (UV handles Python version and virtual environment automatically)
 uv sync
@@ -167,6 +167,7 @@ python web/server.py --port 8081
 The web interface provides:
 
 - **Drag & drop file upload** for ZIP files
+- **Dynamic configuration selection** with interactive cards
 - **Real-time analysis** with all validation rules
 - **Asynchronous processing** - Multiple users can upload files simultaneously
 - **Dark/light mode** toggle
@@ -182,12 +183,16 @@ The FastAPI server provides the following REST API endpoints:
 - **`POST /api/upload`** - Upload ZIP file for analysis
   - Returns: `{"job_id": "uuid", "status": "queued"}`
   - Content-Type: `multipart/form-data`
+  - Parameters: `file` (required), `config` (optional, defaults to "default")
 
 - **`GET /api/job/{job_id}`** - Get analysis job status and results
   - Returns: `{"job_id": "uuid", "status": "completed|running|failed", "result": {...}}`
 
 - **`GET /api/download/{job_id}`** - Download analysis results as Excel file
   - Returns: Excel file (.xlsx) with findings and summary
+
+- **`GET /api/configs`** - Get available configurations
+  - Returns: List of available configurations with metadata
 
 - **`GET /api/health`** - Health check endpoint
   - Returns: `{"status": "healthy"}`
@@ -294,12 +299,11 @@ arcane-auditor/
 │
 ├── web/                              # Web interface (Node.js-free!)
 │   ├── server.py                      # FastAPI web server
-│   ├── simple-frontend/              # HTML/CSS/JS frontend
-│   │   ├── index.html                # Main HTML page
-│   │   ├── style.css                 # Styling with dark mode
-│   │   ├── script.js                 # Client-side functionality
-│   │   └── README.md                 # Frontend documentation
-│   └── uploads/                      # Temporary upload directory
+│   ├── frontend/                      # HTML/CSS/JS frontend
+│   │   ├── index.html                 # Main HTML page
+│   │   ├── style.css                  # Styling with dark mode
+│   │   └── script.js                  # Client-side functionality
+│   └── uploads/                       # Temporary upload directory
 │
 ├── tests/                            # Unit tests
 │   ├── test_app_parser.py
@@ -368,13 +372,17 @@ arcane-auditor/
 
 - **FooterPodRequiredRule**: Footer Pod Required Rule - Footer must use pod structure
 - **StringBooleanRule**: String Boolean Rule - Use boolean values, not strings
+- **HardcodedApplicationIdRule**: Hardcoded Application ID Rule - Detect hardcoded applicationId values
+- **HardcodedWidRule**: Hardcoded WID Rule - Detect hardcoded Workday ID values
+- **PMDSectionOrderingRule**: PMD Section Ordering Rule - Consistent file structure and section ordering
+- **PMDSecurityDomainRule**: PMD Security Domain Rule - Ensure security domains are defined
 
 #### PMD Rules
 
 **Organization Rules** (`parser/rules/structure/validation/`)
 
 - **PMDSectionOrderingRule**: PMD Section Ordering Rule - Consistent file structure and section ordering
-- **PMDSecurityDomainRule**: PMD Security Domain Rule - Ensure security domains are defined (with smart exclusions)
+- **PMDSecurityDomainRule**: PMD Security Domain Rule - Ensure security domains are defined
 
 #### Custom Rules
 
@@ -460,7 +468,7 @@ Create custom configurations in JSON format:
 
 ### Core Documentation
 
-- **[📜 Rule Breakdown](docs/RULE_BREAKDOWN.md)**: Comprehensive guide to all 30 validation rules with examples
+- **[📜 Rule Breakdown](docs/RULE_BREAKDOWN.md)**: Comprehensive guide to all 32 validation rules with examples
 - **[⚙️ Configuration Guide](configs/README.md)**: Layered configuration system and rule customization
 
 ### Advanced Guides
