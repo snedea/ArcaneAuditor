@@ -35,28 +35,6 @@ CHUNK_SIZE = 8192  # 8KB chunks for streaming
 analysis_jobs: Dict[str, 'AnalysisJob'] = {}
 job_lock = threading.Lock()
 
-# Configuration metadata
-CONFIG_DESCRIPTIONS = {
-    "default": {
-        "name": "Default",
-        "description": "Standard configuration with all rules enabled",
-        "rules_count": 30,
-        "performance": "Balanced"
-    },
-    "minimal": {
-        "name": "Minimal", 
-        "description": "Fast analysis with only essential rules",
-        "rules_count": 8,
-        "performance": "Fast"
-    },
-    "comprehensive": {
-        "name": "Comprehensive",
-        "description": "Thorough analysis with all rules and enhanced severity",
-        "rules_count": 30,
-        "performance": "Thorough"
-    }
-}
-
 def get_dynamic_config_info():
     """Dynamically discover configuration information from all config directories."""
     config_info = {}
@@ -73,7 +51,7 @@ def get_dynamic_config_info():
             continue
             
         # Search for JSON files in the directory and all subdirectories
-        for config_file in config_dir.rglob("*.json"):
+        for config_file in config_dir.glob("*.json"):
             config_name = config_file.stem
         
             try:
@@ -118,9 +96,6 @@ def get_dynamic_config_info():
                 
             except Exception as e:
                 print(f"Warning: Failed to load config {config_name}: {e}")
-                # Fallback to hardcoded info if available
-                if config_name in CONFIG_DESCRIPTIONS:
-                    config_info[config_name] = CONFIG_DESCRIPTIONS[config_name]
     
     return config_info
 

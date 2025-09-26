@@ -1,5 +1,4 @@
 // Simple HTML/JavaScript frontend for Arcane Auditor
-// No React, no Node.js dependencies - just vanilla JavaScript
 
 class ArcaneAuditorApp {
     constructor() {
@@ -62,7 +61,7 @@ class ArcaneAuditorApp {
                 id: 'default',
                 name: 'Default',
                 description: 'Standard configuration with all rules enabled',
-                rules_count: 30,
+                rules_count: 32,
                 performance: 'Balanced'
             }];
             this.renderConfigurations();
