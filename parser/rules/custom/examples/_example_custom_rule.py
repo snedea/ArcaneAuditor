@@ -78,14 +78,17 @@ class CustomScriptCommentQualityRule(Rule):
         Check comment quality in script content using AST parsing.
         
         This demonstrates:
-        - Using built-in script parser
+        - Using built-in script parser with context-level caching
         - AST traversal for function detection
         - Comment density calculation
         - Modern Finding creation
         """
         try:
-            # Parse script using built-in Lark grammar parser
-            ast = self._parse_script_content(script_content)
+            # Parse script using built-in Lark grammar parser with caching
+            ast = self.get_cached_ast(script_content)
+            
+            if ast is None:
+                return  # Skip if parsing failed
             
             # Find all function definitions in the AST
             functions = self._find_functions_in_ast(ast, script_content)

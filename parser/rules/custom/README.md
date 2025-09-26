@@ -82,8 +82,11 @@ class CustomScriptMyRule(Rule):
     def _check_script_content(self, script_content: str, field_name: str, file_path: str, line_offset: int) -> Generator[Finding, None, None]:
         """Your analysis logic here."""
         try:
-            # Parse script using built-in parser
-            ast = self._parse_script_content(script_content)
+            # Parse script using built-in parser with context-level caching
+            ast = self.get_cached_ast(script_content)
+            
+            if ast is None:
+                return  # Skip if parsing failed
             
             # Your analysis logic here
             if self._has_violation(ast):
@@ -240,16 +243,24 @@ yield finding  # Yield instead of append
 
 ## 🔧 Available Utilities
 
-### Script Parsing (Built-in)
+### Script Parsing (Built-in with Caching)
 
 ```python
-# Parse script content into AST using Lark grammar
+# Parse script content into AST using Lark grammar with context-level caching
 try:
-    ast = self._parse_script_content(script_content)
+    ast = self.get_cached_ast(script_content)
+    if ast is None:
+        return  # Skip if parsing failed
     # AST is now available for analysis
 except Exception as e:
     print(f"Failed to parse script: {e}")
 ```
+
+**Benefits of the new caching system:**
+- ✅ **Performance**: ASTs are cached at the context level, avoiding redundant parsing
+- ✅ **Memory efficient**: Only unique script content is parsed and cached
+- ✅ **Automatic**: Caching happens transparently - no manual cache management needed
+- ✅ **Backward compatible**: Falls back to direct parsing if context is not available
 
 ### Script Field Discovery
 
@@ -315,7 +326,9 @@ def _analyze_script_file(self, script_model: ScriptModel) -> Generator[Finding, 
 def _check_script_content(self, script_content: str, file_path: str, line_offset: int) -> Generator[Finding, None, None]:
     """Check script content with proper error handling."""
     try:
-        ast = self._parse_script_content(script_content)
+        ast = self.get_cached_ast(script_content)
+        if ast is None:
+            return  # Skip if parsing failed
         # Your analysis logic here
     except Exception as e:
         print(f"Error parsing script in {file_path}: {e}")
