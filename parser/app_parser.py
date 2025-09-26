@@ -160,15 +160,7 @@ class ModelParser:
                 
             except json.JSONDecodeError as e:
                 print(f"JSON parsing failed for {file_path}: {e}")
-                # Fallback: treat as plain text with basic extraction
-                pmd_model = PMDModel(
-                    pageId=path_obj.stem,  # Use filename as pageId
-                    file_path=file_path,
-                    onLoad=content if 'onLoad' in content else None,
-                    script=content if 'script' in content else None
-                )
-                context.pmds[pmd_model.pageId] = pmd_model
-                print(f"Parsed PMD (fallback): {pmd_model.pageId}")
+                raise
                 
         except Exception as e:
             print(f"Failed to parse PMD file {file_path}: {e}")
@@ -205,14 +197,9 @@ class ModelParser:
                 context.amd = amd_model
                 print(f"Parsed AMD: {file_path}")
                 
-            except json.JSONDecodeError:
-                # Fallback: create basic AMD model
-                amd_model = AMDModel(
-                    routes={},
-                    file_path=file_path
-                )
-                context.amd = amd_model
-                print(f"Parsed AMD (fallback): {file_path}")
+            except json.JSONDecodeError as e:
+                print(f"JSON parsing error in AMD file {file_path}: {e}")
+                raise
                 
         except Exception as e:
             print(f"Failed to parse AMD file {file_path}: {e}")
@@ -245,8 +232,6 @@ class ModelParser:
                 print(f"Parsed Pod: {pod_model.podId}")
                 
             except json.JSONDecodeError as e:
-                print(f"JSON parsing error in Pod file {file_path}: {e}")
-                
                 # Try to fix common JSON issues using the existing PMD preprocessor
                 try:
                     from .pmd_preprocessor import preprocess_pmd_content
@@ -269,18 +254,12 @@ class ModelParser:
                     )
                     
                     context.pods[pod_model.podId] = pod_model
-                    print(f"Parsed Pod (fixed): {pod_model.podId}")
+                    print(f"Parsed Pod: {pod_model.podId}")
                     
                 except json.JSONDecodeError:
-                    # If fixing didn't work, create a basic Pod model as fallback
-                    pod_model = PodModel(
-                        podId=Path(file_path).stem,
-                        seed=PodSeed(),
-                        file_path=file_path,
-                        source_content=content
-                    )
-                    context.pods[pod_model.podId] = pod_model
-                    print(f"Parsed Pod (fallback): {pod_model.podId}")
+                    # If fixing didn't work, fail the analysis
+                    print(f"JSON parsing error in Pod file {file_path}: {e}")
+                    raise
                 
         except Exception as e:
             print(f"Failed to parse Pod file {file_path}: {e}")
@@ -313,16 +292,7 @@ class ModelParser:
             
         except json.JSONDecodeError as e:
             print(f"JSON parsing error in SMD file {file_path}: {e}")
-            # Create a basic SMD model as fallback
-            smd_model = SMDModel(
-                id=Path(file_path).stem,
-                applicationId='',
-                siteId='',
-                file_path=file_path,
-                source_content=content
-            )
-            context.smds[smd_model.id] = smd_model
-            print(f"Parsed SMD (fallback): {smd_model.id}")
+            raise
             
         except Exception as e:
             print(f"Failed to parse SMD file {file_path}: {e}")
