@@ -68,6 +68,7 @@ class RulesConfig(BaseModel):
     PMDSectionOrderingRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures PMD file sections follow consistent ordering for better readability")
     HardcodedApplicationIdRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects hardcoded applicationId values that should be replaced with site.applicationId")
     HardcodedWidRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects hardcoded WID values that should be configured in app attributes")
+    PMDSecurityDomainRule: RuleConfig = Field(default_factory=RuleConfig, description="Validates that PMD files have a securityDomains section and that it is not empty")
 
 
 class FileProcessingConfig(BaseModel):
