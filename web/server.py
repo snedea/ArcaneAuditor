@@ -20,7 +20,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # FastAPI imports
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -306,7 +306,7 @@ def run_analysis_background(job: AnalysisJob):
 
 
 @app.post("/api/upload")
-async def upload_file(file: UploadFile = File(...), config: str = "default"):
+async def upload_file(file: UploadFile = File(...), config: str = Form("default")):
     """Upload a ZIP file for analysis."""
     print(f"DEBUG: Received upload request with config='{config}'")
     print(f"DEBUG: config parameter type: {type(config)}, value: '{config}'")
