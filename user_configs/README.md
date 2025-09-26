@@ -8,6 +8,7 @@ This directory is **protected from application updates** and is the recommended 
 - **Team configurations** - Shared across your development team
 - **Project-specific rules** - Customized for specific applications
 - **Organizational standards** - Company-wide coding standards
+- **Web interface integration** - Configurations automatically appear in the web UI
 
 ## 🔒 Update Safety
 
@@ -60,6 +61,13 @@ Edit `user_configs/my-config.json` to match your team's needs:
 ```
 
 ### 3. Use Your Configuration
+
+#### Web Interface
+1. Go to the Arcane Auditor web interface
+2. Look for your configuration in the **Team Configurations** section
+3. Select your configuration and upload your ZIP file
+
+#### Command Line
 ```bash
 # Use your custom configuration
 uv run main.py review-app myapp.zip --config my-config

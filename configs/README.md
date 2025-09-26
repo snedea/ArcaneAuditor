@@ -6,7 +6,7 @@ This directory contains pre-configured spell sets for the Arcane Auditor. Choose
 
 ### 🚀 **default.json** (Recommended)
 
-- **All 30 rules enabled** with their default settings
+- **All 32 rules enabled** with their default settings
 - Includes comprehensive analysis for PMD, Pod, and standalone .script files
 - Best for teams that want comprehensive code quality analysis
 - Good starting point for most users
@@ -25,8 +25,8 @@ This directory contains pre-configured spell sets for the Arcane Auditor. Choose
 
 ### 🎯 **comprehensive.json** (Production Ready)
 
-- **All 30 rules enabled** with optimized severity levels
-- **SEVERE severity** for critical issues (console.log, null safety, etc.)
+- **All 32 rules enabled** with optimized severity levels
+- **SEVERE severity** for must fix findings (console.log, etc.)
 - **WARNING severity** for structure issues (PMD section ordering)
 - **INFO severity** for preferences (string booleans, footer pods)
 - Best for production code reviews and CI/CD pipelines
@@ -36,8 +36,12 @@ This directory contains pre-configured spell sets for the Arcane Auditor. Choose
 ### Web Interface
 
 1. Go to the Arcane Auditor mystical web interface
-2. Upload your ZIP file
-3. Select a configuration from the dropdown (optional - defaults to `default.json`)
+2. **Select a configuration** from the available options:
+   - **Built-in Configurations**: Default, Minimal, Comprehensive
+   - **Team Configurations**: Custom team/project configurations (if available)
+   - **Personal Configurations**: Personal developer overrides (if available)
+3. Upload your ZIP file
+4. Run analysis with your selected configuration
 
 ### Command Line
 
@@ -56,11 +60,21 @@ uv run python main.py analyze myapp.zip --config comprehensive
 
 You can create your own configuration by:
 
-1. Copying one of the existing files
-2. Modifying rule settings as needed
-3. Saving it with a descriptive name
+1. **For Team/Project Configurations** (Recommended):
+   - Copy an example from `user_configs/examples/`
+   - Modify rule settings as needed
+   - Save it in the `user_configs/` directory
+   - Commit to your project repository
 
-## Rule Categories (30 Total Rules)
+2. **For Personal Overrides**:
+   - Create configurations in the `local_configs/` directory
+   - These are never committed and override team settings
+
+3. **For Complete Custom Configurations**:
+   - Create anywhere on the filesystem
+   - Use full path when specifying the configuration
+
+## Rule Categories (32 Total Rules)
 
 ### Script Rules (20 rules)
 
@@ -112,12 +126,14 @@ You can create your own configuration by:
 - Footer pod requirements (`FooterPodRequiredRule`) - *PMD footer only*
 - String boolean detection (`StringBooleanRule`)
 
-### PMD Rules (2 rules)
+### PMD Rules (4 rules)
 
 **Applies to PMD file structure and security:**
 
 - **Configurable section ordering** (`PMDSectionOrderingRule`) - Enforces consistent PMD file structure
 - **Security domain validation** (`PMDSecurityDomainRule`) - Ensures PMD pages have required security domains
+- **Hardcoded application ID detection** (`HardcodedApplicationIdRule`) - Detects hardcoded applicationId values
+- **Hardcoded WID detection** (`HardcodedWidRule`) - Detects hardcoded Workday ID values
 
 ## Customizing Rules
 

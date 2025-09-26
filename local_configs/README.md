@@ -9,6 +9,7 @@ This directory is for **personal developer configurations** that:
 - Store personal preferences and workflow customizations
 - Provide temporary rule adjustments for debugging/prototyping
 - **Never get committed** to version control
+- **Appear in web interface** as Personal Configurations
 
 ## 🔒 Privacy & Safety
 
@@ -79,6 +80,13 @@ echo '{
 ```
 
 ### Use Personal Configuration
+
+#### Web Interface
+1. Go to the Arcane Auditor web interface
+2. Look for your configuration in the **Personal Configurations** section
+3. Select your configuration and upload your ZIP file
+
+#### Command Line
 ```bash
 # Use your personal config (highest priority)
 uv run main.py review-app myapp.zip --config dev-mode
