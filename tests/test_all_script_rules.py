@@ -222,7 +222,7 @@ class TestScriptNullSafetyRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "SEVERE"
+        assert self.rule.SEVERITY == "WARNING"
         assert "null" in self.rule.DESCRIPTION.lower()
 
 

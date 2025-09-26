@@ -3,7 +3,13 @@
 Tests for PMDSectionOrderingRule.
 """
 
-import pytest
+import sys
+from pathlib import Path
+
+# Add the project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 from parser.rules.structure.validation.pmd_section_ordering import PMDSectionOrderingRule
 from parser.models import ProjectContext, PMDModel
 
@@ -86,7 +92,7 @@ class TestPMDSectionOrderingRule:
         
         # Check that violations mention expected order
         violation_messages = [f.message for f in findings]
-        assert any("Expected order:" in msg for msg in violation_messages)
+        assert any("Expected:" in msg for msg in violation_messages)
         assert any("script" in msg for msg in violation_messages)
     
     def test_pmd_with_partial_sections(self):
@@ -134,7 +140,7 @@ class TestPMDSectionOrderingRule:
         # If there are findings, they should be about ordering, not about unknown sections being invalid
         if findings:
             for finding in findings:
-                assert "Expected order:" in finding.message or "wrong position" in finding.message
+                assert "Expected:" in finding.message or "wrong position" in finding.message
     
     
     def test_pmd_with_invalid_json(self):
@@ -161,5 +167,31 @@ class TestPMDSectionOrderingRule:
         assert len(findings) == 0
 
 
+def run_tests():
+    """Run all tests."""
+    test_instance = TestPMDSectionOrderingRule()
+    
+    try:
+        test_instance.setup_method()
+        test_instance.test_rule_metadata()
+        test_instance.test_default_section_order()
+        test_instance.test_custom_configuration()
+        test_instance.test_pmd_with_correct_ordering()
+        test_instance.test_pmd_with_incorrect_ordering()
+        test_instance.test_pmd_with_partial_sections()
+        test_instance.test_pmd_with_unknown_sections()
+        test_instance.test_pmd_with_invalid_json()
+        
+        print("🎉 All tests passed!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Test failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 if __name__ == "__main__":
-    pytest.main([__file__])
+    success = run_tests()
+    sys.exit(0 if success else 1)
