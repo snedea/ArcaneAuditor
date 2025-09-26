@@ -189,6 +189,16 @@ class ScriptUnusedVariableRule(Rule):
                 if len(node.children) > 0 and hasattr(node.children[0], 'value'):
                     var_name = node.children[0].value
                     current_scope['used_vars'].add(var_name)
+                    
+            elif node.data == 'literal_expression':
+                # Handle template literal usage - check for {{variable}} patterns
+                if len(node.children) > 0 and hasattr(node.children[0], 'value'):
+                    literal_value = node.children[0].value
+                    # Check if this is a template literal (starts and ends with backticks)
+                    if isinstance(literal_value, str) and literal_value.startswith('`') and literal_value.endswith('`'):
+                        # Extract variables used in template interpolation
+                        template_vars = self._extract_template_variables(literal_value)
+                        current_scope['used_vars'].update(template_vars)
         
         # Recursively check children
         if hasattr(node, 'children'):
@@ -248,3 +258,14 @@ class ScriptUnusedVariableRule(Rule):
         
         _search_functions(ast)
         return functions
+    
+    def _extract_template_variables(self, template_literal: str) -> set:
+        """Extract variable names from template literal interpolation patterns like {{variable}}."""
+        import re
+        
+        # Pattern to match {{variable}} in template literals
+        # This matches {{ followed by a valid identifier, followed by }}
+        pattern = r'\{\{([a-zA-Z_$][a-zA-Z0-9_$]*)\}\}'
+        
+        matches = re.findall(pattern, template_literal)
+        return set(matches)
