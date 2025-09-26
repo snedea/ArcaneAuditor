@@ -21,20 +21,34 @@ This directory is **protected from application updates** and is the recommended 
 ```
 user_configs/
 ├── README.md              # This file
-├── examples/              # Example configurations to copy/modify
-│   ├── team-standard.json # Example team configuration
-│   └── beginner-friendly.json # Example beginner configuration
-├── my-team-config.json    # Your team's configuration
-└── project-specific.json  # Project-specific rules
+├── examples/              # Example configurations (reference only)
+│   ├── team-standard.json # Example team configuration (32 rules)
+│   └── beginner-friendly.json # Example beginner configuration (8 rules)
+├── my-team-config.json    # Your team's active configuration
+└── project-specific.json  # Project-specific active rules
 ```
+
+## ⚠️ Important: Active vs Example Configurations
+
+**Active Configurations** (used by the tool):
+- Place in the **root** of `user_configs/` directory
+- These are automatically discovered by the web interface
+- Use these for your actual team/project configurations
+
+**Example Configurations** (reference only):
+- Located in `user_configs/examples/` directory
+- These are templates to copy and modify
+- The tool does NOT automatically discover these
 
 ## 🚀 Quick Start
 
 ### 1. Copy an Example Configuration
 ```bash
-# Copy an example to start with
+# Copy an example to the root directory (not examples/)
 cp user_configs/examples/team-standard.json user_configs/my-config.json
 ```
+
+**Important**: Always copy examples to the **root** of `user_configs/`, not to `examples/`. The tool only discovers configurations in the root directory.
 
 ### 2. Customize Your Configuration
 Edit `user_configs/my-config.json` to match your team's needs:
@@ -79,54 +93,18 @@ uv run main.py review-app myapp.zip --config user_configs/my-config.json
 ## 🎯 Configuration Examples
 
 ### Team Standard Configuration
-Perfect for enforcing team-wide coding standards:
-```json
-{
-  "rules": {
-    "ScriptConsoleLogRule": {
-      "enabled": true,
-      "severity_override": "SEVERE"
-    },
-    "ScriptNullSafetyRule": {
-      "enabled": true,
-      "severity_override": "SEVERE"
-    },
-    "PMDSectionOrderingRule": {
-      "enabled": true,
-      "severity_override": "WARNING",
-      "custom_settings": {
-        "section_order": ["id", "securityDomains", "endPoints", "presentation", "onLoad", "onSubmit", "outboundData", "include", "script"],
-        "enforce_order": true
-      }
-    }
-  }
-}
-```
+Comprehensive configuration with all 32 rules enabled - perfect for enforcing team-wide coding standards:
+- **32 rules enabled** with appropriate severity levels
+- Stricter thresholds for complexity and function length
+- Enhanced security rules (hardcoded values, null safety)
+- Custom PMD section ordering
 
-### Beginner-Friendly Configuration
-Focuses on essential rules for new developers:
-```json
-{
-  "rules": {
-    "ScriptNullSafetyRule": {
-      "enabled": true,
-      "severity_override": "SEVERE"
-    },
-    "ScriptConsoleLogRule": {
-      "enabled": true,
-      "severity_override": "WARNING"
-    },
-    "ScriptEmptyFunctionRule": {
-      "enabled": true,
-      "severity_override": "INFO"
-    },
-    "WidgetIdRequiredRule": {
-      "enabled": true,
-      "severity_override": "SEVERE"
-    }
-  }
-}
-```
+### Beginner-Friendly Configuration  
+Focused configuration with only 8 essential rules - ideal for new developers:
+- **8 rules enabled** (ScriptNullSafetyRule, ScriptConsoleLogRule, ScriptEmptyFunctionRule, ScriptUnusedVariableRule, ScriptFunctionReturnConsistencyRule, WidgetIdRequiredRule, EndpointFailOnStatusCodesRule, HardcodedApplicationIdRule, HardcodedWidRule)
+- More lenient thresholds (complexity: 15, function length: 75)
+- Lower severity levels to reduce overwhelm
+- Disabled advanced rules that might confuse beginners
 
 ## 🔧 Advanced Usage
 

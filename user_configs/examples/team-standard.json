@@ -1,25 +1,17 @@
 {
   "rules": {
-    "ScriptConsoleLogRule": {
-      "enabled": true,
-      "severity_override": "SEVERE",
-      "custom_settings": {}
-    },
-    "ScriptNullSafetyRule": {
-      "enabled": true,
-      "severity_override": "SEVERE",
-      "custom_settings": {}
-    },
-    "ScriptEmptyFunctionRule": {
-      "enabled": true,
-      "severity_override": "WARNING",
-      "custom_settings": {}
-    },
     "ScriptComplexityRule": {
       "enabled": true,
       "severity_override": "SEVERE",
       "custom_settings": {
         "max_complexity": 8
+      }
+    },
+    "ScriptFunctionParameterCountRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {
+        "max_parameters": 4
       }
     },
     "ScriptLongFunctionRule": {
@@ -29,22 +21,139 @@
         "max_lines": 40
       }
     },
-    "PMDSectionOrderingRule": {
+    "ScriptNestingLevelRule": {
       "enabled": true,
       "severity_override": "WARNING",
       "custom_settings": {
-        "section_order": ["id", "securityDomains", "include", "script", "endPoints", "onSubmit", "outboundData", "onLoad", "presentation"]
+        "max_nesting": 3
       }
     },
-    "WidgetIdRequiredRule": {
+    "ScriptConsoleLogRule": {
       "enabled": true,
       "severity_override": "SEVERE",
+      "custom_settings": {}
+    },
+    "ScriptVarUsageRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptFileVarUsageRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptVariableNamingRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptFunctionalMethodUsageRule": {
+      "enabled": true,
+      "severity_override": "INFO",
+      "custom_settings": {}
+    },
+    "ScriptMagicNumberRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptNullSafetyRule": {
+      "enabled": true,
+      "severity_override": "SEVERE",
+      "custom_settings": {}
+    },
+    "ScriptFunctionReturnConsistencyRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptStringConcatRule": {
+      "enabled": true,
+      "severity_override": "INFO",
+      "custom_settings": {}
+    },
+    "ScriptVerboseBooleanCheckRule": {
+      "enabled": true,
+      "severity_override": "INFO",
+      "custom_settings": {}
+    },
+    "ScriptDescriptiveParameterRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptEmptyFunctionRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptUnusedFunctionRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptUnusedFunctionParametersRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptUnusedVariableRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "ScriptUnusedScriptIncludesRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
       "custom_settings": {}
     },
     "EndpointFailOnStatusCodesRule": {
       "enabled": true,
       "severity_override": "SEVERE",
       "custom_settings": {}
+    },
+    "EndpointNameLowerCamelCaseRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "EndpointOnSendSelfDataRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "EndpointBaseUrlTypeRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "WidgetIdRequiredRule": {
+      "enabled": true,
+      "severity_override": "SEVERE",
+      "custom_settings": {}
+    },
+    "WidgetIdLowerCamelCaseRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "FooterPodRequiredRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "StringBooleanRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "PMDSectionOrderingRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {
+        "section_order": ["id", "securityDomains", "include", "script", "endPoints", "onSubmit", "outboundData", "onLoad", "presentation"]
+      }
     },
     "HardcodedApplicationIdRule": {
       "enabled": true,
@@ -54,6 +163,11 @@
     "HardcodedWidRule": {
       "enabled": true,
       "severity_override": "SEVERE",
+      "custom_settings": {}
+    },
+    "PMDSecurityDomainRule": {
+      "enabled": true,
+      "severity_override": "WARNING",
       "custom_settings": {}
     }
   },

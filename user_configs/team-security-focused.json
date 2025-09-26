@@ -1,11 +1,9 @@
 {
   "rules": {
     "ScriptComplexityRule": {
-      "enabled": true,
-      "severity_override": "INFO",
-      "custom_settings": {
-        "max_complexity": 15
-      }
+      "enabled": false,
+      "severity_override": null,
+      "custom_settings": {}
     },
     "ScriptFunctionParameterCountRule": {
       "enabled": false,
@@ -13,11 +11,9 @@
       "custom_settings": {}
     },
     "ScriptLongFunctionRule": {
-      "enabled": true,
-      "severity_override": "INFO",
-      "custom_settings": {
-        "max_lines": 75
-      }
+      "enabled": false,
+      "severity_override": null,
+      "custom_settings": {}
     },
     "ScriptNestingLevelRule": {
       "enabled": false,
@@ -26,7 +22,7 @@
     },
     "ScriptConsoleLogRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "ScriptVarUsageRule": {
@@ -81,7 +77,7 @@
     },
     "ScriptEmptyFunctionRule": {
       "enabled": true,
-      "severity_override": "INFO",
+      "severity_override": "WARNING",
       "custom_settings": {}
     },
     "ScriptUnusedFunctionRule": {
@@ -95,18 +91,18 @@
       "custom_settings": {}
     },
     "ScriptUnusedVariableRule": {
-      "enabled": true,
-      "severity_override": "INFO",
-      "custom_settings": {}
-    },
-    "ScriptUnusedScriptIncludesRule": {
       "enabled": false,
       "severity_override": null,
       "custom_settings": {}
     },
-    "EndpointFailOnStatusCodesRule": {
+    "ScriptUnusedScriptIncludesRule": {
       "enabled": true,
       "severity_override": "WARNING",
+      "custom_settings": {}
+    },
+    "EndpointFailOnStatusCodesRule": {
+      "enabled": true,
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "EndpointNameLowerCamelCaseRule": {
@@ -145,18 +141,20 @@
       "custom_settings": {}
     },
     "PMDSectionOrderingRule": {
-      "enabled": false,
-      "severity_override": null,
-      "custom_settings": {}
+      "enabled": true,
+      "severity_override": "WARNING",
+      "custom_settings": {
+        "section_order": ["id", "securityDomains", "include", "script", "endPoints", "onSubmit", "outboundData", "onLoad", "presentation"]
+      }
     },
     "HardcodedApplicationIdRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "HardcodedWidRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "SEVERE",
       "custom_settings": {}
     },
     "PMDSecurityDomainRule": {
