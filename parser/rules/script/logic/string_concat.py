@@ -23,7 +23,7 @@ class ScriptStringConcatRule(Rule):
         
         # Analyze POD embedded scripts
         for pod_model in context.pods.values():
-            yield from self.visit_pod(pod_model)
+            yield from self.visit_pod(pod_model, context)
         
         # Analyze standalone script files
         for script_model in context.scripts.values():
@@ -38,7 +38,7 @@ class ScriptStringConcatRule(Rule):
             if field_value and len(field_value.strip()) > 0:
                 yield from self._check_string_concatenation(field_value, field_name, pmd_model.file_path, line_offset, context)
     
-    def visit_pod(self, pod_model: PodModel):
+    def visit_pod(self, pod_model: PodModel, context=None):
         """Analyzes script fields in a POD model."""
         script_fields = self.find_pod_script_fields(pod_model)
         
