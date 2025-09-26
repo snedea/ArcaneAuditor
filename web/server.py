@@ -57,6 +57,73 @@ CONFIG_DESCRIPTIONS = {
     }
 }
 
+def get_dynamic_config_info():
+    """Dynamically discover configuration information from all config directories."""
+    config_info = {}
+    
+    # Search in priority order: local_configs, user_configs, configs
+    config_dirs = [
+        project_root / "local_configs",
+        project_root / "user_configs", 
+        project_root / "configs"
+    ]
+    
+    for config_dir in config_dirs:
+        if not config_dir.exists():
+            continue
+            
+        # Search for JSON files in the directory and all subdirectories
+        for config_file in config_dir.rglob("*.json"):
+            config_name = config_file.stem
+        
+            try:
+                import json
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+                
+                # Count enabled rules
+                enabled_rules = 0
+                if 'rules' in config_data:
+                    for rule_name, rule_config in config_data['rules'].items():
+                        if rule_config.get('enabled', True):
+                            enabled_rules += 1
+                
+                # Determine performance level based on rule count
+                if enabled_rules <= 10:
+                    performance = "Fast"
+                elif enabled_rules <= 25:
+                    performance = "Balanced"
+                else:
+                    performance = "Thorough"
+                
+                # Determine config type based on directory
+                if config_dir.name == "local_configs":
+                    config_type = "Personal"
+                    description = f"Personal configuration with {enabled_rules} rules enabled"
+                elif config_dir.name == "user_configs":
+                    config_type = "Team"
+                    description = f"Team configuration with {enabled_rules} rules enabled"
+                else:
+                    config_type = "Built-in"
+                    description = f"Built-in configuration with {enabled_rules} rules enabled"
+                
+                config_info[config_name] = {
+                    "name": config_name.replace('_', ' ').title(),
+                    "description": description,
+                    "rules_count": enabled_rules,
+                    "performance": performance,
+                    "type": config_type,
+                    "path": str(config_file.relative_to(project_root))
+                }
+                
+            except Exception as e:
+                print(f"Warning: Failed to load config {config_name}: {e}")
+                # Fallback to hardcoded info if available
+                if config_name in CONFIG_DESCRIPTIONS:
+                    config_info[config_name] = CONFIG_DESCRIPTIONS[config_name]
+    
+    return config_info
+
 def cleanup_orphaned_files():
     """Clean up orphaned files from previous server runs."""
     uploads_dir = Path(__file__).parent / "uploads"
@@ -252,7 +319,8 @@ async def upload_file(file: UploadFile = File(...), config: str = "default"):
         raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB")
     
     # Validate configuration
-    if config not in CONFIG_DESCRIPTIONS:
+    config_info = get_dynamic_config_info()
+    if config not in config_info:
         raise HTTPException(status_code=400, detail=f"Invalid configuration: {config}")
     
     # Generate job ID
@@ -295,15 +363,13 @@ async def upload_file(file: UploadFile = File(...), config: str = "default"):
 @app.get("/api/configs")
 async def get_available_configs():
     """Get list of available configurations."""
-    configs_dir = project_root / "configs"
+    config_info = get_dynamic_config_info()
     available_configs = []
     
-    for config_file in configs_dir.glob("*.json"):
-        config_name = config_file.stem
-        if config_name in CONFIG_DESCRIPTIONS:
-            config_info = CONFIG_DESCRIPTIONS[config_name].copy()
-            config_info["id"] = config_name
-            available_configs.append(config_info)
+    for config_name, info in config_info.items():
+        config_data = info.copy()
+        config_data["id"] = config_name
+        available_configs.append(config_data)
     
     return {"configs": available_configs}
 
