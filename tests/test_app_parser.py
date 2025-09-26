@@ -156,7 +156,7 @@ class TestModelParser:
         assert pmd_model.presentation.body.get("children")[0].get("value") == "Welcome!"
     
     def test_parse_pmd_file_json_fallback(self):
-        """Test PMD file parsing fallback when JSON fails."""
+        """Test PMD file parsing fails when JSON is invalid."""
         # Mock PMD content as plain text
         pmd_content = "This is not JSON\nonLoad: <% pageVariables.isTrue = true; %>\nscript: <% const y = 2; %>"
         
@@ -164,14 +164,10 @@ class TestModelParser:
         mock_file.content = pmd_content
         
         context = ProjectContext()
-        self.parser._parse_pmd_file("test.pmd", mock_file, context)
         
-        # Should use filename as pageId in fallback
-        assert "test" in context.pmds
-        pmd_model = context.pmds["test"]
-        assert pmd_model.pageId == "test"
-        assert pmd_model.onLoad == pmd_content  # Contains 'onLoad'
-        assert pmd_model.script == pmd_content  # Contains 'script'
+        # Should raise JSONDecodeError when JSON parsing fails
+        with pytest.raises(json.JSONDecodeError):
+            self.parser._parse_pmd_file("test.pmd", mock_file, context)
     
     def test_parse_script_file(self):
         """Test script file parsing."""
@@ -229,17 +225,17 @@ class TestModelParser:
         assert context.amd.baseUrls["api"] == "/api/v1"
     
     def test_parse_amd_file_json_fallback(self):
-        """Test AMD file parsing fallback when JSON fails."""
+        """Test AMD file parsing fails when JSON is invalid."""
         amd_content = "This is not valid JSON"
         
         mock_file = Mock()
         mock_file.content = amd_content
         
         context = ProjectContext()
-        self.parser._parse_amd_file("app.amd", mock_file, context)
         
-        assert context.amd is not None
-        assert context.amd.routes == {}
+        # Should raise JSONDecodeError when JSON parsing fails
+        with pytest.raises(json.JSONDecodeError):
+            self.parser._parse_amd_file("app.amd", mock_file, context)
     
     def test_parse_single_file_pmd(self):
         """Test single file parsing for PMD files."""
@@ -281,13 +277,10 @@ class TestModelParser:
         mock_file.content = "some content"
         
         context = ProjectContext()
-        # Should not raise an exception
-        self.parser._parse_single_file("test.pod", mock_file, context)
         
-        # Should not add anything to context
-        assert len(context.pmds) == 0
-        assert len(context.scripts) == 0
-        assert context.amd is None
+        # Should raise JSONDecodeError when POD parsing fails (no fallback)
+        with pytest.raises(json.JSONDecodeError):
+            self.parser._parse_single_file("test.pod", mock_file, context)
     
     def test_parse_files_with_errors(self):
         """Test parsing files with some parsing errors."""
