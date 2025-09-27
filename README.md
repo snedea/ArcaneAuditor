@@ -244,18 +244,6 @@ arcane-auditor/
 ├── docs/                             # Documentation
 │   └── RULE_BREAKDOWN.md             # Detailed rule documentation
 │
-├── samples/                          # Sample applications and templates
-│   ├── README.md                     # Sample usage guide
-│   ├── archives/                     # Sample ZIP applications
-│   │   ├── capitalProjectPlanning.zip
-│   │   ├── review_test_template_jhfkhn.zip
-│   │   └── test_capital_planning_single.zip
-│   ├── templates/                    # Template files
-│   │   ├── appManifest.json
-│   │   ├── model/
-│   │   └── presentation/
-│   └── working/                      # Working examples
-│
 ├── file_processing/                  # File processing pipeline
 │   ├── __init__.py
 │   ├── config.py                     # Configuration models
@@ -298,15 +286,15 @@ arcane-auditor/
 │       │   │   ├── violation.py      # Script violation dataclass
 │       │   │   └── ast_utils.py      # AST manipulation utilities
 │       │   │
-│       │   ├── core/                 # Basic syntax/style rules
+│       │   ├── core/                        # Basic syntax/style rules
 │       │   │   ├── __init__.py
-│       │   │   ├── var_usage.py      # ScriptVarUsageRule
+│       │   │   ├── var_usage.py             # ScriptVarUsageRule
 │       │   │   ├── var_usage_detector.py
 │       │   │   ├── script_file_var_usage.py # ScriptFileVarUsageRule
 │       │   │   ├── script_file_var_usage_detector.py
-│       │   │   ├── variable_naming.py # ScriptVariableNamingRule
+│       │   │   ├── variable_naming.py       # ScriptVariableNamingRule
 │       │   │   ├── variable_naming_detector.py
-│       │   │   ├── console_log.py    # ScriptConsoleLogRule
+│       │   │   ├── console_log.py           # ScriptConsoleLogRule
 │       │   │   └── console_log_detector.py
 │       │   │
 │       │   ├── complexity/           # Code complexity rules
