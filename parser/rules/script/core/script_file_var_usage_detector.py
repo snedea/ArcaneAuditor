@@ -13,7 +13,6 @@ class ScriptFileVarUsageDetector(ScriptDetector):
         super().__init__(line_offset)
         self.file_path = file_path
         self.config = config or {}
-        self.check_unused_variables = self.config.get("check_unused_variables", True)
 
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
         """Detect variable usage issues in standalone script files."""
@@ -170,19 +169,17 @@ class ScriptFileVarUsageDetector(ScriptDetector):
         top_level_vars = {k: v for k, v in declared_vars.items() if v.get('scope') == 'top-level'}
         function_vars = {k: v for k, v in declared_vars.items() if v.get('scope') == 'function'}
         
-        # Get internal function calls to identify helper functions (only if needed)
-        if self.check_unused_variables:
-            internal_calls = self._extract_internal_function_calls(ast)
+        # Get internal function calls to identify helper functions
+        internal_calls = self._extract_internal_function_calls(ast)
         
         # Issue 1: Top-level variables declared but not exported AND not used internally
-        if self.check_unused_variables:
-            unexported_vars = set(top_level_vars.keys()) - exported_vars
-            truly_unused_vars = unexported_vars - internal_calls
-            
-            for var_name in truly_unused_vars:
-                var_info = top_level_vars[var_name]
-                yield Violation(
-                    message=f"Top-level variable '{var_name}' is declared but neither exported nor used internally. Consider removing if unused.",
-                    line=var_info['line'],
-                    column=1
-                )
+        unexported_vars = set(top_level_vars.keys()) - exported_vars
+        truly_unused_vars = unexported_vars - internal_calls
+        
+        for var_name in truly_unused_vars:
+            var_info = top_level_vars[var_name]
+            yield Violation(
+                message=f"Top-level variable '{var_name}' is declared but neither exported nor used internally. Consider removing if unused.",
+                line=var_info['line'],
+                column=1
+            )

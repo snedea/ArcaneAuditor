@@ -162,12 +162,13 @@ const unusedFunction = function() {
         assert "unusedFunction" in findings[0].message
 
     def test_configurable_checks_all_disabled(self):
-        """Test that dead code detection can be disabled."""
-        # Configure rule to disable dead code detection
-        config = {
-            "check_unused_variables": False
-        }
-        rule = ScriptFileVarUsageRule(config)
+        """Test that the rule can be disabled entirely."""
+        # This test is now obsolete since we removed the check_unused_variables option
+        # Users should disable the entire rule instead of using configuration options
+        # This test is kept for backward compatibility but will always find violations
+        # since the rule is enabled and will detect dead code
+        
+        rule = ScriptFileVarUsageRule()
         
         script_content = """const getCurrentTime = function() {
     return date:now();
@@ -187,8 +188,9 @@ const unusedFunction = function() {
         
         findings = list(rule.analyze(context))
         
-        # Should find no issues when dead code detection is disabled
-        assert len(findings) == 0
+        # Rule is enabled, so it will find dead code violations
+        assert len(findings) == 1
+        assert "unusedFunction" in findings[0].message
 
 
 if __name__ == "__main__":

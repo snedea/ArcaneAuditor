@@ -14,9 +14,8 @@ class ScriptFileVarUsageRule(ScriptRuleBase):
     DETECTOR = ScriptFileVarUsageDetector
 
     def __init__(self, config: Dict[str, Any] = None, context=None):
-        """Initialize with configurable check options."""
+        """Initialize the rule."""
         self.config = config or {}
-        self.check_unused_variables = self.config.get("check_unused_variables", True)
 
     def get_description(self) -> str:
         """Get rule description."""
