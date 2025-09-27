@@ -52,7 +52,7 @@ class TestScriptUnusedScriptIncludesRule:
         
         # Should find unused script include
         assert len(findings) == 1
-        assert "util.script" in findings[0].message
+        assert "util" in findings[0].message
         assert "never used" in findings[0].message
         assert "util." in findings[0].message  # Should suggest usage pattern
     

@@ -16,6 +16,18 @@ class ScriptDescriptiveParameterRule(ScriptRuleBase):
     FUNCTIONAL_METHODS = {'map', 'filter', 'find', 'forEach', 'reduce', 'sort'}
     ALLOWED_SINGLE_LETTERS = {'i', 'j', 'k'}
 
+    def __init__(self, config=None):
+        """Initialize the rule with optional configuration."""
+        super().__init__()
+        if config:
+            # Update functional methods if provided
+            if 'additional_functional_methods' in config:
+                self.FUNCTIONAL_METHODS = self.FUNCTIONAL_METHODS.union(config['additional_functional_methods'])
+            
+            # Update allowed single letters if provided
+            if 'allowed_single_letters' in config:
+                self.ALLOWED_SINGLE_LETTERS = set(config['allowed_single_letters'])
+
     def get_description(self) -> str:
         """Get rule description."""
         return self.DESCRIPTION
@@ -29,7 +41,7 @@ class ScriptDescriptiveParameterRule(ScriptRuleBase):
             return
         
         # Create detector and set original content for pattern-based analysis
-        detector = self.DETECTOR(file_path, line_offset)
+        detector = self.DETECTOR(file_path, line_offset, self.FUNCTIONAL_METHODS, self.ALLOWED_SINGLE_LETTERS)
         detector.set_original_content(script_content)
         
         # Use detector to find violations

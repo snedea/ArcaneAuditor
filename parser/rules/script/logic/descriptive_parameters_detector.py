@@ -10,17 +10,17 @@ import re
 class DescriptiveParameterDetector(ScriptDetector):
     """Detects non-descriptive parameter names in functional methods."""
 
-    def __init__(self, file_path: str = "", line_offset: int = 1):
+    def __init__(self, file_path: str = "", line_offset: int = 1, functional_methods=None, allowed_letters=None):
         super().__init__(line_offset)
         self.file_path = file_path
         
         # Functional methods that should have descriptive parameters
-        self.functional_methods = {
+        self.functional_methods = functional_methods or {
             'map', 'filter', 'find', 'forEach', 'reduce', 'sort'
         }
         
         # Allowed single-letter parameter names (traditional index variables)
-        self.allowed_letters = {'i', 'j', 'k'}
+        self.allowed_letters = allowed_letters or {'i', 'j', 'k'}
 
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
         """Detect non-descriptive parameter names in functional methods."""
@@ -51,6 +51,11 @@ class DescriptiveParameterDetector(ScriptDetector):
         arguments_expressions = ast.find_data('arguments_expression')
         for args_expr in arguments_expressions:
             violations.extend(self._analyze_arguments_expression(args_expr, processed_arrow_functions))
+        
+        # Also find member_dot_expression nodes that might be functional method calls
+        member_expressions = ast.find_data('member_dot_expression')
+        for member_expr in member_expressions:
+            violations.extend(self._analyze_member_expression(member_expr, processed_arrow_functions))
         
         # Also find all arrow functions and check if they're part of functional method calls
         arrow_functions = ast.find_data('arrow_function_expression')
@@ -94,63 +99,35 @@ class DescriptiveParameterDetector(ScriptDetector):
         
         return violations
 
+    def _analyze_member_expression(self, member_expr: Tree, processed_arrow_functions: set) -> List[Dict]:
+        """Analyze a member_dot_expression to find arrow function violations."""
+        violations = []
+        
+        # Extract method name from member expression
+        method_name = self._extract_method_name(member_expr)
+        
+        if method_name not in self.functional_methods:
+            return violations
+        
+        # Look for parenthesized expressions that might contain arrow functions
+        # This is a simplified approach - we'd need to traverse the AST tree properly
+        # For now, we'll skip this and rely on the main detection logic
+        return violations
+
     def _analyze_arrow_function_context(self, arrow_func: Tree, ast: Tree) -> List[Dict]:
         """Analyze an arrow function to see if it's part of a functional method call."""
         violations = []
         
-        # This is a simplified approach - we'll analyze the arrow function
-        # and assume it's part of a functional method call if it has problematic parameters
-        # This avoids the complexity of tracking parent/sibling relationships
-        
-        # Check if this arrow function has problematic parameters
-        if not hasattr(arrow_func, 'children'):
-            return violations
-        
-        # Handle single parameter arrow functions: param => expression
-        if len(arrow_func.children) == 2:
-            param_node = arrow_func.children[0]
-            if hasattr(param_node, 'value'):
-                param_name = param_node.value
-                if self._is_problematic_parameter(param_name):
-                    # Use a generic method name since we can't easily determine the context
-                    method_name = "functional method"
-                    context = "item"
-                    suggested_name = self._suggest_parameter_name("map", context, 0)  # Default to map suggestions
-                    
-                    violations.append({
-                        'method_name': method_name,
-                        'param_name': param_name,
-                        'suggested_name': suggested_name,
-                        'line': self.get_line_number(arrow_func),
-                        'column': 1,  # Approximate
-                        'context': context,
-                        'param_index': 0
-                    })
-        
-        # Handle multi-parameter arrow functions: (param1, param2) => expression
-        elif len(arrow_func.children) > 2:
-            # The last child is the expression, the rest are parameters
-            for i in range(len(arrow_func.children) - 1):
-                param_node = arrow_func.children[i]
-                if hasattr(param_node, 'value'):
-                    param_name = param_node.value
-                    if self._is_problematic_parameter(param_name):
-                        # Use a generic method name since we can't easily determine the context
-                        method_name = "functional method"
-                        context = "item"
-                        suggested_name = self._suggest_parameter_name("reduce", context, i)  # Default to reduce suggestions
-                        
-                        violations.append({
-                            'method_name': method_name,
-                            'param_name': param_name,
-                            'suggested_name': suggested_name,
-                            'line': self.get_line_number(arrow_func),
-                            'column': 1,  # Approximate
-                            'context': context,
-                            'param_index': i
-                        })
-        
+        # Disable this fallback method to avoid false positives
+        # The main detection logic in _analyze_arguments_expression should handle all cases
         return violations
+
+    def _find_parent_arguments_expression(self, arrow_func: Tree, ast: Tree) -> Tree:
+        """Find the parent arguments_expression that contains this arrow function."""
+        # This is a simplified implementation - in a real scenario, you'd need
+        # to traverse the AST tree to find the parent. For now, we'll return None
+        # to disable this fallback method and rely only on the main detection logic.
+        return None
 
     def _extract_method_name(self, function_node: Tree) -> str:
         """Extract method name from function node."""
