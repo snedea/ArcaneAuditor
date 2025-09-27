@@ -216,102 +216,218 @@ uv run main.py list-configs
 arcane-auditor/
 ├── main.py                           # Main application entry point
 ├── requirements.txt                  # Python dependencies
-├── pyproject.toml                    # Project configuration
+├── pyproject.toml                    # Project configuration (v0.6.0)
 ├── README.md                         # This file
 ├── LICENSE                           # MIT License
+├── uv.lock                           # UV package lock file
+│
+├── assets/                           # Static assets
+│   └── arcane-auditor-logo.png       # Project logo
+│
+├── configs/                          # Base configurations (updated with app)
+│   ├── README.md                     # Configuration guide
+│   ├── default.json                  # Default rule configuration
+│   ├── minimal.json                  # Minimal rule set
+│   ├── comprehensive.json            # All rules enabled
+│   └── examples/
+│       └── example_config.json       # Configuration example
+│
+├── user_configs/                     # Team/project settings (update-safe)
+│   ├── README.md                     # User configuration guide
+│   └── examples/
+│       ├── beginner-friendly.json    # Beginner-friendly rule set
+│       └── team-standard.json        # Team standard configuration
+│
+├── local_configs/                    # Personal overrides (highest priority)
+│   └── README.md                     # Local configuration guide
+│
 ├── docs/                             # Documentation
 │   └── RULE_BREAKDOWN.md             # Detailed rule documentation
 │
+├── samples/                          # Sample applications and templates
+│   ├── README.md                     # Sample usage guide
+│   ├── archives/                     # Sample ZIP applications
+│   │   ├── capitalProjectPlanning.zip
+│   │   ├── review_test_template_jhfkhn.zip
+│   │   └── test_capital_planning_single.zip
+│   ├── templates/                    # Template files
+│   │   ├── appManifest.json
+│   │   ├── model/
+│   │   └── presentation/
+│   └── working/                      # Working examples
+│
 ├── file_processing/                  # File processing pipeline
+│   ├── __init__.py
 │   ├── config.py                     # Configuration models
 │   ├── models.py                     # Data models
 │   └── processor.py                  # Main processing logic
 │
+├── output/                           # Output formatting
+│   ├── __init__.py
+│   └── formatter.py                  # Results formatting utilities
+│
 ├── parser/                           # PMD parsing and validation
+│   ├── __init__.py
 │   ├── app_parser.py                 # Main application parser
 │   ├── config.py                     # Parser configuration
+│   ├── config_manager.py             # Configuration management
 │   ├── models.py                     # Parser data models
 │   ├── pmd_script_parser.py          # PMD Script parser
 │   ├── pmd_script_grammar.lark       # PMD Script grammar definition
 │   ├── pmd_preprocessor.py           # PMD file preprocessing
+│   ├── rules_engine.py               # Rules discovery and execution
 │   │
-│   ├── rules/                        # Validation rules engine
-│   │   ├── __init__.py               # Rules package
-│   │   ├── base.py                   # Base Rule class and utilities
-│   │   ├── base_validation.py        # Enhanced validation base class
-│   │   ├── common_validations.py     # Shared validation functions
-│   │   ├── line_number_utils.py      # Line number calculation utilities
-│   │   ├── rules_engine.py           # Rules discovery and execution
-│   │   │
-│   │   ├── script/                   # Script validation rules
-│   │   │   ├── __init__.py
-│   │   │   ├── core/                 # Basic syntax/style rules
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── var_usage.py      # ScriptVarUsageRule
-│   │   │   │   ├── variable_naming.py # ScriptVariableNamingRule
-│   │   │   │   └── console_log.py    # ScriptConsoleLogRule
-│   │   │   ├── complexity/           # Code complexity rules
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── nesting_level.py  # ScriptNestingLevelRule
-│   │   │   │   ├── cyclomatic_complexity.py # ScriptComplexityRule
-│   │   │   │   └── long_function.py  # ScriptLongFunctionRule
-│   │   │   ├── unused_code/          # Dead code detection
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── unused_variables.py # ScriptUnusedVariableRule
-│   │   │   │   ├── unused_parameters.py # ScriptUnusedFunctionParametersRule
-│   │   │   │   └── empty_functions.py # ScriptEmptyFunctionRule
-│   │   │   └── logic/                # Logic/flow rules
-│   │   │       ├── __init__.py
-│   │   │       ├── magic_numbers.py  # ScriptMagicNumberRule
-│   │   │       ├── null_safety.py    # ScriptNullSafetyRule
-│   │   │       ├── verbose_boolean.py # ScriptVerboseBooleanCheckRule
-│   │   │       ├── return_consistency.py # ScriptFunctionReturnConsistencyRule
-│   │   │       └── string_concat.py  # ScriptStringConcatRule
-│   │   │
-│   │   ├── structure/                # Structure validation rules
-│   │   │   ├── __init__.py
-│   │   │   ├── widgets/              # Widget validation rules
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── widget_id_required.py # WidgetIdRequiredRule
-│   │   │   │   └── widget_id_lower_camel_case.py # WidgetIdLowerCamelCaseRule
-│   │   │   ├── endpoints/            # Endpoint validation rules
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── endpoint_name_lower_camel_case.py # EndpointNameLowerCamelCaseRule
-│   │   │   │   ├── endpoint_on_send_self_data.py # EndpointOnSendSelfDataRule
-│   │   │   │   ├── endpoint_fail_on_status_codes.py # EndpointFailOnStatusCodesRule
-│   │   │   │   └── endpoint_url_base_url_type.py # EndpointUrlBaseUrlTypeRule
-│   │   │   └── validation/           # General validation rules
-│   │   │       ├── __init__.py
-│   │   │       ├── footer_pod_required.py # FooterPodRequiredRule
-│   │   │       └── string_boolean.py # StringBooleanRule
-│   │   │
-│   │   └── custom/                   # 🆕 User custom rules
-│   │       ├── __init__.py           # Custom rules package
-│   │       ├── README.md             # Custom rules development guide
-│   │       ├── examples/             # Example implementations
-│   │       │   ├── __init__.py
-│   │       │   └── example_custom_rule.py # Sample custom rule
-│   │       └── user/                 # User's actual custom rules
-│   │           └── __init__.py
-│   │
+│   └── rules/                        # Validation rules engine
+│       ├── __init__.py               # Rules package
+│       ├── base.py                   # Base Rule class and utilities
+│       ├── common_validations.py     # Shared validation functions
+│       ├── line_number_utils.py      # Line number calculation utilities
+│       │
+│       ├── common/                   # Shared rule utilities
+│       │   ├── __init__.py
+│       │   ├── line_utils.py         # Line number utilities
+│       │   └── violation.py          # Violation dataclass
+│       │
+│       ├── script/                   # Script validation rules
+│       │   ├── __init__.py
+│       │   │
+│       │   ├── shared/               # Shared script rule components
+│       │   │   ├── __init__.py
+│       │   │   ├── rule_base.py      # ScriptRuleBase class
+│       │   │   ├── detector.py       # ScriptDetector abstract class
+│       │   │   ├── violation.py      # Script violation dataclass
+│       │   │   └── ast_utils.py      # AST manipulation utilities
+│       │   │
+│       │   ├── core/                 # Basic syntax/style rules
+│       │   │   ├── __init__.py
+│       │   │   ├── var_usage.py      # ScriptVarUsageRule
+│       │   │   ├── var_usage_detector.py
+│       │   │   ├── script_file_var_usage.py # ScriptFileVarUsageRule
+│       │   │   ├── script_file_var_usage_detector.py
+│       │   │   ├── variable_naming.py # ScriptVariableNamingRule
+│       │   │   ├── variable_naming_detector.py
+│       │   │   ├── console_log.py    # ScriptConsoleLogRule
+│       │   │   └── console_log_detector.py
+│       │   │
+│       │   ├── complexity/           # Code complexity rules
+│       │   │   ├── __init__.py
+│       │   │   ├── nesting_level.py  # ScriptNestingLevelRule
+│       │   │   ├── nesting_level_detector.py
+│       │   │   ├── cyclomatic_complexity.py # ScriptComplexityRule
+│       │   │   ├── cyclomatic_complexity_detector.py
+│       │   │   ├── long_function.py  # ScriptLongFunctionRule
+│       │   │   ├── long_function_detector.py
+│       │   │   ├── function_parameter_count.py # ScriptFunctionParameterCountRule
+│       │   │   └── function_parameter_count_detector.py
+│       │   │
+│       │   ├── unused_code/          # Dead code detection
+│       │   │   ├── __init__.py
+│       │   │   ├── unused_variables.py # ScriptUnusedVariableRule
+│       │   │   ├── unused_variables_detector.py
+│       │   │   ├── unused_parameters.py # ScriptUnusedFunctionParametersRule
+│       │   │   ├── unused_parameters_detector.py
+│       │   │   ├── unused_functions.py # ScriptUnusedFunctionRule
+│       │   │   ├── unused_functions_detector.py
+│       │   │   ├── unused_script_includes.py # ScriptUnusedScriptIncludesRule
+│       │   │   ├── unused_script_includes_detector.py
+│       │   │   ├── empty_functions.py # ScriptEmptyFunctionRule
+│       │   │   └── empty_function_detector.py
+│       │   │
+│       │   └── logic/                # Logic/flow rules
+│       │       ├── __init__.py
+│       │       ├── magic_numbers.py  # ScriptMagicNumberRule
+│       │       ├── magic_number_detector.py
+│       │       ├── null_safety.py    # ScriptNullSafetyRule
+│       │       ├── null_safety_detector.py
+│       │       ├── descriptive_parameters.py # ScriptDescriptiveParameterRule
+│       │       ├── descriptive_parameters_detector.py
+│       │       ├── functional_method_usage.py # ScriptFunctionalMethodUsageRule
+│       │       ├── functional_method_usage_detector.py
+│       │       ├── verbose_boolean.py # ScriptVerboseBooleanCheckRule
+│       │       ├── verbose_boolean_detector.py
+│       │       ├── return_consistency.py # ScriptFunctionReturnConsistencyRule
+│       │       ├── return_consistency_detector.py
+│       │       ├── string_concat.py  # ScriptStringConcatRule
+│       │       └── string_concat_detector.py
+│       │
+│       ├── structure/                # Structure validation rules
+│       │   ├── __init__.py
+│       │   │
+│       │   ├── shared/               # Shared structure rule components
+│       │   │   ├── __init__.py
+│       │   │   └── rule_base.py      # StructureRuleBase class
+│       │   │
+│       │   ├── widgets/              # Widget validation rules
+│       │   │   ├── __init__.py
+│       │   │   ├── widget_id_required.py # WidgetIdRequiredRule
+│       │   │   └── widget_id_lower_camel_case.py # WidgetIdLowerCamelCaseRule
+│       │   │
+│       │   ├── endpoints/            # Endpoint validation rules
+│       │   │   ├── __init__.py
+│       │   │   ├── endpoint_name_lower_camel_case.py # EndpointNameLowerCamelCaseRule
+│       │   │   ├── endpoint_on_send_self_data.py # EndpointOnSendSelfDataRule
+│       │   │   ├── endpoint_fail_on_status_codes.py # EndpointFailOnStatusCodesRule
+│       │   │   └── endpoint_url_base_url_type.py # EndpointUrlBaseUrlTypeRule
+│       │   │
+│       │   └── validation/           # General validation rules
+│       │       ├── __init__.py
+│       │       ├── footer_pod_required.py # FooterPodRequiredRule
+│       │       ├── string_boolean.py # StringBooleanRule
+│       │       ├── embedded_images.py # EmbeddedImagesRule
+│       │       ├── hardcoded_application_id.py # HardcodedApplicationIdRule
+│       │       ├── hardcoded_wid.py # HardcodedWidRule
+│       │       ├── pmd_section_ordering.py # PMDSectionOrderingRule
+│       │       └── pmd_security_domain.py # PMDSecurityDomainRule
+│       │
+│       └── custom/                   # 🆕 User custom rules
+│           ├── __init__.py           # Custom rules package
+│           ├── README.md             # Custom rules development guide
+│           ├── examples/             # Example implementations
+│           │   ├── __init__.py
+│           │   └── _example_custom_rule.py # Sample custom rule
+│           └── user/                 # User's actual custom rules
+│               └── __init__.py
 │
-├── web/                              # Web interface (Node.js-free!)
-│   ├── server.py                      # FastAPI web server
-│   ├── frontend/                      # HTML/CSS/JS frontend
-│   │   ├── index.html                 # Main HTML page
-│   │   ├── style.css                  # Styling with dark mode
-│   │   └── script.js                  # Client-side functionality
-│   └── uploads/                       # Temporary upload directory
+├── web/                              # Web interface
+│   ├── server.py                     # FastAPI web server
+│   ├── configs/                      # Web-specific configurations
+│   ├── uploads/                      # Temporary upload directory
+│   └── frontend/                     # HTML/CSS/JS frontend
+│       ├── README.md                 # Frontend documentation
+│       ├── index.html                # Main HTML page
+│       ├── style.css                 # Styling with dark mode
+│       └── script.js                 # Client-side functionality
 │
 ├── tests/                            # Unit tests
-│   ├── test_app_parser.py
-│   ├── test_file_processor.py
-│   ├── test_finding.py
-│   ├── test_pmd_script_rules_integration.py
-│   ├── test_pmd_script_rules.py
-│   ├── test_pmd_structure_rules_integration.py
-│   ├── test_pmd_structure_rules.py
-│   └── test_rules_engine.py
+│   ├── __init__.py
+│   ├── test_app_parser.py            # Application parser tests
+│   ├── test_file_processor.py        # File processing tests
+│   ├── test_finding.py               # Finding model tests
+│   ├── test_rules_engine.py          # Rules engine tests
+│   │
+│   ├── test_all_script_rules.py      # All script rules integration tests
+│   ├── test_all_structure_rules.py   # All structure rules integration tests
+│   │
+│   ├── test_script_complexity_rule.py # Complexity rule tests
+│   ├── test_script_descriptive_parameters.py # Descriptive parameters tests
+│   ├── test_script_empty_function_rule.py # Empty function tests
+│   ├── test_script_file_var_usage.py # File var usage tests
+│   ├── test_script_function_parameter_count_rule.py # Parameter count tests
+│   ├── test_script_functional_method_usage_rule.py # Functional method tests
+│   ├── test_script_verbose_boolean_rule.py # Verbose boolean tests
+│   ├── test_unused_script_includes.py # Unused includes tests
+│   │
+│   ├── test_embedded_images_rule.py  # Embedded images tests
+│   ├── test_endpoint_on_send_self_data.py # Endpoint self data tests
+│   ├── test_footer_pod_required_rule.py # Footer pod tests
+│   ├── test_pmd_section_ordering.py  # PMD section ordering tests
+│   ├── test_string_boolean_rule.py   # String boolean tests
+│   ├── test_widget_traversal.py      # Widget traversal tests
+│   │
+│   ├── test_pmd_script_grammar.py    # PMD script grammar tests
+│   └── test_workday_extend.zip       # Test application
+│
+└── uploads/                          # Temporary file uploads
 ```
 
 ## 🔧 Validation Rules

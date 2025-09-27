@@ -85,28 +85,12 @@ const helperFunction = function() { return "helper"; };    // ✅ Will be export
 
 **Configuration Options:**
 
-You can disable dead code detection if you want to keep unused helper functions:
+If you want to keep unused helper functions, simply disable the entire rule:
 
 ```json
 {
   "ScriptFileVarUsageRule": {
-    "enabled": true,
-    "custom_settings": {
-      "check_unused_variables": true       // Dead code detection (default: true)
-    }
-  }
-}
-```
-
-**Example: Disable dead code detection (keep unused functions):**
-
-```json
-{
-  "ScriptFileVarUsageRule": {
-    "enabled": true,
-    "custom_settings": {
-      "check_unused_variables": false     // Keep unused helper functions
-    }
+    "enabled": false     // Disable dead code detection entirely
   }
 }
 ```
