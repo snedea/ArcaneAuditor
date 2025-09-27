@@ -4,7 +4,7 @@
 
 ## 🎯 Overview
 
-Arcane Auditor channels ancient wisdom through **32 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
+Arcane Auditor channels ancient wisdom through **34 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
 
 - **📄 PMD Files**: Page definitions with embedded scripts, endpoints, and presentation layers
 - **🧩 Pod Files**: Pod files with template widgets and endpoint configurations
@@ -12,10 +12,8 @@ Arcane Auditor channels ancient wisdom through **32 comprehensive validation rul
 
 **Rule Categories:**
 
-- **Script Quality (20 Rules)**: Script syntax, complexity, naming conventions, unused code detection
-- **Endpoint Validation (4 Rules)**: API endpoint compliance, error handling, naming conventions
-- **Structure Validation (6 Rules)**: Widget configurations, required fields, component validation, hardcoded values
-- **PMD Organization (2 Rules)**: File structure, section ordering, and security domain validation
+- **Script Quality (21 Rules)**: Script syntax, complexity, naming conventions, unused code detection
+- **Structure Validation (13 Rules)**: Widget configurations, required fields, component validation, hardcoded values, endpoint compliance
 
 ## 🛡️ Update-Safe Configuration System
 

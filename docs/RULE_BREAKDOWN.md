@@ -1,21 +1,19 @@
 # Arcane Auditor Rules Grimoire 📜
 
-*Ancient wisdom distilled into 30 mystical validation rules*
+*Ancient wisdom distilled into 34 mystical validation rules*
 
-This grimoire provides a comprehensive overview of all **30 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify. These rules help catch code quality issues, style violations, and structural problems that compilers can't detect but are important for code reviewers to identify.
+This grimoire provides a comprehensive overview of all **34 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
 
 ## Rule Categories
 
-The rules are organized into four main categories:
+The rules are organized into two main categories:
 
-- **Script Rules (20 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
-- **Endpoint Rules (4 Rules)**: API endpoint validation and compliance for PMD and Pod files
-- **Structure Rules (4 Rules)**: Widget and structural validation for PMD and Pod files
-- **PMD Rules (2 Rules)**: PMD-specific file structure, organization, and security validation
+- **Script Rules (21 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
+- **Structure Rules (13 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 ---
 
-## Script Rules (20 Rules)
+## Script Rules (21 Rules)
 
 *These rules analyze PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files for comprehensive code quality validation.*
 
@@ -752,9 +750,9 @@ function processData() {
 
 ---
 
-## Endpoint Rules (4 Rules)
+## Structure Rules (13 Rules)
 
-*These rules validate API endpoint configurations, error handling, and compliance in both PMD and Pod files.*
+*These rules validate widget configurations, endpoint structures, component compliance, hardcoded values, and PMD organization in both PMD and Pod files.*
 
 ### EndpointFailOnStatusCodesRule - Endpoint Fail On Status Codes Rule
 
@@ -911,7 +909,7 @@ function processData() {
 
 ---
 
-## Structure Rules (4 Rules)
+## Structure Rules (13 Rules)
 
 *These rules validate widget configurations, endpoint structures, and component compliance in both PMD and Pod files.*
 
@@ -1216,11 +1214,9 @@ Currently uses strict mode - all PMD pages require security domains unless speci
 
 ## Summary
 
-The Arcane Auditor channels mystical powers through **30 rules** across **4 categories**:
+The Arcane Auditor channels mystical powers through **34 rules** across **2 categories**:
 
-- ✅ **20 Script Rules** - Code quality for PMD and standalone scripts
-- ✅ **4 Endpoint Rules** - API validation and compliance
-- ✅ **4 Structure Rules** - Widget and component validation
-- ✅ **2 PMD Rules** - File organization, structure, and security
+- ✅ **21 Script Rules** - Code quality for PMD and standalone scripts
+- ✅ **13 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 These rules help maintain consistent, high-quality Workday Extend applications by catching issues that compilers aren't designed to catch, but are important for maintainability, performance, and team collaboration.
