@@ -18,7 +18,7 @@ class TestScriptDescriptiveParameterRule:
     
     def test_rule_metadata(self):
         """Test rule metadata is correctly defined."""
-        assert self.rule.DESCRIPTION == "Ensures functional method parameters use descriptive names (except 'i', 'j', 'k' for indices)"
+        assert self.rule.DESCRIPTION == "Ensures function parameters use descriptive names when functions take function parameters (except 'i', 'j', 'k' for indices)"
         assert self.rule.SEVERITY == "INFO"
     
     def test_functional_methods_detection(self):
@@ -109,7 +109,7 @@ class TestScriptDescriptiveParameterRule:
         # Should only flag 'x', not 'i', 'j', 'k'
         assert len(findings) == 1
         assert "'x'" in findings[0].message
-        assert "functional method()" in findings[0].message
+        assert "map()" in findings[0].message
     
     def test_nested_functional_methods(self):
         """Test detection in nested functional method calls."""
@@ -131,8 +131,8 @@ class TestScriptDescriptiveParameterRule:
         
         findings = list(self.rule.analyze(self.context))
         
-        # Should find violations for 'x', 'y', 'z', 'w' (w appears twice due to nested calls)
-        assert len(findings) == 5
+        # Should find violations for 'x', 'y', 'z', 'w'
+        assert len(findings) == 4
         
         # Verify all problematic parameters are caught
         violation_params = [f.message for f in findings]
@@ -333,14 +333,11 @@ const processUsers = function(userList) {
             items.forEach((item, i) => console.log(i));
             matrix.map((row, j) => row[j]);
             
-            // Non-functional methods
-            obj.customMethod(x => x.value);
-            
             // Multi-character variables starting with single letters
             items.map(item => item.value);
             users.filter(user => user.active);
         %>"""
-        
+
         pmd_model = PMDModel(
             pageId="test-page",
             file_path="test.pmd",
@@ -348,11 +345,90 @@ const processUsers = function(userList) {
         )
         pmd_model.script = script_content
         self.context.pmds["test-page"] = pmd_model
-        
+
         findings = list(self.rule.analyze(self.context))
-        
+
         # Should have no violations
         assert len(findings) == 0
+
+    def test_custom_functions_with_function_parameters(self):
+        """Test that custom functions that take function parameters are flagged."""
+        script_content = """<%
+            // Custom functions that take function parameters should be flagged
+            obj.customMethod(x => x.value);
+            helper.formatDate(d => d.format('yyyy-MM-dd'));
+            utils.processItems(a => a.process());
+        %>"""
+
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            source_content='{"script": "' + script_content.replace('\n', '\\n').replace('"', '\\"') + '"}'
+        )
+        pmd_model.script = script_content
+        self.context.pmds["test-page"] = pmd_model
+
+        findings = list(self.rule.analyze(self.context))
+
+        # Should flag single-letter parameters in custom functions that take function parameters
+        # Note: 'i' is in the allowed list, so it won't be flagged
+        assert len(findings) >= 2  # At least x and d should be flagged
+        
+        # Check that violations are for single-letter parameters
+        violation_params = []
+        for finding in findings:
+            if "Parameter '" in finding.message:
+                start = finding.message.find("Parameter '") + 11
+                end = finding.message.find("'", start)
+                param_name = finding.message[start:end]
+                violation_params.append(param_name)
+        
+        assert 'x' in violation_params
+        assert 'd' in violation_params
+        # 'a' should also be flagged since it's not in the allowed list
+        assert 'a' in violation_params
+
+    def test_nested_arrow_functions(self):
+        """Test detection of single-letter parameters in nested arrow functions."""
+        script_content = """<%
+            // Nested arrow functions with single-letter parameters
+            items.map(x => x.items.map(y => y.value));
+            users.filter(u => u.roles.some(r => r.active));
+            data.reduce((acc, item) => acc.concat(item.children.map(c => c.name)), []);
+            
+            // Complex nested structure
+            departments.map(d => d.teams.map(t => t.members.map(m => m.name)));
+        %>"""
+
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="test.pmd",
+            source_content='{"script": "' + script_content.replace('\n', '\\n').replace('"', '\\"') + '"}'
+        )
+        pmd_model.script = script_content
+        self.context.pmds["test-page"] = pmd_model
+
+        findings = list(self.rule.analyze(self.context))
+
+        # Should flag single-letter parameters: x, y, u, r, c, d, t, m
+        # But not 'acc' (allowed) or 'item' (descriptive)
+        violation_params = []
+        for finding in findings:
+            # Extract parameter name from message
+            if "Parameter '" in finding.message:
+                start = finding.message.find("Parameter '") + 11
+                end = finding.message.find("'", start)
+                param_name = finding.message[start:end]
+                violation_params.append(param_name)
+
+        # Should have violations for single-letter parameters
+        expected_violations = ['x', 'y', 'u', 'r', 'c', 'd', 't', 'm']
+        for param in expected_violations:
+            assert param in violation_params, f"Expected violation for parameter '{param}'"
+
+        # Should not have violations for descriptive parameters
+        assert 'acc' not in violation_params, "Should not flag 'acc' (allowed parameter)"
+        assert 'item' not in violation_params, "Should not flag 'item' (descriptive parameter)"
 
 
 if __name__ == "__main__":
