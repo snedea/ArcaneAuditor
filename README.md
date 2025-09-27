@@ -318,9 +318,19 @@ arcane-auditor/
 
 ## 🔧 Validation Rules
 
+### Unified Rule Architecture
+
+Arcane Auditor features a **unified rule architecture** that provides consistency, reusability, and maintainability:
+
+- **`ScriptRuleBase`**: Base class for script analysis rules with built-in PMD/POD/script iteration
+- **`StructureRuleBase`**: Base class for structure validation rules with PMD/POD analysis patterns  
+- **`ScriptDetector`**: Abstract pattern for script analysis with separation of detection logic
+- **`Violation`**: Standardized dataclass for reporting code violations
+- **Shared utilities**: AST manipulation, line number calculation, and common validations
+
 ### Rule Categories
 
-#### Script Rules
+#### Script Rules (Unified Architecture)
 
 **Core Rules** (`parser/rules/script/core/`)
 
@@ -354,7 +364,7 @@ arcane-auditor/
 - **ScriptFunctionReturnConsistencyRule**: Return Consistency Rule - Consistent return patterns
 - **ScriptStringConcatRule**: String Concatenation Rule - Use template literals instead of string concatenation
 
-#### Structure Rules
+#### Structure Rules (Unified Architecture)
 
 **Widget Rules** (`parser/rules/structure/widgets/`)
 
@@ -370,8 +380,9 @@ arcane-auditor/
 
 **Validation Rules** (`parser/rules/structure/validation/`)
 
-- **FooterPodRequiredRule**: Footer Pod Required Rule - Footer must use pod structure
-- **StringBooleanRule**: String Boolean Rule - Use boolean values, not strings
+- **FooterPodRequiredRule**: Footer Pod Required Rule - Footer must use pod structure (uses StructureRuleBase)
+- **StringBooleanRule**: String Boolean Rule - Use boolean values, not strings (uses StructureRuleBase)
+- **EmbeddedImagesRule**: Embedded Images Rule - Detect base64 encoded images and large binary content
 - **HardcodedApplicationIdRule**: Hardcoded Application ID Rule - Detect hardcoded applicationId values
 - **HardcodedWidRule**: Hardcoded WID Rule - Detect hardcoded Workday ID values
 - **PMDSectionOrderingRule**: PMD Section Ordering Rule - Consistent file structure and section ordering

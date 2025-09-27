@@ -41,7 +41,61 @@ custom/
 
 ## 📝 Creating a Custom Rule
 
-### 1. Rule Structure (Generator-Based)
+### 1. Rule Structure (Unified Architecture)
+
+Arcane Auditor now supports a **unified rule architecture** with specialized base classes:
+
+#### For Script Rules (Recommended)
+```python
+from typing import Generator
+from ...script.shared import ScriptRuleBase, ScriptDetector, Violation
+from ....models import ProjectContext, PMDModel, ScriptModel
+
+class CustomScriptMyRule(ScriptRuleBase):
+    """Custom script rule using unified architecture."""
+    
+    DESCRIPTION = "Description of what this rule checks"
+    SEVERITY = "WARNING"  # "ERROR", "WARNING", "INFO"
+    
+    def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
+        """Main analysis method using unified architecture."""
+        # The base class handles PMD/POD/script iteration automatically
+        yield from self._analyze_scripts(context)
+    
+    def _analyze_scripts(self, context: ProjectContext) -> Generator[Violation, None, None]:
+        """Analyze scripts using the unified pattern."""
+        # Your analysis logic here
+        pass
+```
+
+#### For Structure Rules (Recommended)
+```python
+from typing import Generator
+from ...structure.shared import StructureRuleBase
+from ....models import ProjectContext, PMDModel, PodModel
+
+class CustomStructureMyRule(StructureRuleBase):
+    """Custom structure rule using unified architecture."""
+    
+    DESCRIPTION = "Description of what this rule checks"
+    SEVERITY = "WARNING"
+    
+    def get_description(self) -> str:
+        """Required by StructureRuleBase."""
+        return self.DESCRIPTION
+    
+    def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Analyze PMD model."""
+        # Your PMD analysis logic here
+        pass
+    
+    def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Analyze POD model."""
+        # Your POD analysis logic here
+        pass
+```
+
+#### Legacy Rule Structure (Still Supported)
 ```python
 from typing import Generator
 from ...base import Rule, Finding
@@ -100,6 +154,24 @@ class CustomScriptMyRule(Rule):
         except Exception as e:
             print(f"Error parsing script in {file_path}: {e}")
 ```
+
+### Benefits of Unified Architecture
+
+**Why use the unified architecture?**
+
+- ✅ **Consistency**: All rules follow the same patterns and conventions
+- ✅ **Reusability**: Common functionality is abstracted into base classes
+- ✅ **Maintainability**: Easier to understand and modify rules
+- ✅ **Testability**: Clear separation of concerns makes testing easier
+- ✅ **Extensibility**: New rules can easily inherit from base classes
+- ✅ **Performance**: Built-in optimizations and caching
+- ✅ **Future-proof**: Architecture evolves with the platform
+
+**When to use each approach:**
+
+- **Use `ScriptRuleBase`** for script analysis rules (recommended)
+- **Use `StructureRuleBase`** for PMD/POD structure validation (recommended)
+- **Use `Rule`** for custom logic that doesn't fit the standard patterns
 
 ### 2. Excluding Example Rules
 

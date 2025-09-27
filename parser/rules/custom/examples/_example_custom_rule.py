@@ -2,28 +2,30 @@
 Example Custom Rule - Custom Script Comment Quality Rule
 
 This is an example of how to create a custom validation rule using the modern
-Arcane Auditor architecture (2025). It demonstrates:
+Arcane Auditor unified architecture (2025). It demonstrates:
 
+- Unified rule architecture with ScriptRuleBase
 - Generator-based analysis pattern
 - Dual script analysis (PMD embedded + standalone script files)  
-- Modern Finding creation with automatic field population
+- Modern Violation creation with automatic field population
 - Proper error handling and AST parsing
 - Configuration support through custom_settings
 """
 
 from typing import Generator
-from ...base import Rule, Finding
+from ...script.shared import ScriptRuleBase, Violation
 from ....models import ProjectContext, PMDModel, ScriptModel
 
 
-class CustomScriptCommentQualityRule(Rule):
+class CustomScriptCommentQualityRule(ScriptRuleBase):
     """
     Example custom rule that checks for minimum comment density in script functions.
     
-    This rule demonstrates the modern Arcane Auditor rule architecture:
-    - Generator-based analysis (yields findings instead of returning lists)
+    This rule demonstrates the modern Arcane Auditor unified architecture:
+    - Unified rule architecture with ScriptRuleBase
+    - Generator-based analysis (yields violations instead of returning lists)
     - Dual script analysis (PMD embedded scripts + standalone .script files)
-    - Modern Finding creation with automatic field population
+    - Modern Violation creation with automatic field population
     - Configurable thresholds through custom_settings
     - Proper error handling for parsing failures
     """
@@ -40,40 +42,26 @@ class CustomScriptCommentQualityRule(Rule):
         self.min_comment_density = self.config.get('min_comment_density', 0.1)  # 10% default
         self.min_function_lines = self.config.get('min_function_lines', 5)  # Only check functions > 5 lines
     
-    def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
+    def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
         """
-        Modern analysis pattern: Generator-based with dual script analysis.
+        Modern unified analysis pattern: Uses ScriptRuleBase for automatic iteration.
         
-        Analyzes both:
+        The ScriptRuleBase handles:
         1. PMD embedded scripts (onLoad, script, onSubmit, etc.)
-        2. Standalone script files (util.script, helper.script, etc.)
+        2. POD embedded scripts
+        3. Standalone script files (util.script, helper.script, etc.)
         """
         
-        # Analyze PMD embedded scripts
-        for pmd_model in context.pmds.values():
-            yield from self._analyze_pmd_scripts(pmd_model)
-        
-        # Analyze standalone script files
-        for script_model in context.scripts.values():
-            yield from self._analyze_script_file(script_model)
+        # Use the unified architecture - base class handles iteration
+        yield from self._analyze_scripts(context)
     
-    def _analyze_pmd_scripts(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
-        """Analyze script content within PMD files using automatic field discovery."""
-        # Use built-in script field discovery
-        script_fields = self.find_script_fields(pmd_model)
-        
-        for field_path, field_value, field_name, line_offset in script_fields:
-            if field_value and len(field_value.strip()) > 0:
-                yield from self._check_comment_quality(field_value, field_name, pmd_model.file_path, line_offset)
+    def _analyze_scripts(self, context: ProjectContext) -> Generator[Violation, None, None]:
+        """Analyze scripts using the unified architecture."""
+        # The ScriptRuleBase automatically calls this method for each script
+        # You can override this method to implement your analysis logic
+        pass
     
-    def _analyze_script_file(self, script_model: ScriptModel) -> Generator[Finding, None, None]:
-        """Analyze standalone script files with proper error handling."""
-        try:
-            yield from self._check_comment_quality(script_model.source, "script", script_model.file_path, 1)
-        except Exception as e:
-            print(f"Warning: Failed to analyze script file {script_model.file_path}: {e}")
-    
-    def _check_comment_quality(self, script_content: str, field_name: str, file_path: str, line_offset: int) -> Generator[Finding, None, None]:
+    def _check_comment_quality(self, script_content: str, field_name: str, file_path: str, line_offset: int) -> Generator[Violation, None, None]:
         """
         Check comment quality in script content using AST parsing.
         
@@ -81,7 +69,7 @@ class CustomScriptCommentQualityRule(Rule):
         - Using built-in script parser with context-level caching
         - AST traversal for function detection
         - Comment density calculation
-        - Modern Finding creation
+        - Modern Violation creation
         """
         try:
             # Parse script using built-in Lark grammar parser with caching
@@ -98,7 +86,7 @@ class CustomScriptCommentQualityRule(Rule):
                 
                 # Only check functions that meet minimum line threshold
                 if func_info['line_count'] >= self.min_function_lines and comment_density < self.min_comment_density:
-                    yield Finding(
+                    yield Violation(
                         rule=self,  # Automatically populates rule_id, severity, description
                         message=f"Function '{func_info['name']}' has low comment density "
                                f"({comment_density:.1%}, minimum: {self.min_comment_density:.1%}). "
@@ -207,8 +195,12 @@ class CustomScriptCommentQualityRule(Rule):
         return comment_lines / total_lines if total_lines > 0 else 0.0
 
 
-# Additional example: Structure validation rule
-class CustomPMDSectionValidationRule(Rule):
+# Additional example: Structure validation rule using unified architecture
+from ...structure.shared import StructureRuleBase
+from ...base import Finding
+from ....models import PodModel
+
+class CustomPMDSectionValidationRule(StructureRuleBase):
     """
     Example custom PMD structure rule.
     
@@ -226,10 +218,17 @@ class CustomPMDSectionValidationRule(Rule):
         self.required_sections = self.config.get('required_sections', ['id', 'presentation'])
         self.max_endpoints = self.config.get('max_endpoints', 10)
     
-    def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
+    def get_description(self) -> str:
+        """Required by StructureRuleBase."""
+        return self.DESCRIPTION
+    
+    def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze PMD structure compliance."""
-        for pmd_model in context.pmds.values():
-            yield from self._validate_pmd_structure(pmd_model)
+        yield from self._validate_pmd_structure(pmd_model)
+    
+    def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        """POD files don't need structure validation for this rule."""
+        yield  # Make it a generator
     
     def _validate_pmd_structure(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
         """Validate PMD file structure."""
