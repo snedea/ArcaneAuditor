@@ -47,9 +47,11 @@ class UnusedScriptIncludesDetector(ScriptDetector):
         if not script_file:
             return ""
         
-        # Remove .js extension if present
+        # Remove .js or .script extension if present
         if script_file.endswith('.js'):
             script_file = script_file[:-3]
+        elif script_file.endswith('.script'):
+            script_file = script_file[:-7]
         
         # Return the base name
         return script_file

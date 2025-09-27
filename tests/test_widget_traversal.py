@@ -349,7 +349,9 @@ class TestWidgetIdRequiredRuleWithGenericTraversal(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         from parser.rules.structure.widgets.widget_id_required import WidgetIdRequiredRule
+        from parser.models import ProjectContext
         self.rule = WidgetIdRequiredRule()
+        self.context = ProjectContext()
     
     def test_area_layout_widget_id_validation(self):
         """Test widget ID validation with areaLayout structure."""
@@ -378,7 +380,7 @@ class TestWidgetIdRequiredRuleWithGenericTraversal(unittest.TestCase):
         
         pmd_model = PMDModel(**pmd_data, file_path="test.pmd", source_content="{}")
         
-        findings = list(self.rule.visit_pmd(pmd_model))
+        findings = list(self.rule.visit_pmd(pmd_model, self.context))
         
         # Should find one missing ID (for the text widget in primaryLayout)
         assert len(findings) == 1
@@ -423,7 +425,7 @@ class TestWidgetIdRequiredRuleWithGenericTraversal(unittest.TestCase):
         
         pmd_model = PMDModel(**pmd_data, file_path="test.pmd", source_content="{}")
         
-        findings = list(self.rule.visit_pmd(pmd_model))
+        findings = list(self.rule.visit_pmd(pmd_model, self.context))
         
         # Should find one missing ID (for the input widget in sections.children)
         assert len(findings) == 1
@@ -460,7 +462,7 @@ class TestWidgetIdRequiredRuleWithGenericTraversal(unittest.TestCase):
         
         pmd_model = PMDModel(**pmd_data, file_path="test.pmd", source_content="{}")
         
-        findings = list(self.rule.visit_pmd(pmd_model))
+        findings = list(self.rule.visit_pmd(pmd_model, self.context))
         
         # Should find only one missing ID (for the text widget)
         assert len(findings) == 1

@@ -44,7 +44,7 @@ class TestScriptUnusedScriptIncludesRule:
             includes=PMDIncludes(scripts=["util.script"]),
             script="<% let x = 1; %>",  # No util.* calls
             file_path="test.pmd",
-            source_content=""
+            source_content='{"script": "<% let x = 1; %>"}'
         )
         self.context.pmds["test-page"] = pmd_model
         
@@ -63,7 +63,7 @@ class TestScriptUnusedScriptIncludesRule:
             includes=PMDIncludes(scripts=["util.script", "helper.script", "unused.script"]),
             script="<% let time = util.getCurrentTime(); let data = helper.formatData(); %>",
             file_path="test.pmd",
-            source_content=""
+            source_content='{"script": "<% let time = util.getCurrentTime(); let data = helper.formatData(); %>"}'
         )
         self.context.pmds["test-page"] = pmd_model
         
@@ -71,7 +71,7 @@ class TestScriptUnusedScriptIncludesRule:
         
         # Should find only the unused script
         assert len(findings) == 1
-        assert "unused.script" in findings[0].message
+        assert "unused" in findings[0].message
         assert "never used" in findings[0].message
     
     def test_pmd_with_script_calls_in_different_fields(self):

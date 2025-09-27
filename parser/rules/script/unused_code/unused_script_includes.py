@@ -61,8 +61,8 @@ class ScriptUnusedScriptIncludesRule(ScriptRuleBase):
         """Get included script files from PMD model."""
         included_scripts = set()
         
-        if hasattr(pmd_model, 'scriptIncludes') and pmd_model.scriptIncludes:
-            for script_file in pmd_model.scriptIncludes:
+        if hasattr(pmd_model, 'includes') and pmd_model.includes and pmd_model.includes.scripts:
+            for script_file in pmd_model.includes.scripts:
                 if script_file:
                     included_scripts.add(script_file)
         
@@ -81,7 +81,7 @@ class ScriptUnusedScriptIncludesRule(ScriptRuleBase):
                     ast = self._parse_script_content(field_value, context)
                     if ast:
                         # Find script calls (script.function() pattern)
-                        for node in ast.find_data('call_expression'):
+                        for node in ast.find_data('arguments_expression'):
                             if self._is_script_call(node):
                                 script_name = self._extract_script_name(node)
                                 if script_name:
@@ -125,9 +125,11 @@ class ScriptUnusedScriptIncludesRule(ScriptRuleBase):
         if not script_file:
             return ""
         
-        # Remove .js extension if present
+        # Remove .js or .script extension if present
         if script_file.endswith('.js'):
             script_file = script_file[:-3]
+        elif script_file.endswith('.script'):
+            script_file = script_file[:-7]
         
         # Return the base name
         return script_file
