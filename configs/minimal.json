@@ -155,6 +155,11 @@
       "severity_override": null,
       "custom_settings": {}
     },
+    "EmbeddedImagesRule": {
+      "enabled": false,
+      "severity_override": null,
+      "custom_settings": {}
+    },
     "PMDSecurityDomainRule": {
       "enabled": false,
       "severity_override": null,
