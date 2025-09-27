@@ -10,8 +10,7 @@ class VerboseBooleanDetector(ScriptDetector):
     """Detects overly verbose boolean checks in script content."""
     
     def __init__(self, file_path: str = "", line_offset: int = 1):
-        super().__init__(line_offset)
-        self.file_path = file_path
+        super().__init__(file_path, line_offset)
         self._original_script_content = ""
     
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:

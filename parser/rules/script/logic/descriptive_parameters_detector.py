@@ -11,8 +11,7 @@ class DescriptiveParameterDetector(ScriptDetector):
     """Detects non-descriptive parameter names in functions that take function parameters."""
 
     def __init__(self, file_path: str = "", line_offset: int = 1, functional_methods=None, allowed_letters=None):
-        super().__init__(line_offset)
-        self.file_path = file_path
+        super().__init__(file_path, line_offset)
         
         # Keep functional_methods for backward compatibility, but we'll detect any function that takes a function parameter
         self.functional_methods = functional_methods or {

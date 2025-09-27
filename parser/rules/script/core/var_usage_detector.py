@@ -10,8 +10,7 @@ class VarUsageDetector(ScriptDetector):
     """Detects use of 'var' instead of 'let' or 'const' in script content."""
     
     def __init__(self, file_path: str = "", line_offset: int = 1):
-        super().__init__(line_offset)
-        self.file_path = file_path
+        super().__init__(file_path, line_offset)
     
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
         """Detect use of 'var' declarations in the AST."""

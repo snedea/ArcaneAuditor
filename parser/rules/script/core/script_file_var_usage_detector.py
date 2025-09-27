@@ -10,8 +10,7 @@ class ScriptFileVarUsageDetector(ScriptDetector):
     """Detects variable usage patterns in standalone script files."""
 
     def __init__(self, file_path: str = "", line_offset: int = 1, config: Dict[str, Any] = None):
-        super().__init__(line_offset)
-        self.file_path = file_path
+        super().__init__(file_path, line_offset)
         self.config = config or {}
 
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:

@@ -10,8 +10,7 @@ class NestingLevelDetector(ScriptDetector):
     """Detects excessive nesting levels in script content."""
     
     def __init__(self, file_path: str = "", line_offset: int = 1):
-        super().__init__(line_offset)
-        self.file_path = file_path
+        super().__init__(file_path, line_offset)
         self.max_nesting = 4
     
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:

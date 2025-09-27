@@ -10,8 +10,7 @@ class MagicNumberDetector(ScriptDetector):
     """Detects magic numbers in script content."""
     
     def __init__(self, file_path: str = "", line_offset: int = 1):
-        super().__init__(line_offset)
-        self.file_path = file_path
+        super().__init__(file_path, line_offset)
         # Define allowed numbers and contexts
         self.allowed_numbers = {0, 1, -1}  # Common legitimate numbers
     

@@ -172,23 +172,41 @@ class Rule(ABC):
         # The script_content has escaped newlines (\n), but file_content has actual newlines
         normalized_script = script_content.replace('\\n', '\n')
         
-        # Find the specific script content within the file
-        # We need to find where this exact script content appears in the file
-        lines = file_content.split('\n')
-        for i, line in enumerate(lines):
-            if normalized_script.strip() in line:
-                # The AST parser treats the stripped script content as starting from line 1
-                # So we need to return the line where the script content starts
-                return i + 1  # Convert to 1-based line numbering
+        # Strip the <% and %> wrappers from the script content for matching
+        stripped_script = self._strip_pmd_wrappers(normalized_script)
+        if not stripped_script:
+            return 1
         
-        # Fallback: find the line with the <% tag (for cases where script content is too long)
+        lines = file_content.split('\n')
+        
+        # Strategy 1: Find by matching a unique part of the script content
+        # Take the first 100 characters of the stripped script for matching
+        script_start = stripped_script.strip()[:100]
+        if script_start:
+            for i, line in enumerate(lines):
+                if script_start in line:
+                    return i + 1
+        
+        # Strategy 2: Find by matching the first significant line of the script
+        if stripped_script:
+            first_script_line = stripped_script.split('\n')[0].strip()
+            if first_script_line and len(first_script_line) > 20:  # Only use if it's substantial
+                for i, line in enumerate(lines):
+                    if first_script_line in line:
+                        return i + 1
+        
+        # Strategy 3: Find the line containing the opening <% tag and look for the script content
         for i, line in enumerate(lines):
-            if '<%' in line and 'script' in line.lower():
-                # Look for the "script" field specifically
-                # The AST parser treats the stripped script content as starting from line 1
-                # But the stripped content starts on the next line after the <% tag
-                # So we need to return the line where the stripped content starts
-                return i + 2  # Convert to 1-based line numbering and add 1 for the next line
+            if '<%' in line:
+                # Check if this line contains the start of our script content
+                # Look for the first meaningful line of the stripped script
+                first_script_line = stripped_script.split('\n')[0].strip()
+                if first_script_line and first_script_line in line:
+                    # The script starts on this line after the <% tag
+                    return i + 1
+                elif first_script_line and len(first_script_line) > 20:
+                    # The script content starts on the next line after the <% tag
+                    return i + 2
         
         return 1  # Default to line 1 if not found
     
