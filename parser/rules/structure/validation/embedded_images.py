@@ -1,13 +1,11 @@
 """
-Rule to detect embedded images in PMD and POD files.
+Rule to detect embedded base64 images in PMD and POD files.
 
 Images should be stored as external files and referenced by path, not embedded directly
-as base64 data or inline image data in the application files.
+as base64 data in the application files.
 
-This rule checks for:
-- Base64 encoded image data (data:image/...)
-- Large inline image data that should be external files
-- Image widgets with embedded content instead of file references
+This rule checks for base64 encoded image data using the pattern:
+data:image/[type];base64,[data]
 """
 import re
 import base64
@@ -20,20 +18,19 @@ from ..shared import StructureRuleBase
 
 class EmbeddedImagesRule(StructureRuleBase):
     """
-    Detects embedded images that should be stored as external files.
+    Detects embedded base64 images that should be stored as external files.
     
-    This rule checks for:
-    - Base64 encoded image data (data:image/...)
-    - Large inline image data in image widgets
-    - Image content that should be referenced by file path instead
+    This rule checks for base64 encoded image data using the pattern:
+    data:image/[type];base64,[data]
+    
+    Images should be stored as external files and referenced by path instead
+    of being embedded directly in the application files.
     """
     
     ID = "EmbeddedImagesRule"
     DESCRIPTION = "Detects embedded images that should be stored as external files"
     SEVERITY = "WARNING"
     
-    # Minimum size threshold for considering content as potentially embedded image data
-    MIN_IMAGE_SIZE_THRESHOLD = 100  # characters
     
     def get_description(self) -> str:
         """Get rule description."""
@@ -76,7 +73,7 @@ class EmbeddedImagesRule(StructureRuleBase):
     
     def _check_string_for_embedded_images(self, text: str, file_path: str, field_name: str) -> Generator[Finding, None, None]:
         """Check a single string for embedded image data."""
-        if not text or len(text) < self.MIN_IMAGE_SIZE_THRESHOLD:
+        if not text:
             return
         
         # Pattern to match base64 encoded images (data:image/...)
@@ -93,48 +90,4 @@ class EmbeddedImagesRule(StructureRuleBase):
                 line=line_num,
                 column=match.start() - text.rfind('\n', 0, match.start()) if '\n' in text[:match.start()] else match.start() + 1
             )
-        
-        # Check for large binary-like content that might be embedded image data
-        # Look for long strings of base64-like characters or binary data
-        # Only check if we haven't already found base64 images
-        if not matches and self._is_potentially_embedded_image_data(text):
-            # Calculate approximate line number (this is a heuristic)
-            line_num = text[:len(text)//2].count('\n') + 1
-            
-            yield self._create_finding(
-                message=f"Large embedded content found in {field_name} that appears to be image data. Consider storing images as external files and referencing them by path.",
-                file_path=file_path,
-                line=line_num
-            )
     
-    def _is_potentially_embedded_image_data(self, text: str) -> bool:
-        """Check if text appears to be embedded image data."""
-        if len(text) < self.MIN_IMAGE_SIZE_THRESHOLD:
-            return False
-        
-        # Check for high ratio of base64 characters (A-Z, a-z, 0-9, +, /, =)
-        base64_chars = sum(1 for c in text if c.isalnum() or c in '+/=')
-        base64_ratio = base64_chars / len(text)
-        
-        # If more than 80% of characters are base64-like, it might be embedded image data
-        if base64_ratio > 0.8:
-            return True
-        
-        # Check for common image file signatures in the text
-        image_signatures = [
-            b'\xFF\xD8\xFF',  # JPEG
-            b'\x89PNG',       # PNG
-            b'GIF8',          # GIF
-            b'BM',            # BMP
-        ]
-        
-        # Convert text to bytes for signature checking
-        try:
-            text_bytes = text.encode('utf-8')
-            for signature in image_signatures:
-                if signature in text_bytes:
-                    return True
-        except UnicodeEncodeError:
-            pass
-        
-        return False

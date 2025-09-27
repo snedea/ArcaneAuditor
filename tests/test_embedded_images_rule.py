@@ -15,7 +15,6 @@ class TestEmbeddedImagesRule:
         assert rule.ID == "EmbeddedImagesRule"
         assert rule.DESCRIPTION == "Detects embedded images that should be stored as external files"
         assert rule.SEVERITY == "WARNING"
-        assert rule.MIN_IMAGE_SIZE_THRESHOLD == 100
 
     def test_detect_base64_image(self):
         """Test detection of base64 encoded images."""
@@ -49,12 +48,12 @@ class TestEmbeddedImagesRule:
         assert "Embedded base64 image found" in findings[0].message
         assert findings[0].file_path == "test.pmd"
 
-    def test_detect_large_binary_content(self):
-        """Test detection of large binary-like content."""
+    def test_ignore_large_binary_content_without_base64_prefix(self):
+        """Test that large binary-like content without base64 prefix is ignored."""
         rule = EmbeddedImagesRule()
         
-        # Create large binary-like content with high base64 ratio
-        large_binary_content = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=" * 30  # Large string with high base64 ratio
+        # Create large binary-like content without base64 prefix
+        large_binary_content = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=" * 30
         
         pmd_data = {
             "pageId": "test",
@@ -64,7 +63,7 @@ class TestEmbeddedImagesRule:
                     "children": [
                         {
                             "type": "image",
-                            "data": large_binary_content
+                            "src": large_binary_content
                         }
                     ]
                 }
@@ -77,9 +76,7 @@ class TestEmbeddedImagesRule:
         context.pmds = {"test": pmd_model}
         
         findings = list(rule.analyze(context))
-        assert len(findings) == 1
-        assert "Large embedded content found" in findings[0].message
-        assert findings[0].file_path == "test.pmd"
+        assert len(findings) == 0
 
     def test_ignore_small_content(self):
         """Test that small content is ignored."""
@@ -96,7 +93,7 @@ class TestEmbeddedImagesRule:
                     "children": [
                         {
                             "type": "image",
-                            "data": small_content
+                            "src": small_content
                         }
                     ]
                 }
@@ -175,21 +172,46 @@ class TestEmbeddedImagesRule:
         assert "Embedded base64 image found" in findings[0].message
         assert findings[0].file_path == "test.pod"
 
-    def test_is_potentially_embedded_image_data(self):
-        """Test the helper method for detecting embedded image data."""
+    def test_detect_base64_image_in_different_fields(self):
+        """Test detection of base64 images in various field types."""
         rule = EmbeddedImagesRule()
         
-        # Test with high base64 ratio
-        high_base64_content = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=" * 20
-        assert rule._is_potentially_embedded_image_data(high_base64_content) == True
+        base64_image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
         
-        # Test with low base64 ratio - shorter string to avoid high ratio
-        low_base64_content = "Hello world! This is just regular text content."
-        assert rule._is_potentially_embedded_image_data(low_base64_content) == False
+        # Test in different field types that were previously excluded
+        pmd_data = {
+            "pageId": "test",
+            "file_path": "test.pmd",
+            "presentation": {
+                "body": {
+                    "children": [
+                        {
+                            "type": "image",
+                            "src": base64_image
+                        },
+                        {
+                            "type": "text",
+                            "value": base64_image
+                        }
+                    ]
+                }
+            },
+            "endPoints": [
+                {
+                    "name": "testEndpoint",
+                    "url": base64_image
+                }
+            ]
+        }
         
-        # Test with small content
-        small_content = "small"
-        assert rule._is_potentially_embedded_image_data(small_content) == False
+        pmd_model = PMDModel(**pmd_data)
+        
+        context = ProjectContext()
+        context.pmds = {"test": pmd_model}
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 2  # Should find base64 images in src and value fields
+        assert all("Embedded base64 image found" in finding.message for finding in findings)
 
     def test_multiple_embedded_images(self):
         """Test detection of multiple embedded images in one file."""
