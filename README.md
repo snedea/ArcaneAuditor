@@ -4,7 +4,7 @@
 
 ## 🎯 Overview
 
-Arcane Auditor channels ancient wisdom through **34 comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
+Arcane Auditor channels ancient wisdom through **many comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
 
 - **📄 PMD Files**: Page definitions with embedded scripts, endpoints, and presentation layers
 - **🧩 Pod Files**: Pod files with template widgets and endpoint configurations
@@ -12,8 +12,8 @@ Arcane Auditor channels ancient wisdom through **34 comprehensive validation rul
 
 **Rule Categories:**
 
-- **Script Quality (21 Rules)**: Script syntax, complexity, naming conventions, unused code detection
-- **Structure Validation (13 Rules)**: Widget configurations, required fields, component validation, hardcoded values, endpoint compliance
+- **Script Quality**: Script syntax, complexity, naming conventions, unused code detection
+- **Structure Validation**: Widget configurations, required fields, component validation, hardcoded values, endpoint compliance
 
 ## 🛡️ Update-Safe Configuration System
 
@@ -179,22 +179,22 @@ The web interface provides:
 The FastAPI server provides the following REST API endpoints:
 
 - **`POST /api/upload`** - Upload ZIP file for analysis
+
   - Returns: `{"job_id": "uuid", "status": "queued"}`
   - Content-Type: `multipart/form-data`
   - Parameters: `file` (required), `config` (optional, defaults to "default")
-
 - **`GET /api/job/{job_id}`** - Get analysis job status and results
+
   - Returns: `{"job_id": "uuid", "status": "completed|running|failed", "result": {...}}`
-
 - **`GET /api/download/{job_id}`** - Download analysis results as Excel file
+
   - Returns: Excel file (.xlsx) with findings and summary
-
 - **`GET /api/configs`** - Get available configurations
+
   - Returns: List of available configurations with metadata
-
 - **`GET /api/health`** - Health check endpoint
-  - Returns: `{"status": "healthy"}`
 
+  - Returns: `{"status": "healthy"}`
 - **`GET /docs`** - Interactive API documentation (Swagger UI)
 
 ### Basic Usage
@@ -321,14 +321,14 @@ arcane-auditor/
 Arcane Auditor features a **unified rule architecture** that provides consistency, reusability, and maintainability:
 
 - **`ScriptRuleBase`**: Base class for script analysis rules with built-in PMD/POD/script iteration
-- **`StructureRuleBase`**: Base class for structure validation rules with PMD/POD analysis patterns  
+- **`StructureRuleBase`**: Base class for structure validation rules with PMD/POD analysis patterns
 - **`ScriptDetector`**: Abstract pattern for script analysis with separation of detection logic
 - **`Violation`**: Standardized dataclass for reporting code violations
 - **Shared utilities**: AST manipulation, line number calculation, and common validations
 
 ### Rule Categories
 
-#### Script Rules (Unified Architecture)
+#### Script Rules
 
 **Core Rules** (`parser/rules/script/core/`)
 
@@ -362,7 +362,7 @@ Arcane Auditor features a **unified rule architecture** that provides consistenc
 - **ScriptFunctionReturnConsistencyRule**: Return Consistency Rule - Consistent return patterns
 - **ScriptStringConcatRule**: String Concatenation Rule - Use template literals instead of string concatenation
 
-#### Structure Rules (Unified Architecture)
+#### Structure Rules
 
 **Widget Rules** (`parser/rules/structure/widgets/`)
 
@@ -477,7 +477,7 @@ Create custom configurations in JSON format:
 
 ### Core Documentation
 
-- **[📜 Rule Breakdown](docs/RULE_BREAKDOWN.md)**: Comprehensive guide to all 32 validation rules with examples
+- **[📜 Rule Breakdown](docs/RULE_BREAKDOWN.md)**: Comprehensive guide to all validation rules with examples
 - **[⚙️ Configuration Guide](configs/README.md)**: Layered configuration system and rule customization
 
 ### Advanced Guides
