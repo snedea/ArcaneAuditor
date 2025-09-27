@@ -17,10 +17,10 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
         """Get rule description."""
         return self.DESCRIPTION
 
-    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1) -> Generator[Finding, None, None]:
+    def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None) -> Generator[Finding, None, None]:
         """Check script content using the detector."""
         # Parse the script content
-        ast = self._parse_script_content(script_content)
+        ast = self._parse_script_content(script_content, context)
         if not ast:
             return
         
