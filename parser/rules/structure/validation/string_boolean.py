@@ -1,24 +1,20 @@
-from ...base import Rule, Finding
-from ....models import PMDModel, PodModel
+from typing import Generator
+from ...base import Finding
+from ....models import PMDModel, PodModel, ProjectContext
+from ..shared import StructureRuleBase
 
 
-class StringBooleanRule(Rule):
+class StringBooleanRule(StructureRuleBase):
     """Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans."""
     
     DESCRIPTION = "Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans"
     SEVERITY = "INFO"
 
-    def analyze(self, context):
-        """Main entry point - analyze all PMD models and POD models in the context."""
-        # Analyze PMD models
-        for pmd_model in context.pmds.values():
-            yield from self.visit_pmd(pmd_model)
-        
-        # Analyze POD models
-        for pod_model in context.pods.values():
-            yield from self.visit_pod(pod_model)
+    def get_description(self) -> str:
+        """Get rule description."""
+        return self.DESCRIPTION
     
-    def visit_pmd(self, pmd_model: PMDModel):
+    def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyzes the PMD model for string boolean values."""
         if not pmd_model.source_content:
             return
@@ -26,7 +22,7 @@ class StringBooleanRule(Rule):
         # Check the raw source content for string boolean patterns
         yield from self._check_source_content_for_string_booleans(pmd_model)
 
-    def visit_pod(self, pod_model: PodModel):
+    def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyzes the POD model for string boolean values."""
         if not pod_model.source_content:
             return
@@ -49,10 +45,9 @@ class StringBooleanRule(Rule):
                 field_name = match.group(1)
                 string_value = match.group(2)
                 
-                yield Finding(
-                    rule=self,
+                yield self._create_finding(
                     message=f"Field '{field_name}' has string value '{string_value}' instead of boolean {string_value}. Use boolean {string_value} instead of string '{string_value}'.",
+                    file_path=model.file_path,
                     line=line_num,
-                    column=match.start() + 1,
-                    file_path=model.file_path
+                    column=match.start() + 1
                 )
