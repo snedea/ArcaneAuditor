@@ -73,11 +73,13 @@ class ScriptRuleBase(Rule, ABC):
         violations = detector.detect(ast, field_name)
         
         # Convert violations to findings
-        for violation in violations:
-            yield Finding(
-                rule=self,
-                message=violation.message,
-                line=violation.line,
-                column=violation.column,
-                file_path=file_path
-            )
+        # Handle both List[Violation] and Generator[Violation, None, None]
+        if hasattr(violations, '__iter__') and not isinstance(violations, str):
+            for violation in violations:
+                yield Finding(
+                    rule=self,
+                    message=violation.message,
+                    line=violation.line,
+                    column=violation.column,
+                    file_path=file_path
+                )

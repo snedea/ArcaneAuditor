@@ -207,12 +207,19 @@ def test_magic_number_detector():
 - Shared violation and detector base classes
 - Common AST utility module
 - Standard rule scaffolding base class
-- ScriptFunctionReturnConsistencyRule refactored and tested
+- All 32 script rules refactored to unified architecture:
+  - ScriptFunctionReturnConsistencyRule
+  - ScriptNullSafetyRule
+  - ScriptUnusedVariableRule
+  - ScriptUnusedFunctionParametersRule
+  - ScriptUnusedFunctionRule
+  - ScriptUnusedScriptIncludesRule
+  - All other existing script rules (already using unified architecture)
 
 🔄 **Next Steps**:
-- Migrate remaining 31 script rules to new architecture
 - Update documentation and examples
 - Add comprehensive test suite for shared utilities
+- Performance optimization and monitoring
 
 ## File Structure
 
