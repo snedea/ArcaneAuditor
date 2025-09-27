@@ -9,12 +9,13 @@ A WID can be identified as a 32 character long string that is alphanumeric.
 """
 import re
 from typing import Generator, List, Dict, Any, Optional
-
-from ...base import Rule, Finding
+from ...base import Finding
 from ....models import PMDModel, PodModel, ProjectContext
+from ...line_number_utils import LineNumberUtils
+from ..shared import StructureRuleBase
 
 
-class HardcodedWidRule(Rule):
+class HardcodedWidRule(StructureRuleBase):
     """
     Detects hardcoded WID (Workday ID) values that should be configured in app attributes.
     
@@ -34,15 +35,17 @@ class HardcodedWidRule(Rule):
         "d9e4223e446c11de98360015c5e6daf6"   # Business process WID
     }
     
-    def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
-        """Analyze PMD and POD files for hardcoded WID values."""
-        # Check PMD files
-        for pmd_model in context.pmds.values():
-            yield from self._check_pmd_hardcoded_wids(pmd_model)
-        
-        # Check POD files  
-        for pod_model in context.pods.values():
-            yield from self._check_pod_hardcoded_wids(pod_model)
+    def get_description(self) -> str:
+        """Get rule description."""
+        return self.DESCRIPTION
+    
+    def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Analyze PMD model for hardcoded WIDs."""
+        yield from self._check_pmd_hardcoded_wids(pmd_model)
+    
+    def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Analyze POD model for hardcoded WIDs."""
+        yield from self._check_pod_hardcoded_wids(pod_model)
     
     def _check_pmd_hardcoded_wids(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
         """Check PMD file for hardcoded WID values."""
@@ -91,10 +94,9 @@ class HardcodedWidRule(Rule):
             # Calculate line number
             line_num = text[:match.start()].count('\n') + 1
             
-            yield Finding(
-                rule=self,
+            yield self._create_finding(
                 message=f"Hardcoded WID '{wid_value}' found in {field_name}. Consider configuring WIDs in app attributes instead of hardcoding them.",
+                file_path=file_path,
                 line=line_num,
-                column=match.start() - text.rfind('\n', 0, match.start()) if '\n' in text[:match.start()] else match.start() + 1,
-                file_path=file_path
+                column=match.start() - text.rfind('\n', 0, match.start()) if '\n' in text[:match.start()] else match.start() + 1
             )

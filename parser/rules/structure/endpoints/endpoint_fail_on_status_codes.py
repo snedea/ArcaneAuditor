@@ -1,25 +1,21 @@
-from ...base import Rule, Finding
+from typing import Generator
+from ...base import Finding
 from ...line_number_utils import LineNumberUtils
-from ....models import PMDModel, PodModel
+from ....models import PMDModel, PodModel, ProjectContext
+from ..shared import StructureRuleBase
 
 
-class EndpointFailOnStatusCodesRule(Rule):
+class EndpointFailOnStatusCodesRule(StructureRuleBase):
     """Ensures endpoints have proper failOnStatusCodes structure with required codes 400 and 403."""
     
     DESCRIPTION = "Ensures endpoints have failOnStatusCodes with minimum required codes 400 and 403"
     SEVERITY = "SEVERE"
 
-    def analyze(self, context):
-        """Main entry point - analyze all PMD models and POD models in the context."""
-        # Analyze PMD models
-        for pmd_model in context.pmds.values():
-            yield from self.visit_pmd(pmd_model)
-        
-        # Analyze POD models
-        for pod_model in context.pods.values():
-            yield from self.visit_pod(pod_model)
+    def get_description(self) -> str:
+        """Get rule description."""
+        return self.DESCRIPTION
     
-    def visit_pmd(self, pmd_model: PMDModel):
+    def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyzes endpoints for proper failOnStatusCodes structure."""
         # Check inbound endpoints
         if pmd_model.inboundEndpoints:
@@ -34,7 +30,7 @@ class EndpointFailOnStatusCodesRule(Rule):
                     if isinstance(endpoint, dict):
                         yield from self._check_endpoint_fail_on_status_codes(endpoint, pmd_model, 'outbound', i)
 
-    def visit_pod(self, pod_model: PodModel):
+    def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyzes endpoints in POD seed configuration."""
         # Check POD endpoints (assuming they're inbound-type based on user guidance)
         if pod_model.seed.endPoints:
@@ -50,12 +46,10 @@ class EndpointFailOnStatusCodesRule(Rule):
         # Check if failOnStatusCodes exists
         if fail_on_status_codes is None:
             line_number = self._get_endpoint_line_number(model, endpoint_name, endpoint_type)
-            yield Finding(
-                rule=self,
+            yield self._create_finding(
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is missing required 'failOnStatusCodes' field.",
-                line=line_number,
-                column=1,
-                file_path=model.file_path
+                file_path=model.file_path,
+                line=line_number
             )
             return
 
@@ -87,12 +81,10 @@ class EndpointFailOnStatusCodesRule(Rule):
         if missing_codes:
             line_number = self._get_fail_on_status_codes_line_number(model, endpoint_name, endpoint_type)
             missing_codes_str = ', '.join(map(str, sorted(missing_codes)))
-            yield Finding(
-                rule=self,
+            yield self._create_finding(
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is missing required status codes: {missing_codes_str}.",
-                line=line_number,
-                column=1,
-                file_path=model.file_path
+                file_path=model.file_path,
+                line=line_number
             )
 
     def _get_endpoint_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:

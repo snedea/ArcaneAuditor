@@ -1,89 +1,77 @@
-from ...base_validation import ValidationRule
+from typing import Generator
+from ...base import Finding
 from ...common_validations import validate_lower_camel_case
 from ...line_number_utils import LineNumberUtils
-from ....models import PMDModel, PodModel
-from typing import Dict, Any, List
+from ....models import PMDModel, PodModel, ProjectContext
+from ..shared import StructureRuleBase
 
 
-class EndpointNameLowerCamelCaseRule(ValidationRule):
+class EndpointNameLowerCamelCaseRule(StructureRuleBase):
     """Validates that endpoint names follow lowerCamelCase convention (style guide)."""
     
+    ID = "EndpointNameLowerCamelCaseRule"
     DESCRIPTION = "Ensures endpoint names follow lowerCamelCase naming convention (style guide)"
     SEVERITY = "WARNING"
     
-    def __init__(self):
-        super().__init__(
-            self.__class__.__name__,
-            self.DESCRIPTION,
-            self.SEVERITY
-        )
+    def get_description(self) -> str:
+        """Get rule description."""
+        return self.DESCRIPTION
     
-    def get_entities_to_validate(self, pmd_model: PMDModel):
-        """Get all endpoints to validate."""
-        entities = []
-        
+    def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Analyze PMD model for endpoint name naming conventions."""
         # Check inbound endpoints
         if pmd_model.inboundEndpoints:
             for i, endpoint in enumerate(pmd_model.inboundEndpoints):
                 if isinstance(endpoint, dict) and 'name' in endpoint:
-                    entities.append({
-                        'entity': endpoint,
-                        'entity_type': 'inbound endpoint',
-                        'entity_name': endpoint.get('name', 'unknown'),
-                        'entity_context': 'inbound',
-                        'entity_index': i
-                    })
+                    yield from self._check_endpoint_naming(endpoint, pmd_model, 'inbound', i)
         
         # Check outbound endpoints
         if pmd_model.outboundEndpoints:
             if isinstance(pmd_model.outboundEndpoints, list):
                 for i, endpoint in enumerate(pmd_model.outboundEndpoints):
                     if isinstance(endpoint, dict) and 'name' in endpoint:
-                        entities.append({
-                            'entity': endpoint,
-                            'entity_type': 'outbound endpoint',
-                            'entity_name': endpoint.get('name', 'unknown'),
-                            'entity_context': 'outbound',
-                            'entity_index': i
-                        })
-        return entities
+                        yield from self._check_endpoint_naming(endpoint, pmd_model, 'outbound', i)
     
-    def get_field_to_validate(self, entity_info):
-        """Validate the 'name' field."""
-        return 'name'
-    
-    def validate_field(self, field_value: str, entity_info: Dict[str, Any]) -> List[str]:
-        """Validate that the field value follows lowerCamelCase convention."""
-        entity_type = entity_info['entity_type']
-        entity_name = entity_info['entity_name']
-        field_name = self.get_field_to_validate(entity_info)
-        
-        return validate_lower_camel_case(field_value, field_name, entity_type, entity_name)
-    
-    def get_line_number(self, pmd_model: PMDModel, entity_info: Dict[str, Any]) -> int:
-        """Get line number for the endpoint name field."""
-        entity = entity_info['entity']
-        endpoint_name = entity.get('name', '')
-        
-        if endpoint_name:
-            return LineNumberUtils.find_field_line_number(pmd_model, 'name', endpoint_name)
-        
-        return 1  # Default fallback
-    
-    def get_entities_to_validate_pod(self, pod_model: PodModel) -> List[Dict[str, Any]]:
-        """Get all endpoints from POD seed to validate."""
-        entities = []
-        
+    def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Analyze POD model for endpoint name naming conventions."""
         if pod_model.seed.endPoints:
             for i, endpoint in enumerate(pod_model.seed.endPoints):
                 if isinstance(endpoint, dict) and 'name' in endpoint:
-                    entities.append({
-                        'entity': endpoint,
-                        'entity_type': 'endpoint',
-                        'entity_name': endpoint.get('name', 'unknown'),
-                        'entity_context': 'pod_seed',
-                        'entity_path': f"seed.endPoints[{i}]",
-                        'entity_index': i
-                    })
+                    yield from self._check_endpoint_naming(endpoint, None, 'pod_seed', i, pod_model)
+    
+    def _check_endpoint_naming(self, endpoint, pmd_model=None, context='inbound', index=0, pod_model=None):
+        """Check if an endpoint name follows lowerCamelCase convention."""
+        if not isinstance(endpoint, dict) or 'name' not in endpoint:
+            return
         
-        return entities
+        endpoint_name = endpoint.get('name', '')
+        endpoint_type = f"{context} endpoint"
+        
+        # Validate the name follows lowerCamelCase convention
+        validation_errors = validate_lower_camel_case(endpoint_name, 'name', endpoint_type, endpoint_name)
+        
+        if validation_errors:
+            # Get line number
+            line_number = 1
+            if pmd_model:
+                line_number = self._get_endpoint_line_number(pmd_model, endpoint_name)
+            elif pod_model:
+                line_number = self._get_pod_endpoint_line_number(pod_model, endpoint_name)
+            
+            yield self._create_finding(
+                message=f"{endpoint_type.title()} '{endpoint_name}' has invalid name '{endpoint_name}'. Must follow lowerCamelCase convention (e.g., 'myField', 'userName').",
+                file_path=pmd_model.file_path if pmd_model else pod_model.file_path,
+                line=line_number
+            )
+    
+    def _get_endpoint_line_number(self, pmd_model: PMDModel, endpoint_name: str) -> int:
+        """Get line number for endpoint name field."""
+        if endpoint_name:
+            return LineNumberUtils.find_field_line_number(pmd_model, 'name', endpoint_name)
+        return 1
+    
+    def _get_pod_endpoint_line_number(self, pod_model: PodModel, endpoint_name: str) -> int:
+        """Get line number for endpoint name field in POD."""
+        if endpoint_name:
+            return LineNumberUtils.find_field_line_number(pod_model, 'name', endpoint_name)
+        return 1

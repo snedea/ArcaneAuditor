@@ -7,12 +7,14 @@ Examples: naming conventions, data structure compliance, required field validati
 Note: Basic structural validation (missing required fields, etc.) is handled by the compiler.
 This tool focuses on structure and naming compliance for code reviewers.
 """
-from ...base import Rule, Finding
-from ....models import PMDModel, PodModel
+from typing import Generator
+from ...base import Finding
+from ....models import PMDModel, PodModel, ProjectContext
 from ...line_number_utils import LineNumberUtils
+from ..shared import StructureRuleBase
 
 
-class WidgetIdRequiredRule(Rule):
+class WidgetIdRequiredRule(StructureRuleBase):
     """Ensures all widgets have an 'id' field - important for code reviewers to catch."""
     
     DESCRIPTION = "Ensures all widgets have an 'id' field set (structure validation for PMD and POD files)"
@@ -23,17 +25,11 @@ class WidgetIdRequiredRule(Rule):
         'footer', 'item', 'group', 'title', 'pod', 'cardContainer', 'card'
     }
 
-    def analyze(self, context):
-        """Main entry point - analyze all PMD models and POD models in the context."""
-        # Analyze PMD models
-        for pmd_model in context.pmds.values():
-            yield from self.visit_pmd(pmd_model)
-        
-        # Analyze POD models
-        for pod_model in context.pods.values():
-            yield from self.visit_pod(pod_model)
+    def get_description(self) -> str:
+        """Get rule description."""
+        return self.DESCRIPTION
     
-    def visit_pmd(self, pmd_model: PMDModel):
+    def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyzes the presentation structure within a PMD model."""
         if not pmd_model.presentation:
             return
@@ -48,7 +44,7 @@ class WidgetIdRequiredRule(Rule):
                 for widget, path, index in self.traverse_presentation_structure(section_data, section_name):
                     yield from self._check_widget_id(widget, pmd_model.file_path, pmd_model, section_name, path, index)
 
-    def visit_pod(self, pod_model: PodModel):
+    def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyzes the template widgets within a POD model."""
         if not pod_model.seed.template:
             return
@@ -98,12 +94,10 @@ class WidgetIdRequiredRule(Rule):
             # Create a more descriptive message with the widget path
             path_description = f" at path '{widget_path}'" if widget_path else ""
             
-            yield Finding(
-                rule=self,
+            yield self._create_finding(
                 message=f"Widget of type '{widget_type}'{path_description} is missing required 'id' field.",
-                line=line_number,
-                column=1,
-                file_path=file_path
+                file_path=file_path,
+                line=line_number
             )
 
     def _get_widget_line_number(self, pmd_model: PMDModel, widget_type: str, section: str, widget_path: str = "", widget_index: int = 0) -> int:

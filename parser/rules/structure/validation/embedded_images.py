@@ -13,11 +13,12 @@ import re
 import base64
 from typing import Generator, List, Dict, Any, Optional
 
-from ...base import Rule, Finding
+from ...base import Finding
 from ....models import PMDModel, PodModel, ProjectContext
+from ..shared import StructureRuleBase
 
 
-class EmbeddedImagesRule(Rule):
+class EmbeddedImagesRule(StructureRuleBase):
     """
     Detects embedded images that should be stored as external files.
     
@@ -34,15 +35,17 @@ class EmbeddedImagesRule(Rule):
     # Minimum size threshold for considering content as potentially embedded image data
     MIN_IMAGE_SIZE_THRESHOLD = 100  # characters
     
-    def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
-        """Analyze PMD and POD files for embedded images."""
-        # Check PMD files
-        for pmd_model in context.pmds.values():
-            yield from self._check_pmd_embedded_images(pmd_model)
-        
-        # Check POD files  
-        for pod_model in context.pods.values():
-            yield from self._check_pod_embedded_images(pod_model)
+    def get_description(self) -> str:
+        """Get rule description."""
+        return self.DESCRIPTION
+    
+    def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Analyze PMD model for embedded images."""
+        yield from self._check_pmd_embedded_images(pmd_model)
+    
+    def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Analyze POD model for embedded images."""
+        yield from self._check_pod_embedded_images(pod_model)
     
     def _check_pmd_embedded_images(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
         """Check PMD file for embedded images."""
@@ -84,12 +87,11 @@ class EmbeddedImagesRule(Rule):
             # Calculate line number
             line_num = text[:match.start()].count('\n') + 1
             
-            yield Finding(
-                rule=self,
+            yield self._create_finding(
                 message=f"Embedded base64 image found in {field_name}. Consider storing the image as an external file and referencing it by path instead.",
+                file_path=file_path,
                 line=line_num,
-                column=match.start() - text.rfind('\n', 0, match.start()) if '\n' in text[:match.start()] else match.start() + 1,
-                file_path=file_path
+                column=match.start() - text.rfind('\n', 0, match.start()) if '\n' in text[:match.start()] else match.start() + 1
             )
         
         # Check for large binary-like content that might be embedded image data
@@ -99,12 +101,10 @@ class EmbeddedImagesRule(Rule):
             # Calculate approximate line number (this is a heuristic)
             line_num = text[:len(text)//2].count('\n') + 1
             
-            yield Finding(
-                rule=self,
+            yield self._create_finding(
                 message=f"Large embedded content found in {field_name} that appears to be image data. Consider storing images as external files and referencing them by path.",
-                line=line_num,
-                column=1,
-                file_path=file_path
+                file_path=file_path,
+                line=line_num
             )
     
     def _is_potentially_embedded_image_data(self, text: str) -> bool:
