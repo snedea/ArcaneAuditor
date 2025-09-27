@@ -13,6 +13,7 @@ class ArcaneAuditorApp {
         this.expandedFiles = new Set();
         this.selectedConfig = 'default';
         this.availableConfigs = [];
+        this.uploadedFileName = null;
         
         this.initializeEventListeners();
         this.initializeTheme();
@@ -197,6 +198,7 @@ class ArcaneAuditorApp {
             return;
         }
 
+        this.uploadedFileName = file.name;
         this.uploadFile(file);
     }
 
@@ -329,6 +331,12 @@ class ArcaneAuditorApp {
 
         summary.innerHTML = `
             <h4>📈 Summary</h4>
+            ${this.uploadedFileName ? `
+                <div class="summary-filename-section">
+                    <div class="summary-filename">📁 ${this.uploadedFileName}</div>
+                    <div class="summary-filename-label">Analyzed Application</div>
+                </div>
+            ` : ''}
             <div class="summary-grid">
                 <div class="summary-item">
                     <div class="summary-number summary-number-blue">${result.summary?.total_findings || result.findings.length}</div>
@@ -467,16 +475,22 @@ class ArcaneAuditorApp {
                                 <div class="file-header-left">
                                     ${isExpanded ? '▼' : '▶'}
                                     📄
-                                    <span class="file-name">${fileName}</span>
-                                    <span class="file-path">${filePath}</span>
+                                    <div class="file-info">
+                                        <span class="file-name">${fileName}</span>
+                                        <span class="file-path">${filePath}</span>
+                                    </div>
                                 </div>
                                 <div class="file-header-right">
-                                    <span class="file-count">${fileFindings.length} issue${fileFindings.length !== 1 ? 's' : ''}</span>
-                                    ${Object.entries(severityCounts).map(([severity, count]) => `
-                                        <span class="severity-count-badge ${severity.toLowerCase()}">
-                                            ${count} ${severity.toLowerCase()}
-                                        </span>
-                                    `).join('')}
+                                    <div class="file-count-badge">
+                                        ${fileFindings.length} issue${fileFindings.length !== 1 ? 's' : ''}
+                                    </div>
+                                    <div class="severity-badges">
+                                        ${Object.entries(severityCounts).map(([severity, count]) => `
+                                            <span class="severity-count-badge ${severity.toLowerCase()}">
+                                                ${count} ${severity.toLowerCase()}
+                                            </span>
+                                        `).join('')}
+                                    </div>
                                 </div>
                             </div>
                             
@@ -555,12 +569,12 @@ class ArcaneAuditorApp {
         }
         const extension = filePath.split('.').pop()?.toLowerCase() || '';
         switch (extension) {
-            case 'pmd': return 'PMD Files';
-            case 'pod': return 'POD Files';
-            case 'script': return 'Script Files';
-            case 'smd': return 'SMD File';
-            case 'amd': return 'AMD File';
-            default: return 'Other Files';
+            case 'pmd': return 'PMD';
+            case 'pod': return 'POD';
+            case 'script': return 'Script';
+            case 'smd': return 'SMD';
+            case 'amd': return 'AMD';
+            default: return 'Other';
         }
     }
 
@@ -670,6 +684,7 @@ class ArcaneAuditorApp {
         this.currentResult = null;
         this.filteredFindings = [];
         this.expandedFiles.clear();
+        this.uploadedFileName = null;
         
         // Reset the file input to allow re-uploading the same file
         const fileInput = document.getElementById('file-input');
