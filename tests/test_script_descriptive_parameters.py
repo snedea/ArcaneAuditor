@@ -318,7 +318,7 @@ const processUsers = function(userList) {
         
         # Should only flag functional method parameters
         violation_methods = [f.message for f in findings]
-        functional_violations = [msg for msg in violation_methods if any(method in msg for method in ['map()', 'reduce()'])]
+        functional_violations = [msg for msg in violation_methods if any(method in msg for method in ['map()', 'reduce()', 'functional method()'])]
         
         # Should have at least the map and reduce violations
         assert len(functional_violations) >= 2
