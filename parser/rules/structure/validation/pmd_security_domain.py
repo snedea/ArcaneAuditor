@@ -47,12 +47,12 @@ class PMDSecurityDomainRule(Rule):
     
     def _is_error_page(self, pmd_model: PMDModel, context: ProjectContext) -> bool:
         """Check if the PMD page is an error page defined in any SMD."""
-        if not context.smds:
+        if not context.smd:
             return False
         
         # Get all error page IDs from all SMD files
         error_page_ids = set()
-        for smd_model in context.smds.values():
+        for smd_model in context.smd.values():
             error_pages = smd_model.get_error_pages()
             for error_page in error_pages:
                 page_id = error_page.get('pageId', '')

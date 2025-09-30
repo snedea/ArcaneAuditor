@@ -93,7 +93,7 @@ class ModelParser:
         main_context.pods.update(temp_context.pods)
         
         # Merge SMDs
-        main_context.smds.update(temp_context.smds)
+        main_context.smd.update(temp_context.smd)
         
         # Handle AMD (only one expected)
         if temp_context.amd:
@@ -293,7 +293,7 @@ class ModelParser:
             )
             
             # Add to context
-            context.smds[smd_model.id] = smd_model
+            context.smd[smd_model.id] = smd_model
             print(f"Parsed SMD: {smd_model.id}")
             
         except json.JSONDecodeError as e:
