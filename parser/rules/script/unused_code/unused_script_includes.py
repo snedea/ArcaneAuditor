@@ -121,7 +121,7 @@ class ScriptUnusedScriptIncludesRule(ScriptRuleBase):
         matches = re.findall(pattern, content)
         for script_name, function_name in matches:
             # Only consider it a script call if it's not a built-in or common object
-            if not script_name.lower() in ['self', 'this', 'window', 'document', 'console', 'math', 'string', 'number', 'array', 'object', 'json']:
+            if not script_name.lower() in ['self', 'console']:
                 script_calls.add(script_name)
         
         return script_calls
@@ -155,10 +155,8 @@ class ScriptUnusedScriptIncludesRule(ScriptRuleBase):
         if not script_file:
             return ""
         
-        # Remove .js or .script extension if present
-        if script_file.endswith('.js'):
-            script_file = script_file[:-3]
-        elif script_file.endswith('.script'):
+        # Remove .script extension if present
+        if script_file.endswith('.script'):
             script_file = script_file[:-7]
         
         # Return the base name

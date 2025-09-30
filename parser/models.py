@@ -244,9 +244,9 @@ class ProjectContext:
     def __init__(self):
         self.pmds: Dict[str, PMDModel] = {}          # Maps pageId to PMDModel
         self.scripts: Dict[str, ScriptModel] = {}    # Maps file name to ScriptModel
-        self.amd: AMDModel = None          # Assumes one .amd file per app
+        self.amd: AMDModel = None                    # Assumes one .amd file per app
         self.pods: Dict[str, PodModel] = {}          # Maps podId to PodModel
-        self.smds: Dict[str, SMDModel] = {}          # Maps smdId to SMDModel
+        self.smd: Dict[str, SMDModel] = {}           # Maps smdId to SMDModel
         self.parsing_errors: List[str] = []          # To track files that failed validation
         
         # Performance optimization: Cache script fields to avoid repeated extraction
@@ -263,9 +263,9 @@ class ProjectContext:
     @property
     def application_id(self) -> Optional[str]:
         """Gets the applicationId from the SMD file if available."""
-        if self.smds:
+        if self.smd:
             # Return the applicationId from the first SMD file
-            smd = next(iter(self.smds.values()))
+            smd = next(iter(self.smd.values()))
             return smd.applicationId
         return None
 
@@ -279,7 +279,7 @@ class ProjectContext:
     
     def get_smd_by_id(self, smd_id: str) -> Optional[SMDModel]:
         """Retrieves an SMD model by its id."""
-        return self.smds.get(smd_id)
+        return self.smd.get(smd_id)
     
     def get_cached_pmd_script_fields(self, pmd_id: str) -> Optional[List[tuple]]:
         """Get cached script fields for a PMD model."""
