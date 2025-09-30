@@ -32,3 +32,38 @@ class VarUsageDetector(ScriptDetector):
                         line=line_number,
                         column=1
                     )
+        
+        # Find all for_var_statement nodes (for loops with var declarations)
+        for_var_statements = ast.find_data('for_var_statement')
+        for for_stmt in for_var_statements:
+            # Get the variable declaration list (second child)
+            var_declaration_list = for_stmt.children[1]
+            if hasattr(var_declaration_list, 'data') and var_declaration_list.data == 'variable_declaration_list':
+                # Process each variable declaration in the list
+                for var_declaration in var_declaration_list.children:
+                    if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
+                        var_name = var_declaration.children[0].value
+                        # Get line number from the VAR token (first child of for statement)
+                        relative_line = getattr(for_stmt.children[0], 'line', 1) or 1
+                        line_number = self.line_offset + relative_line - 1
+                        
+                        yield Violation(
+                            message=f"File section '{field_name}' uses 'var' declaration for variable '{var_name}' in for loop. Consider using 'let' or 'const' instead.",
+                            line=line_number,
+                            column=1
+                        )
+        
+        # Find all for_var_in_statement nodes (for-in loops with var declarations)
+        for_var_in_statements = ast.find_data('for_var_in_statement')
+        for for_stmt in for_var_in_statements:
+            # Get the variable name (second child)
+            var_name = for_stmt.children[1].value
+            # Get line number from the VAR token (first child)
+            relative_line = getattr(for_stmt.children[0], 'line', 1) or 1
+            line_number = self.line_offset + relative_line - 1
+            
+            yield Violation(
+                message=f"File section '{field_name}' uses 'var' declaration for variable '{var_name}' in for-in loop. Consider using 'let' or 'const' instead.",
+                line=line_number,
+                column=1
+            )
