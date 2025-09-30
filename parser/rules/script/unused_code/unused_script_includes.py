@@ -81,44 +81,38 @@ class ScriptUnusedScriptIncludesRule(ScriptRuleBase):
                     ast = self._parse_script_content(field_value, context)
                     if ast:
                         # Find script calls (script.function() pattern)
-                        for node in ast.find_data('arguments_expression'):
-                            if self._is_script_call(node):
-                                script_name = self._extract_script_name(node)
-                                if script_name:
-                                    script_calls.add(script_name)
+                        for node in ast.find_data('call_expression'):
+                            script_name = self._extract_script_name_from_call(node)
+                            if script_name:
+                                script_calls.add(script_name)
                 except Exception:
                     continue
         
         return script_calls
 
-    def _is_script_call(self, node: Any) -> bool:
-        """Check if a call expression is a script call."""
-        if not hasattr(node, 'children') or len(node.children) < 2:
-            return False
-        
-        # Check if it's a member expression (script.function)
-        member_expr = node.children[0]
-        if hasattr(member_expr, 'data') and member_expr.data == 'member_dot_expression':
-            return True
-        
-        return False
-
-    def _extract_script_name(self, node: Any) -> str:
-        """Extract script name from a script call node."""
-        if not hasattr(node, 'children') or len(node.children) < 2:
+    def _extract_script_name_from_call(self, node: Any) -> str:
+        """Extract script name from a call expression node (e.g., util.function())."""
+        try:
+            if not hasattr(node, 'children') or len(node.children) < 1:
+                return ""
+            
+            # The first child should be the function being called
+            function_expr = node.children[0]
+            
+            # Check if it's a member expression (script.function)
+            if hasattr(function_expr, 'data') and function_expr.data == 'member_dot_expression':
+                if hasattr(function_expr, 'children') and len(function_expr.children) >= 2:
+                    # The first child should be the script name (object)
+                    script_node = function_expr.children[0]
+                    if hasattr(script_node, 'data') and script_node.data == 'identifier_expression':
+                        if hasattr(script_node, 'children') and script_node.children:
+                            identifier = script_node.children[0]
+                            if hasattr(identifier, 'value'):
+                                return identifier.value
+            
             return ""
-        
-        member_expr = node.children[0]
-        if hasattr(member_expr, 'data') and member_expr.data == 'member_dot_expression':
-            if hasattr(member_expr, 'children') and len(member_expr.children) >= 2:
-                obj_node = member_expr.children[0]
-                if hasattr(obj_node, 'data') and obj_node.data == 'identifier_expression':
-                    if hasattr(obj_node, 'children') and obj_node.children:
-                        identifier = obj_node.children[0]
-                        if hasattr(identifier, 'value'):
-                            return identifier.value
-        
-        return ""
+        except Exception:
+            return ""
 
     def _get_script_prefix(self, script_file: str) -> str:
         """Extract script prefix from script file name."""
@@ -136,5 +130,15 @@ class ScriptUnusedScriptIncludesRule(ScriptRuleBase):
 
     def _get_include_line_number(self, pmd_model: PMDModel, script_name: str) -> int:
         """Get line number for script include."""
-        # For now, return 1 - this could be enhanced to find the actual line
-        return 1
+        try:
+            if hasattr(pmd_model, 'source_content') and pmd_model.source_content:
+                lines = pmd_model.source_content.split('\n')
+                for i, line in enumerate(lines):
+                    # Look for the include array and the specific script
+                    if f'"{script_name}.script"' in line or f'"{script_name}"' in line:
+                        if '"include"' in line or (i > 0 and '"include"' in lines[i-1]):
+                            return i + 1  # Convert to 1-based line numbering
+        except Exception:
+            pass
+        
+        return 1  # Fallback
