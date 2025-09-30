@@ -31,31 +31,31 @@ def review_app(
     try:
         config = load_configuration(str(config_file) if config_file else None)
         if config_file:
-            typer.echo(f"📋 Loaded configuration: {config_file}")
+            typer.echo(f"Loaded configuration: {config_file}")
         else:
-            typer.echo("📋 Using default configuration with layered loading")
+            typer.echo("Using default configuration with layered loading")
     except Exception as e:
-        typer.secho(f"❌ Configuration Error: {e}", fg=typer.colors.RED)
-        typer.echo("💡 Try using --config with a valid configuration file, or run without --config for defaults")
+        typer.secho(f"Configuration Error: {e}", fg=typer.colors.RED)
+        typer.echo("Try using --config with a valid configuration file, or run without --config for defaults")
         raise typer.Exit(1)
     
     config_time = time.time() - config_start_time
     if show_timing:
-        typer.echo(f"⏱️  Configuration loading: {config_time:.2f}s")
+        typer.echo(f"Configuration loading: {config_time:.2f}s")
     
     # This is the entry point to our pipeline.
-    typer.echo("📁 Extracting and processing files...")
+    typer.echo("Extracting and processing files...")
     file_processing_start_time = time.time()
     processor = FileProcessor()
     source_files_map = processor.process_zip_file(zip_filepath)
     file_processing_time = time.time() - file_processing_start_time
-    typer.echo(f"✅ Found {len(source_files_map)} relevant files to analyze")
+    typer.echo(f"Found {len(source_files_map)} relevant files to analyze")
     if show_timing:
-        typer.echo(f"⏱️  File processing: {file_processing_time:.2f}s")
+        typer.echo(f"File processing: {file_processing_time:.2f}s")
 
     if not source_files_map:
-        typer.secho("❌ No source files found to analyze.", fg=typer.colors.RED)
-        typer.echo("💡 Make sure your ZIP contains .pmd, .pod, .script, .amd, or .smd files")
+        typer.secho("No source files found to analyze.", fg=typer.colors.RED)
+        typer.echo("Make sure your ZIP contains .pmd, .pod, .script, .amd, or .smd files")
         raise typer.Exit(1)
         
     # --- Next Step: Pass 'source_files_map' to the Parser ---
@@ -68,7 +68,7 @@ def review_app(
         typer.echo(f"  - Ready to parse: {path_key}")
 
     # --- Parse Files into App File Models ---
-    typer.echo("🔍 Parsing files into App File models...")
+    typer.echo("Parsing files into App File models...")
     parsing_start_time = time.time()
     try:
         pmd_parser = ModelParser()
@@ -84,41 +84,41 @@ def review_app(
         if context.amd: parsed_summary.append("AMD file")
         
         if parsed_summary:
-            typer.echo(f"✅ Parsed: {', '.join(parsed_summary)}")
+            typer.echo(f"Parsed: {', '.join(parsed_summary)}")
         else:
-            typer.echo("⚠️ No files were successfully parsed")
+            typer.echo("No files were successfully parsed")
         
         if show_timing:
-            typer.echo(f"⏱️  File parsing: {parsing_time:.2f}s")
+            typer.echo(f"File parsing: {parsing_time:.2f}s")
         
     except Exception as e:
-        typer.secho(f"❌ Parsing Error: {e}", fg=typer.colors.RED)
-        typer.echo("💡 Check that your files are valid Workday Extend format")
+        typer.secho(f"Parsing Error: {e}", fg=typer.colors.RED)
+        typer.echo("Check that your files are valid Workday Extend format")
         raise typer.Exit(1)
 
     # --- Run Rules Analysis ---
-    typer.echo("🔮 Initializing rules engine...")
+    typer.echo("Initializing rules engine...")
     findings = []  # Initialize findings before try block
     try:
         rules_init_start_time = time.time()
         rules_engine = RulesEngine(config)
         rules_init_time = time.time() - rules_init_start_time
-        typer.echo(f"✅ Loaded {len(rules_engine.rules)} validation rules")
+        typer.echo(f"Loaded {len(rules_engine.rules)} validation rules")
         if show_timing:
-            typer.echo(f"⏱️  Rules engine initialization: {rules_init_time:.2f}s")
+            typer.echo(f"Rules engine initialization: {rules_init_time:.2f}s")
         
-        typer.echo("🔮 Invoking analysis...")
+        typer.echo("Invoking analysis...")
         analysis_start_time = time.time()
         findings = rules_engine.run(context)
         analysis_time = time.time() - analysis_start_time
         
         if findings:
-            typer.echo(f"✅ Analysis complete. Found {len(findings)} issue(s).")
+            typer.echo(f"Analysis complete. Found {len(findings)} issue(s).")
         else:
-            typer.echo("✅ Analysis complete. No issues found! 🎉")
+            typer.echo("Analysis complete. No issues found!")
         
         if show_timing:
-            typer.echo(f"⏱️  Analysis execution: {analysis_time:.2f}s")
+            typer.echo(f"Analysis execution: {analysis_time:.2f}s")
         
         # Auto-detect format based on output file extension if not explicitly specified
         if output_file and output_format == "console":  # Default format
@@ -134,8 +134,8 @@ def review_app(
         try:
             format_type = OutputFormat(output_format.lower())
         except ValueError:
-            typer.secho(f"❌ Invalid output format: {output_format}", fg=typer.colors.RED)
-            typer.echo("💡 Valid formats: console, json, summary, excel")
+            typer.secho(f"Invalid output format: {output_format}", fg=typer.colors.RED)
+            typer.echo("Valid formats: console, json, summary, excel")
             raise typer.Exit(1)
         
         formatting_start_time = time.time()
@@ -147,7 +147,7 @@ def review_app(
         formatting_time = time.time() - formatting_start_time
         
         if show_timing:
-            typer.echo(f"⏱️  Output formatting: {formatting_time:.2f}s")
+            typer.echo(f"Output formatting: {formatting_time:.2f}s")
         
         # Output to file or console
         if output_file:
@@ -171,8 +171,8 @@ def review_app(
                 typer.echo(formatted_output)
                 
     except Exception as e:
-        typer.secho(f"❌ Analysis Error: {e}", fg=typer.colors.RED)
-        typer.echo("💡 This might be due to unsupported syntax or corrupted files")
+        typer.secho(f"Analysis Error: {e}", fg=typer.colors.RED)
+        typer.echo("This might be due to unsupported syntax or corrupted files")
         raise typer.Exit(3)  # Exit code 3 for analysis errors
     
     # Calculate total time and show timing summary
@@ -180,7 +180,7 @@ def review_app(
     
     if show_timing:
         typer.echo("\n" + "="*60)
-        typer.echo("📊 TIMING SUMMARY")
+        typer.echo("TIMING SUMMARY")
         typer.echo("="*60)
         
         # Calculate percentages
@@ -203,41 +203,41 @@ def review_app(
         
         # Performance assessment
         typer.echo()
-        typer.echo("🎯 Performance Assessment:")
+        typer.echo("Performance Assessment:")
         if total_time < 30:
-            typer.echo("  ✅ Excellent performance (<30s)")
+            typer.echo("  Excellent performance (<30s)")
         elif total_time < 60:
-            typer.echo("  ✅ Good performance (<60s)")
+            typer.echo("  Good performance (<60s)")
         elif total_time < 120:
-            typer.echo("  ⚠️  Moderate performance (<2min)")
+            typer.echo("  Moderate performance (<2min)")
         else:
-            typer.echo("  ❌ Slow performance (>2min)")
-            typer.echo("  💡 Consider using --timing to identify bottlenecks")
+            typer.echo("  Slow performance (>2min)")
+            typer.echo("  Consider using --timing to identify bottlenecks")
         
         # Bottleneck identification
         if analysis_pct > 70:
-            typer.echo("  🔍 Analysis execution is the primary bottleneck")
-            typer.echo("  💡 Consider disabling CPU-intensive rules for faster analysis")
+            typer.echo("  Analysis execution is the primary bottleneck")
+            typer.echo("  Consider disabling CPU-intensive rules for faster analysis")
         elif parsing_pct > 30:
-            typer.echo("  🔍 File parsing is a significant bottleneck")
-            typer.echo("  💡 Consider reducing parallel workers or file size limits")
+            typer.echo("  File parsing is a significant bottleneck")
+            typer.echo("  Consider reducing parallel workers or file size limits")
         
         typer.echo("="*60)
     else:
-        typer.echo(f"\n⏱️  Total analysis time: {total_time:.2f}s")
-        typer.echo("💡 Use --timing flag for detailed performance breakdown")
+        typer.echo(f"\nTotal analysis time: {total_time:.2f}s")
+        typer.echo("Use --timing flag for detailed performance breakdown")
     
     # Set appropriate exit code based on findings (outside try block)
     if findings:
         severe_count = len([f for f in findings if f.severity == "SEVERE"])
         if severe_count > 0:
-            typer.echo(f"🚨 Analysis completed with {severe_count} severe issue(s)")
+            typer.echo(f"Analysis completed with {severe_count} severe issue(s)")
             raise typer.Exit(2)  # Exit code 2 for severe issues
         else:
-            typer.echo("⚠️ Analysis completed with warnings/info issues")
+            typer.echo("Analysis completed with warnings/info issues")
             raise typer.Exit(1)  # Exit code 1 for warnings/info
     else:
-        typer.echo("✅ Analysis completed successfully - no issues found!")
+        typer.echo("Analysis completed successfully - no issues found!")
         raise typer.Exit(0)  # Exit code 0 for no issues
 
 
@@ -335,7 +335,7 @@ def list_rules():
 @app.command()
 def list_configs():
     """List all available configurations and their safety status."""
-    typer.echo("🔮 Arcane Auditor Configuration Status\n")
+    typer.echo("Arcane Auditor Configuration Status\n")
     
     config_manager = get_config_manager()
     
@@ -346,16 +346,16 @@ def list_configs():
         typer.echo("No configurations found.")
         return
     
-    typer.echo("📁 Available Configurations:")
+    typer.echo("Available Configurations:")
     for directory, configs in available_configs.items():
         if directory == "local_configs":
-            icon = "🏠"
+            icon = "Local"
             desc = "Personal overrides (highest priority)"
         elif directory == "user_configs":
-            icon = "🛡️"
+            icon = "Team"
             desc = "Team/project configs (update-safe)"
         else:
-            icon = "🔒"
+            icon = "Built-in"
             desc = "App defaults (may be updated)"
         
         typer.echo(f"\n{icon} {directory}/ - {desc}")
@@ -363,26 +363,26 @@ def list_configs():
             typer.echo(f"  - {config}")
     
     # Check safety status
-    typer.echo("\n🛡️ Configuration Safety Status:")
+    typer.echo("\nConfiguration Safety Status:")
     safety_status = config_manager.validate_config_safety()
     
     for directory, status in safety_status.items():
         if "Protected" in status:
             color = typer.colors.GREEN
-            icon = "✅"
+            icon = "OK"
         elif "Warning" in status:
             color = typer.colors.YELLOW
-            icon = "⚠️"
+            icon = "WARNING"
         elif "App-managed" in status:
             color = typer.colors.BLUE
-            icon = "🔒"
+            icon = "APP"
         else:
             color = typer.colors.RED
-            icon = "❌"
+            icon = "ERROR"
         
         typer.secho(f"{icon} {directory}/: {status}", fg=color)
     
-    typer.echo("\n💡 Usage Examples:")
+    typer.echo("\nUsage Examples:")
     typer.echo("  uv run main.py review-app myapp.zip --config team-standard")
     typer.echo("  uv run main.py review-app myapp.zip --config user_configs/my-config.json")
     typer.echo("  uv run main.py list-configs  # Show this information")

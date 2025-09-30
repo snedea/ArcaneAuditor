@@ -8,8 +8,7 @@ This rule checks for base64 encoded image data using the pattern:
 data:image/[type];base64,[data]
 """
 import re
-import base64
-from typing import Generator, List, Dict, Any, Optional
+from typing import Generator, Any
 
 from ...base import Finding
 from ....models import PMDModel, PodModel, ProjectContext
