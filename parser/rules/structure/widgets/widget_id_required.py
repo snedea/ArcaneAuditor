@@ -121,7 +121,9 @@ class WidgetIdRequiredRule(StructureRuleBase):
                     # Look for the widget type
                     if f'"type": "{widget_type}"' in line or f'"type":"{widget_type}"' in line:
                         if widget_count == widget_index:
-                            return i + 1  # Return the line number (1-based)
+                            # Find the opening brace of this widget block by looking backwards
+                            widget_start_line = self._find_widget_opening_brace(lines, i)
+                            return widget_start_line + 1  # Return the line number (1-based)
                         widget_count += 1
                 
                 # If we found the section but not the specific widget, estimate
@@ -167,7 +169,9 @@ class WidgetIdRequiredRule(StructureRuleBase):
                     # Look for the widget type
                     if f'"type": "{widget_type}"' in line or f'"type":"{widget_type}"' in line:
                         if widget_count == widget_index:
-                            return i + 1  # Return the line number (1-based)
+                            # Find the opening brace of this widget block by looking backwards
+                            widget_start_line = self._find_widget_opening_brace(lines, i)
+                            return widget_start_line + 1  # Return the line number (1-based)
                         widget_count += 1
                 
                 # If we found the template but not the specific widget, estimate
@@ -179,3 +183,21 @@ class WidgetIdRequiredRule(StructureRuleBase):
         except Exception:
             # Fallback: estimate based on widget index
             return 5 + widget_index * 2
+    
+    def _find_widget_opening_brace(self, lines: list, type_line_index: int) -> int:
+        """Find the opening brace of a widget block by looking backwards from the type line."""
+        try:
+            # Look backwards from the type line to find the opening brace
+            for i in range(type_line_index - 1, max(0, type_line_index - 10), -1):
+                line = lines[i].strip()
+                # Look for an opening brace at the start of a line (indicating widget start)
+                if line == '{':
+                    return i
+                # Also check for opening brace with content on the same line
+                elif line.startswith('{'):
+                    return i
+            
+            # If we can't find the opening brace, return the type line itself
+            return type_line_index
+        except Exception:
+            return type_line_index
