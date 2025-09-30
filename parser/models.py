@@ -31,6 +31,7 @@ class PMDPresentation(BaseModel):
     title: Dict[str, Any] = Field(default_factory=dict)
     body: Dict[str, Any] = Field(default_factory=dict)
     footer: Dict[str, Any] = Field(default_factory=dict)
+    tabs: Optional[List[Dict[str, Any]]] = None
 
 class PMDModel(BaseModel):
     """Represents the structure of a .pmd page file."""

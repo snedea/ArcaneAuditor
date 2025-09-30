@@ -144,7 +144,13 @@ class ModelParser:
                     securityDomains=pmd_data.get('securityDomains', []),
                     inboundEndpoints=pmd_data.get('endPoints', []), 
                     outboundEndpoints=pmd_data.get('outboundData', {}).get('outboundEndPoints', []),  # Handle nested structure
-                    presentation=PMDPresentation(attributes={}, title=presentation_data.get("title", {}), body=presentation_data.get("body", []), footer=presentation_data.get("footer", {})) if presentation_data else None,
+                    presentation=PMDPresentation(
+                        attributes={}, 
+                        title=presentation_data.get("title", {}), 
+                        body=presentation_data.get("body", []), 
+                        footer=presentation_data.get("footer", {}),
+                        tabs=presentation_data.get("tabs", [])
+                    ) if presentation_data else None,
                     onLoad=pmd_data.get('onLoad'),
                     script=pmd_data.get('script'),
                     includes=includes,
