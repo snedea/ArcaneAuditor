@@ -151,6 +151,7 @@ _curly_tail: ":" single_expression ("," property_assignment)* ","? "}"
 // These are the fundamental building blocks of expressions.
 ?primary_expression: IDENTIFIER -> identifier_expression
     | NAMESPACE_IDENTIFIER -> namespace_identifier_expression
+    | namespace_function_expression -> namespace_function_expression
     | POD_PARAMETER -> pod_parameter_expression
     | literal -> literal_expression
     | array_literal -> array_literal_expression
@@ -165,6 +166,8 @@ _curly_tail: ":" single_expression ("," property_assignment)* ","? "}"
 
 // --- END: CORRECTED EXPRESSION HIERARCHY ---
 
+// Namespace function expressions (e.g., date:getTodaysDate(...), string:pathEncode(...))
+?namespace_function_expression: IDENTIFIER ":" IDENTIFIER arguments
 
 ?assignment_operator: "*=" | "/=" | "%=" | "+=" | "-="
 
