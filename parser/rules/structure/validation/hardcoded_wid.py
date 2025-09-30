@@ -51,30 +51,30 @@ class HardcodedWidRule(StructureRuleBase):
         """Check PMD file for hardcoded WID values."""
         # Convert PMD model to dictionary for recursive checking
         pmd_dict = pmd_model.model_dump(exclude={'file_path', 'source_content'})
-        yield from self._check_string_values_for_wids(pmd_dict, pmd_model.file_path)
+        yield from self._check_string_values_for_wids(pmd_dict, pmd_model.file_path, pmd_model=pmd_model)
     
     def _check_pod_hardcoded_wids(self, pod_model: PodModel) -> Generator[Finding, None, None]:
         """Check POD file for hardcoded WID values."""
         # Convert POD model to dictionary for recursive checking
         pod_dict = pod_model.model_dump(exclude={'file_path', 'source_content'})
-        yield from self._check_string_values_for_wids(pod_dict, pod_model.file_path)
+        yield from self._check_string_values_for_wids(pod_dict, pod_model.file_path, pod_model=pod_model)
     
-    def _check_string_values_for_wids(self, model: Any, file_path: str) -> Generator[Finding, None, None]:
+    def _check_string_values_for_wids(self, model: Any, file_path: str, pmd_model: PMDModel = None, pod_model: PodModel = None) -> Generator[Finding, None, None]:
         """Recursively check string values for hardcoded WIDs."""
         if isinstance(model, dict):
             for key, value in model.items():
                 if isinstance(value, str):
-                    yield from self._check_string_for_wids(value, file_path, key)
+                    yield from self._check_string_for_wids(value, file_path, key, pmd_model, pod_model)
                 elif isinstance(value, (dict, list)):
-                    yield from self._check_string_values_for_wids(value, file_path)
+                    yield from self._check_string_values_for_wids(value, file_path, pmd_model, pod_model)
         elif isinstance(model, list):
             for i, item in enumerate(model):
                 if isinstance(item, str):
-                    yield from self._check_string_for_wids(item, file_path, f"[{i}]")
+                    yield from self._check_string_for_wids(item, file_path, f"[{i}]", pmd_model, pod_model)
                 elif isinstance(item, (dict, list)):
-                    yield from self._check_string_values_for_wids(item, file_path)
+                    yield from self._check_string_values_for_wids(item, file_path, pmd_model, pod_model)
     
-    def _check_string_for_wids(self, text: str, file_path: str, field_name: str) -> Generator[Finding, None, None]:
+    def _check_string_for_wids(self, text: str, file_path: str, field_name: str, pmd_model: PMDModel = None, pod_model: PodModel = None) -> Generator[Finding, None, None]:
         """Check a single string for hardcoded WID values."""
         if not text:
             return
@@ -91,12 +91,36 @@ class HardcodedWidRule(StructureRuleBase):
             if wid_value in self.ALLOWED_WIDS:
                 continue
             
-            # Calculate line number
-            line_num = text[:match.start()].count('\n') + 1
+            # Calculate line number by searching in source content
+            line_num = self._find_wid_line_number(wid_value, pmd_model, pod_model)
             
             yield self._create_finding(
                 message=f"Hardcoded WID '{wid_value}' found in {field_name}. Consider configuring WIDs in app attributes instead of hardcoding them.",
                 file_path=file_path,
                 line=line_num,
-                column=match.start() - text.rfind('\n', 0, match.start()) if '\n' in text[:match.start()] else match.start() + 1
+                column=1  # Column calculation is complex for extracted values, default to 1
             )
+    
+    def _find_wid_line_number(self, wid_value: str, pmd_model: PMDModel = None, pod_model: PodModel = None) -> int:
+        """Find the line number where a WID value appears in the source content."""
+        source_content = None
+        
+        if pmd_model and hasattr(pmd_model, 'source_content'):
+            source_content = pmd_model.source_content
+        elif pod_model and hasattr(pod_model, 'source_content'):
+            source_content = pod_model.source_content
+        
+        if not source_content:
+            return 1
+        
+        try:
+            lines = source_content.split('\n')
+            
+            # Search for the WID value in the source content
+            for i, line in enumerate(lines):
+                if wid_value.lower() in line.lower():
+                    return i + 1  # Convert to 1-based line numbering
+            
+            return 1  # Fallback if not found
+        except Exception:
+            return 1
