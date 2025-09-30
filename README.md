@@ -581,7 +581,7 @@ Create custom configurations in JSON format:
 
 ### Core Documentation
 
-- **[📜 Rule Breakdown](docs/RULE_BREAKDOWN.md)**: Comprehensive guide to all validation rules with examples
+- **[📜 Rule Breakdown](docs/RULE_BREAKDOWN.md)**: Comprehensive guide to all validation rules, with examples!
 - **[⚙️ Configuration Guide](configs/README.md)**: Layered configuration system and rule customization
 
 ### Advanced Guides
