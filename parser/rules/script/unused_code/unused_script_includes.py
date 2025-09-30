@@ -81,17 +81,53 @@ class ScriptUnusedScriptIncludesRule(ScriptRuleBase):
                     ast = self._parse_script_content(field_value, context)
                     if ast:
                         # Find script calls (script.function() pattern)
-                        for node in ast.find_data('call_expression'):
+                        ast_calls_found = False
+                        for node in ast.find_data('arguments_expression'):
                             script_name = self._extract_script_name_from_call(node)
                             if script_name:
                                 script_calls.add(script_name)
+                                ast_calls_found = True
+                        
+                        # If AST parsing succeeded but found no script calls, try fallback
+                        if not ast_calls_found:
+                            fallback_calls = self._extract_script_calls_fallback(field_value)
+                            script_calls.update(fallback_calls)
+                    else:
+                        # If AST parsing failed (returned None), fall back to string matching
+                        fallback_calls = self._extract_script_calls_fallback(field_value)
+                        script_calls.update(fallback_calls)
                 except Exception:
-                    continue
+                    # If AST parsing throws an exception, fall back to string matching
+                    fallback_calls = self._extract_script_calls_fallback(field_value)
+                    script_calls.update(fallback_calls)
+        
+        return script_calls
+
+    def _extract_script_calls_fallback(self, script_content: str) -> Set[str]:
+        """Fallback method to extract script calls using string matching when AST parsing fails."""
+        import re
+        
+        script_calls = set()
+        
+        # Strip PMD wrappers
+        content = self._strip_pmd_wrappers(script_content)
+        if not content:
+            return script_calls
+        
+        # Pattern to match script.function() calls
+        # This regex looks for identifier.identifier( pattern
+        pattern = r'\b([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)\s*\('
+        
+        matches = re.findall(pattern, content)
+        for script_name, function_name in matches:
+            # Only consider it a script call if it's not a built-in or common object
+            if not script_name.lower() in ['self', 'this', 'window', 'document', 'console', 'math', 'string', 'number', 'array', 'object', 'json']:
+                script_calls.add(script_name)
         
         return script_calls
 
     def _extract_script_name_from_call(self, node: Any) -> str:
-        """Extract script name from a call expression node (e.g., util.function())."""
+        """Extract script name from an arguments_expression node (e.g., util.function())."""
         try:
             if not hasattr(node, 'children') or len(node.children) < 1:
                 return ""
