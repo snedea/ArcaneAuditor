@@ -80,7 +80,7 @@ def review_app(
         if context.pmds: parsed_summary.append(f"{len(context.pmds)} PMD files")
         if context.scripts: parsed_summary.append(f"{len(context.scripts)} script files")
         if context.pods: parsed_summary.append(f"{len(context.pods)} Pod files")
-        if context.smds: parsed_summary.append(f"{len(context.smds)} SMD file")
+        if context.smd: parsed_summary.append("SMD file")
         if context.amd: parsed_summary.append("AMD file")
         
         if parsed_summary:

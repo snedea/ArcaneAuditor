@@ -92,8 +92,9 @@ class ModelParser:
         # Merge Pods
         main_context.pods.update(temp_context.pods)
         
-        # Merge SMDs
-        main_context.smd.update(temp_context.smd)
+        # Handle SMD (only one expected)
+        if temp_context.smd:
+            main_context.smd = temp_context.smd
         
         # Handle AMD (only one expected)
         if temp_context.amd:
@@ -139,13 +140,20 @@ class ModelParser:
                 else:
                     includes = None
                 
+                # Extract microConclusion and other presentation-level attributes
+                presentation_attributes = {}
+                if presentation_data:
+                    # Move microConclusion from presentation to attributes
+                    if 'microConclusion' in presentation_data:
+                        presentation_attributes['microConclusion'] = presentation_data.pop('microConclusion')
+                
                 pmd_model = PMDModel(
                     pageId=pmd_data.get('id', path_obj.stem),  # Use 'id' field or fallback to filename
                     securityDomains=pmd_data.get('securityDomains', []),
                     inboundEndpoints=pmd_data.get('endPoints', []), 
                     outboundEndpoints=pmd_data.get('outboundData', {}).get('outboundEndPoints', []),  # Handle nested structure
                     presentation=PMDPresentation(
-                        attributes={}, 
+                        attributes=presentation_attributes, 
                         title=presentation_data.get("title", {}), 
                         body=presentation_data.get("body", []), 
                         footer=presentation_data.get("footer", {}),
@@ -292,9 +300,12 @@ class ModelParser:
                 source_content=content
             )
             
-            # Add to context
-            context.smd[smd_model.id] = smd_model
-            print(f"Parsed SMD: {smd_model.id}")
+            # Add to context (only one SMD file allowed)
+            if context.smd is not None:
+                print(f"Warning: Multiple SMD files found. Ignoring {file_path} (already have {context.smd.id})")
+            else:
+                context.smd = smd_model
+                print(f"Parsed SMD: {smd_model.id}")
             
         except json.JSONDecodeError as e:
             print(f"JSON parsing error in SMD file {file_path}: {e}")

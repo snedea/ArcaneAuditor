@@ -50,14 +50,13 @@ class PMDSecurityDomainRule(Rule):
         if not context.smd:
             return False
         
-        # Get all error page IDs from all SMD files
+        # Get all error page IDs from the SMD file
         error_page_ids = set()
-        for smd_model in context.smd.values():
-            error_pages = smd_model.get_error_pages()
-            for error_page in error_pages:
-                page_id = error_page.get('pageId', '')
-                if page_id:
-                    error_page_ids.add(page_id)
+        error_pages = context.smd.get_error_pages()
+        for error_page in error_pages:
+            page_id = error_page.get('pageId', '')
+            if page_id:
+                error_page_ids.add(page_id)
         
         # Check if this PMD's pageId is in the error pages list
         return pmd_model.pageId in error_page_ids
