@@ -388,7 +388,7 @@ arcane-auditor/
 │   ├── server.py                                   	# FastAPI web server
 │   ├── configs/                                    	# Web-specific configurations
 │   ├── uploads/                                    	# Temporary upload directory
-│   └── frontend/                                  	# HTML/CSS/JS frontend
+│   └── frontend/                                  		# HTML/CSS/JS frontend
 │       ├── README.md                              		# Frontend documentation
 │       ├── index.html                             		# Main HTML page
 │       ├── style.css                               	# Styling with dark mode
