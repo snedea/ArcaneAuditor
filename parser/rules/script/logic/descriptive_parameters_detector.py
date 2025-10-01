@@ -470,7 +470,7 @@ class DescriptiveParameterDetector(ScriptDetector):
             param_node = arrow_func.children[0]
             if hasattr(param_node, 'value'):
                 param_name = param_node.value
-                if self._is_problematic_parameter(param_name):
+                if self._is_problematic_parameter(param_name, method_name):
                     context = self._extract_context_from_node(context_node)
                     suggested_name = self._suggest_parameter_name(method_name, context, 0)
                     
@@ -491,7 +491,7 @@ class DescriptiveParameterDetector(ScriptDetector):
                 param_node = arrow_func.children[i]
                 if hasattr(param_node, 'value'):
                     param_name = param_node.value
-                    if self._is_problematic_parameter(param_name):
+                    if self._is_problematic_parameter(param_name, method_name):
                         context = self._extract_context_from_node(context_node)
                         suggested_name = self._suggest_parameter_name(method_name, context, i)
                         
@@ -506,8 +506,13 @@ class DescriptiveParameterDetector(ScriptDetector):
         
         return violations
 
-    def _is_problematic_parameter(self, param_name: str) -> bool:
+    def _is_problematic_parameter(self, param_name: str, method_name: str) -> bool:
         """Check if parameter name is problematic."""
+
+        # Sort gets to be a special case where a and b are allowed
+        if param_name in ['a', 'b'] and method_name == 'sort':
+            return False
+
         return (len(param_name) == 1 and 
                 param_name.lower() not in self.allowed_letters and
                 param_name.isalpha())
