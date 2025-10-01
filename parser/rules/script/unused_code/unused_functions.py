@@ -100,7 +100,8 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
     def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None) -> Generator[Finding, None, None]:
         """Check script content using the detector - not used in file-level analysis."""
         # This method is not used when _analyze_fields is overridden
-        return
+        # Return empty generator to avoid NoneType iteration errors
+        yield from []
     
     def _collect_function_declarations(self, ast) -> Set[str]:
         """
