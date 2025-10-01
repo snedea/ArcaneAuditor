@@ -274,8 +274,7 @@ def run_analysis_background(job: AnalysisJob):
                     "severity": finding.severity,
                     "message": finding.message,
                     "file_path": finding.file_path,
-                    "line": finding.line,
-                    "column": finding.column
+                    "line": finding.line
                     }
                     for finding in findings
             ],
@@ -416,7 +415,6 @@ async def download_excel(job_id: str):
                         self.rule_id = data["rule_id"]
                         self.severity = data["severity"]
                         self.line = data["line"]
-                        self.column = data.get("column", 1)
                         self.message = data["message"]
                         self.file_path = data["file_path"]
                 
@@ -465,7 +463,7 @@ async def download_excel(job_id: str):
                 ws = wb.create_sheet(sheet_name)
                 
                 # Headers
-                headers = ["Rule ID", "Severity", "Line", "Column", "Message", "File Path"]
+                headers = ["Rule ID", "Severity", "Line", "Message", "File Path"]
                 ws.append(headers)
                 
                 # Style headers
@@ -483,7 +481,6 @@ async def download_excel(job_id: str):
                         finding.rule_id,
                         finding.severity,
                         finding.line,
-                        finding.column,
                         finding.message,
                         finding.file_path
                     ]

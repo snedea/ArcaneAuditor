@@ -34,7 +34,6 @@ class EndpointOnSendSelfDataRule(Rule):
                 rule=self,
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' uses anti-pattern 'self.data = {{:}}' in onSend script. This pattern should be avoided.",
                 line=line_number,
-                column=1,
                 file_path=pmd_model.file_path
             )
 

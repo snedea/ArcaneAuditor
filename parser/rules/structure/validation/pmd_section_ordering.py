@@ -106,7 +106,6 @@ class PMDSectionOrderingRule(Rule):
             rule=self,
             message=f"PMD sections are not in the correct order. Current: [{current_order_str}] | Expected: [{expected_order_str}]",
             line=first_violation_line,
-            column=1,
             file_path=pmd_model.file_path
         )
 

@@ -22,8 +22,7 @@ class MagicNumberDetector(ScriptDetector):
         for finding in findings:
             yield Violation(
                 message=finding['message'],
-                line=finding['line'],
-                column=1
+                line=finding['line']
             )
     
     def _visit_node(self, node, field_name: str, findings: List[dict], parent=None):

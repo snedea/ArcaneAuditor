@@ -20,8 +20,7 @@ class EmptyFunctionDetector(ScriptDetector):
         for violation in violations:
             yield Violation(
                 message=violation['message'],
-                line=violation['line'],
-                column=1
+                line=violation['line']
             )
     
     def _check_functions(self, node, violations: List[dict]):

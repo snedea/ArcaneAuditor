@@ -46,12 +46,11 @@ class StructureRuleBase(Rule, ABC):
         """Visit POD model - must be implemented by subclasses."""
         pass
     
-    def _create_finding(self, message: str, file_path: str, line: int = 1, column: int = 1) -> Finding:
+    def _create_finding(self, message: str, file_path: str, line: int = 1) -> Finding:
         """Create a finding with consistent formatting."""
         return Finding(
             rule=self,
             message=message,
             line=line,
-            column=column,
             file_path=file_path
         )

@@ -55,6 +55,5 @@ class ScriptDescriptiveParameterRule(ScriptRuleBase):
                     rule=self,
                     message=violation.message,
                     line=violation.line,
-                    column=violation.column,
                     file_path=file_path
                 )

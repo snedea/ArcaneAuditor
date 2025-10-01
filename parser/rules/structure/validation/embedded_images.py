@@ -86,7 +86,6 @@ class EmbeddedImagesRule(StructureRuleBase):
             yield self._create_finding(
                 message=f"Embedded base64 image found in {field_name}. Consider storing the image as an external file and referencing it by path instead.",
                 file_path=file_path,
-                line=line_num,
-                column=match.start() - text.rfind('\n', 0, match.start()) if '\n' in text[:match.start()] else match.start() + 1
+                line=line_num
             )
     

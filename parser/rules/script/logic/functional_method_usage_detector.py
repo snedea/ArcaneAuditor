@@ -45,8 +45,7 @@ class FunctionalMethodUsageDetector(ScriptDetector):
         
         yield Violation(
             message=f"File section '{field_name}' uses manual for loop that could be replaced with functional method. Consider using {suggestion} instead for better readability and maintainability.",
-            line=line_number,
-            column=1
+            line=line_number
         )
 
     def _is_counter_based_loop(self, for_stmt: Tree) -> bool:

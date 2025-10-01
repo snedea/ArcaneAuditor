@@ -33,8 +33,7 @@ class NullSafetyDetector(ScriptDetector):
         for access_info in unsafe_accesses:
             violations.append(Violation(
                 message=f"Potentially unsafe property access: {access_info['chain']} - consider using null coalescing (??) or empty checks",
-                line=self.get_line_number(access_info['node']),
-                column=1
+                line=self.get_line_number(access_info['node'])
             ))
         
         return violations

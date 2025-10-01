@@ -27,8 +27,7 @@ class FunctionParameterCountDetector(ScriptDetector):
                 
                 yield Violation(
                     message=f"Function has {param_count} parameters (max allowed: {self.max_parameters}). Consider refactoring to reduce complexity.",
-                    line=line_number or self.line_offset,
-                    column=1
+                    line=line_number or self.line_offset
                 )
     
     def _find_function_definitions(self, ast: Tree) -> List[Tree]:

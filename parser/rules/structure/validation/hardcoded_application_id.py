@@ -105,6 +105,5 @@ class HardcodedApplicationIdRule(Rule):
                     rule=self,
                     message=f"Hardcoded applicationId '{app_id}' found in {field_name}. Use site.applicationId instead.",
                     line=line_num,
-                    column=match.start() - text.rfind('\n', 0, match.start()) if '\n' in text[:match.start()] else match.start() + 1,
                     file_path=file_path
                 )

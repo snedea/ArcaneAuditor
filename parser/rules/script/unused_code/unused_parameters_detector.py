@@ -39,7 +39,6 @@ class UnusedParametersDetector(ScriptDetector):
                     violations.append(Violation(
                         message=f"Unused parameter '{param_name}' in function '{function_name}'",
                         line=self.get_line_number(function_node),
-                        column=1,
                         metadata={
                             'function_name': function_name,
                             'parameter_name': param_name

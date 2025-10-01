@@ -97,8 +97,7 @@ class HardcodedWidRule(StructureRuleBase):
             yield self._create_finding(
                 message=f"Hardcoded WID '{wid_value}' found in {field_name}. Consider configuring WIDs in app attributes instead of hardcoding them.",
                 file_path=file_path,
-                line=line_num,
-                column=1  # Column calculation is complex for extracted values, default to 1
+                line=line_num
             )
     
     def _find_wid_line_number(self, wid_value: str, pmd_model: PMDModel = None, pod_model: PodModel = None) -> int:

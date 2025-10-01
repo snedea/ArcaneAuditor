@@ -11,7 +11,6 @@ class Finding:
     rule: 'Rule'
     message: str
     line: int = 0
-    column: int = 0
     file_path: str = ""
     
     def __post_init__(self):

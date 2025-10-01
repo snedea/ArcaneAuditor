@@ -179,6 +179,5 @@ class ScriptFileVarUsageDetector(ScriptDetector):
             var_info = top_level_vars[var_name]
             yield Violation(
                 message=f"Top-level variable '{var_name}' is declared but neither exported nor used internally. Consider removing if unused.",
-                line=var_info['line'],
-                column=1
+                line=var_info['line']
             )

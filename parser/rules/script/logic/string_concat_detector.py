@@ -35,8 +35,7 @@ class StringConcatDetector(ScriptDetector):
                 
                 yield Violation(
                     message=f"File section '{field_name}' uses string concatenation with + operator: '{concat_text}'. Consider using PMD template strings with backticks and {{{{ }}}} syntax instead (e.g., `Hello {{{{name}}}}!`).",
-                    line=line_number,
-                    column=1
+                    line=line_number
                 )
     
     def _is_string_concatenation(self, add_expr: Tree) -> bool:

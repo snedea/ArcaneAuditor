@@ -18,14 +18,12 @@ class MockRule(Rule):
         yield Finding(
             rule=self,
             message="Test finding from mock rule",
-            line=1,
-            column=1
+            line=1
         )
         yield Finding(
             rule=self,
             message="Another test finding",
-            line=2,
-            column=5
+            line=2
         )
 
 
@@ -183,7 +181,6 @@ class TestRulesEngine:
         assert hasattr(finding, 'severity')
         assert hasattr(finding, 'message')
         assert hasattr(finding, 'line')
-        assert hasattr(finding, 'column')
         assert hasattr(finding, 'file_path')
         
         # Check values

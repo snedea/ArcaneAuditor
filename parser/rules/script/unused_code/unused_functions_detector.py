@@ -35,7 +35,6 @@ class UnusedFunctionsDetector(ScriptDetector):
                 violations.append(Violation(
                     message=f"Unused function '{function_name}' - function is declared but never called",
                     line=self.get_line_number(function_node),
-                    column=1,
                     metadata={
                         'function_name': function_name
                     }

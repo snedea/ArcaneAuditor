@@ -29,14 +29,12 @@ class TestFinding:
             rule=self.rule,
             message="Test finding message",
             line=10,
-            column=5,
             file_path="test.pmd"
         )
         
         assert finding.rule == self.rule
         assert finding.message == "Test finding message"
         assert finding.line == 10
-        assert finding.column == 5
         assert finding.file_path == "test.pmd"
     
     def test_finding_default_values(self):
@@ -49,7 +47,6 @@ class TestFinding:
         assert finding.rule == self.rule
         assert finding.message == "Test finding message"
         assert finding.line == 0
-        assert finding.column == 0
         assert finding.file_path == ""
     
     def test_finding_derived_fields(self):
@@ -58,7 +55,6 @@ class TestFinding:
             rule=self.rule,
             message="Test finding message",
             line=15,
-            column=8,
             file_path="example.pmd"
         )
         
@@ -73,7 +69,6 @@ class TestFinding:
             rule=self.rule,
             message="Test finding message",
             line=20,
-            column=12,
             file_path="sample.pmd"
         )
         
@@ -85,8 +80,7 @@ class TestFinding:
         finding = Finding(
             rule=self.rule,
             message="Test finding message",
-            line=25,
-            column=3
+            line=25
         )
         
         expected_repr = "[MockRule:25] (WARNING) in '': Test finding message"
@@ -98,7 +92,6 @@ class TestFinding:
             rule=self.rule,
             message="Test finding message",
             line=10,
-            column=5,
             file_path="test.pmd"
         )
         
@@ -106,7 +99,6 @@ class TestFinding:
             rule=self.rule,
             message="Test finding message",
             line=10,
-            column=5,
             file_path="test.pmd"
         )
         
@@ -114,7 +106,6 @@ class TestFinding:
         assert finding1.rule == finding2.rule
         assert finding1.message == finding2.message
         assert finding1.line == finding2.line
-        assert finding1.column == finding2.column
         assert finding1.file_path == finding2.file_path
     
     def test_finding_inequality(self):
@@ -123,7 +114,6 @@ class TestFinding:
             rule=self.rule,
             message="Test finding message 1",
             line=10,
-            column=5,
             file_path="test1.pmd"
         )
         
@@ -131,14 +121,12 @@ class TestFinding:
             rule=self.rule,
             message="Test finding message 2",
             line=15,
-            column=8,
             file_path="test2.pmd"
         )
         
         # Findings with different values should not be equal
         assert finding1.message != finding2.message
         assert finding1.line != finding2.line
-        assert finding1.column != finding2.column
         assert finding1.file_path != finding2.file_path
     
     def test_finding_with_different_rule(self):
@@ -154,15 +142,13 @@ class TestFinding:
         finding1 = Finding(
             rule=rule1,
             message="Test finding message",
-            line=10,
-            column=5
+            line=10
         )
         
         finding2 = Finding(
             rule=rule2,
             message="Test finding message",
-            line=10,
-            column=5
+            line=10
         )
         
         assert finding1.rule_id == "MockRule"
@@ -176,7 +162,6 @@ class TestFinding:
             rule=self.rule,
             message="Test finding message",
             line=10,
-            column=5,
             file_path="test.pmd"
         )
         
@@ -184,7 +169,6 @@ class TestFinding:
         assert hasattr(finding, 'rule')
         assert hasattr(finding, 'message')
         assert hasattr(finding, 'line')
-        assert hasattr(finding, 'column')
         assert hasattr(finding, 'file_path')
         assert hasattr(finding, 'rule_id')
         assert hasattr(finding, 'rule_description')
@@ -196,7 +180,6 @@ class TestFinding:
             rule=self.rule,
             message="Test finding message",
             line=10,
-            column=5,
             file_path="test.pmd"
         )
         
@@ -204,7 +187,6 @@ class TestFinding:
         assert finding.rule == self.rule
         assert finding.message == "Test finding message"
         assert finding.line == 10
-        assert finding.column == 5
         assert finding.file_path == "test.pmd"
 
 

@@ -35,8 +35,7 @@ class VerboseBooleanDetector(ScriptDetector):
                 
                 yield Violation(
                     message=f"File section '{field_name}' has verbose boolean check: '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'.",
-                    line=line_number,
-                    column=1
+                    line=line_number
                 )
     
     def _find_verbose_ternary_expressions(self, ast: Tree, field_name: str):
@@ -51,8 +50,7 @@ class VerboseBooleanDetector(ScriptDetector):
                 
                 yield Violation(
                     message=f"File section '{field_name}' has verbose boolean check: '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'.",
-                    line=line_number,
-                    column=1
+                    line=line_number
                 )
     
     def _analyze_if_statement_for_verbosity(self, if_node):

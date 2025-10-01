@@ -24,8 +24,7 @@ class LongFunctionDetector(ScriptDetector):
             
             yield Violation(
                 message=f"File section '{field_name}' contains function '{func_info['name']}' with {func_info['lines']} lines (max recommended: {self.max_lines}). Consider breaking it into smaller functions.",
-                line=line_number,
-                column=1
+                line=line_number
             )
     
     def _find_long_functions(self, node, max_lines: int) -> List[Dict[str, Any]]:

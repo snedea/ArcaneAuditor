@@ -74,7 +74,6 @@ class EndpointBaseUrlTypeRule(Rule):
                 rule=self,
                 message=f"{endpoint_type.title()} endpoint '{endpoint_name}' has URL containing hardcoded values: {pattern_list}. Use baseUrlType instead of hardcoded URLs{suggestion}.",
                 line=line_number,
-                column=1,
                 file_path=model.file_path
             )
 

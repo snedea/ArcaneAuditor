@@ -33,8 +33,7 @@ class NestingLevelDetector(ScriptDetector):
             
             yield Violation(
                 message=f"File section '{field_name}' has {max_nesting_found} nesting levels{context_info} (max recommended: {self.max_nesting}). Consider refactoring.",
-                line=line_number,
-                column=1
+                line=line_number
             )
     
     def _analyze_ast_nesting(self, node, current_depth: int) -> Dict[str, Any]:

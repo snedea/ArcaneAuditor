@@ -46,7 +46,6 @@ class ScriptFileVarUsageRule(ScriptRuleBase):
                     rule=self,
                     message=violation.message,
                     line=violation.line,
-                    column=violation.column,
                     file_path=script_model.file_path
                 )
                 

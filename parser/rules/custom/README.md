@@ -164,11 +164,8 @@ class CustomScriptSecurityRule(ScriptRuleBase):
         # Your security analysis logic here
         if "eval(" in script_content:  # Example security check
             yield Violation(
-                rule=self,
                 message="Use of eval() is dangerous and should be avoided",
-                line=line_offset,
-                column=1,
-                file_path=file_path
+                line=line_offset
             )
 ```
 
@@ -195,7 +192,6 @@ class CustomStructureRule(StructureRuleBase):
                 rule=self,
                 message="PMD must have a presentation section",
                 line=1,
-                column=1,
                 file_path=pmd_model.file_path
             )
     
@@ -235,7 +231,6 @@ class CustomEndpointRule(StructureRuleBase):
                     rule=self,
                     message=f"Endpoint '{endpoint.get('name')}' should define failOnStatusCodes for proper error handling",
                     line=1,  # You'd calculate actual line number
-                    column=1,
                     file_path=pmd_model.file_path
                 )
 ```
@@ -245,16 +240,12 @@ class CustomEndpointRule(StructureRuleBase):
 ```python
 # Violation creation with automatic field population
 violation = Violation(
-    rule=self,  # Rule instance - automatically populates rule_id, severity, description
     message="Detailed description of the issue and how to fix it",
-    line=42,  # Line where the issue occurs
-    column=8,  # Column where the issue occurs (optional)
-    file_path=pmd_model.file_path  # Full file path
+    line=42  # Line where the issue occurs
 )
 
-# The Violation dataclass automatically sets:
-# - violation.rule_id = self.__class__.__name__
-# - violation.severity = self.SEVERITY  
+# Note: Violations are converted to Findings by the rule framework
+# Findings include rule_id, severity, file_path automatically  
 # - violation.rule_description = self.DESCRIPTION
 
 yield violation  # Yield instead of append
@@ -323,7 +314,6 @@ if not validate_lower_camel_case(variable_name):
         rule=self,
         message=f"Variable '{variable_name}' should use lowerCamelCase naming",
         line=line_number,
-        column=1,
         file_path=file_path
     )
 ```
@@ -461,11 +451,8 @@ class CustomScriptCommentRule(ScriptRuleBase):
                 
                 if not has_comment:
                     yield Violation(
-                        rule=self,
                         message="Function should have a comment explaining its purpose",
-                        line=line_offset + func_line,
-                        column=1,
-                        file_path=file_path
+                        line=line_offset + func_line
                     )
         except Exception as e:
             print(f"Error analyzing comments in {file_path}: {e}")

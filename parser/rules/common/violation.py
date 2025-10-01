@@ -9,7 +9,6 @@ class Violation:
     """Represents a code violation with consistent structure."""
     message: str
     line: int
-    column: int = 1
     metadata: Optional[Dict[str, Any]] = None
     
     def __post_init__(self):

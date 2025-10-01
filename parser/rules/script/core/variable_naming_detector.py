@@ -27,8 +27,7 @@ class VariableNamingDetector(ScriptDetector):
                 
                 yield Violation(
                     message=f"File section '{field_name}' declares variable '{var_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'.",
-                    line=line_number,
-                    column=1
+                    line=line_number
                 )
     
     def _find_declared_variables(self, node) -> Dict[str, Dict[str, Any]]:

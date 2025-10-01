@@ -34,7 +34,6 @@ class UnusedScriptIncludesDetector(ScriptDetector):
             violations.append(Violation(
                 message=f"Script file '{script_name}' is included but never used. Consider removing from include array or add calls like '{script_name}.functionName()'.",
                 line=1,  # This will be overridden by the rule
-                column=1,
                 metadata={
                     'script_name': script_name
                 }

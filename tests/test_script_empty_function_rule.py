@@ -7,7 +7,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from parser.rules.script.unused_code.empty_functions import ScriptEmptyFunctionRule
 from parser.rules.script.unused_code.empty_function_detector import EmptyFunctionDetector
-from parser.models import PMDModel
 from parser.app_parser import ModelParser
 
 

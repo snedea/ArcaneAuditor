@@ -52,7 +52,6 @@ class UnusedVariableDetector(ScriptDetector):
                     violations.append(Violation(
                         message=f"Unused variable '{var_name}' in {scope_type} scope",
                         line=self.get_line_number(var_info['node']),
-                        column=1,
                         metadata={
                             'variable_name': var_name,
                             'scope_type': scope_type,

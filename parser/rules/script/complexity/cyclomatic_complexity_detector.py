@@ -27,8 +27,7 @@ class CyclomaticComplexityDetector(ScriptDetector):
             
             yield Violation(
                 message=f"File section '{field_name}' has complexity of {complexity} (max recommended: {self.max_complexity}). Consider refactoring.",
-                line=line_number,
-                column=1
+                line=line_number
             )
     
     def _analyze_ast_complexity(self, node) -> Dict[str, Any]:

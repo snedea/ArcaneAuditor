@@ -33,8 +33,7 @@ class DescriptiveParameterDetector(ScriptDetector):
                 message=f"Parameter '{violation['param_name']}' in {violation['method_name']}() should be more descriptive. "
                        f"Consider using '{violation['suggested_name']}' instead. Single-letter parameters make functions "
                        f"that take function parameters harder to read and debug.",
-                line=violation['line'],
-                column=violation['column']
+                line=violation['line']
             )
 
     def set_original_content(self, content: str):
@@ -479,8 +478,7 @@ class DescriptiveParameterDetector(ScriptDetector):
                         'method_name': method_name,
                         'param_name': param_name,
                         'suggested_name': suggested_name,
-                        'line': self.get_line_number(arrow_func),
-                        'column': 1,  # Approximate
+                        'line': self.get_line_number(arrow_func),  # Approximate
                         'context': context,
                         'param_index': 0
                     })
@@ -502,7 +500,6 @@ class DescriptiveParameterDetector(ScriptDetector):
                             'param_name': param_name,
                             'suggested_name': suggested_name,
                             'line': self.get_line_number(arrow_func),
-                            'column': 1,  # Approximate
                             'context': context,
                             'param_index': i
                         })
@@ -572,7 +569,6 @@ class DescriptiveParameterDetector(ScriptDetector):
                         'param_name': param_name,
                         'suggested_name': suggested_name,
                         'line': line_num,
-                        'column': match.start(2) + 1,
                         'context': context,
                         'param_index': 0  # Single parameter methods have index 0
                     })
@@ -600,7 +596,6 @@ class DescriptiveParameterDetector(ScriptDetector):
                             'param_name': param_name,
                             'suggested_name': suggested_name,
                             'line': line_num,
-                            'column': match.start(2) + 1,  # Approximate position
                             'context': context,
                             'param_index': i
                         })

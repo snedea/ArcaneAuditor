@@ -30,8 +30,7 @@ class ConsoleLogDetector(ScriptDetector):
                     
                     yield Violation(
                         message=f"File section '{field_name}' contains console.{method_name} statement. Remove debug statements from production code.",
-                        line=line_number,
-                        column=1
+                        line=line_number
                     )
     
     def _is_console_method_call(self, object_node, method_node) -> bool:

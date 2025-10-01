@@ -14,7 +14,7 @@ Arcane Auditor unified architecture (2025). It demonstrates:
 
 from typing import Generator
 from ...script.shared import ScriptRuleBase, Violation
-from ....models import ProjectContext, PMDModel, ScriptModel
+from ....models import ProjectContext, PMDModel
 
 
 class CustomScriptCommentQualityRule(ScriptRuleBase):
@@ -92,7 +92,6 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
                                f"({comment_density:.1%}, minimum: {self.min_comment_density:.1%}). "
                                f"Consider adding comments to improve code maintainability.",
                         line=line_offset + func_info['start_line'],
-                        column=1,
                         file_path=file_path
                     )
         
@@ -241,7 +240,6 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
                     message=f"PMD file is missing required section: '{section}'. "
                            f"This section is required by organizational standards.",
                     line=1,
-                    column=1,
                     file_path=pmd_model.file_path
                 )
         
@@ -252,7 +250,6 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
                 message=f"PMD has too many endpoints ({len(pmd_model.endpoints)} > {self.max_endpoints}). "
                        f"Consider splitting into multiple PMD files for better maintainability.",
                 line=1,
-                column=1,
                 file_path=pmd_model.file_path
             )
 

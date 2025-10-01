@@ -50,7 +50,6 @@ class ScriptUnusedScriptIncludesRule(ScriptRuleBase):
                     rule=self,
                     message=violation.message,
                     line=self._get_include_line_number(pmd_model, violation.metadata.get('script_name', '')),
-                    column=1,
                     file_path=pmd_model.file_path
                 )
                 

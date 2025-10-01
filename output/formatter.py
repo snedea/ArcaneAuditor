@@ -149,8 +149,7 @@ class OutputFormatter:
                     "severity": finding.severity,
                     "message": finding.message,
                     "file_path": finding.file_path,
-                    "line": finding.line,
-                    "column": finding.column
+                    "line": finding.line
                 }
                 for finding in findings
             ]
@@ -227,7 +226,7 @@ class OutputFormatter:
             ws = wb.create_sheet(sheet_name)
             
             # Headers
-            headers = ["Rule ID", "Severity", "Line", "Column", "Message", "File Path"]
+            headers = ["Rule ID", "Severity", "Line", "Message", "File Path"]
             ws.append(headers)
             
             # Style headers
@@ -245,7 +244,6 @@ class OutputFormatter:
                     finding.rule_id,
                     finding.severity,
                     finding.line,
-                    finding.column,
                     finding.message,
                     finding.file_path
                 ]
