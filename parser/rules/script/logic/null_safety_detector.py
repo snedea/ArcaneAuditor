@@ -9,10 +9,11 @@ from ...script.shared.ast_utils import get_line_number
 class NullSafetyDetector(ScriptDetector):
     """Detects unsafe property access patterns that lack null safety."""
 
-    def __init__(self, file_path: str = "", line_offset: int = 1, safe_variables: Set[str] = None):
-        """Initialize detector with file context and safe variables."""
+    def __init__(self, file_path: str = "", line_offset: int = 1, safe_variables: Set[str] = None, endpoint_names: Set[str] = None):
+        """Initialize detector with file context, safe variables, and endpoint names."""
         super().__init__(file_path, line_offset)
         self.safe_variables = safe_variables or set()
+        self.endpoint_names = endpoint_names or set()
 
     def detect(self, ast: Any, field_name: str = "") -> List[Violation]:
         """
@@ -99,6 +100,18 @@ class NullSafetyDetector(ScriptDetector):
             partial_chain = '.'.join(parts[:i+1])
             if partial_chain in safe_variables:
                 return False
+        
+        # Check if the chain is safe due to local variable declaration
+        if self._is_chain_safe_due_to_local_declaration(ast, chain):
+            return False
+        
+        # Check if the chain is safe due to known safe patterns
+        if self._is_chain_safe_due_to_known_patterns(chain):
+            return False
+        
+        # Check if the chain is safe due to safe property patterns (widget, childrenMap, etc.)
+        if self._is_safe_property_pattern(chain):
+            return False
         
         # If no safe variables found, use the standard unsafe chain logic
         return self._is_unsafe_chain(ast, chain)
@@ -274,12 +287,13 @@ class NullSafetyDetector(ScriptDetector):
 
     def _is_safe_property_pattern(self, chain: str) -> bool:
         """Check if a property access chain represents a safe pattern that doesn't need null safety checks."""
-        # Widget method calls and properties - these are safe in PMD context
-        if any(pattern in chain for pattern in [
-            'widget.setError', 'widget.clearError', 'widget.setValue',
-            'widget.value', 'widget.selectedEntries', 'widget.children', 'widget.childrenMap', 
-            'widget.label', 'widget.data', 'widget.getChildren', 'widget.setEnabled'
-        ]):
+        # Widget property access - if compiler allows widget.property, it's safe
+        if chain.startswith('widget.'):
+            return True
+        
+        # Grid structure patterns - these are guaranteed by the grid definition
+        # childrenMap access is always safe in Workday Extend
+        if '.childrenMap.' in chain:
             return True
         
         # Array method calls - these are safe
@@ -332,16 +346,32 @@ class NullSafetyDetector(ScriptDetector):
                 
         # Check for null coalescing
         if node.data == 'null_coalescing_expression':
-            if self._chain_matches_node(node.children[0], chain):
+            # Check if the left side of the null coalescing contains our chain
+            if len(node.children) > 0 and self._expression_contains_chain(node.children[0], chain):
                 return True
                 
-
         # Check for optional chaining
         if node.data == 'optional_member_dot_expression':
             if self._chain_matches_node(node, chain):
                 return True
                 
+        return False
 
+    def _expression_contains_chain(self, node: Tree, chain: str) -> bool:
+        """Check if an expression contains the given property chain."""
+        if not hasattr(node, 'data'):
+            return False
+            
+        # Check if this node itself matches the chain
+        if self._chain_matches_node(node, chain):
+            return True
+            
+        # Recursively check child nodes
+        if hasattr(node, 'children'):
+            for child in node.children:
+                if self._expression_contains_chain(child, chain):
+                    return True
+                    
         return False
 
     def _chain_matches_node(self, node: Tree, chain: str) -> bool:
@@ -355,5 +385,126 @@ class NullSafetyDetector(ScriptDetector):
         elif node.data == 'member_dot_expression':
             extracted_chain = self._extract_property_chain(node)
             return extracted_chain == chain
+        return False
+
+    def _is_chain_safe_due_to_local_declaration(self, ast: Tree, chain: str) -> bool:
+        """Check if a property access chain is safe due to local variable declaration and initialization."""
+        parts = chain.split('.')
+        if len(parts) < 2:
+            return False
+            
+        root_object = parts[0]
+        
+        # Look for variable declarations in the AST
+        for node in ast.iter_subtrees():
+            if node.data == 'variable_declaration':
+                # Check if this declares our root object
+                if self._declares_variable(node, root_object):
+                    # Check if the variable is initialized with an object that has the first property
+                    # If the first property exists, we consider the entire chain safe
+                    if self._is_variable_initialized_with_properties(node, [parts[1]]):
+                        return True
+                        
+        return False
+
+    def _declares_variable(self, declaration_node: Tree, variable_name: str) -> bool:
+        """Check if a variable declaration node declares the given variable."""
+        if not hasattr(declaration_node, 'children') or len(declaration_node.children) < 2:
+            return False
+            
+        # Variable declaration has structure: ['variable_name', 'initialization_value']
+        declared_var = declaration_node.children[0]
+        if hasattr(declared_var, 'value'):
+            return declared_var.value == variable_name
+        elif hasattr(declared_var, 'children') and len(declared_var.children) > 0:
+            return str(declared_var.children[0]) == variable_name
+        else:
+            return str(declared_var) == variable_name
+                
+        return False
+
+    def _is_variable_initialized_with_properties(self, declaration_node: Tree, required_properties: List[str]) -> bool:
+        """Check if a variable is initialized with an object that has the required properties."""
+        if not hasattr(declaration_node, 'children') or len(declaration_node.children) < 2:
+            return False
+            
+        # Variable declaration has structure: ['variable_name', 'initialization_value']
+        init_value = declaration_node.children[1]
+        
+        if not init_value:
+            return False
+            
+        # Check if it's an object literal with the required properties
+        if init_value.data == 'curly_literal_expression':
+            # This is an object literal expression, check its contents
+            return self._object_has_properties(init_value, required_properties)
+        elif init_value.data == 'identifier_expression':
+            # Variable is initialized with another variable - this is harder to track
+            # For now, we'll be conservative and return False
+            return False
+            
+        return False
+
+    def _object_has_properties(self, object_node: Tree, required_properties: List[str]) -> bool:
+        """Check if an object literal has the required properties."""
+        if not hasattr(object_node, 'children'):
+            return False
+            
+        # Look for property assignments in the object
+        declared_properties = set()
+        
+        # Handle curly_literal_expression -> curly_literal structure
+        if object_node.data == 'curly_literal_expression' and len(object_node.children) > 0:
+            curly_literal = object_node.children[0]
+            if curly_literal.data == 'curly_literal':
+                # Process the curly_literal children
+                for i in range(0, len(curly_literal.children), 2):  # Skip every other child (values)
+                    if i < len(curly_literal.children):
+                        prop_node = curly_literal.children[i]
+                        if prop_node.data == 'literal_expression' and len(prop_node.children) > 0:
+                            prop_token = prop_node.children[0]
+                            if hasattr(prop_token, 'value'):
+                                # Remove quotes from string literal
+                                prop_name = prop_token.value.strip('"\'')
+                                declared_properties.add(prop_name)
+        
+        # Check if all required properties are declared
+        return all(prop in declared_properties for prop in required_properties)
+
+    def _is_chain_safe_due_to_known_patterns(self, chain: str) -> bool:
+        """Check if a property access chain is safe due to known safe patterns."""
+        parts = chain.split('.')
+        if len(parts) < 2:
+            return False
+        
+        # Pattern 1: Endpoint data patterns - use actual endpoint names
+        # Examples: getExpenses.data.filter, getTools.data.find, etc.
+        if len(parts) >= 3 and parts[-2] == 'data':
+            endpoint_name = parts[0]
+            if endpoint_name in self.endpoint_names:
+                # Check if the last part is an array method
+                last_part = parts[-1]
+                if last_part in ['filter', 'find', 'map', 'reduce', 'forEach', 'for']:
+                    return True
+        
+        # Pattern 2: Grid rows patterns - rows is always a list (empty or populated)
+        # Examples: homeExpensesGrid.rows.forEach, vehicleGrid.rows.filter, etc.
+        if len(parts) >= 3 and parts[-2] == 'rows':
+            # Check if this looks like a grid rows access
+            grid_name = parts[0]
+            if 'grid' in grid_name.lower():
+                # Check if the last part is an array method
+                last_part = parts[-1]
+                if last_part in ['filter', 'find', 'map', 'reduce', 'forEach', 'for']:
+                    return True
+        
+        # Pattern 3: Generic array method patterns - if compiler allows it, it's safe
+        # Examples: anyObject.filter, anyList.forEach, etc.
+        if len(parts) >= 2:
+            last_part = parts[-1]
+            if last_part in ['filter', 'find', 'map', 'reduce', 'forEach', 'for']:
+                # If the compiler allows an array method call, the object is guaranteed to be an array
+                return True
+        
         return False
 
