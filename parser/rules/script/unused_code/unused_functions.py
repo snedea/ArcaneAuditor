@@ -1,6 +1,6 @@
 """Script unused functions rule using unified architecture."""
 
-from typing import Generator, Set
+from typing import Generator, Set, List, Tuple
 from ...script.shared import ScriptRuleBase
 from ...base import Finding
 from .unused_functions_detector import UnusedFunctionsDetector
@@ -17,29 +17,90 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
         """Get rule description."""
         return self.DESCRIPTION
 
+    def _analyze_fields(self, model, script_fields: List[Tuple[str, str, str, int]], context=None) -> Generator[Finding, None, None]:
+        """Analyze script fields with proper global/local scoping."""
+        # Separate global and local script fields
+        global_fields = []
+        local_fields = []
+        
+        for field_path, field_value, field_name, line_offset in script_fields:
+            if field_value and field_value.strip():
+                if self._is_global_script_field(field_name):
+                    global_fields.append((field_path, field_value, field_name, line_offset))
+                else:
+                    local_fields.append((field_path, field_value, field_name, line_offset))
+        
+        # Analyze global functions (can be called from anywhere)
+        if global_fields:
+            yield from self._analyze_global_functions(model, global_fields, local_fields, context)
+        
+        # Analyze local functions (only checked within their own scope)
+        yield from self._analyze_local_functions(model, local_fields, context)
+
+    def _is_global_script_field(self, field_name: str) -> bool:
+        """Check if a script field is in global scope (script section)."""
+        return 'script' in field_name.lower()
+
+    def _analyze_global_functions(self, model, global_fields: List[Tuple[str, str, str, int]], 
+                                 local_fields: List[Tuple[str, str, str, int]], context=None) -> Generator[Finding, None, None]:
+        """Analyze global functions - can be called from anywhere on the page."""
+        # Collect all function declarations from global fields
+        all_declared_functions = set()
+        all_function_calls = set()
+        global_field_asts = {}
+        
+        # First pass: collect declarations from global fields
+        for field_path, field_value, field_name, line_offset in global_fields:
+            ast = self._parse_script_content(field_value, context)
+            if ast:
+                global_field_asts[(field_path, field_name, line_offset)] = ast
+                all_declared_functions.update(self._collect_function_declarations(ast))
+        
+        # Second pass: collect calls from ALL fields (global + local)
+        all_fields = global_fields + local_fields
+        for field_path, field_value, field_name, line_offset in all_fields:
+            ast = self._parse_script_content(field_value, context)
+            if ast:
+                all_function_calls.update(self._collect_function_calls(ast))
+        
+        # Third pass: check for unused global functions
+        for (field_path, field_name, line_offset), ast in global_field_asts.items():
+            detector = self.DETECTOR(model.file_path, line_offset, all_declared_functions, all_function_calls)
+            violations = detector.detect(ast, field_name)
+            
+            for violation in violations:
+                yield Finding(
+                    rule=self,
+                    message=violation.message,
+                    line=violation.line,
+                    file_path=model.file_path
+                )
+
+    def _analyze_local_functions(self, model, local_fields: List[Tuple[str, str, str, int]], 
+                                context=None) -> Generator[Finding, None, None]:
+        """Analyze local functions - only checked within their own scope."""
+        for field_path, field_value, field_name, line_offset in local_fields:
+            ast = self._parse_script_content(field_value, context)
+            if ast:
+                # For local functions, only check within the same field
+                local_declared_functions = self._collect_function_declarations(ast)
+                local_function_calls = self._collect_function_calls(ast)
+                
+                detector = self.DETECTOR(model.file_path, line_offset, local_declared_functions, local_function_calls)
+                violations = detector.detect(ast, field_name)
+                
+                for violation in violations:
+                    yield Finding(
+                        rule=self,
+                        message=violation.message,
+                        line=violation.line,
+                        file_path=model.file_path
+                    )
+
     def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None) -> Generator[Finding, None, None]:
-        """Check script content using the detector."""
-        # Parse the script content
-        ast = self._parse_script_content(script_content, context)
-        if not ast:
-            return
-        
-        # Collect function declarations and calls within this script
-        all_declared_functions = self._collect_function_declarations(ast)
-        all_function_calls = self._collect_function_calls(ast)
-        
-        # Use detector to find violations
-        detector = self.DETECTOR(file_path, line_offset, all_declared_functions, all_function_calls)
-        violations = detector.detect(ast, field_name)
-        
-        # Convert violations to findings
-        for violation in violations:
-            yield Finding(
-                rule=self,
-                message=violation.message,
-                line=violation.line,
-                file_path=file_path
-            )
+        """Check script content using the detector - not used in file-level analysis."""
+        # This method is not used when _analyze_fields is overridden
+        return
     
     def _collect_function_declarations(self, ast) -> Set[str]:
         """
