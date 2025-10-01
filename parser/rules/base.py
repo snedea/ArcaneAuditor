@@ -145,18 +145,22 @@ class Rule(ABC):
         # Priority 1: id
         if 'id' in item and isinstance(item['id'], str) and item['id'].strip():
             return f"id: {item['id']}"
+
+        # Priority 2: columnId
+        if 'columnId' in item and isinstance(item['columnId'], str) and item['columnId'].strip():
+            return f"columnId: {item['columnId']}"
         
-        # Priority 2: label
+        # Priority 3: label
         if 'label' in item and isinstance(item['label'], str) and item['label'].strip():
             # Truncate long labels
             label = item['label'][:40] + '...' if len(item['label']) > 40 else item['label']
             return f"label: {label}"
         
-        # Priority 3: type
+        # Priority 4: type
         if 'type' in item and isinstance(item['type'], str) and item['type'].strip():
             return f"type: {item['type']}"
         
-        # Priority 4: name (for endpoints, etc.)
+        # Priority 5: name (for endpoints, etc.)
         if 'name' in item and isinstance(item['name'], str) and item['name'].strip():
             return f"name: {item['name']}"
         
