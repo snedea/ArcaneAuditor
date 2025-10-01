@@ -110,6 +110,34 @@ class PMDPreprocessor:
             escaped_content = json.dumps(full_content)
             final_line = f'{line_prefix}{escaped_content}' # No closing quote
             processed_lines.append(final_line)
+        
+        # Second pass: hash single-line scripts that weren't caught by multiline logic
+        # This ensures ALL script content gets hash mappings
+        # Use simpler greedy pattern as suggested - matches field: "value with <% script %>"
+        script_pattern = re.compile(r'"[^"]*":\s*"(.*?<%.*?%>.*?)"')
+        
+        for i, line in enumerate(lines):
+            m = script_pattern.search(line)
+            if not m:
+                continue
+            
+            raw_value = m.group(1)
+            try:
+                # Unescape once (because it's still JSON-quoted in the line)
+                unescaped = json.loads(f'"{raw_value}"')
+            except Exception:
+                # Fallback if already clean or has unusual escaping
+                unescaped = raw_value
+            
+            # Create hash using same algorithm as multiline (SHA256 for consistency)
+            h = hashlib.sha256(unescaped.encode('utf-8')).hexdigest()
+            
+            # Only add if not already in mapping (multiline takes precedence)
+            if h not in hash_to_lines:
+                hash_to_lines[h] = []
+            
+            # Store as list of lists to match multiline structure
+            hash_to_lines[h].append([i + 1])
             
         return '\n'.join(processed_lines), line_mappings, hash_to_lines
 

@@ -133,9 +133,12 @@ class Rule(ABC):
         # Track the last line found to search forward from there
         last_line_found = 0
         
+        # Track which hashes we've already used (for handling duplicates in order)
+        used_hashes = {}  # hash -> count of times used
+        
         def _search_dict(data: Dict[str, Any], prefix: str = "", file_content: str = "", display_prefix: str = "") -> None:
             """Recursively search a dictionary for script fields."""
-            nonlocal last_line_found
+            nonlocal last_line_found, used_hashes
             
             for key, value in data.items():
                 if isinstance(value, str) and re.search(script_pattern, value, re.DOTALL):
@@ -143,12 +146,26 @@ class Rule(ABC):
                     # Use human-readable display name
                     display_name = f"{display_prefix}->{key}" if display_prefix else key
                     
-                    # Try hash-based lookup first (most accurate)
+                    # Try hash-based lookup first (most accurate for multiline scripts)
                     line_offset = pmd_model.get_script_start_line(value)
                     
-                    # Fallback to fuzzy search if hash lookup fails (for single-line scripts)
+                    # For single-line scripts, hash lookup won't work (preprocessor only hashes multiline)
+                    # So we create our own hash and use improved fuzzy search
                     if line_offset is None:
-                        line_offset = self._calculate_script_line_offset(file_content, value, search_start_line=last_line_found) if file_content else 1
+                        # Compute hash for this script value
+                        import hashlib
+                        value_hash = hashlib.sha256(value.encode('utf-8')).hexdigest()
+                        
+                        # Track how many times we've seen this hash
+                        occurrence_index = used_hashes.get(value_hash, 0)
+                        used_hashes[value_hash] = occurrence_index + 1
+                        
+                        # Use improved fuzzy search that accounts for duplicates
+                        line_offset = self._calculate_script_line_offset(
+                            file_content, value, 
+                            search_start_line=last_line_found,
+                            occurrence_index=occurrence_index
+                        ) if file_content else 1
                     
                     last_line_found = line_offset
                     script_fields.append((field_path, value, display_name, line_offset))
@@ -179,12 +196,21 @@ class Rule(ABC):
                             # Use human-readable display name
                             display_name = f"{display_prefix}->{key}[{i}]" if display_prefix else f"{key}[{i}]"
                             
-                            # Try hash-based lookup first (most accurate)
+                            # Try hash-based lookup first (most accurate for multiline scripts)
                             line_offset = pmd_model.get_script_start_line(item)
                             
-                            # Fallback to fuzzy search if hash lookup fails
+                            # Fallback to fuzzy search with duplicate tracking
                             if line_offset is None:
-                                line_offset = self._calculate_script_line_offset(file_content, item, search_start_line=last_line_found) if file_content else 1
+                                import hashlib
+                                value_hash = hashlib.sha256(item.encode('utf-8')).hexdigest()
+                                occurrence_index = used_hashes.get(value_hash, 0)
+                                used_hashes[value_hash] = occurrence_index + 1
+                                
+                                line_offset = self._calculate_script_line_offset(
+                                    file_content, item,
+                                    search_start_line=last_line_found,
+                                    occurrence_index=occurrence_index
+                                ) if file_content else 1
                             
                             last_line_found = line_offset
                             script_fields.append((field_path, item, display_name, line_offset))
@@ -198,7 +224,7 @@ class Rule(ABC):
         
         return script_fields
     
-    def _calculate_script_line_offset(self, file_content: str, script_content: str, search_start_line: int = 0) -> int:
+    def _calculate_script_line_offset(self, file_content: str, script_content: str, search_start_line: int = 0, occurrence_index: int = 0) -> int:
         """
         Calculate the line number where the script content starts in the original file.
         
@@ -206,6 +232,7 @@ class Rule(ABC):
             file_content: The full source file content
             script_content: The script content to find (from parsed JSON, has real newlines)
             search_start_line: Line number to start searching from (0-based, for avoiding duplicates)
+            occurrence_index: Which occurrence to find (0 = first, 1 = second, etc.)
             
         Returns:
             Line number (1-based) where the script starts
@@ -219,8 +246,24 @@ class Rule(ABC):
         # Strategy 1: For single-line scripts, search for exact match
         # This works when the entire script is on one line in the JSON
         if '\n' not in script_content:
+            # The script_content from parsed JSON has unescaped quotes
+            # But the source file has escaped quotes (\")
+            # Re-escape for matching
+            escaped_content = script_content.replace('"', '\\"')
+            
+            # Search from BEGINNING for exact matches (not from start_index)
+            # because JSON field order doesn't match file order
+            matches_found = 0
+            for i in range(0, len(lines)):  # Search from beginning
+                if script_content in lines[i] or escaped_content in lines[i]:
+                    if matches_found == occurrence_index:
+                        return i + 1
+                    matches_found += 1
+            
+            # If exact match fails, find the next line with <% after start_index
+            # This is reliable for sequential processing
             for i in range(start_index, len(lines)):
-                if script_content in lines[i]:
+                if '<%' in lines[i]:
                     return i + 1
         
         # Strategy 2: For multi-line scripts, search for distinctive content
