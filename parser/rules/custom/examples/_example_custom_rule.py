@@ -1,13 +1,13 @@
 """
 Example Custom Rule - Custom Script Comment Quality Rule
 
-This is an example of how to create a custom validation rule using the modern
-Arcane Auditor unified architecture (2025). It demonstrates:
+This is an example of how to create a custom validation rule using the
+Arcane Auditor unified architecture. It demonstrates:
 
 - Unified rule architecture with ScriptRuleBase
 - Generator-based analysis pattern
 - Dual script analysis (PMD embedded + standalone script files)  
-- Modern Violation creation (no column tracking - removed in 2025)
+- Clean violation creation (line numbers only, no column tracking)
 - Context-based AST caching for performance
 - Hash-based line number calculation (exact, no off-by-one errors)
 - Proper error handling and AST parsing
@@ -83,7 +83,7 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
         - Using built-in script parser with context-level caching (faster, memory-efficient)
         - AST traversal for function detection
         - Comment density calculation
-        - Modern Violation creation (no column tracking - removed in 2025)
+        - Clean violation creation (line numbers only, no column tracking)
         - Hash-based line numbers (exact positioning, no off-by-one errors)
         """
         try:
@@ -112,7 +112,6 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
                     )
                     
                     # Convert to Finding (external format for rules engine)
-                    # Note: No column field - column tracking removed in 2025
                     yield Finding(
                         rule=self,  # Automatically populates rule_id, severity, description
                         message=violation.message,
