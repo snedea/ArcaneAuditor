@@ -124,7 +124,7 @@ class ModelParser:
             path_obj = Path(file_path)
             
             # Preprocess the PMD content
-            processed_content, line_mappings = preprocess_pmd_content(content)
+            processed_content, line_mappings, hash_to_lines = preprocess_pmd_content(content)
             
             # Try to parse as JSON
             try:
@@ -168,6 +168,7 @@ class ModelParser:
                 
                 # Set line mappings for proper error reporting
                 pmd_model.set_line_mappings(line_mappings)
+                pmd_model.set_hash_to_lines_mapping(hash_to_lines)
                 
                 context.pmds[pmd_model.pageId] = pmd_model
                 print(f"Parsed PMD: {pmd_model.pageId}")
@@ -249,7 +250,7 @@ class ModelParser:
                 # Try to fix common JSON issues using the existing PMD preprocessor
                 try:
                     from .pmd_preprocessor import preprocess_pmd_content
-                    fixed_content, _ = preprocess_pmd_content(content)
+                    fixed_content, _, _ = preprocess_pmd_content(content)
                     pod_data = json.loads(fixed_content)
                     
                     # Extract seed data

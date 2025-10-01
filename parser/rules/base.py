@@ -142,9 +142,14 @@ class Rule(ABC):
                     field_path = f"{prefix}.{key}" if prefix else key
                     # Use human-readable display name
                     display_name = f"{display_prefix}->{key}" if display_prefix else key
-                    # Calculate line offset by finding the script content in the original file
-                    # Start searching from the last found position to avoid duplicates
-                    line_offset = self._calculate_script_line_offset(file_content, value, search_start_line=last_line_found) if file_content else 1
+                    
+                    # Try hash-based lookup first (most accurate)
+                    line_offset = pmd_model.get_script_start_line(value)
+                    
+                    # Fallback to fuzzy search if hash lookup fails (for single-line scripts)
+                    if line_offset is None:
+                        line_offset = self._calculate_script_line_offset(file_content, value, search_start_line=last_line_found) if file_content else 1
+                    
                     last_line_found = line_offset
                     script_fields.append((field_path, value, display_name, line_offset))
                 elif isinstance(value, dict):
@@ -173,9 +178,14 @@ class Rule(ABC):
                             field_path = f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}"
                             # Use human-readable display name
                             display_name = f"{display_prefix}->{key}[{i}]" if display_prefix else f"{key}[{i}]"
-                            # Calculate line offset by finding the script content in the original file
-                            # Start searching from the last found position to avoid duplicates
-                            line_offset = self._calculate_script_line_offset(file_content, item, search_start_line=last_line_found) if file_content else 1
+                            
+                            # Try hash-based lookup first (most accurate)
+                            line_offset = pmd_model.get_script_start_line(item)
+                            
+                            # Fallback to fuzzy search if hash lookup fails
+                            if line_offset is None:
+                                line_offset = self._calculate_script_line_offset(file_content, item, search_start_line=last_line_found) if file_content else 1
+                            
                             last_line_found = line_offset
                             script_fields.append((field_path, item, display_name, line_offset))
         
@@ -194,7 +204,7 @@ class Rule(ABC):
         
         Args:
             file_content: The full source file content
-            script_content: The script content to find
+            script_content: The script content to find (from parsed JSON, has real newlines)
             search_start_line: Line number to start searching from (0-based, for avoiding duplicates)
             
         Returns:
@@ -203,56 +213,96 @@ class Rule(ABC):
         if not file_content or not script_content:
             return 1
         
-        # Normalize both strings for comparison
-        # The script_content has escaped newlines (\n), but file_content has actual newlines
-        normalized_script = script_content.replace('\\n', '\n')
-        
-        # Strip the <% and %> wrappers from the script content for matching
-        stripped_script = self._strip_pmd_wrappers(normalized_script)
-        if not stripped_script:
-            return 1
-        
         lines = file_content.split('\n')
-        
-        # Start searching from the specified line (to avoid finding previous occurrences)
         start_index = max(0, search_start_line)
         
-        # Strategy 1: Find by matching a unique part of the script content
-        # Take the first 50 characters of the stripped script for matching
-        script_start = stripped_script.strip()[:50]
-        if script_start:
+        # Strategy 1: For single-line scripts, search for exact match
+        # This works when the entire script is on one line in the JSON
+        if '\n' not in script_content:
             for i in range(start_index, len(lines)):
-                line = lines[i]
-                if script_start in line:
-                    # Found the line - return it (1-based)
+                if script_content in lines[i]:
                     return i + 1
         
-        # Strategy 2: Find by matching the first significant line of the script
-        if stripped_script:
-            first_script_line = stripped_script.split('\n')[0].strip()
-            if first_script_line and len(first_script_line) > 15:  # Only use if it's substantial
-                for i in range(start_index, len(lines)):
-                    line = lines[i]
-                    if first_script_line in line:
-                        return i + 1
+        # Strategy 2: For multi-line scripts, search for distinctive content
+        # Search for unique code patterns that would appear in the file
+        if '\n' in script_content and script_content.startswith('<%'):
+            script_lines = script_content.split('\n')
+            # Get distinctive code lines (not just whitespace or braces)
+            code_lines = [line.strip() for line in script_lines[1:-1]  # Skip first (<%) and last (%>)
+                         if line.strip() and len(line.strip()) > 10
+                         and not line.strip() in ['{', '}', '};']]
+            
+            if code_lines:
+                # Use multiple distinctive lines for better matching
+                # Try first, middle, and last code lines to find the best match
+                search_lines_to_try = []
+                if len(code_lines) > 0:
+                    search_lines_to_try.append(('first', code_lines[0]))
+                if len(code_lines) > 2:
+                    search_lines_to_try.append(('middle', code_lines[len(code_lines) // 2]))
+                if len(code_lines) > 1:
+                    search_lines_to_try.append(('last', code_lines[-1]))
+                
+                for label, search_line in search_lines_to_try:
+                    search_text = search_line[:50]
+                    # Re-escape for matching against JSON source
+                    search_text_escaped = search_text.replace('\t', '\\t').replace('\n', '\\n')
+                    
+                    # Search from start_index first (forward search for sequential fields)
+                    for i in range(start_index, len(lines)):
+                        if search_text in lines[i] or search_text_escaped in lines[i]:
+                            # Found the code - now find the opening <% before it (within reasonable distance)
+                            for j in range(i, max(0, i - 30), -1):  # Search backward from found line
+                                if '<%' in lines[j]:
+                                    # Verify this is likely the right <% by checking proximity
+                                    if i - j < 25:  # Should be within 25 lines
+                                        return j + 1
+                            return i + 1
+                    
+                    # If not found forward, search from beginning (handles out-of-order presentation fields)
+                    for i in range(0, len(lines)):
+                        if search_text in lines[i] or search_text_escaped in lines[i]:
+                            # Found the code - now find the opening <% before it
+                            for j in range(i, max(0, i - 30), -1):  # Search backward from found line
+                                if '<%' in lines[j]:
+                                    if i - j < 25:
+                                        return j + 1
+                            return i + 1
         
-        # Strategy 3: Look for the opening <% tag followed by our script content
+        # Strategy 3: Search for distinctive content from within the script
+        # Extract a unique part of the script that should appear in the file
+        stripped = script_content.strip()
+        if stripped.startswith('<%') and stripped.endswith('%>'):
+            # Get content between <% and %>
+            inner = stripped[2:-2].strip()
+            if inner:
+                # Get first substantial line of code
+                code_lines = [line.strip() for line in inner.split('\n') if line.strip() and len(line.strip()) > 5]
+                if code_lines:
+                    # Search for the first unique line
+                    for code_line in code_lines[:3]:  # Try first 3 lines
+                        search_text = code_line[:50]
+                        if len(search_text) > 15:
+                            for i in range(start_index, len(lines)):
+                                if search_text in lines[i]:
+                                    # Found it - now find the opening <% before this line
+                                    for j in range(max(0, i - 10), i + 1):
+                                        if '<%' in lines[j]:
+                                            return j + 1
+                                    return i + 1  # Fallback to line where code was found
+        
+        # Strategy 4: Search for ANY <% tag from start position
         for i in range(start_index, len(lines)):
-            line = lines[i]
-            if '<%' in line:
-                # Check if this line contains the start of our script content
-                first_script_line = stripped_script.split('\n')[0].strip()
-                if first_script_line and first_script_line in line:
-                    # The script starts on this line after the <% tag
-                    return i + 1
-                elif first_script_line and len(first_script_line) > 15:
-                    # The script content might start on the next line after the <% tag
-                    # But only if the next line contains our script
-                    if i + 1 < len(lines) and first_script_line in lines[i + 1]:
-                        return i + 2
+            if '<%' in lines[i]:
+                return i + 1
         
-        # Fallback: if we have a start line, return at least that
-        return max(1, search_start_line + 1)
+        # Strategy 5: If nothing found forward, search from beginning for ANY <%
+        for i in range(0, len(lines)):
+            if '<%' in lines[i]:
+                return i + 1
+        
+        # Fallback: return line 1 (should rarely happen)
+        return 1
     
     def _strip_pmd_wrappers(self, script_content):
         """Strip <% and %> wrappers from PMD script content."""

@@ -6,22 +6,31 @@ in all string values while maintaining line number tracking for proper error rep
 """
 import json
 import re
+import hashlib
 from typing import Dict, List, Tuple
 
 
 class PMDPreprocessor:
     """Preprocesses PMD files to handle multi-line string values."""
 
-    def preprocess(self, content: str) -> Tuple[str, Dict[str, List[int]]]:
+    def preprocess(self, content: str) -> Tuple[str, Dict[str, List[int]], Dict[str, List[List[int]]]]:
         """
         Preprocess PMD content to make it valid JSON using a stateful approach.
+        
+        Returns:
+            Tuple of (processed_content, legacy_line_mappings, hash_to_lines_mapping)
+            - processed_content: The preprocessed JSON string
+            - legacy_line_mappings: Field name to line numbers (for backward compatibility)
+            - hash_to_lines_mapping: Content hash to line numbers (new, precise mapping)
         """
         lines = content.split('\n')
         processed_lines = []
-        line_mappings = {}
+        line_mappings = {}  # Legacy: field name -> lines
+        hash_to_lines = {}  # New: content hash -> list of line ranges
 
         in_multiline_string = False
         multiline_buffer = []
+        current_lines = []  # Track lines for the current multiline string
         line_prefix = ""
         field_path = ""
 
@@ -38,8 +47,9 @@ class PMDPreprocessor:
                         in_multiline_string = True
                         line_prefix = match.group(1) # e.g., '  "myKey": '
                         multiline_buffer.append(content_part)
+                        current_lines = [i + 1]  # Start tracking lines (1-based)
 
-                        # Extract field name for line mapping
+                        # Extract field name for legacy line mapping
                         field_name_match = re.search(r'["\'](.*?)["\']', line_prefix)
                         field_path = field_name_match.group(1) if field_name_match else "unknown"
                         
@@ -52,6 +62,7 @@ class PMDPreprocessor:
                 processed_lines.append(line)
 
             else: # We are currently inside a multi-line string
+                current_lines.append(i + 1)  # Track this line (1-based)
                 line_mappings[field_path].append(i + 1)
                 # Check if this line ENDS the multi-line string
                 end_match = re.search(r'(.*?)(?<!\\)(")\s*([,]?)\s*$', line)
@@ -60,8 +71,18 @@ class PMDPreprocessor:
                     in_multiline_string = False
                     multiline_buffer.append(end_match.group(1)) # Content before the quote
                     
-                    # Join, escape, and format the final line
+                    # Join the content (before escaping for JSON)
                     full_content = '\n'.join(multiline_buffer)
+                    
+                    # Create hash of the original multiline content
+                    content_hash = hashlib.sha256(full_content.encode('utf-8')).hexdigest()
+                    
+                    # Store hash -> line numbers mapping
+                    if content_hash not in hash_to_lines:
+                        hash_to_lines[content_hash] = []
+                    hash_to_lines[content_hash].append(current_lines.copy())
+                    
+                    # Now escape for JSON
                     escaped_content = json.dumps(full_content)
                     
                     # Reconstruct the complete, single JSON line
@@ -69,8 +90,9 @@ class PMDPreprocessor:
                     final_line = f'{line_prefix}{escaped_content}{closing_suffix}'
                     processed_lines.append(final_line)
 
-                    # Clear the buffer for the next potential multi-line string
+                    # Clear the buffers for the next potential multi-line string
                     multiline_buffer = []
+                    current_lines = []
                 else:
                     # Just another line in the middle of the string, add it to the buffer
                     multiline_buffer.append(line)
@@ -78,16 +100,26 @@ class PMDPreprocessor:
         # In case the file ends without closing the string (error handling)
         if in_multiline_string:
             full_content = '\n'.join(multiline_buffer)
+            
+            # Create hash even for unclosed strings
+            content_hash = hashlib.sha256(full_content.encode('utf-8')).hexdigest()
+            if content_hash not in hash_to_lines:
+                hash_to_lines[content_hash] = []
+            hash_to_lines[content_hash].append(current_lines.copy())
+            
             escaped_content = json.dumps(full_content)
             final_line = f'{line_prefix}{escaped_content}' # No closing quote
             processed_lines.append(final_line)
             
-        return '\n'.join(processed_lines), line_mappings
+        return '\n'.join(processed_lines), line_mappings, hash_to_lines
 
 
-def preprocess_pmd_content(content: str) -> Tuple[str, Dict[str, List[int]]]:
+def preprocess_pmd_content(content: str) -> Tuple[str, Dict[str, List[int]], Dict[str, List[List[int]]]]:
     """
     Convenience function to preprocess PMD content.
+    
+    Returns:
+        Tuple of (processed_content, legacy_line_mappings, hash_to_lines_mapping)
     """
     preprocessor = PMDPreprocessor()
     return preprocessor.preprocess(content)

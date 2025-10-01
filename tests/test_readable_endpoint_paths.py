@@ -148,7 +148,7 @@ def test_real_capital_planning_readable():
 
 def _create_pmd_model(source_content: str):
     """Helper to create PMDModel from source."""
-    processed_content, line_mappings = preprocess_pmd_content(source_content.strip())
+    processed_content, line_mappings, hash_to_lines = preprocess_pmd_content(source_content.strip())
     pmd_data = json.loads(processed_content)
     presentation_data = pmd_data.get('presentation', {})
     
@@ -166,7 +166,7 @@ def _create_pmd_model(source_content: str):
     outbound_data = pmd_data.get('outboundData', {})
     outbound_endpoints = outbound_data.get('outboundEndPoints', []) if isinstance(outbound_data, dict) else []
     
-    return PMDModel(
+    pmd_model = PMDModel(
         pageId=pmd_data.get('id', 'test'),
         inboundEndpoints=pmd_data.get('endPoints', []),
         outboundEndpoints=outbound_endpoints,
@@ -176,6 +176,11 @@ def _create_pmd_model(source_content: str):
         file_path="test.pmd",
         source_content=source_content.strip()
     )
+    
+    # Set the hash-based line mappings
+    pmd_model.set_hash_to_lines_mapping(hash_to_lines)
+    
+    return pmd_model
 
 
 if __name__ == "__main__":

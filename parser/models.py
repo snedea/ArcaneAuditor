@@ -54,6 +54,8 @@ class PMDModel(BaseModel):
     _cached_script_fields: Optional[List[tuple]] = PrivateAttr(default=None)
     # Private attribute to store line mappings for script fields
     _line_mappings: Optional[Dict[str, List[int]]] = PrivateAttr(default=None)
+    # Private attribute to store hash-based line mappings (hash -> list of line ranges)
+    _hash_to_lines: Optional[Dict[str, List[List[int]]]] = PrivateAttr(default=None)
 
     def _parse_script(self, script_content: Optional[str]) -> Optional[Tree]:
         """A helper method to parse a script string using the custom Lark parser."""
@@ -81,6 +83,94 @@ class PMDModel(BaseModel):
     def set_line_mappings(self, line_mappings: Dict[str, List[int]]):
         """Set the line mappings for script fields."""
         self._line_mappings = line_mappings
+    
+    def set_hash_to_lines_mapping(self, hash_to_lines: Dict[str, List[List[int]]]):
+        """Set the hash-based line mappings for precise line number tracking."""
+        self._hash_to_lines = hash_to_lines or {}
+    
+    def get_script_start_line(self, script_value: str) -> Optional[int]:
+        """
+        Get the starting line number for a script value using hash-based mapping.
+        
+        This method accounts for the fact that AST line 1 corresponds to the first
+        line of actual code after the <% tag, not the line with the tag itself.
+        
+        Args:
+            script_value: The full script content (including <% and %>)
+            
+        Returns:
+            Line number (1-based) where AST line 1 starts, or None if not found
+        """
+        import hashlib
+        
+        if not self._hash_to_lines:
+            return None
+        
+        # The script_value from the parsed JSON has already had \n converted to real newlines
+        # But when it was preprocessed, it was still raw with \n in the multiline buffer
+        # We need to hash it the same way the preprocessor did
+        
+        # The preprocessor hashes the content BEFORE json.dumps escaping
+        # So we need to reverse that: the script_value is the result of JSON parsing
+        # which means it's already unescaped
+        
+        # For multiline scripts, the preprocessor joined with '\n'.join(multiline_buffer)
+        # So we need to hash the script_value as-is (it already has real newlines)
+        content_hash = hashlib.sha256(script_value.encode('utf-8')).hexdigest()
+        
+        # Pop the next unused occurrence
+        if content_hash in self._hash_to_lines and self._hash_to_lines[content_hash]:
+            line_list = self._hash_to_lines[content_hash].pop(0)
+            
+            if line_list:
+                # Calculate the offset for AST line 1
+                # AST line 1 is the first line of code after <%
+                # Count newlines from start to the first code after <%
+                offset = self._calculate_ast_line_1_offset(script_value, line_list)
+                return offset
+        
+        return None
+    
+    def _calculate_ast_line_1_offset(self, script_value: str, line_list: List[int]) -> int:
+        """
+        Calculate the file line number that corresponds to AST line 1.
+        
+        AST line 1 is the first line of actual code after the <% tag.
+        
+        Args:
+            script_value: The script content (with <% and %>)
+            line_list: List of original file line numbers for this script
+            
+        Returns:
+            Line number (1-based) where AST line 1 begins
+        """
+        if not script_value.startswith('<%'):
+            # Not a script wrapper, AST line 1 is the first line
+            return line_list[0] if line_list else 1
+        
+        # Find where the actual code starts after <%
+        # Count newlines from start of string to first code
+        idx_after_open = 2  # After '<%'
+        newline_count = 0
+        
+        # Skip whitespace and count newlines after <%
+        while idx_after_open < len(script_value):
+            if script_value[idx_after_open] == '\n':
+                newline_count += 1
+                idx_after_open += 1
+            elif script_value[idx_after_open] in ' \t\r':
+                idx_after_open += 1
+            else:
+                # Found first non-whitespace character (start of code)
+                break
+        
+        # AST line 1 corresponds to the file line at index newline_count in line_list
+        # (if newline_count is 0, it's on the same line as <%, which is line_list[0])
+        if newline_count < len(line_list):
+            return line_list[newline_count]
+        else:
+            # Fallback to first line if something goes wrong
+            return line_list[0] if line_list else 1
     
     def get_original_line_number(self, field_path: str, processed_line: int) -> int:
         """
