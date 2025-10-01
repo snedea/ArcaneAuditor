@@ -146,21 +146,21 @@ class Rule(ABC):
                     # Use human-readable display name
                     display_name = f"{display_prefix}->{key}" if display_prefix else key
                     
-                    # Try hash-based lookup first (most accurate for multiline scripts)
+                    # Try hash-based lookup first (exact line numbers for both multiline and single-line)
                     line_offset = pmd_model.get_script_start_line(value)
                     
-                    # For single-line scripts, hash lookup won't work (preprocessor only hashes multiline)
-                    # So we create our own hash and use improved fuzzy search
+                    # Fallback to fuzzy search if hash lookup fails
+                    # This handles: POD files, edge cases, malformed scripts
                     if line_offset is None:
-                        # Compute hash for this script value
+                        # Compute hash for tracking duplicates
                         import hashlib
                         value_hash = hashlib.sha256(value.encode('utf-8')).hexdigest()
                         
-                        # Track how many times we've seen this hash
+                        # Track occurrence index for duplicates
                         occurrence_index = used_hashes.get(value_hash, 0)
                         used_hashes[value_hash] = occurrence_index + 1
                         
-                        # Use improved fuzzy search that accounts for duplicates
+                        # Use fuzzy search with duplicate handling
                         line_offset = self._calculate_script_line_offset(
                             file_content, value, 
                             search_start_line=last_line_found,
@@ -196,10 +196,10 @@ class Rule(ABC):
                             # Use human-readable display name
                             display_name = f"{display_prefix}->{key}[{i}]" if display_prefix else f"{key}[{i}]"
                             
-                            # Try hash-based lookup first (most accurate for multiline scripts)
+                            # Try hash-based lookup first (exact line numbers)
                             line_offset = pmd_model.get_script_start_line(item)
                             
-                            # Fallback to fuzzy search with duplicate tracking
+                            # Fallback to fuzzy search if needed (POD files, edge cases)
                             if line_offset is None:
                                 import hashlib
                                 value_hash = hashlib.sha256(item.encode('utf-8')).hexdigest()
