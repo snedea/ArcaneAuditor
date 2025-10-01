@@ -225,8 +225,13 @@ class ModelParser:
         try:
             content = source_file.content.strip()
             
+            # Always preprocess POD files to create hash mappings for line number tracking
+            # This ensures script content gets precise line numbers
+            from .pmd_preprocessor import preprocess_pmd_content
+            processed_content, line_mappings, hash_to_lines = preprocess_pmd_content(content)
+            
             try:
-                pod_data = json.loads(content)
+                pod_data = json.loads(processed_content)
                 
                 # Extract seed data
                 seed_data = pod_data.get('seed', {})
@@ -240,41 +245,19 @@ class ModelParser:
                     podId=pod_data.get('podId', Path(file_path).stem),
                     seed=seed,
                     file_path=file_path,
-                    source_content=content
+                    source_content=content  # Store original content
                 )
+                
+                # Set hash-based line mappings for POD files too
+                pod_model.set_hash_to_lines_mapping(hash_to_lines)
                 
                 context.pods[pod_model.podId] = pod_model
                 print(f"Parsed Pod: {pod_model.podId}")
                 
             except json.JSONDecodeError as e:
-                # Try to fix common JSON issues using the existing PMD preprocessor
-                try:
-                    from .pmd_preprocessor import preprocess_pmd_content
-                    fixed_content, _, _ = preprocess_pmd_content(content)
-                    pod_data = json.loads(fixed_content)
-                    
-                    # Extract seed data
-                    seed_data = pod_data.get('seed', {})
-                    seed = PodSeed(
-                        parameters=seed_data.get('parameters', []),
-                        endPoints=seed_data.get('endPoints', []),
-                        template=seed_data.get('template', {})
-                    )
-                    
-                    pod_model = PodModel(
-                        podId=pod_data.get('podId', Path(file_path).stem),
-                        seed=seed,
-                        file_path=file_path,
-                        source_content=content  # Keep original content
-                    )
-                    
-                    context.pods[pod_model.podId] = pod_model
-                    print(f"Parsed Pod: {pod_model.podId}")
-                    
-                except json.JSONDecodeError:
-                    # If fixing didn't work, fail the analysis
-                    print(f"JSON parsing error in Pod file {file_path}: {e}")
-                    raise
+                # If preprocessing and parsing didn't work, fail
+                print(f"JSON parsing error in Pod file {file_path}: {e}")
+                raise
                 
         except Exception as e:
             print(f"Failed to parse Pod file {file_path}: {e}")

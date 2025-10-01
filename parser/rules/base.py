@@ -512,6 +512,10 @@ class Rule(ABC):
         script_fields = []
         script_pattern = r'<%.*?%>'
         
+        # Track which hashes we've used (for duplicates)
+        used_hashes = {}
+        last_line_found = 0
+        
         # Search endpoints in seed for script content (any field with <% %>)
         if pod_model.seed.endPoints:
             for i, endpoint in enumerate(pod_model.seed.endPoints):
@@ -519,30 +523,66 @@ class Rule(ABC):
                     for field_name, field_value in endpoint.items():
                         if isinstance(field_value, str) and re.search(script_pattern, field_value, re.DOTALL):
                             field_path = f"seed.endPoints[{i}].{field_name}"
-                            display_name = f"endpoint '{endpoint.get('name', f'endpoint_{i}')}' {field_name}"
-                            line_offset = self._calculate_pod_script_line_offset(pod_model.source_content, field_value)
+                            endpoint_name = endpoint.get('name', f'endpoint_{i}')
+                            display_name = f"endpoint->name: {endpoint_name}->{field_name}"
+                            
+                            # Try hash-based lookup first (exact line numbers)
+                            line_offset = pod_model.get_script_start_line(field_value)
+                            
+                            # Fallback to fuzzy search if needed
+                            if line_offset is None:
+                                import hashlib
+                                value_hash = hashlib.sha256(field_value.encode('utf-8')).hexdigest()
+                                occurrence_index = used_hashes.get(value_hash, 0)
+                                used_hashes[value_hash] = occurrence_index + 1
+                                
+                                line_offset = self._calculate_pod_script_line_offset(
+                                    pod_model.source_content, field_value,
+                                    search_start_line=last_line_found,
+                                    occurrence_index=occurrence_index
+                                )
+                            
+                            last_line_found = line_offset
                             script_fields.append((field_path, field_value, display_name, line_offset))
         
         # Search template widgets for script content (e.g., onClick, onLoad handlers)
-        template_scripts = self._find_template_script_fields(pod_model.seed.template, "seed.template")
+        template_scripts = self._find_template_script_fields(pod_model, pod_model.seed.template, "seed.template", used_hashes, last_line_found)
         script_fields.extend(template_scripts)
         
         return script_fields
     
-    def _find_template_script_fields(self, widget_data: Any, path_prefix: str) -> List[Tuple[str, str, str, int]]:
+    def _find_template_script_fields(self, pod_model: PodModel, widget_data: Any, path_prefix: str, used_hashes: dict, last_line_found: int) -> List[Tuple[str, str, str, int]]:
         """Recursively search template widgets for script content."""
         script_fields = []
         script_pattern = r'<%.*?%>'
         
         def _search_widget(widget: Dict[str, Any], widget_path: str):
+            nonlocal last_line_found
             # Search all widget fields for script content (any field with <% %>)
             for field_name, field_value in widget.items():
                 if isinstance(field_value, str) and re.search(script_pattern, field_value, re.DOTALL):
                     field_path = f"{widget_path}.{field_name}"
                     widget_type = widget.get('type', 'unknown')
                     widget_id = widget.get('id', 'unnamed')
-                    display_name = f"{widget_type} widget '{widget_id}' {field_name}"
-                    line_offset = 1  # POD script line calculation would be more complex
+                    display_name = f"{widget_type} widget->id: {widget_id}->{field_name}"
+                    
+                    # Try hash-based lookup first (exact line numbers)
+                    line_offset = pod_model.get_script_start_line(field_value)
+                    
+                    # Fallback to fuzzy search if needed
+                    if line_offset is None:
+                        import hashlib
+                        value_hash = hashlib.sha256(field_value.encode('utf-8')).hexdigest()
+                        occurrence_index = used_hashes.get(value_hash, 0)
+                        used_hashes[value_hash] = occurrence_index + 1
+                        
+                        line_offset = self._calculate_pod_script_line_offset(
+                            pod_model.source_content, field_value,
+                            search_start_line=last_line_found,
+                            occurrence_index=occurrence_index
+                        )
+                    
+                    last_line_found = line_offset
                     script_fields.append((field_path, field_value, display_name, line_offset))
             
             # Recursively search children
@@ -562,18 +602,45 @@ class Rule(ABC):
         
         return script_fields
     
-    def _calculate_pod_script_line_offset(self, file_content: str, script_content: str) -> int:
-        """Calculate the line number where script content starts in a Pod file."""
+    def _calculate_pod_script_line_offset(self, file_content: str, script_content: str, search_start_line: int = 0, occurrence_index: int = 0) -> int:
+        """
+        Calculate the line number where script content starts in a Pod file.
+        Uses same strategies as PMD files for consistency.
+        
+        Args:
+            file_content: The full source file content
+            script_content: The script content to find
+            search_start_line: Line number to start searching from (0-based)
+            occurrence_index: Which occurrence to find (0 = first, 1 = second, etc.)
+            
+        Returns:
+            Line number (1-based) where the script starts
+        """
         if not file_content or not script_content:
             return 1
         
-        # For Pods, this is more complex since scripts can be in various places
-        # For now, return a basic line number - this could be enhanced later
         lines = file_content.split('\n')
-        for i, line in enumerate(lines):
-            if '<%' in line:
-                return i + 1
-        return 1
+        start_index = max(0, search_start_line)
+        
+        # Strategy 1: For single-line scripts, search for exact match with re-escaped quotes
+        if '\n' not in script_content:
+            escaped_content = script_content.replace('"', '\\"')
+            
+            matches_found = 0
+            for i in range(0, len(lines)):  # Search from beginning
+                if script_content in lines[i] or escaped_content in lines[i]:
+                    if matches_found == occurrence_index:
+                        return i + 1
+                    matches_found += 1
+            
+            # Fallback: find next <% tag
+            for i in range(start_index, len(lines)):
+                if '<%' in lines[i]:
+                    return i + 1
+        
+        # Strategy 2: For multiline scripts, use same logic as PMD files
+        # (This reuses the PMD calculation logic)
+        return self._calculate_script_line_offset(file_content, script_content, search_start_line, occurrence_index)
     
     def find_pod_widgets(self, pod_model: PodModel) -> List[Tuple[str, Dict[str, Any]]]:
         """

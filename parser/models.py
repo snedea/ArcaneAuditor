@@ -217,6 +217,76 @@ class PodModel(BaseModel):
     file_path: str = Field(..., exclude=True)
     source_content: str = Field(default="", exclude=True)
     
+    # Private attribute to store hash-based line mappings (same as PMDModel)
+    _hash_to_lines: Optional[Dict[str, List[List[int]]]] = PrivateAttr(default=None)
+    
+    def set_hash_to_lines_mapping(self, hash_to_lines: Dict[str, List[List[int]]]):
+        """Set the hash-based line mappings for precise line number tracking (same as PMDModel)."""
+        self._hash_to_lines = hash_to_lines or {}
+    
+    def get_script_start_line(self, script_value: str) -> Optional[int]:
+        """
+        Get the starting line number for a script value using hash-based mapping.
+        Same implementation as PMDModel for consistency.
+        
+        Args:
+            script_value: The full script content (including <% and %>)
+            
+        Returns:
+            Line number (1-based) where AST line 1 starts, or None if not found
+        """
+        import hashlib
+        
+        if not self._hash_to_lines:
+            return None
+        
+        content_hash = hashlib.sha256(script_value.encode('utf-8')).hexdigest()
+        
+        # Pop the next unused occurrence
+        if content_hash in self._hash_to_lines and self._hash_to_lines[content_hash]:
+            line_list = self._hash_to_lines[content_hash].pop(0)
+            
+            if line_list:
+                # Calculate the offset for AST line 1 (same logic as PMDModel)
+                offset = self._calculate_ast_line_1_offset(script_value, line_list)
+                return offset
+        
+        return None
+    
+    def _calculate_ast_line_1_offset(self, script_value: str, line_list: List[int]) -> int:
+        """
+        Calculate the file line number that corresponds to AST line 1.
+        Same implementation as PMDModel.
+        
+        Args:
+            script_value: The script content (with <% and %>)
+            line_list: List of original file line numbers for this script
+            
+        Returns:
+            Line number (1-based) where AST line 1 begins
+        """
+        if not script_value.startswith('<%'):
+            return line_list[0] if line_list else 1
+        
+        # Count newlines from start to first code after <%
+        idx_after_open = 2  # After '<%'
+        newline_count = 0
+        
+        while idx_after_open < len(script_value):
+            if script_value[idx_after_open] == '\n':
+                newline_count += 1
+                idx_after_open += 1
+            elif script_value[idx_after_open] in ' \t\r':
+                idx_after_open += 1
+            else:
+                break
+        
+        # AST line 1 corresponds to the file line at index newline_count
+        if newline_count < len(line_list):
+            return line_list[newline_count]
+        else:
+            return line_list[0] if line_list else 1
+    
     def get_template_widgets(self) -> List[Dict[str, Any]]:
         """
         Recursively extracts all widgets from the template, including nested children.
