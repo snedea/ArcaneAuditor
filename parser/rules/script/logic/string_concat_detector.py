@@ -17,9 +17,18 @@ class StringConcatDetector(ScriptDetector):
         # Find all addition expressions in the AST
         addition_expressions = ast.find_data('additive_expression')
         
+        # Track reported lines to avoid duplicate violations for nested concatenations
+        reported_lines = set()
+        
         for add_expr in addition_expressions:
             if self._is_string_concatenation(add_expr):
                 line_number = self.get_line_number(add_expr)
+                
+                # Skip if we've already reported a violation on this line
+                if line_number in reported_lines:
+                    continue
+                
+                reported_lines.add(line_number)
                 
                 # Extract the concatenation expression for better error message
                 concat_text = self._extract_expression_text(add_expr)
