@@ -75,7 +75,7 @@ class ScriptRuleBase(Rule, ABC):
         
         # Convert violations to findings
         # Handle both List[Violation] and Generator[Violation, None, None]
-        if hasattr(violations, '__iter__') and not isinstance(violations, str):
+        if violations is not None and hasattr(violations, '__iter__') and not isinstance(violations, str):
             for violation in violations:
                 yield Finding(
                     rule=self,

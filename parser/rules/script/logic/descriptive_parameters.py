@@ -38,6 +38,7 @@ class ScriptDescriptiveParameterRule(ScriptRuleBase):
         # Parse the script content with context for caching
         ast = self._parse_script_content(script_content, context)
         if not ast:
+            yield from []
             return
         
         # Create detector with rule-specific configuration

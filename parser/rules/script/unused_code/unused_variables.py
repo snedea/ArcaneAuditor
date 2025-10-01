@@ -23,6 +23,7 @@ class ScriptUnusedVariableRule(ScriptRuleBase):
         # Parse the script content
         ast = self._parse_script_content(script_content, context)
         if not ast:
+            yield from []
             return
         
         # Determine scope information
