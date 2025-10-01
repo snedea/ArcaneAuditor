@@ -130,15 +130,22 @@ class Rule(ABC):
         script_fields = []
         script_pattern = r'<%.*?%>'
         
+        # Track the last line found to search forward from there
+        last_line_found = 0
+        
         def _search_dict(data: Dict[str, Any], prefix: str = "", file_content: str = "") -> None:
             """Recursively search a dictionary for script fields."""
+            nonlocal last_line_found
+            
             for key, value in data.items():
                 if isinstance(value, str) and re.search(script_pattern, value, re.DOTALL):
                     field_path = f"{prefix}.{key}" if prefix else key
                     # Use the full path as the display name for better context
                     display_name = field_path
                     # Calculate line offset by finding the script content in the original file
-                    line_offset = self._calculate_script_line_offset(file_content, value) if file_content else 1
+                    # Start searching from the last found position to avoid duplicates
+                    line_offset = self._calculate_script_line_offset(file_content, value, search_start_line=last_line_found) if file_content else 1
+                    last_line_found = line_offset
                     script_fields.append((field_path, value, display_name, line_offset))
                 elif isinstance(value, dict):
                     _search_dict(value, f"{prefix}.{key}" if prefix else key, file_content)
@@ -151,7 +158,9 @@ class Rule(ABC):
                             # Use the full path as the display name for better context
                             display_name = field_path
                             # Calculate line offset by finding the script content in the original file
-                            line_offset = self._calculate_script_line_offset(file_content, item) if file_content else 1
+                            # Start searching from the last found position to avoid duplicates
+                            line_offset = self._calculate_script_line_offset(file_content, item, search_start_line=last_line_found) if file_content else 1
+                            last_line_found = line_offset
                             script_fields.append((field_path, item, display_name, line_offset))
         
         # Get the source content from the PMD model
@@ -163,8 +172,18 @@ class Rule(ABC):
         
         return script_fields
     
-    def _calculate_script_line_offset(self, file_content: str, script_content: str) -> int:
-        """Calculate the line number where the script content starts in the original file."""
+    def _calculate_script_line_offset(self, file_content: str, script_content: str, search_start_line: int = 0) -> int:
+        """
+        Calculate the line number where the script content starts in the original file.
+        
+        Args:
+            file_content: The full source file content
+            script_content: The script content to find
+            search_start_line: Line number to start searching from (0-based, for avoiding duplicates)
+            
+        Returns:
+            Line number (1-based) where the script starts
+        """
         if not file_content or not script_content:
             return 1
         
@@ -179,36 +198,45 @@ class Rule(ABC):
         
         lines = file_content.split('\n')
         
+        # Start searching from the specified line (to avoid finding previous occurrences)
+        start_index = max(0, search_start_line)
+        
         # Strategy 1: Find by matching a unique part of the script content
-        # Take the first 100 characters of the stripped script for matching
-        script_start = stripped_script.strip()[:100]
+        # Take the first 50 characters of the stripped script for matching
+        script_start = stripped_script.strip()[:50]
         if script_start:
-            for i, line in enumerate(lines):
+            for i in range(start_index, len(lines)):
+                line = lines[i]
                 if script_start in line:
+                    # Found the line - return it (1-based)
                     return i + 1
         
         # Strategy 2: Find by matching the first significant line of the script
         if stripped_script:
             first_script_line = stripped_script.split('\n')[0].strip()
-            if first_script_line and len(first_script_line) > 20:  # Only use if it's substantial
-                for i, line in enumerate(lines):
+            if first_script_line and len(first_script_line) > 15:  # Only use if it's substantial
+                for i in range(start_index, len(lines)):
+                    line = lines[i]
                     if first_script_line in line:
                         return i + 1
         
-        # Strategy 3: Find the line containing the opening <% tag and look for the script content
-        for i, line in enumerate(lines):
+        # Strategy 3: Look for the opening <% tag followed by our script content
+        for i in range(start_index, len(lines)):
+            line = lines[i]
             if '<%' in line:
                 # Check if this line contains the start of our script content
-                # Look for the first meaningful line of the stripped script
                 first_script_line = stripped_script.split('\n')[0].strip()
                 if first_script_line and first_script_line in line:
                     # The script starts on this line after the <% tag
                     return i + 1
-                elif first_script_line and len(first_script_line) > 20:
-                    # The script content starts on the next line after the <% tag
-                    return i + 2
+                elif first_script_line and len(first_script_line) > 15:
+                    # The script content might start on the next line after the <% tag
+                    # But only if the next line contains our script
+                    if i + 1 < len(lines) and first_script_line in lines[i + 1]:
+                        return i + 2
         
-        return 1  # Default to line 1 if not found
+        # Fallback: if we have a start line, return at least that
+        return max(1, search_start_line + 1)
     
     def _strip_pmd_wrappers(self, script_content):
         """Strip <% and %> wrappers from PMD script content."""
