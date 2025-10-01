@@ -38,12 +38,12 @@ def test_inbound_endpoint_readable_name():
         # Check that the message contains readable endpoint names
         # Note: model converts endPoints to inboundEndpoints
         if "submitWidGET" in finding.message:
-            assert "inboundEndpoints->name: submitWidGET->url" in finding.message, \
-                f"Expected 'inboundEndpoints->name: submitWidGET->url' in message"
+            assert "inboundEndpoints[0]->name: submitWidGET->url" in finding.message, \
+                f"Expected 'inboundEndpoints[0]->name: submitWidGET->url' in message"
             print("[OK] submitWidGET endpoint name found in message")
         elif "updateDataPOST" in finding.message:
-            assert "inboundEndpoints->name: updateDataPOST->url" in finding.message, \
-                f"Expected 'inboundEndpoints->name: updateDataPOST->url' in message"
+            assert "inboundEndpoints[1]->name: updateDataPOST->url" in finding.message, \
+                f"Expected 'inboundEndpoints[1]->name: updateDataPOST->url' in message"
             print("[OK] updateDataPOST endpoint name found in message")
         print()
 
@@ -80,7 +80,7 @@ def test_outbound_endpoint_readable_name():
         # Note: model shows outboundEndpoints (not outboundData->outboundEndPoints)
         assert "updateRequestPOST" in finding.message, \
             f"Expected 'updateRequestPOST' in message"
-        assert "outboundEndpoints->name: updateRequestPOST->onSend" in finding.message, \
+        assert "outboundEndpoints[0]->name: updateRequestPOST->onSend" in finding.message, \
             f"Expected full readable path in message"
         print("[OK] updateRequestPOST endpoint name found in readable format")
         print()
