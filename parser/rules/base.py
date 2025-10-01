@@ -124,6 +124,45 @@ class Rule(ABC):
             except Exception:
                 return None
     
+    def _get_readable_identifier(self, item: Dict[str, Any], fallback_index: int) -> str:
+        """
+        Extract a readable identifier from a dictionary item.
+        
+        Priority order:
+        1. id (widget ID) - most specific
+        2. label - human-readable description
+        3. type - widget type
+        4. name - for endpoints and other named items
+        5. [index] - fallback to array index
+        
+        Args:
+            item: Dictionary to extract identifier from
+            fallback_index: Index to use if no other identifier found
+            
+        Returns:
+            Human-readable identifier string
+        """
+        # Priority 1: id
+        if 'id' in item and isinstance(item['id'], str) and item['id'].strip():
+            return f"id: {item['id']}"
+        
+        # Priority 2: label
+        if 'label' in item and isinstance(item['label'], str) and item['label'].strip():
+            # Truncate long labels
+            label = item['label'][:40] + '...' if len(item['label']) > 40 else item['label']
+            return f"label: {label}"
+        
+        # Priority 3: type
+        if 'type' in item and isinstance(item['type'], str) and item['type'].strip():
+            return f"type: {item['type']}"
+        
+        # Priority 4: name (for endpoints, etc.)
+        if 'name' in item and isinstance(item['name'], str) and item['name'].strip():
+            return f"name: {item['name']}"
+        
+        # Fallback: index
+        return f"[{fallback_index}]"
+    
     def _extract_script_fields(self, pmd_model: PMDModel) -> List[Tuple[str, str, str, int]]:
         """Internal method to extract script fields without caching."""
         script_fields = []
@@ -175,19 +214,12 @@ class Rule(ABC):
                 elif isinstance(value, list):
                     for i, item in enumerate(value):
                         if isinstance(item, dict):
-                            # Check if this item has a 'name' field for human-readable display
-                            item_name = item.get('name', f'[{i}]')
-                            
                             # Create technical path with index
                             new_prefix = f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}"
                             
-                            # Create human-readable path with name
-                            if isinstance(item_name, str) and item_name != f'[{i}]':
-                                # This item has a name - use it for display
-                                new_display_prefix = f"{display_prefix}->{key}->name: {item_name}" if display_prefix else f"{key}->name: {item_name}"
-                            else:
-                                # No name field, fall back to index
-                                new_display_prefix = f"{display_prefix}->{key}[{i}]" if display_prefix else f"{key}[{i}]"
+                            # Create human-readable path using priority: id -> label -> type -> name -> index
+                            readable_id = self._get_readable_identifier(item, i)
+                            new_display_prefix = f"{display_prefix}->{key}->{readable_id}" if display_prefix else f"{key}->{readable_id}"
                             
                             _search_dict(item, new_prefix, file_content, new_display_prefix)
                         elif isinstance(item, str) and re.search(script_pattern, item, re.DOTALL):
