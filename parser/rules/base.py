@@ -223,7 +223,7 @@ class Rule(ABC):
                             
                             # Create human-readable path using priority: id -> label -> type -> name -> index
                             readable_id = self._get_readable_identifier(item, i)
-                            new_display_prefix = f"{display_prefix}->{key}->{readable_id}" if display_prefix else f"{key}->{readable_id}"
+                            new_display_prefix = f"{display_prefix}->{key}[{i}]->{readable_id}" if display_prefix else f"{key}[{i}]->{readable_id}"
                             
                             _search_dict(item, new_prefix, file_content, new_display_prefix)
                         elif isinstance(item, str) and re.search(script_pattern, item, re.DOTALL):
@@ -390,8 +390,6 @@ class Rule(ABC):
         
         # Unescape all escape sequences that were escaped during JSON processing
         # We need to be careful with single quotes - they should remain escaped for valid PMD Script
-        import codecs
-        
         # First, handle the case where we have double backslashes (from PMD source)
         # Convert \\' to \' (double backslash + quote becomes escaped quote)
         content = content.replace('\\\\', '\\')

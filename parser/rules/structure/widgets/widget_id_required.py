@@ -263,9 +263,9 @@ class WidgetIdRequiredRule(StructureRuleBase):
                     if 0 <= index < len(current_value):
                         item = current_value[index]
                         if isinstance(item, dict):
-                            # Use the same logic as script rules: key->readable_id
+                            # Include array index in the path: key[index]->readable_id
                             readable_id = self._get_readable_identifier(item, index)
-                            new_prefix = f"{current_prefix}->{current_key}->{readable_id}"
+                            new_prefix = f"{current_prefix}->{current_key}[{index}]->{readable_id}"
                             
                             # Continue with remaining path parts
                             remaining_parts = path_parts[2:] if len(path_parts) > 2 else []
