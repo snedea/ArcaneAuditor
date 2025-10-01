@@ -356,7 +356,7 @@ class TestWidgetIdRequiredRuleWithGenericTraversal(unittest.TestCase):
     def test_area_layout_widget_id_validation(self):
         """Test widget ID validation with areaLayout structure."""
         pmd_data = {
-            "pageId": "test-page",
+            "pageId": "testPage",
             "presentation": {
                 "body": {
                     "type": "areaLayout",
@@ -391,7 +391,7 @@ class TestWidgetIdRequiredRuleWithGenericTraversal(unittest.TestCase):
     def test_basic_form_layout_widget_id_validation(self):
         """Test widget ID validation with basicFormLayout structure."""
         pmd_data = {
-            "pageId": "test-page",
+            "pageId": "testPage",
             "presentation": {
                 "body": {
                     "type": "basicFormLayout",
@@ -436,7 +436,7 @@ class TestWidgetIdRequiredRuleWithGenericTraversal(unittest.TestCase):
     def test_excluded_widget_types_not_require_id(self):
         """Test that excluded widget types don't require IDs."""
         pmd_data = {
-            "pageId": "test-page",
+            "pageId": "testPage",
             "presentation": {
                 "body": {
                     "type": "section",

@@ -53,7 +53,7 @@ class TestPMDScriptGrammar:
         test_cases = [
             # Assignment
             ("var result = date:getTodaysDate();", "variable_statement"),
-            ("let data = api:fetchData();", "variable_statement"),
+            ("let data = json:query(someData, 'pathToData');", "variable_statement"),
             # Return statement
             ("return date:getTodaysDate();", "return_statement"),
             # Function call as argument
@@ -71,7 +71,7 @@ class TestPMDScriptGrammar:
             var localVar = 123;
             var result = date:getTodaysDate();
             var combined = localVar + result;
-            return workday:formatDate(combined);
+            return date:formatDate(combined);
         """
         
         ast = pmd_script_parser.parse(script_content)
@@ -137,7 +137,7 @@ class TestPMDScriptGrammar:
         """Test complex real-world namespace usage scenarios."""
         # Test the actual content from util.script
         script_content = """
-            var getCurrentTime = function() {
+            const getCurrentTime = function() {
                 return date:getTodaysDate(date:getDateTimeZone('US/Pacific'));
             };
         """
@@ -145,6 +145,26 @@ class TestPMDScriptGrammar:
         ast = pmd_script_parser.parse(script_content)
         assert ast is not None
         # Should parse the function definition with namespace calls successfully
+
+    def test_ternary_operator_basic_parsing(self):
+        """Test basic ternary operator parsing."""
+        test_cases = [
+            ("a ? b : c", "ternary_expression"),
+            ("null ? 'default' : false", "ternary_expression"),
+            ("foo ?: false", "elvis_expression"),
+            ("user.name ? 'Anonymous' : 'Guest'", "ternary_expression"),
+        ]
+        
+        for script_content, expected_rule in test_cases:
+            ast = pmd_script_parser.parse(script_content)
+            print(ast)
+            # Find the null coalescing expression in the tree
+            found = False
+            for node in ast.iter_subtrees():
+                if hasattr(node, 'data') and node.data == expected_rule:
+                    found = True
+                    break
+            assert found, f"Expected {expected_rule} not found in AST for '{script_content}'"
 
     def test_null_coalescing_basic_parsing(self):
         """Test basic null coalescing operator parsing."""

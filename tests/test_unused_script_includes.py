@@ -24,13 +24,13 @@ class TestScriptUnusedScriptIncludesRule:
     def test_pmd_with_used_script_include(self):
         """Test PMD that includes and uses a script file."""
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             includes=PMDIncludes(scripts=["util.script"]),
             script="<% let result = util.getCurrentTime(); %>",
             file_path="test.pmd",
             source_content=""
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
@@ -40,13 +40,13 @@ class TestScriptUnusedScriptIncludesRule:
     def test_pmd_with_unused_script_include(self):
         """Test PMD that includes but doesn't use a script file."""
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             includes=PMDIncludes(scripts=["util.script"]),
             script="<% let x = 1; %>",  # No util.* calls
             file_path="test.pmd",
             source_content='{"script": "<% let x = 1; %>"}'
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
@@ -59,13 +59,13 @@ class TestScriptUnusedScriptIncludesRule:
     def test_pmd_with_multiple_script_includes(self):
         """Test PMD with multiple script includes, some used, some not."""
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             includes=PMDIncludes(scripts=["util.script", "helper.script", "unused.script"]),
             script="<% let time = util.getCurrentTime(); let data = helper.formatData(); %>",
             file_path="test.pmd",
             source_content='{"script": "<% let time = util.getCurrentTime(); let data = helper.formatData(); %>"}'
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
@@ -77,14 +77,14 @@ class TestScriptUnusedScriptIncludesRule:
     def test_pmd_with_script_calls_in_different_fields(self):
         """Test PMD with script calls in various fields (onLoad, onSubmit, etc.)."""
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             includes=PMDIncludes(scripts=["util.script", "validator.script"]),
             onLoad="<% util.initialize(); %>",
             script="<% let result = validator.checkData(); %>",
             file_path="test.pmd",
             source_content=""
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
@@ -94,12 +94,12 @@ class TestScriptUnusedScriptIncludesRule:
     def test_pmd_with_no_includes(self):
         """Test PMD with no script includes."""
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             script="<% let x = 1; %>",
             file_path="test.pmd",
             source_content=""
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
@@ -109,13 +109,13 @@ class TestScriptUnusedScriptIncludesRule:
     def test_pmd_with_empty_includes(self):
         """Test PMD with empty includes array."""
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             includes=PMDIncludes(scripts=[]),
             script="<% let x = 1; %>",
             file_path="test.pmd",
             source_content=""
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         

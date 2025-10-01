@@ -24,7 +24,7 @@ class TestEndpointOnSendSelfDataRule:
     def test_outbound_endpoint_with_anti_pattern(self):
         """Test that outbound endpoints with self.data anti-pattern are flagged."""
         source_content = """{
-  "id": "test-page",
+  "id": "testPage",
   "outboundEndpoints": [{
     "name": "SendData",
     "onSend": "<%
@@ -35,7 +35,7 @@ class TestEndpointOnSendSelfDataRule:
 }"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             file_path="test.pmd",
             source_content=source_content,
             outboundEndpoints=[{
@@ -43,7 +43,7 @@ class TestEndpointOnSendSelfDataRule:
                 "onSend": "<%\n      self.data = {:};\n      return self.data;\n    %>"
             }]
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
@@ -56,7 +56,7 @@ class TestEndpointOnSendSelfDataRule:
     def test_outbound_endpoint_without_anti_pattern(self):
         """Test that outbound endpoints without anti-pattern are not flagged."""
         source_content = """{
-  "id": "test-page",
+  "id": "testPage",
   "outboundEndpoints": [{
     "name": "SendData",
     "onSend": "<%
@@ -66,7 +66,7 @@ class TestEndpointOnSendSelfDataRule:
 }"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             file_path="test.pmd",
             source_content=source_content,
             outboundEndpoints=[{
@@ -74,7 +74,7 @@ class TestEndpointOnSendSelfDataRule:
                 "onSend": "<%\n      return responseData;\n    %>"
             }]
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
@@ -84,7 +84,7 @@ class TestEndpointOnSendSelfDataRule:
     def test_inbound_endpoint_with_anti_pattern_not_flagged(self):
         """Test that inbound endpoints with self.data pattern are NOT flagged (rule only applies to outbound)."""
         source_content = """{
-  "id": "test-page",
+  "id": "testPage",
   "inboundEndpoints": [{
     "name": "ReceiveData",
     "onSend": "<%
@@ -95,7 +95,7 @@ class TestEndpointOnSendSelfDataRule:
 }"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             file_path="test.pmd",
             source_content=source_content,
             inboundEndpoints=[{
@@ -103,7 +103,7 @@ class TestEndpointOnSendSelfDataRule:
                 "onSend": "<%\n      self.data = {:};\n      return self.data;\n    %>"
             }]
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
@@ -113,7 +113,7 @@ class TestEndpointOnSendSelfDataRule:
     def test_mixed_endpoints_only_outbound_flagged(self):
         """Test that only outbound endpoints are checked, not inbound."""
         source_content = """{
-  "id": "test-page",
+  "id": "testPage",
   "inboundEndpoints": [{
     "name": "ReceiveData",
     "onSend": "<%
@@ -131,7 +131,7 @@ class TestEndpointOnSendSelfDataRule:
 }"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             file_path="test.pmd",
             source_content=source_content,
             inboundEndpoints=[{
@@ -143,7 +143,7 @@ class TestEndpointOnSendSelfDataRule:
                 "onSend": "<%\n      self.data = {:};\n      return self.data;\n    %>"
             }]
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
@@ -155,11 +155,11 @@ class TestEndpointOnSendSelfDataRule:
     def test_no_endpoints(self):
         """Test PMD with no endpoints."""
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             file_path="test.pmd",
             source_content='{"id": "test-page"}'
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
@@ -169,15 +169,15 @@ class TestEndpointOnSendSelfDataRule:
     def test_outbound_endpoint_without_on_send(self):
         """Test outbound endpoint without onSend script."""
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             file_path="test.pmd",
-            source_content='{"id": "test-page"}',
+            source_content='{"id": "testPage"}',
             outboundEndpoints=[{
                 "name": "SendData",
                 "url": "/api/send"
             }]
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         

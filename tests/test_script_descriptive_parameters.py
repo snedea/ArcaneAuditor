@@ -196,12 +196,12 @@ const processUsers = function(userList) {
         %>"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             file_path="test.pmd",
             source_content='{"script": "' + script_content.replace('\n', '\\n').replace('"', '\\"') + '"}'
         )
         pmd_model.script = script_content
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
 
@@ -246,12 +246,12 @@ const processUsers = function(userList) {
         %>"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             file_path="test.pmd",
             source_content='{"script": "' + script_content.replace('\n', '\\n').replace('"', '\\"') + '"}'
         )
         pmd_model.script = script_content
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
@@ -277,12 +277,12 @@ const processUsers = function(userList) {
         %>"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             file_path="test.pmd",
             source_content='{"script": "' + script_content.replace('\n', '\\n').replace('"', '\\"') + '"}'
         )
         pmd_model.script = script_content
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
@@ -307,13 +307,13 @@ const processUsers = function(userList) {
             script_content = f"<% {script_line}; %>"
             
             pmd_model = PMDModel(
-                pageId="test-page",
+                pageId="testPage",
                 file_path="test.pmd",
                 source_content='{"script": "' + script_content.replace('"', '\\"') + '"}'
             )
             pmd_model.script = script_content
             context = ProjectContext()
-            context.pmds["test-page"] = pmd_model
+            context.pmds["testPage"] = pmd_model
             
             findings = list(self.rule.analyze(context))
             
@@ -339,12 +339,12 @@ const processUsers = function(userList) {
         %>"""
 
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             file_path="test.pmd",
             source_content='{"script": "' + script_content.replace('\n', '\\n').replace('"', '\\"') + '"}'
         )
         pmd_model.script = script_content
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
 
         findings = list(self.rule.analyze(self.context))
 
@@ -361,12 +361,12 @@ const processUsers = function(userList) {
         %>"""
 
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             file_path="test.pmd",
             source_content='{"script": "' + script_content.replace('\n', '\\n').replace('"', '\\"') + '"}'
         )
         pmd_model.script = script_content
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
 
         findings = list(self.rule.analyze(self.context))
 

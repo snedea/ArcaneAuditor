@@ -5,7 +5,6 @@ Tests that the rule correctly identifies functions assigned to variables
 and tracks them by variable name, not function name (since all functions
 in PMD Script are anonymous).
 """
-import pytest
 from parser.rules.script.unused_code.unused_functions import ScriptUnusedFunctionRule
 from parser.models import ProjectContext, PMDModel
 
@@ -21,19 +20,19 @@ class TestUnusedFunctionVariableTracking:
     def test_function_assigned_to_variable_and_used_no_violation(self):
         """Function assigned to variable and called by variable name should NOT be flagged."""
         script = """<%
-            var addServiceToPageVariable = function(WID) {
+            var addThingToPageVariable = function(WID) {
                 return WID + 1;
             };
             
-            var result = addServiceToPageVariable(123);
+            var result = addThingToPageVariable(123);
         %>"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             script=script,
             file_path="test.pmd"
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         assert len(findings) == 0, "Used function should not be flagged as unused"
@@ -49,11 +48,11 @@ class TestUnusedFunctionVariableTracking:
         %>"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             script=script,
             file_path="test.pmd"
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         assert len(findings) == 1, "Unused function should be flagged"
@@ -72,11 +71,11 @@ class TestUnusedFunctionVariableTracking:
         %>"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             script=script,
             file_path="test.pmd"
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         assert len(findings) == 1, "Only unused function should be flagged"
@@ -94,7 +93,7 @@ class TestUnusedFunctionVariableTracking:
         %>"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             script=script,
             file_path="test.pmd"
         )
@@ -118,7 +117,7 @@ class TestUnusedFunctionVariableTracking:
             script=script,
             file_path="test.pmd"
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         assert len(findings) == 0, "Function used multiple times should not be flagged"
@@ -133,11 +132,11 @@ class TestUnusedFunctionVariableTracking:
         %>"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             script=script,
             file_path="test.pmd"
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         assert len(findings) == 0, "Nested function calls should not be flagged"
@@ -173,11 +172,11 @@ class TestUnusedFunctionVariableTracking:
         %>"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             script=script,
             file_path="test.pmd"
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         assert len(findings) == 1, "Unused const function should be flagged"
@@ -193,11 +192,11 @@ class TestUnusedFunctionVariableTracking:
         %>"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             script=script,
             file_path="test.pmd"
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         assert len(findings) == 1, "Unused arrow function should be flagged"
@@ -224,11 +223,11 @@ class TestUnusedFunctionVariableTracking:
         %>"""
         
         pmd_model = PMDModel(
-            pageId="test-page",
+            pageId="testPage",
             script=script,
             file_path="test.pmd"
         )
-        self.context.pmds["test-page"] = pmd_model
+        self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         assert len(findings) == 0, "Actually used function should not be flagged"

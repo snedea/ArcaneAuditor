@@ -154,8 +154,8 @@ class TestRulesEngine:
         """Test running rules with populated project context."""
         # Create context with some PMD models
         context = ProjectContext()
-        context.pmds["test-page"] = PMDModel(
-            pageId="test-page",
+        context.pmds["testPage"] = PMDModel(
+            pageId="testPage",
             file_path="test.pmd"
         )
         

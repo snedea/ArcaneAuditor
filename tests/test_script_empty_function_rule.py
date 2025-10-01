@@ -198,7 +198,7 @@ class TestScriptEmptyFunctionRuleIntegration:
         """Test with a real PMD file that should have no empty functions."""
         # Create a simple PMD file for testing
         pmd_content = '''{
-  "pageId": "TestPage",
+  "pageId": "testPage",
   "onLoad": "<% var myFunction = function() { return 1; } %>",
   "presentation": {
     "title": {
@@ -233,7 +233,7 @@ class TestScriptEmptyFunctionRuleIntegration:
     def test_with_empty_function_pmd(self):
         """Test with a PMD file containing an empty function."""
         pmd_content = '''{
-  "pageId": "TestPage",
+  "pageId": "testPage",
   "onLoad": "<% var emptyFunction = function() { } %>",
   "presentation": {
     "title": {

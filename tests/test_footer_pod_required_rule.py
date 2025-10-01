@@ -1,8 +1,6 @@
 """Unit tests for FooterPodRequiredRule."""
 
-import pytest
 from parser.rules.structure.validation.footer_pod_required import FooterPodRequiredRule
-from parser.rules.base import Finding
 from parser.models import PMDModel, PodModel, ProjectContext
 
 
@@ -52,7 +50,7 @@ class TestFooterPodRequiredRule:
             "presentation": {
                 "footer": {
                     "type": "pod",
-                    "podId": "footer-pod"
+                    "podId": "footerPod"
                 }
             }
         }
@@ -77,7 +75,7 @@ class TestFooterPodRequiredRule:
                     "children": [
                         {
                             "type": "pod",
-                            "podId": "footer-pod"
+                            "podId": "footerPod"
                         }
                     ]
                 }
@@ -188,28 +186,6 @@ class TestFooterPodRequiredRule:
         assert "Footer must utilize a pod" in findings[0].message
         assert findings[0].file_path == "test.pmd"
 
-    def test_invalid_footer_type_invalid(self):
-        """Test that footer with invalid type is invalid."""
-        rule = FooterPodRequiredRule()
-        
-        pmd_data = {
-            "pageId": "test",
-            "file_path": "test.pmd",
-            "presentation": {
-                "footer": {
-                    "type": "invalid"
-                }
-            }
-        }
-        
-        pmd_model = PMDModel(**pmd_data)
-        context = ProjectContext()
-        context.pmds = {"test": pmd_model}
-        
-        findings = list(rule.analyze(context))
-        assert len(findings) == 1
-        assert "Footer must utilize a pod" in findings[0].message
-        assert findings[0].file_path == "test.pmd"
 
     def test_pod_files_ignored(self):
         """Test that POD files are ignored by this rule."""

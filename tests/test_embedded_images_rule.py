@@ -1,8 +1,6 @@
 """Unit tests for EmbeddedImagesRule."""
 
-import pytest
 from parser.rules.structure.validation.embedded_images import EmbeddedImagesRule
-from parser.rules.base import Finding
 from parser.models import PMDModel, PodModel, ProjectContext
 
 

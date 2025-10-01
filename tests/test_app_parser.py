@@ -33,7 +33,7 @@ class TestModelParser:
         """Test successful JSON parsing of PMD file with sample.pmd structure."""
         # Mock PMD content as JSON matching sample.pmd structure
         pmd_content = json.dumps({
-            "id": "test-page",
+            "id": "testPage",
             "securityDomains": ["domain1"],
             "endPoints": [
                 {
@@ -86,9 +86,9 @@ class TestModelParser:
         context = ProjectContext()
         self.parser._parse_pmd_file("test.pmd", mock_file, context)
         
-        assert "test-page" in context.pmds
-        pmd_model = context.pmds["test-page"]
-        assert pmd_model.pageId == "test-page"
+        assert "testPage" in context.pmds
+        pmd_model = context.pmds["testPage"]
+        assert pmd_model.pageId == "testPage"
         assert pmd_model.securityDomains == ["domain1"]
         assert pmd_model.inboundEndpoints == [{"name": "getCurrentWorker", "url": "/workers/me"}]
         assert pmd_model.outboundEndpoints == [{"name": "postData", "url": "/api/data"}]
@@ -123,7 +123,7 @@ class TestModelParser:
         """Test PMD file parsing with minimal structure."""
         # Mock PMD content with minimal required fields
         pmd_content = json.dumps({
-            "id": "minimal-page",
+            "id": "minimalPage",
             "presentation": {
                 "body": {
                     "type": "section",
@@ -145,9 +145,9 @@ class TestModelParser:
         context = ProjectContext()
         self.parser._parse_pmd_file("minimal.pmd", mock_file, context)
         
-        assert "minimal-page" in context.pmds
-        pmd_model = context.pmds["minimal-page"]
-        assert pmd_model.pageId == "minimal-page"
+        assert "minimalPage" in context.pmds
+        pmd_model = context.pmds["minimalPage"]
+        assert pmd_model.pageId == "minimalPage"
         assert pmd_model.presentation is not None
         assert pmd_model.presentation.body.get("type") == "section"
         assert len(pmd_model.presentation.body.get("children")) == 1
@@ -186,7 +186,7 @@ class TestModelParser:
     
     def test_parse_script_file_with_export(self):
         """Test script file parsing with JSON export structure like util.script."""
-        script_content = """var getCurrentTime = function() {
+        script_content = """const getCurrentTime = function() {
   return date:getTodaysDate(date:getDateTimeZone('US/Pacific'));
 };
 
@@ -209,7 +209,7 @@ class TestModelParser:
         """Test successful JSON parsing of AMD file."""
         amd_content = json.dumps({
             "routes": {
-                "main": {"pageId": "main-page", "parameters": []}
+                "main": {"pageId": "mainPage", "parameters": []}
             },
             "baseUrls": {"api": "/api/v1"}
         })
@@ -221,7 +221,7 @@ class TestModelParser:
         self.parser._parse_amd_file("app.amd", mock_file, context)
         
         assert context.amd is not None
-        assert context.amd.routes["main"].pageId == "main-page"
+        assert context.amd.routes["main"].pageId == "mainPage"
         assert context.amd.baseUrls["api"] == "/api/v1"
     
     def test_parse_amd_file_json_fallback(self):
@@ -239,7 +239,7 @@ class TestModelParser:
     
     def test_parse_single_file_pmd(self):
         """Test single file parsing for PMD files."""
-        pmd_content = '{"id": "test-page", "presentation": {"body": {"type": "section", "children": [{"type": "text", "id": "hello", "label": "Hello World!", "value": "Welcome!"}]}}}'
+        pmd_content = '{"id": "testPage", "presentation": {"body": {"type": "section", "children": [{"type": "text", "id": "hello", "label": "Hello World!", "value": "Welcome!"}]}}}'
         
         mock_file = Mock()
         mock_file.content = pmd_content
@@ -247,7 +247,7 @@ class TestModelParser:
         context = ProjectContext()
         self.parser._parse_single_file("test.pmd", mock_file, context)
         
-        assert "test-page" in context.pmds
+        assert "testPage" in context.pmds
     
     def test_parse_single_file_script(self):
         """Test single file parsing for script files."""
@@ -316,18 +316,18 @@ class TestModelParser:
     def test_parse_files_integration(self):
         """Test full integration of parsing multiple files."""
         source_files_map = {
-            "main.pmd": Mock(content='{"id": "main-page", "presentation": {"body": {"type": "section", "children": [{"type": "text", "id": "hello", "label": "Hello World!", "value": "Welcome!"}]}}, "onLoad": "var x = 1;"}'),
+            "main.pmd": Mock(content='{"id": "mainPage", "presentation": {"body": {"type": "section", "children": [{"type": "text", "id": "hello", "label": "Hello World!", "value": "Welcome!"}]}}, "onLoad": "var x = 1;"}'),
             "utils.script": Mock(content="var y = 2;"),
-            "app.amd": Mock(content='{"routes": {"main": {"pageId": "main-page"}}}')
+            "app.amd": Mock(content='{"routes": {"main": {"pageId": "mainPage"}}}')
         }
         
         result = self.parser.parse_files(source_files_map)
         
         # Check all files were parsed
-        assert "main-page" in result.pmds
+        assert "mainPage" in result.pmds
         assert "utils.script" in result.scripts
         assert result.amd is not None
-        assert result.amd.routes["main"].pageId == "main-page"
+        assert result.amd.routes["main"].pageId == "mainPage"
         
         # Check no parsing errors
         assert len(result.parsing_errors) == 0

@@ -9,7 +9,7 @@ from parser.pmd_preprocessor import preprocess_pmd_content
 def test_inbound_endpoint_readable_name():
     """Test that inbound endpoint names appear in error messages."""
     source = """{
-  "id": "TestPage",
+  "id": "testPage",
   "endPoints": [
     {
       "name": "submitWidGET",
@@ -51,7 +51,7 @@ def test_inbound_endpoint_readable_name():
 def test_outbound_endpoint_readable_name():
     """Test that outbound endpoint names appear in error messages."""
     source = """{
-  "id": "TestPage",
+  "id": "testPage",
   "outboundData": {
     "outboundEndPoints": [
       {
@@ -89,7 +89,7 @@ def test_outbound_endpoint_readable_name():
 def test_script_field_readable_name():
     """Test that non-endpoint script fields still work."""
     source = """{
-  "id": "TestPage",
+  "id": "testPage",
   "script": "<% var msg = 'Hello' + name; %>",
   "onLoad": "<% var data = 'prefix' + value; %>"
 }"""

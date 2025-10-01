@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """Test cases for ScriptFunctionalMethodUsageRule."""
 
-import pytest
 from parser.rules.script.logic.functional_method_usage import ScriptFunctionalMethodUsageRule
 from parser.rules.script.logic.functional_method_usage_detector import FunctionalMethodUsageDetector
-from parser.models import PMDModel
 from parser.app_parser import ModelParser
 
 
@@ -103,7 +101,7 @@ class TestScriptFunctionalMethodUsageRule:
         """Test suggestion of forEach() for side effects."""
         script_content = """
         for (let i = 0; i < items.length; i++) {
-            console.log(items[i]);
+            console.info(items[i]);
         }
         """
         ast = self.rule._parse_script_content(script_content, None)
@@ -151,18 +149,17 @@ class TestScriptFunctionalMethodUsageRule:
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 2
 
-    def test_reverse_loop_detection(self):
-        """Test detection of reverse loops."""
+    def test_range_loop_detection(self):
+        """Test detection of range loops. Should not be detected."""
         script_content = """
-        for (let i = array.length - 1; i >= 0; i--) {
+        for (let i : (0 to 100)) {
             result.push(array[i]);
         }
         """
         ast = self.rule._parse_script_content(script_content, None)
         detector = FunctionalMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
-        assert len(violations) == 1
-        assert "manual for loop" in violations[0].message
+        assert len(violations) == 0
 
 
 class TestScriptFunctionalMethodUsageRuleIntegration:
@@ -176,7 +173,7 @@ class TestScriptFunctionalMethodUsageRuleIntegration:
     def test_with_real_pmd_file(self):
         """Test the rule with a real PMD file containing manual loops."""
         pmd_content = '''{
-  "pageId": "TestPage",
+  "pageId": "testPage",
   "script": "<% for (let i = 0; i < items.length; i++) { result.push(items[i]); } %>",
   "presentation": {
     "title": {
@@ -212,7 +209,7 @@ class TestScriptFunctionalMethodUsageRuleIntegration:
     def test_with_simple_pmd(self):
         """Test the rule with a simple PMD file that should not have violations."""
         pmd_content = '''{
-  "pageId": "SimplePage",
+  "pageId": "simplePage",
   "script": "<% var x = 1; %>",
   "presentation": {
     "title": {

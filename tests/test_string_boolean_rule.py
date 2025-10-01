@@ -1,8 +1,6 @@
 """Unit tests for StringBooleanRule."""
 
-import pytest
 from parser.rules.structure.validation.string_boolean import StringBooleanRule
-from parser.rules.base import Finding
 from parser.models import PMDModel, PodModel, ProjectContext
 
 

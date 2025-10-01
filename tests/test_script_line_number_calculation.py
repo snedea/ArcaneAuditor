@@ -1,6 +1,5 @@
 """Unit tests for accurate line number calculation in script fields."""
 
-import pytest
 from parser.models import PMDModel, PMDPresentation, ProjectContext
 from parser.rules.script.logic.string_concat import ScriptStringConcatRule
 from parser.pmd_preprocessor import preprocess_pmd_content
@@ -13,7 +12,7 @@ class TestScriptLineNumberCalculation:
     def test_single_script_field_line_number(self):
         """Test line number calculation for a single script field."""
         source = """{
-  "id": "TestPage",
+  "id": "testPage",
   "script": "<% var x = 'a' + 'b'; %>"
 }"""
         pmd_model = self._create_pmd_model(source)
@@ -30,7 +29,7 @@ class TestScriptLineNumberCalculation:
     def test_multiple_identical_scripts_different_lines(self):
         """Test that identical scripts in different locations get correct line numbers."""
         source = """{
-  "id": "TestPage",
+  "id": "testPage",
   "endPoints": [
     {
       "name": "test1",
@@ -61,7 +60,7 @@ class TestScriptLineNumberCalculation:
     def test_similar_url_patterns_different_endpoints(self):
         """Test that similar URL patterns in different endpoints get correct line numbers."""
         source = """{
-  "id": "TestPage",
+  "id": "testPage",
   "endPoints": [
     {
       "name": "endpoint1",
@@ -92,7 +91,7 @@ class TestScriptLineNumberCalculation:
     def test_nested_script_in_presentation(self):
         """Test line number calculation for deeply nested presentation scripts."""
         source = """{
-  "id": "TestPage",
+  "id": "testPage",
   "presentation": {
     "body": {
       "children": [
@@ -119,7 +118,7 @@ class TestScriptLineNumberCalculation:
         """Test that multiline scripts report the line of the violation."""
         # Use properly escaped JSON (this is how real PMD files store multiline scripts)
         source = """{
-  "id": "TestPage",
+  "id": "testPage",
   "script": "<%\\n    var result = compute();\\n    var message = 'Result: ' + result;\\n  %>"
 }"""
         pmd_model = self._create_pmd_model(source)
@@ -137,7 +136,7 @@ class TestScriptLineNumberCalculation:
     def test_script_in_onload_field(self):
         """Test line number calculation for onLoad script."""
         source = """{
-  "id": "TestPage",
+  "id": "testPage",
   "onLoad": "<% pageVariables.test = 'a' + 'b'; %>"
 }"""
         pmd_model = self._create_pmd_model(source)
@@ -152,9 +151,9 @@ class TestScriptLineNumberCalculation:
         assert findings[0].line == 3, f"Expected line 3, got {findings[0].line}"
     
     def test_real_world_capital_planning_example(self):
-        """Test with a real-world excerpt similar to CapitalPlanningRequestEdit.pmd."""
+        """Test with a real-world excerpt from sample app."""
         source = """{
-  "id": "CapitalPlanningRequestEdit",
+  "id": "requestEdit",
   "endPoints": [
     {
       "baseUrlType": "WQL",
@@ -187,7 +186,7 @@ class TestScriptLineNumberCalculation:
     def test_no_false_positives_from_line_offset(self):
         """Ensure line offset doesn't cause false positives on surrounding lines."""
         source = """{
-  "id": "TestPage",
+  "id": "testPage",
   "endPoints": [
     {
       "name": "test1",
@@ -259,7 +258,7 @@ class TestLineOffsetEdgeCases:
     def test_empty_script_no_crash(self):
         """Test that empty scripts don't cause crashes."""
         source = """{
-  "id": "TestPage",
+  "id": "testPage",
   "script": "<% %>"
 }"""
         pmd_model = TestScriptLineNumberCalculation()._create_pmd_model(source)
@@ -275,7 +274,7 @@ class TestLineOffsetEdgeCases:
     def test_script_with_special_characters(self):
         """Test scripts with special JSON characters."""
         source = """{
-  "id": "TestPage",
+  "id": "testPage",
   "script": "<% var msg = 'He said \\\\'hello\\\\'' + ' world'; %>"
 }"""
         pmd_model = TestScriptLineNumberCalculation()._create_pmd_model(source)

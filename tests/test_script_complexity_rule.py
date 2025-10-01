@@ -1,9 +1,7 @@
 """Unit tests for ScriptComplexityRule."""
 
-import pytest
 from parser.rules.script.complexity.cyclomatic_complexity import ScriptComplexityRule
 from parser.rules.script.complexity.cyclomatic_complexity_detector import CyclomaticComplexityDetector
-from parser.models import PMDModel
 from parser.app_parser import ModelParser
 
 
@@ -101,7 +99,7 @@ class TestScriptComplexityRule:
         """Test that for statements add to cyclomatic complexity."""
         script_content = """
         for (var i = 0; i < 10; i++) {
-            console.log(i);
+            console.info(i);
         }
         """
         
@@ -267,7 +265,7 @@ class TestScriptComplexityRuleIntegration:
     def test_with_real_pmd_file(self):
         """Test with a real PMD file structure."""
         pmd_content = '''{
-  "pageId": "TestPage",
+  "pageId": "testPage",
   "script": "<% if (x > 0 && y > 0) { while (z > 0) { for (var i = 0; i < 10; i++) { if (a || b) { var result = c ? d : e; if (f && g) { if (h || i) { if (j) { if (k) { return true; } } } } } } } } %>",
   "presentation": {
     "title": {
@@ -305,7 +303,7 @@ class TestScriptComplexityRuleIntegration:
     def test_with_simple_pmd(self):
         """Test with PMD containing simple script."""
         pmd_content = '''{
-  "pageId": "TestPage",
+  "pageId": "testPage",
   "script": "<% var x = 1; var y = 2; return x + y; %>",
   "presentation": {
     "title": {

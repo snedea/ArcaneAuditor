@@ -1,6 +1,5 @@
 """Tests for ScriptStringConcatRule."""
 
-import pytest
 from parser.rules.script.logic.string_concat import ScriptStringConcatRule
 from parser.models import PMDModel, ProjectContext
 
@@ -8,7 +7,7 @@ from parser.models import PMDModel, ProjectContext
 def test_simple_string_concatenation():
     """Test detection of simple string concatenation."""
     pmd_content = {
-        "pageId": "TestPage",
+        "pageId": "testPage",
         "script": "<% var msg = 'Hello ' + name + '!'; %>"
     }
     
@@ -27,7 +26,7 @@ def test_chained_concatenation_single_violation():
     """Test that chained concatenations on same line produce only ONE violation."""
     # This is the key test - multiple + operators on same line should only report once
     pmd_content = {
-        "pageId": "TestPage",
+        "pageId": "testPage",
         "script": "<% var url = '/data?query=' + encode('SELECT FROM ' + appId + '_table WHERE id=' + recordId); %>"
     }
     
@@ -46,7 +45,7 @@ def test_chained_concatenation_single_violation():
 def test_multiple_lines_multiple_violations():
     """Test that concatenations on different lines produce separate violations."""
     pmd_content = {
-        "pageId": "TestPage",
+        "pageId": "testPage",
         "script": """<%
                 var msg1 = 'Hello ' + name;
                 var msg2 = 'Goodbye ' + name;
@@ -68,7 +67,7 @@ def test_multiple_lines_multiple_violations():
 def test_no_string_concatenation():
     """Test that numeric addition is not flagged."""
     pmd_content = {
-        "pageId": "TestPage",
+        "pageId": "testPage",
         "script": "<% var total = price + tax + shipping; %>"
     }
     
@@ -86,7 +85,7 @@ def test_no_string_concatenation():
 def test_template_literal_not_flagged():
     """Test that template literals (backticks) are not flagged."""
     pmd_content = {
-        "pageId": "TestPage",
+        "pageId": "testPage",
         "script": "<% var msg = `Hello {{name}}!`; %>"
     }
     
@@ -103,10 +102,10 @@ def test_template_literal_not_flagged():
 
 def test_real_world_example_in_endpoint():
     """Test string concatenation detection in endpoint URL (from real PMD)."""
-    # Based on the user's example from CapitalPlanningRequestsIndex.pmd line 7
+    # Based on the user's example from sample app
     # Note: Endpoint URLs are analyzed as script fields by find_script_fields
     pmd_content = {
-        "pageId": "TestPage",
+        "pageId": "testPage",
         "inboundEndpoints": [
             {
                 "name": "testGET",

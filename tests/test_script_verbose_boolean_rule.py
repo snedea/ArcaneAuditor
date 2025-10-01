@@ -1,9 +1,7 @@
 """Unit tests for ScriptVerboseBooleanCheckRule."""
 
-import pytest
 from parser.rules.script.logic.verbose_boolean import ScriptVerboseBooleanCheckRule
 from parser.rules.script.logic.verbose_boolean_detector import VerboseBooleanDetector
-from parser.models import PMDModel
 from parser.app_parser import ModelParser
 
 
@@ -269,7 +267,7 @@ class TestScriptVerboseBooleanCheckRuleIntegration:
     def test_with_real_pmd_file(self):
         """Test with a real PMD file structure."""
         pmd_content = '''{
-  "pageId": "TestPage",
+  "pageId": "testPage",
   "script": "<% if (x == true) { return true; } else { return false; } %>",
   "presentation": {
     "title": {
@@ -307,7 +305,7 @@ class TestScriptVerboseBooleanCheckRuleIntegration:
     def test_with_simple_pmd(self):
         """Test with PMD containing simple script."""
         pmd_content = '''{
-  "pageId": "TestPage",
+"pageId": "testPage",
   "script": "<% var x = true; var y = false; return x && y; %>",
   "presentation": {
     "title": {

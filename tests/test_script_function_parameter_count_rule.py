@@ -1,9 +1,7 @@
 """Unit tests for ScriptFunctionParameterCountRule."""
 
-import pytest
 from parser.rules.script.complexity.function_parameter_count import ScriptFunctionParameterCountRule
 from parser.rules.script.complexity.function_parameter_count_detector import FunctionParameterCountDetector
-from parser.models import PMDModel
 from parser.app_parser import ModelParser
 
 
@@ -177,7 +175,7 @@ class TestScriptFunctionParameterCountRuleIntegration:
     def test_with_real_pmd_file(self):
         """Test with a real PMD file structure."""
         pmd_content = '''{
-  "pageId": "TestPage",
+  "pageId": "testPage",
   "script": "<% var tooManyParams = function(a, b, c, d, e) { return a + b + c + d + e; }; %>",
   "presentation": {
     "title": {
@@ -215,7 +213,7 @@ class TestScriptFunctionParameterCountRuleIntegration:
     def test_with_empty_function_pmd(self):
         """Test with PMD containing no functions."""
         pmd_content = '''{
-  "pageId": "TestPage",
+  "pageId": "testPage",
   "script": "<% var x = 1; var y = 2; %>",
   "presentation": {
     "title": {
