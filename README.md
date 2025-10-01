@@ -12,12 +12,11 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 
 **Key Features:**
 
-- 🎯 **Exact Line Numbers**: Hash-based mapping pinpoints violations precisely (no off-by-one errors)
-- 🧭 **Readable Violation Paths**: Uses widget IDs, labels, and types instead of cryptic array indices
+- 🎯 **Exact (hopefully!) Line Numbers**: Hash-based mapping pinpoints violations
+- 🧭 **Readable Violation Paths**: Uses widget IDs, labels, and types to indicate where an issue is found
 - ✅ **Intelligent Detection**: Accurately tracks function usage, unused code, and code complexity
-- 🚀 **High Performance**: Context-based AST caching for fast analysis of large applications
 - 🛡️ **Update-Safe Configuration**: Layered config system protects your customizations
-- 🎨 **Clear Messages**: Actionable violation messages with exact locations and fix suggestions
+- 🎨 **Clear Messages**: Actionable violation messages with locations and fix suggestions
 
 **Rule Categories:**
 
@@ -83,17 +82,17 @@ pip install uv
 ```bash
 # Download the latest release ZIP from GitHub
 # Visit: https://github.com/Developers-and-Dragons/ArcaneAuditor/releases
-# Download arcane-auditor-v0.5.0.zip and extract it
+# Download arcane-auditor-v0.7.0.zip and extract it
 
 # Or using command line (Windows PowerShell)
-Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.5.0.zip" -OutFile "arcane-auditor.zip"
+Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.7.0.zip" -OutFile "arcane-auditor.zip"
 Expand-Archive -Path "arcane-auditor.zip" -DestinationPath "."
-cd ArcaneAuditor-0.5.0
+cd ArcaneAuditor-0.7.0
 
 # Or using command line (macOS)
-curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.5.0.zip"
+curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.7.0.zip"
 unzip arcane-auditor.zip
-cd ArcaneAuditor-0.5.0
+cd ArcaneAuditor-0.7.0
 
 # Install dependencies (UV handles Python version and virtual environment automatically)
 uv sync
