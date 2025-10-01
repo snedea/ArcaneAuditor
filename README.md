@@ -10,6 +10,15 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 - **🧩 Pod Files**: Pod files with template widgets and endpoint configurations
 - **📜 Script Files**: Standalone .script files with function libraries and utilities
 
+**Key Features:**
+
+- 🎯 **Exact Line Numbers**: Hash-based mapping pinpoints violations precisely (no off-by-one errors)
+- 🧭 **Readable Violation Paths**: Uses widget IDs, labels, and types instead of cryptic array indices
+- ✅ **Intelligent Detection**: Accurately tracks function usage, unused code, and code complexity
+- 🚀 **High Performance**: Context-based AST caching for fast analysis of large applications
+- 🛡️ **Update-Safe Configuration**: Layered config system protects your customizations
+- 🎨 **Clear Messages**: Actionable violation messages with exact locations and fix suggestions
+
 **Rule Categories:**
 
 - **Script Quality**: Script syntax, complexity, naming conventions, unused code detection
