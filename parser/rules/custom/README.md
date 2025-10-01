@@ -237,8 +237,6 @@ class CustomEndpointRule(StructureRuleBase):
 
 ### 4. Creating Violations and Findings
 
-**Important: Column tracking was removed in 2025**
-
 ```python
 # For Script Detectors: Create Violations (internal format)
 violation = Violation(
@@ -246,7 +244,6 @@ violation = Violation(
     line=42,  # Line number (hash-based, exact positioning)
     metadata={'variable_name': 'myVar'}  # Optional metadata
 )
-# Note: No 'column' field - column tracking removed in 2025
 
 # For Rules: Create Findings (external format)
 finding = Finding(
@@ -255,14 +252,13 @@ finding = Finding(
     line=42,  # Line number from hash-based lookup (exact, no off-by-one errors)
     file_path=file_path
 )
-# Note: No 'column' field - column tracking removed in 2025
 
 yield finding  # Always yield, never return
 ```
 
 **Line Number Accuracy:**
-- Line numbers now use hash-based mapping for exact accuracy
-- No more off-by-one errors
+- Line numbers use hash-based mapping for exact accuracy
+- No off-by-one errors
 - `line_offset` from `find_script_fields()` is already calculated correctly
 - Handles multiline scripts, string concatenations, and nested structures
 
@@ -281,7 +277,7 @@ except Exception as e:
     print(f"Failed to parse script: {e}")
 ```
 
-**Benefits of the new caching system:**
+**Caching System Benefits:**
 - ✅ **Performance**: ASTs are cached at the context level, avoiding redundant parsing
 - ✅ **Memory efficient**: Only unique script content is parsed and cached
 - ✅ **Automatic**: Caching happens transparently - no manual cache management needed
@@ -304,17 +300,17 @@ for field_path, field_value, display_name, line_offset in script_fields:
     pass
 ```
 
-**Readable Widget Paths (2025):**
-- Widget paths now use identifiers instead of array indices
+**Readable Widget Paths:**
+- Widget paths use identifiers instead of array indices
 - Priority order: `id` → `label` → `type` → `name` → `[index]`
 - Makes violation messages much easier to navigate
-- Example improvement:
-  - Before: `presentation->tabs[0]->children[2]->children[0]->onChange`
-  - After: `presentation->tabs->id: sectionOverview->children->label: Timing->children->id: startDateWidget->onChange`
+- Example:
+  - Technical path: `presentation->tabs[0]->children[2]->children[0]->onChange`
+  - Readable path: `presentation->tabs->id: sectionOverview->children->label: Timing->children->id: startDateWidget->onChange`
 
-### Line Number Utilities (2025 - Hash-Based)
+### Line Number Utilities (Hash-Based)
 
-**Line numbers are now hash-based for exact accuracy:**
+**Line numbers use hash-based mapping for exact accuracy:**
 
 ```python
 # Get exact line number for script content using hash-based mapping
@@ -455,7 +451,7 @@ class CustomScriptComplexityRule(ScriptRuleBase):
 6. **Test**: Run the tool to see your rule in action
 7. **Configure**: Add rule to your configuration files
 
-### Example: Creating a Custom Comment Rule (2025)
+### Example: Creating a Custom Comment Rule
 
 ```python
 # user/my_comment_rule.py
@@ -473,11 +469,11 @@ class CustomScriptCommentRule(ScriptRuleBase):
     
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """
-        Modern unified analysis pattern with 2025 improvements:
+        Unified analysis pattern with key features:
         - Hash-based line numbers (exact, no off-by-one errors)
         - Context-based AST caching (performance)
         - Readable widget paths (id -> label -> type priority)
-        - No column tracking (removed in 2025)
+        - Clean violation reporting (line numbers only)
         """
         # Iterate through all PMD files and their script fields
         for pmd_model in context.pmds.values():
@@ -513,7 +509,6 @@ class CustomScriptCommentRule(ScriptRuleBase):
                 
                 if not has_comment:
                     # Create Finding (not Violation - that's for detectors)
-                    # No column field (removed in 2025)
                     yield Finding(
                         rule=self,  # Auto-populates rule_id, severity
                         message=f"Function at {field_name} should have a comment explaining its purpose",
@@ -524,12 +519,12 @@ class CustomScriptCommentRule(ScriptRuleBase):
             print(f"Error analyzing comments in {file_path}: {e}")
 ```
 
-**Key improvements in 2025 version:**
+**This example demonstrates:**
 - ✅ Hash-based line numbers (no off-by-one errors)
 - ✅ Context-based AST caching (better performance)
 - ✅ Readable widget paths in field_name (easier navigation)
-- ✅ No column tracking (removed for reliability)
-- ✅ Uses Finding instead of Violation for rules (correct architecture)
+- ✅ Clean violation reporting (line numbers only)
+- ✅ Proper architecture (Finding for rules, Violation for detectors)
 
 ## 🔍 Debugging
 
