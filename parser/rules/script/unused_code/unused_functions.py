@@ -42,57 +42,119 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
             )
     
     def _collect_function_declarations(self, ast) -> Set[str]:
-        """Collect all function declarations from the AST."""
+        """
+        Collect all function declarations from the AST.
+        
+        In PMD Script, all functions are anonymous and assigned to variables.
+        We track the variable names, not function names.
+        
+        Patterns to detect:
+        - var funcName = function() { ... }
+        - let funcName = function() { ... }
+        - const funcName = function() { ... }
+        - var funcName = () => { ... }  (arrow functions)
+        """
         declared_functions = set()
         
         try:
-            # Find all function expressions (function declarations)
-            for function_node in ast.find_data('function_expression'):
-                function_name = self._get_function_name_from_node(function_node)
-                if function_name:
-                    declared_functions.add(function_name)
+            # Find all variable declarations
+            for var_decl_node in ast.find_data('variable_statement'):
+                # Look for variables that are assigned to functions
+                variable_names = self._extract_function_variable_names(var_decl_node)
+                declared_functions.update(variable_names)
         except Exception:
             pass  # If AST traversal fails, return empty set
         
         return declared_functions
     
     def _collect_function_calls(self, ast) -> Set[str]:
-        """Collect all function calls from the AST."""
+        """
+        Collect all references to identifiers that could be function calls.
+        
+        This includes:
+        - Direct calls: myFunc()
+        - Function references passed as arguments: array.map(myFunc)
+        - Function references in expressions: var x = myFunc
+        """
         function_calls = set()
         
         try:
-            # Find all function calls
+            # Collect all identifiers that are referenced (not declarations)
+            # We'll filter by collecting identifiers used in various contexts
+            
+            # 1. Direct function calls
             for call_node in ast.find_data('call_expression'):
-                function_name = self._get_function_name_from_call_node(call_node)
-                if function_name:
-                    function_calls.add(function_name)
+                func_name = self._extract_identifier_from_expression(call_node.children[0] if call_node.children else None)
+                if func_name:
+                    function_calls.add(func_name)
+            
+            # 2. Identifiers used in member expressions (e.g., obj.method())
+            # These are already handled by call_expression above if they're called
+            
+            # 3. Identifiers used as arguments or in expressions
+            # Parse through all expression nodes and collect standalone identifiers
+            for tree in ast.iter_subtrees():
+                # Look for identifiers that aren't part of variable declarations
+                if tree.data not in ('variable_declaration', 'variable_statement'):
+                    for child in tree.children:
+                        if hasattr(child, 'type') and child.type == 'IDENTIFIER':
+                            function_calls.add(child.value)
+                            
         except Exception:
             pass  # If AST traversal fails, return empty set
         
         return function_calls
     
-    def _get_function_name_from_node(self, node) -> str:
-        """Extract function name from a function expression node."""
-        try:
-            if hasattr(node, 'children') and len(node.children) > 0:
-                name_node = node.children[0]
-                if hasattr(name_node, 'value'):
-                    return name_node.value
-        except Exception:
-            pass
+    def _extract_identifier_from_expression(self, node) -> str:
+        """Extract identifier name from an expression node."""
+        if node is None:
+            return ""
+        if hasattr(node, 'value'):
+            return node.value
+        if hasattr(node, 'children') and node.children:
+            # For member expressions, get the last identifier (method name)
+            for child in node.children:
+                if hasattr(child, 'value'):
+                    return child.value
         return ""
     
-    def _get_function_name_from_call_node(self, node) -> str:
-        """Extract function name from a call expression node."""
+    def _extract_function_variable_names(self, var_statement_node) -> Set[str]:
+        """
+        Extract variable names that are assigned to functions.
+        
+        For example, from: var myFunc = function() { ... }
+        We extract: "myFunc"
+        """
+        function_vars = set()
+        
         try:
-            if hasattr(node, 'children') and len(node.children) > 0:
-                # The first child should be the function being called
-                function_node = node.children[0]
-                if hasattr(function_node, 'value'):
-                    return function_node.value
-                elif hasattr(function_node, 'children') and len(function_node.children) > 0:
-                    # Handle cases like obj.method()
-                    return function_node.children[-1].value if hasattr(function_node.children[-1], 'value') else ""
+            # Traverse the variable statement to find variable declarations
+            for child in var_statement_node.iter_subtrees():
+                if child.data == 'variable_declaration':
+                    # Get the variable name (first child is IDENTIFIER)
+                    if len(child.children) >= 1:
+                        identifier = child.children[0]
+                        if hasattr(identifier, 'value'):
+                            var_name = identifier.value
+                            
+                            # Check if it's assigned to a function
+                            # Look for initializer -> function_expression or arrow_function_expression
+                            if len(child.children) >= 2:
+                                initializer = child.children[1]
+                                if self._is_function_assignment(initializer):
+                                    function_vars.add(var_name)
         except Exception:
             pass
-        return ""
+        
+        return function_vars
+    
+    def _is_function_assignment(self, initializer_node) -> bool:
+        """Check if an initializer node assigns a function."""
+        try:
+            # Check if the initializer contains a function expression or arrow function
+            for subtree in initializer_node.iter_subtrees():
+                if subtree.data in ('function_expression', 'arrow_function_expression'):
+                    return True
+        except Exception:
+            pass
+        return False
