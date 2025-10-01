@@ -388,9 +388,9 @@ arcane-auditor/
 │   ├── server.py                                   	# FastAPI web server
 │   ├── configs/                                    	# Web-specific configurations
 │   ├── uploads/                                    	# Temporary upload directory
-│   └── frontend/                                   	# HTML/CSS/JS frontend
-│       ├── README.md                              	# Frontend documentation
-│       ├── index.html                             	# Main HTML page
+│   └── frontend/                                  	# HTML/CSS/JS frontend
+│       ├── README.md                              		# Frontend documentation
+│       ├── index.html                             		# Main HTML page
 │       ├── style.css                               	# Styling with dark mode
 │       └── script.js                               	# Client-side functionality
 │
@@ -400,7 +400,7 @@ arcane-auditor/
 │   ├── test_file_processor.py                      	# File processing tests
 │   ├── test_finding.py                             	# Finding model tests
 │   ├── test_rules_engine.py                        	# Rules engine tests
-│   ├── test_all_script_rules.py                   	# All script rules integration tests
+│   ├── test_all_script_rules.py                   		# All script rules integration tests
 │   ├── test_all_structure_rules.py                 	# All structure rules integration tests
 │   ├── test_script_complexity_rule.py              	# Complexity rule tests
 │   ├── test_script_descriptive_parameters.py       	# Descriptive parameters tests
