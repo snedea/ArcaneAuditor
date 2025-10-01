@@ -7,13 +7,18 @@ Arcane Auditor unified architecture (2025). It demonstrates:
 - Unified rule architecture with ScriptRuleBase
 - Generator-based analysis pattern
 - Dual script analysis (PMD embedded + standalone script files)  
-- Modern Violation creation with automatic field population
+- Modern Violation creation (no column tracking - removed in 2025)
+- Context-based AST caching for performance
+- Hash-based line number calculation (exact, no off-by-one errors)
 - Proper error handling and AST parsing
 - Configuration support through custom_settings
+- Readable widget paths with id/label/type priority
 """
 
 from typing import Generator
-from ...script.shared import ScriptRuleBase, Violation
+from ...script.shared import ScriptRuleBase
+from ...common.violation import Violation
+from ...base import Finding
 from ....models import ProjectContext, PMDModel
 
 
@@ -42,38 +47,49 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
         self.min_comment_density = self.config.get('min_comment_density', 0.1)  # 10% default
         self.min_function_lines = self.config.get('min_function_lines', 5)  # Only check functions > 5 lines
     
-    def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
+    def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """
         Modern unified analysis pattern: Uses ScriptRuleBase for automatic iteration.
         
         The ScriptRuleBase handles:
-        1. PMD embedded scripts (onLoad, script, onSubmit, etc.)
-        2. POD embedded scripts
+        1. PMD embedded scripts (onLoad, script, onSubmit, etc.) with hash-based line mapping
+        2. POD embedded scripts with exact line numbers
         3. Standalone script files (util.script, helper.script, etc.)
+        4. Context-based AST caching for performance
+        5. Readable widget paths (id -> label -> type priority)
         """
         
         # Use the unified architecture - base class handles iteration
-        yield from self._analyze_scripts(context)
+        # Iterate through all PMD files and their script fields
+        for pmd_model in context.pmds.values():
+            script_fields = self.find_script_fields(pmd_model, context)
+            
+            for field_path, field_value, display_name, line_offset in script_fields:
+                # line_offset uses hash-based lookup for exact positioning
+                yield from self._check_comment_quality(
+                    field_value, 
+                    display_name,  # Now includes readable widget identifiers!
+                    pmd_model.file_path, 
+                    line_offset,
+                    context
+                )
     
-    def _analyze_scripts(self, context: ProjectContext) -> Generator[Violation, None, None]:
-        """Analyze scripts using the unified architecture."""
-        # The ScriptRuleBase automatically calls this method for each script
-        # You can override this method to implement your analysis logic
-        pass
     
-    def _check_comment_quality(self, script_content: str, field_name: str, file_path: str, line_offset: int) -> Generator[Violation, None, None]:
+    def _check_comment_quality(self, script_content: str, field_name: str, file_path: str, line_offset: int, context: ProjectContext = None) -> Generator[Finding, None, None]:
         """
         Check comment quality in script content using AST parsing.
         
         This demonstrates:
-        - Using built-in script parser with context-level caching
+        - Using built-in script parser with context-level caching (faster, memory-efficient)
         - AST traversal for function detection
         - Comment density calculation
-        - Modern Violation creation
+        - Modern Violation creation (no column tracking - removed in 2025)
+        - Hash-based line numbers (exact positioning, no off-by-one errors)
         """
         try:
-            # Parse script using built-in Lark grammar parser with caching
-            ast = self.get_cached_ast(script_content)
+            # Parse script using built-in Lark grammar parser with context-level caching
+            # Context caching avoids redundant parsing of duplicate scripts
+            ast = self.get_cached_ast(script_content, context)
             
             if ast is None:
                 return  # Skip if parsing failed
@@ -86,12 +102,21 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
                 
                 # Only check functions that meet minimum line threshold
                 if func_info['line_count'] >= self.min_function_lines and comment_density < self.min_comment_density:
-                    yield Violation(
-                        rule=self,  # Automatically populates rule_id, severity, description
+                    # Create Violation (internal format for detectors)
+                    violation = Violation(
                         message=f"Function '{func_info['name']}' has low comment density "
                                f"({comment_density:.1%}, minimum: {self.min_comment_density:.1%}). "
                                f"Consider adding comments to improve code maintainability.",
-                        line=line_offset + func_info['start_line'],
+                        line=line_offset + func_info['start_line'],  # Hash-based line numbers are exact
+                        metadata={'function_name': func_info['name'], 'density': comment_density}
+                    )
+                    
+                    # Convert to Finding (external format for rules engine)
+                    # Note: No column field - column tracking removed in 2025
+                    yield Finding(
+                        rule=self,  # Automatically populates rule_id, severity, description
+                        message=violation.message,
+                        line=violation.line,
                         file_path=file_path
                     )
         

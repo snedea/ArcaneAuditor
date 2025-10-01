@@ -235,21 +235,36 @@ class CustomEndpointRule(StructureRuleBase):
                 )
 ```
 
-### 4. Creating Violations
+### 4. Creating Violations and Findings
+
+**Important: Column tracking was removed in 2025**
 
 ```python
-# Violation creation with automatic field population
+# For Script Detectors: Create Violations (internal format)
 violation = Violation(
     message="Detailed description of the issue and how to fix it",
-    line=42  # Line where the issue occurs
+    line=42,  # Line number (hash-based, exact positioning)
+    metadata={'variable_name': 'myVar'}  # Optional metadata
 )
+# Note: No 'column' field - column tracking removed in 2025
 
-# Note: Violations are converted to Findings by the rule framework
-# Findings include rule_id, severity, file_path automatically  
-# - violation.rule_description = self.DESCRIPTION
+# For Rules: Create Findings (external format)
+finding = Finding(
+    rule=self,  # Automatically populates rule_id, severity, description
+    message="Detailed description of the issue and how to fix it",
+    line=42,  # Line number from hash-based lookup (exact, no off-by-one errors)
+    file_path=file_path
+)
+# Note: No 'column' field - column tracking removed in 2025
 
-yield violation  # Yield instead of append
+yield finding  # Always yield, never return
 ```
+
+**Line Number Accuracy:**
+- Line numbers now use hash-based mapping for exact accuracy
+- No more off-by-one errors
+- `line_offset` from `find_script_fields()` is already calculated correctly
+- Handles multiline scripts, string concatenations, and nested structures
 
 ## 🔧 Available Utilities
 
@@ -276,28 +291,54 @@ except Exception as e:
 
 ```python
 # Find all script-containing fields in a PMD file
-script_fields = self.find_script_fields(pmd_model)
+script_fields = self.find_script_fields(pmd_model, context)
 
-# Returns tuples of (field_path, field_value, field_name, line_offset)
-for field_path, field_value, field_name, line_offset in script_fields:
-    # field_path: "onLoad" or "endPoints.0.onSend"
+# Returns tuples of (field_path, field_value, display_name, line_offset)
+for field_path, field_value, display_name, line_offset in script_fields:
+    # field_path: "onLoad" or "endPoints.0.onSend" (technical path)
     # field_value: The actual script content
-    # field_name: Human readable name
-    # line_offset: Starting line number in the original file
+    # display_name: Human-readable path with widget identifiers
+    #   - Uses id -> label -> type -> name priority
+    #   - Example: "presentation->tabs->id: sectionOverview->children->label: Timing->children->id: startDateWidget->onChange"
+    # line_offset: Starting line number in the original file (hash-based, exact)
     pass
 ```
 
-### Line Number Utilities
+**Readable Widget Paths (2025):**
+- Widget paths now use identifiers instead of array indices
+- Priority order: `id` → `label` → `type` → `name` → `[index]`
+- Makes violation messages much easier to navigate
+- Example improvement:
+  - Before: `presentation->tabs[0]->children[2]->children[0]->onChange`
+  - After: `presentation->tabs->id: sectionOverview->children->label: Timing->children->id: startDateWidget->onChange`
+
+### Line Number Utilities (2025 - Hash-Based)
+
+**Line numbers are now hash-based for exact accuracy:**
 
 ```python
-from ...line_number_utils import LineNumberUtils
+# Get exact line number for script content using hash-based mapping
+# The PMDModel now has built-in hash-based line tracking
+line_offset = pmd_model.get_script_start_line(script_value)
 
-# Find line number of a specific field
-line_number = LineNumberUtils.find_field_line_number(pmd_model, field_name, search_value)
+# Calculate actual line in file (AST line 1 = first line after <%)
+# Hash-based mapping handles:
+# - Multiline scripts
+# - String concatenations
+# - Nested structures
+# - Duplicate script content
+actual_line = line_offset + relative_line_in_ast - 1
 
-# Calculate line offset within script content
-actual_line = line_offset + relative_line_in_script
+# No more off-by-one errors!
+# No more fuzzy matching fallbacks (except for edge cases)
 ```
+
+**Benefits of hash-based line mapping:**
+- ✅ Exact line numbers (no approximations)
+- ✅ Handles multiline scripts correctly
+- ✅ No off-by-one errors
+- ✅ Tracks duplicate scripts separately
+- ✅ Works with both PMD and POD files
 
 ### Common Validations
 
@@ -414,12 +455,14 @@ class CustomScriptComplexityRule(ScriptRuleBase):
 6. **Test**: Run the tool to see your rule in action
 7. **Configure**: Add rule to your configuration files
 
-### Example: Creating a Custom Comment Rule
+### Example: Creating a Custom Comment Rule (2025)
 
 ```python
 # user/my_comment_rule.py
 from typing import Generator
-from ...script.shared import ScriptRuleBase, Violation
+from ...script.shared import ScriptRuleBase
+from ...common.violation import Violation
+from ...base import Finding
 from ....models import ProjectContext
 
 class CustomScriptCommentRule(ScriptRuleBase):
@@ -428,19 +471,38 @@ class CustomScriptCommentRule(ScriptRuleBase):
     DESCRIPTION = "Functions should have comments for maintainability"
     SEVERITY = "INFO"
     
-    def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
-        # Use the unified architecture - base class handles iteration
-        yield from self._analyze_scripts(context)
+    def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
+        """
+        Modern unified analysis pattern with 2025 improvements:
+        - Hash-based line numbers (exact, no off-by-one errors)
+        - Context-based AST caching (performance)
+        - Readable widget paths (id -> label -> type priority)
+        - No column tracking (removed in 2025)
+        """
+        # Iterate through all PMD files and their script fields
+        for pmd_model in context.pmds.values():
+            script_fields = self.find_script_fields(pmd_model, context)
+            
+            for field_path, field_value, display_name, line_offset in script_fields:
+                # line_offset is hash-based (exact positioning)
+                # display_name includes readable widget identifiers
+                yield from self._check_comments(
+                    field_value, 
+                    display_name, 
+                    pmd_model.file_path, 
+                    line_offset,
+                    context
+                )
     
-    def _analyze_scripts(self, context: ProjectContext) -> Generator[Violation, None, None]:
-        """Analyze scripts using the unified architecture."""
-        # The ScriptRuleBase automatically calls this method for each script
-        # Your analysis logic here
-        pass
-    
-    def _check_comments(self, script_content: str, field_name: str, file_path: str, line_offset: int) -> Generator[Violation, None, None]:
+    def _check_comments(self, script_content: str, field_name: str, file_path: str, 
+                        line_offset: int, context: ProjectContext) -> Generator[Finding, None, None]:
         """Check for adequate comments in script content."""
         try:
+            # Use context-based AST caching for performance
+            ast = self.get_cached_ast(script_content, context)
+            if ast is None:
+                return
+            
             lines = script_content.split('\n')
             function_lines = [i for i, line in enumerate(lines) if 'function' in line]
             
@@ -450,13 +512,24 @@ class CustomScriptCommentRule(ScriptRuleBase):
                                 for i in range(1, 4) if func_line-i >= 0)
                 
                 if not has_comment:
-                    yield Violation(
-                        message="Function should have a comment explaining its purpose",
-                        line=line_offset + func_line
+                    # Create Finding (not Violation - that's for detectors)
+                    # No column field (removed in 2025)
+                    yield Finding(
+                        rule=self,  # Auto-populates rule_id, severity
+                        message=f"Function at {field_name} should have a comment explaining its purpose",
+                        line=line_offset + func_line,  # Hash-based line numbers are exact
+                        file_path=file_path
                     )
         except Exception as e:
             print(f"Error analyzing comments in {file_path}: {e}")
 ```
+
+**Key improvements in 2025 version:**
+- ✅ Hash-based line numbers (no off-by-one errors)
+- ✅ Context-based AST caching (better performance)
+- ✅ Readable widget paths in field_name (easier navigation)
+- ✅ No column tracking (removed for reliability)
+- ✅ Uses Finding instead of Violation for rules (correct architecture)
 
 ## 🔍 Debugging
 
