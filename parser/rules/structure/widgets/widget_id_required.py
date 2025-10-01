@@ -91,8 +91,9 @@ class WidgetIdRequiredRule(StructureRuleBase):
             elif pod_model:
                 line_number = self._get_pod_widget_line_number(pod_model, widget_type, widget_path, widget_index)
             
-            # Create a more descriptive message with the widget path
-            path_description = f" at path '{widget_path}'" if widget_path else ""
+            # Create a readable path description using the widget's available identifiers
+            readable_identifier = self._get_readable_identifier(widget, widget_index)
+            path_description = f" ({readable_identifier})" if readable_identifier else ""
             
             yield self._create_finding(
                 message=f"Widget of type '{widget_type}'{path_description} is missing required 'id' field.",
