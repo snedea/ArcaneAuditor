@@ -386,7 +386,7 @@ class TestWidgetIdRequiredRuleWithGenericTraversal(unittest.TestCase):
         assert len(findings) == 1
         assert "missing required 'id' field" in findings[0].message
         assert "text" in findings[0].message
-        assert "label: Primary content" in findings[0].message
+        assert "body->primaryLayout->label: Primary content" in findings[0].message
     
     def test_basic_form_layout_widget_id_validation(self):
         """Test widget ID validation with basicFormLayout structure."""
@@ -431,7 +431,7 @@ class TestWidgetIdRequiredRuleWithGenericTraversal(unittest.TestCase):
         assert len(findings) == 1
         assert "missing required 'id' field" in findings[0].message
         assert "input" in findings[0].message
-        assert "label: User input" in findings[0].message
+        assert "body->sections->id: section1->children->label: User input" in findings[0].message
     
     def test_excluded_widget_types_not_require_id(self):
         """Test that excluded widget types don't require IDs."""
