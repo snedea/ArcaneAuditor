@@ -133,30 +133,46 @@ class Rule(ABC):
         # Track the last line found to search forward from there
         last_line_found = 0
         
-        def _search_dict(data: Dict[str, Any], prefix: str = "", file_content: str = "") -> None:
+        def _search_dict(data: Dict[str, Any], prefix: str = "", file_content: str = "", display_prefix: str = "") -> None:
             """Recursively search a dictionary for script fields."""
             nonlocal last_line_found
             
             for key, value in data.items():
                 if isinstance(value, str) and re.search(script_pattern, value, re.DOTALL):
                     field_path = f"{prefix}.{key}" if prefix else key
-                    # Use the full path as the display name for better context
-                    display_name = field_path
+                    # Use human-readable display name
+                    display_name = f"{display_prefix}->{key}" if display_prefix else key
                     # Calculate line offset by finding the script content in the original file
                     # Start searching from the last found position to avoid duplicates
                     line_offset = self._calculate_script_line_offset(file_content, value, search_start_line=last_line_found) if file_content else 1
                     last_line_found = line_offset
                     script_fields.append((field_path, value, display_name, line_offset))
                 elif isinstance(value, dict):
-                    _search_dict(value, f"{prefix}.{key}" if prefix else key, file_content)
+                    new_prefix = f"{prefix}.{key}" if prefix else key
+                    new_display_prefix = f"{display_prefix}->{key}" if display_prefix else key
+                    _search_dict(value, new_prefix, file_content, new_display_prefix)
                 elif isinstance(value, list):
                     for i, item in enumerate(value):
                         if isinstance(item, dict):
-                            _search_dict(item, f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}", file_content)
+                            # Check if this item has a 'name' field for human-readable display
+                            item_name = item.get('name', f'[{i}]')
+                            
+                            # Create technical path with index
+                            new_prefix = f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}"
+                            
+                            # Create human-readable path with name
+                            if isinstance(item_name, str) and item_name != f'[{i}]':
+                                # This item has a name - use it for display
+                                new_display_prefix = f"{display_prefix}->{key}->name: {item_name}" if display_prefix else f"{key}->name: {item_name}"
+                            else:
+                                # No name field, fall back to index
+                                new_display_prefix = f"{display_prefix}->{key}[{i}]" if display_prefix else f"{key}[{i}]"
+                            
+                            _search_dict(item, new_prefix, file_content, new_display_prefix)
                         elif isinstance(item, str) and re.search(script_pattern, item, re.DOTALL):
                             field_path = f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}"
-                            # Use the full path as the display name for better context
-                            display_name = field_path
+                            # Use human-readable display name
+                            display_name = f"{display_prefix}->{key}[{i}]" if display_prefix else f"{key}[{i}]"
                             # Calculate line offset by finding the script content in the original file
                             # Start searching from the last found position to avoid duplicates
                             line_offset = self._calculate_script_line_offset(file_content, item, search_start_line=last_line_found) if file_content else 1
