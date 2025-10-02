@@ -226,7 +226,7 @@ class OutputFormatter:
             ws = wb.create_sheet(sheet_name)
             
             # Headers
-            headers = ["Rule ID", "Severity", "Line", "Message", "File Path"]
+            headers = ["Rule ID", "Severity", "Line", "Message"]
             ws.append(headers)
             
             # Style headers
@@ -244,8 +244,7 @@ class OutputFormatter:
                     finding.rule_id,
                     finding.severity,
                     finding.line,
-                    finding.message,
-                    finding.file_path
+                    finding.message
                 ]
                 ws.append(row)
                 
@@ -274,7 +273,7 @@ class OutputFormatter:
                             max_length = len(str(cell.value))
                     except:
                         pass
-                adjusted_width = min(max_length + 2, 50)  # Cap at 50
+                adjusted_width = min(max_length + 2, 150)  # Cap at 50
                 ws.column_dimensions[column_letter].width = adjusted_width
             
             # Update summary sheet
