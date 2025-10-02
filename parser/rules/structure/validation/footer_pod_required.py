@@ -8,7 +8,7 @@ from ..shared import StructureRuleBase
 class FooterPodRequiredRule(StructureRuleBase):
     """Ensures footer uses pod structure - either direct pod or footer with pod children."""
     
-    DESCRIPTION = "Ensures footer uses pod structure (direct pod or footer with pod children)"
+    DESCRIPTION = "Ensures footer uses pod structure (direct pod or footer with pod children). Excludes PMD pages with tabs."
     SEVERITY = "INFO"
 
     def get_description(self) -> str:
@@ -18,6 +18,11 @@ class FooterPodRequiredRule(StructureRuleBase):
     def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyzes the footer structure within a PMD model."""
         if not pmd_model.presentation:
+            return
+
+        # Skip PMD pages that use tabs - tabs don't require footer pods
+        # Check if tabs section exists (None means no tabs, [] or populated means tabs exist)
+        if hasattr(pmd_model.presentation, 'tabs') and pmd_model.presentation.tabs is not None:
             return
 
         footer = pmd_model.presentation.footer
