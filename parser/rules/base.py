@@ -707,3 +707,43 @@ class Rule(ABC):
             _collect_widgets(pod_model.seed.template, "seed.template")
         
         return widgets
+    
+    @staticmethod
+    def _create_endpoint_message(field_path: str, field_name: str, issue_description: str) -> str:
+        """
+        Create a human-readable message for endpoint-related issues.
+        
+        Args:
+            field_path: The technical field path (e.g., "outboundEndpoints[5].url")
+            field_name: The display name from script field extraction
+            issue_description: Description of the issue (e.g., "uses string concatenation")
+            
+        Returns:
+            Human-readable message like "Outbound endpoint 'bpSubmitPOST' uses string concatenation"
+        """
+        # Extract endpoint name and type from field_name if it follows the pattern
+        # Pattern: "inboundEndpoints[1]->name: bpEventStep->url"
+        if "->" in field_name and ("inboundEndpoints" in field_name or "outboundEndpoints" in field_name or "seed.endPoints" in field_name):
+            try:
+                # Extract: "inboundEndpoints[1]->name: bpEventStep->url"
+                parts = field_name.split("->")
+                if len(parts) >= 3:
+                    endpoint_name = parts[1].split(": ")[1]  # Get "bpEventStep" from "name: bpEventStep"
+                    field_part = parts[2]  # Get "url"
+                    
+                    # Determine endpoint type from field_path
+                    if "inboundEndpoints" in field_path:
+                        endpoint_type = "Inbound"
+                    elif "outboundEndpoints" in field_path:
+                        endpoint_type = "Outbound"
+                    elif "seed.endPoints" in field_path:
+                        endpoint_type = "POD"
+                    else:
+                        endpoint_type = "Endpoint"
+                    
+                    return f"{endpoint_type} endpoint '{endpoint_name}' {issue_description}"
+            except (IndexError, ValueError):
+                pass
+        
+        # Fallback to original field_name if parsing fails
+        return f"File section '{field_name}' {issue_description}"

@@ -4,6 +4,7 @@ from typing import Generator, List
 from lark import Tree
 from ..shared.detector import ScriptDetector
 from ...common import Violation
+from ...base import Rule
 
 
 class StringConcatDetector(ScriptDetector):
@@ -33,8 +34,22 @@ class StringConcatDetector(ScriptDetector):
                 # Extract the concatenation expression for better error message
                 concat_text = self._extract_expression_text(add_expr)
                 
+                # Create better message using the utility method
+                # Extract field_path from field_name if it follows the pattern
+                field_path = ""
+                if "->" in field_name and ("inboundEndpoints" in field_name or "outboundEndpoints" in field_name or "seed.endPoints" in field_name):
+                    # Pattern: "inboundEndpoints[1]->name: bpEventStep->url"
+                    # Extract the endpoint array part
+                    parts = field_name.split("->")
+                    if len(parts) >= 2:
+                        field_path = parts[0]  # Get "inboundEndpoints[1]"
+                
+                # Use the utility method to create a better message
+                issue_description = f"uses string concatenation with + operator: '{concat_text}'. Consider using PMD template strings with backticks and {{{{ }}}} syntax instead (e.g., `Hello {{{{name}}}}!`)."
+                message = Rule._create_endpoint_message(field_path, field_name, issue_description)
+                
                 yield Violation(
-                    message=f"File section '{field_name}' uses string concatenation with + operator: '{concat_text}'. Consider using PMD template strings with backticks and {{{{ }}}} syntax instead (e.g., `Hello {{{{name}}}}!`).",
+                    message=message,
                     line=line_number
                 )
     
