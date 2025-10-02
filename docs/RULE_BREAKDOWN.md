@@ -17,7 +17,7 @@ The rules are organized into two main categories:
 
 *These rules analyze PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files for comprehensive code quality validation.*
 
-### ScriptVarUsageRule - Script Var Usage Rule
+### ScriptVarUsageRule
 
 **Severity:** WARNING
 **Description:** Ensures scripts use 'let' or 'const' instead of 'var' (best practice)
@@ -43,7 +43,7 @@ let myVariable = "value";    // ✅ Use 'let' for mutable values
 
 ---
 
-### ScriptDeadCodeRule - Script Dead Code Rule
+### ScriptDeadCodeRule
 
 **Severity:** WARNING
 **Description:** Detects and removes dead code from standalone script files
@@ -96,7 +96,7 @@ If you want to keep unused helper functions, simply disable the entire rule:
 
 ---
 
-### ScriptNestingLevelRule - Script Nesting Level Rule
+### ScriptNestingLevelRule
 
 **Severity:** WARNING
 **Description:** Ensures scripts don't have excessive nesting levels (max 4 levels)
@@ -143,7 +143,7 @@ function processData(data) {
 
 ---
 
-### ScriptComplexityRule - Script Complexity Rule
+### ScriptComplexityRule
 
 **Severity:** WARNING
 **Description:** Ensures scripts don't have excessive cyclomatic complexity (max 10)
@@ -206,7 +206,7 @@ function processStandardOrder(order) {
 
 ---
 
-### ScriptLongFunctionRule - Script Long Function Rule
+### ScriptLongFunctionRule
 
 **Severity:** WARNING
 **Description:** Ensures scripts don't have excessively long functions (max 50 lines)
@@ -251,7 +251,7 @@ function formatOutput(data) {
 
 ---
 
-### ScriptFunctionParameterCountRule - Script Function Parameter Count Rule
+### ScriptFunctionParameterCountRule
 
 **Severity:** WARNING
 **Description:** Ensures functions don't have too many parameters (max 4)
@@ -282,7 +282,7 @@ function createUser(personalInfo, contactInfo, workInfo) { // ✅ 3 logical grou
 
 ---
 
-### ScriptConsoleLogRule - Script Console Log Rule
+### ScriptConsoleLogRule
 
 **Severity:** WARNING
 **Description:** Ensures scripts don't contain console log statements (production code)
@@ -315,7 +315,7 @@ function processData(data) {
 
 ---
 
-### ScriptVariableNamingRule - Script Variable Naming Rule
+### ScriptVariableNamingRule
 
 **Severity:** INFO
 **Description:** Ensures variables follow lowerCamelCase naming convention
@@ -344,7 +344,7 @@ const userEmail = "email";    // ✅ lowerCamelCase
 
 ---
 
-### ScriptFunctionParameterNamingRule - Script Function Parameter Naming Rule
+### ScriptFunctionParameterNamingRule
 
 **Severity:** WARNING
 **Description:** Ensures function parameters follow lowerCamelCase naming convention
@@ -404,7 +404,7 @@ var isNewDateAfterReferenceDate = function (widget, newDate, referenceDate, mess
 
 ---
 
-### ScriptFunctionalMethodUsageRule - Script Functional Method Usage Rule
+### ScriptFunctionalMethodUsageRule
 
 **Severity:** INFO
 **Description:** Recommends using functional methods (map, filter, forEach) instead of manual loops
@@ -436,7 +436,7 @@ const results = items
 
 ---
 
-### ScriptMagicNumberRule - Script Magic Number Rule
+### ScriptMagicNumberRule
 
 **Severity:** INFO
 **Description:** Ensures scripts don't contain magic numbers (use named constants)
@@ -475,7 +475,7 @@ function calculateDiscount(price) {
 
 ---
 
-### ScriptNullSafetyRule - Script Null Safety Rule
+### ScriptNullSafetyRule
 
 **Severity:** WARNING
 **Description:** Ensures property access chains are protected against null reference exceptions
@@ -503,7 +503,7 @@ const isProgrammer = skills.length > 0 && skills[0] == 'Programming'; // ✅ Saf
 
 ---
 
-### ScriptDescriptiveParameterRule - Script Descriptive Parameter Rule
+### ScriptDescriptiveParameterRule
 
 **Severity:** INFO
 **Description:** Ensures functional method parameters use descriptive names instead of single letters (except 'i', 'j', 'k' for indices)
@@ -571,7 +571,7 @@ const total = numbers.reduce((acc, num) => {acc + num});
 
 ---
 
-### ScriptFunctionReturnConsistencyRule - Script Function Return Consistency Rule
+### ScriptFunctionReturnConsistencyRule
 
 **Severity:** WARNING
 **Description:** Ensures functions have consistent return patterns
@@ -606,7 +606,7 @@ function processUser(user) {
 
 ---
 
-### ScriptStringConcatRule - Script String Concat Rule
+### ScriptStringConcatRule
 
 **Severity:** INFO
 **Description:** Recommends using PMD template syntax instead of string concatenation
@@ -631,7 +631,7 @@ const message = `Hello {{userName}}, welcome to {{appName}}`; // ✅ PMD templat
 
 ---
 
-### ScriptVerboseBooleanCheckRule - Script Verbose Boolean Check Rule
+### ScriptVerboseBooleanCheckRule
 
 **Severity:** INFO
 **Description:** Recommends using concise boolean expressions
@@ -658,7 +658,7 @@ if (!user.active) { }             // ✅ Concise negation
 
 ---
 
-### ScriptEmptyFunctionRule - Script Empty Function Rule
+### ScriptEmptyFunctionRule
 
 **Severity:** INFO
 **Description:** Detects empty function bodies
@@ -681,7 +681,7 @@ const handler = function() { }; // ❌ Empty function
 
 ---
 
-### ScriptUnusedFunctionRule - Script Unused Function Rule
+### ScriptUnusedFunctionRule
 
 **Severity:** WARNING
 **Description:** Detects functions that are declared but never called
@@ -694,7 +694,7 @@ const handler = function() { }; // ❌ Empty function
 
 ---
 
-### ScriptUnusedFunctionParametersRule - Script Unused Function Parameters Rule
+### ScriptUnusedFunctionParametersRule
 
 **Severity:** INFO
 **Description:** Detects unused function parameters
@@ -723,7 +723,7 @@ function processUser(user) { // ✅ Only used parameters
 
 ---
 
-### ScriptUnusedVariableRule - Script Unused Variable Rule
+### ScriptUnusedVariableRule
 
 **Severity:** INFO
 **Description:** Ensures all declared variables are used (prevents dead code)
@@ -755,7 +755,7 @@ function processData() {
 
 ---
 
-### ScriptUnusedScriptIncludesRule - Script Unused Script Includes Rule
+### ScriptUnusedScriptIncludesRule
 
 **Severity:** WARNING
 **Description:** Detects script files that are included but never used in PMD files
@@ -797,7 +797,7 @@ function processData() {
 
 *These rules validate widget configurations, endpoint structures, component compliance, hardcoded values, and PMD organization in both PMD and Pod files.*
 
-### EndpointFailOnStatusCodesRule - Endpoint Fail On Status Codes Rule
+### EndpointFailOnStatusCodesRule
 
 **Severity:** WARNING
 **Description:** Ensures endpoints properly handle 400 and 403 error status codes
@@ -837,7 +837,7 @@ function processData() {
 
 ---
 
-### EndpointNameLowerCamelCaseRule - Endpoint Name Lower Camel Case Rule
+### EndpointNameLowerCamelCaseRule
 
 **Severity:** INFO
 **Description:** Ensures endpoint names follow lowerCamelCase convention
@@ -874,7 +874,7 @@ function processData() {
 
 ---
 
-### EndpointOnSendSelfDataRule - Endpoint On Send Self Data Rule
+### EndpointOnSendSelfDataRule
 
 **Severity:** WARNING
 **Description:** Ensures outbound endpoints don't use the anti-pattern 'self.data = {:}' in onSend scripts
@@ -915,7 +915,7 @@ function processData() {
 
 ---
 
-### EndpointBaseUrlTypeRule - Endpoint Base URL Type Rule
+### EndpointBaseUrlTypeRule
 
 **Severity:** WARNING
 **Description:** Ensures endpoint URLs don't include hardcoded *.workday.com or apiGatewayEndpoint values
@@ -956,7 +956,7 @@ function processData() {
 
 *These rules validate widget configurations, endpoint structures, and component compliance in both PMD and Pod files.*
 
-### WidgetIdRequiredRule - Widget ID Required Rule
+### WidgetIdRequiredRule
 
 **Severity:** ERROR
 **Description:** Ensures all widgets have required 'id' field
@@ -1003,7 +1003,7 @@ function processData() {
 
 ---
 
-### WidgetIdLowerCamelCaseRule - Widget ID Lower Camel Case Rule
+### WidgetIdLowerCamelCaseRule
 
 **Severity:** INFO
 **Description:** Ensures widget IDs follow lowerCamelCase convention
@@ -1054,7 +1054,7 @@ function processData() {
 
 ---
 
-### FooterPodRequiredRule - Footer Pod Required Rule
+### FooterPodRequiredRule
 
 **Severity:** INFO
 **Description:** Ensures footer widgets utilize pods
@@ -1067,7 +1067,7 @@ function processData() {
 
 ---
 
-### StringBooleanRule - String Boolean Rule
+### StringBooleanRule
 
 **Severity:** INFO
 **Description:** Ensures boolean values are not stored as strings
@@ -1104,7 +1104,7 @@ function processData() {
 
 ## PMD Rules (2 Rules)
 
-### PMDSectionOrderingRule - PMD Section Ordering Rule
+### PMDSectionOrderingRule
 
 **Severity:** INFO (configurable)
 **Description:** Ensures PMD file root-level sections follow consistent ordering for better readability
@@ -1201,7 +1201,7 @@ Each rule supports:
 }
 ```
 
-### PMDSecurityDomainRule - PMD Security Domain Rule
+### PMDSecurityDomainRule
 
 **Severity:** SEVERE
 **Description:** Ensures PMD pages have at least one security domain defined (excludes microConclusion and error pages)
