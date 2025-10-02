@@ -345,6 +345,66 @@ const userEmail = "email";    // ✅ lowerCamelCase
 
 ---
 
+### ScriptFunctionParameterNamingRule - Script Function Parameter Naming Rule
+
+**Severity:** WARNING
+**Description:** Ensures function parameters follow lowerCamelCase naming convention
+**Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+
+**What it catches:**
+
+- Function parameters that don't follow lowerCamelCase naming convention
+- Parameters using snake_case, PascalCase, or other naming conventions
+- Inconsistent parameter naming that affects code readability
+
+**Example violations:**
+
+```javascript
+// ❌ Non-lowerCamelCase parameters
+const validateUser = function(user_id, user_name, is_active) {
+    return user_id && user_name && is_active;
+};
+
+const processData = function(data_source, target_table) {
+    return data_source.map(item => item.process());
+};
+```
+
+**Fix:**
+
+```javascript
+// ✅ lowerCamelCase parameters
+const validateUser = function(userId, userName, isActive) {
+    return userId && userName && isActive;
+};
+
+const processData = function(dataSource, targetTable) {
+    return dataSource.map(item => item.process());
+};
+```
+
+**Real-world example:**
+
+```javascript
+// In helperFunctions.script
+var isNewDateAfterReferenceDate = function (widget, newDate, referenceDate, message, message_type) {
+    // ... function body
+};
+// ❌ 'message_type' should be 'messageType'
+```
+
+**Fix:**
+
+```javascript
+// In helperFunctions.script
+var isNewDateAfterReferenceDate = function (widget, newDate, referenceDate, message, messageType) {
+    // ... function body
+};
+// ✅ All parameters follow lowerCamelCase convention
+```
+
+---
+
 ### ScriptFunctionalMethodUsageRule - Script Functional Method Usage Rule
 
 **Severity:** INFO

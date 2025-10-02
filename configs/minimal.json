@@ -40,6 +40,11 @@
       "severity_override": null,
       "custom_settings": {}
     },
+    "ScriptFunctionParameterNamingRule": {
+      "enabled": false,
+      "severity_override": null,
+      "custom_settings": {}
+    },
     "ScriptFunctionalMethodUsageRule": {
       "enabled": false,
       "severity_override": null,
