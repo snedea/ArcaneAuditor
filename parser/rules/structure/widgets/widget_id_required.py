@@ -10,7 +10,7 @@ This tool focuses on structure and naming compliance for code reviewers.
 from typing import Generator
 from ...base import Finding
 from ....models import PMDModel, PodModel, ProjectContext
-from ...line_number_utils import LineNumberUtils
+from ...common import PMDLineUtils
 from ..shared import StructureRuleBase
 
 
@@ -110,7 +110,7 @@ class WidgetIdRequiredRule(StructureRuleBase):
             lines = pmd_model.source_content.split('\n')
             
             # Look for the section first
-            section_line = LineNumberUtils.find_section_line_number(pmd_model, section)
+            section_line = PMDLineUtils.find_section_line_number(pmd_model, section)
             if section_line > 1:
                 # Look for the widget type in the section area
                 search_start = max(0, section_line - 1)
@@ -158,7 +158,7 @@ class WidgetIdRequiredRule(StructureRuleBase):
             lines = pod_model.source_content.split('\n')
             
             # Look for the template section first
-            template_line = LineNumberUtils.find_section_line_number(pod_model, 'template')
+            template_line = PMDLineUtils.find_section_line_number(pod_model, 'template')
             if template_line > 1:
                 # Look for the widget type in the template area
                 search_start = max(0, template_line - 1)

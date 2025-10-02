@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import Finding
-from ...line_number_utils import LineNumberUtils
+from ...common import PMDLineUtils
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
 
@@ -85,4 +85,4 @@ class FooterPodRequiredRule(StructureRuleBase):
 
     def _get_footer_line_number(self, pmd_model: PMDModel) -> int:
         """Get approximate line number for the footer section."""
-        return LineNumberUtils.find_section_line_number(pmd_model, 'footer')
+        return PMDLineUtils.find_section_line_number(pmd_model, 'footer')

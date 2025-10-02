@@ -11,7 +11,7 @@ import re
 from typing import Generator, List, Dict, Any, Optional
 from ...base import Finding
 from ....models import PMDModel, PodModel, ProjectContext
-from ...line_number_utils import LineNumberUtils
+from ...common import PMDLineUtils
 from ..shared import StructureRuleBase
 
 

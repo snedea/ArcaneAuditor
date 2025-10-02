@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import Finding
-from ...line_number_utils import LineNumberUtils
+from ...common import PMDLineUtils
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
 
@@ -92,7 +92,7 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
         if endpoint_name and hasattr(model, 'source_content'):
             # For PMD models, use the existing line number utility
             if isinstance(model, PMDModel):
-                return LineNumberUtils.find_field_line_number(model, 'name', endpoint_name)
+                return PMDLineUtils.find_field_line_number(model, 'name', endpoint_name)
             # For POD models, return a basic line number (could be enhanced later)
             return 1
         return 1
@@ -102,7 +102,7 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
         if endpoint_name and hasattr(model, 'source_content'):
             # For PMD models, use the existing line number utility
             if isinstance(model, PMDModel):
-                return LineNumberUtils.find_field_after_entity(model, 'name', endpoint_name, 'failOnStatusCodes')
+                return PMDLineUtils.find_field_after_entity(model, 'name', endpoint_name, 'failOnStatusCodes')
             # For POD models, return a basic line number (could be enhanced later)
             return 1
         return 1

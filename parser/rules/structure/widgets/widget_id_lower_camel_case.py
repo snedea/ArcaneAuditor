@@ -1,7 +1,7 @@
 from typing import Generator
 from ...base import Finding
 from ...common_validations import validate_lower_camel_case
-from ...line_number_utils import LineNumberUtils
+from ...common import PMDLineUtils
 from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
 
@@ -85,11 +85,11 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
     def _get_widget_line_number(self, pmd_model: PMDModel, widget_id: str) -> int:
         """Get line number for widget ID field."""
         if widget_id:
-            return LineNumberUtils.find_field_line_number(pmd_model, 'id', widget_id)
+            return PMDLineUtils.find_field_line_number(pmd_model, 'id', widget_id)
         return 1
     
     def _get_pod_widget_line_number(self, pod_model: PodModel, widget_id: str) -> int:
         """Get line number for widget ID field in POD."""
         if widget_id:
-            return LineNumberUtils.find_field_line_number(pod_model, 'id', widget_id)
+            return PMDLineUtils.find_field_line_number(pod_model, 'id', widget_id)
         return 1
