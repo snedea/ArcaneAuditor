@@ -350,11 +350,53 @@ class NullSafetyDetector(ScriptDetector):
             if len(node.children) > 0 and self._expression_contains_chain(node.children[0], chain):
                 return True
                 
-        # Check for optional chaining
-        if node.data == 'optional_member_dot_expression':
-            if self._chain_matches_node(node, chain):
+        # Check for ternary operators (condition ? safe_expression : fallback)
+        if node.data == 'ternary_expression':
+            # For ternary: condition ? true_expr : false_expr
+            # If the condition checks the same object, then the true_expr is safe
+            if len(node.children) >= 3:
+                condition = node.children[0]
+                true_expr = node.children[1]
+                false_expr = node.children[2]
+                
+                # Check if the condition tests the same object as our chain
+                if self._condition_tests_object(condition, chain):
+                    # If the true expression contains our chain, it's safe
+                    if self._expression_contains_chain(true_expr, chain):
+                        return True
+                
+        return False
+
+    def _condition_tests_object(self, condition_node: Tree, chain: str) -> bool:
+        """Check if a condition tests the same object as the given chain."""
+        if not hasattr(condition_node, 'data'):
+            return False
+            
+        # Direct object test: obj or !obj
+        if condition_node.data == 'identifier_expression':
+            if self._chain_matches_node(condition_node, chain):
                 return True
                 
+        # Negated object test: !obj
+        if condition_node.data == 'not_expression':
+            if len(condition_node.children) > 0:
+                child = condition_node.children[0]
+                if self._chain_matches_node(child, chain):
+                    return True
+                    
+        # Empty check: empty obj
+        if condition_node.data in ['empty_expression', 'not_empty_expression']:
+            if len(condition_node.children) > 1:
+                child = condition_node.children[1]
+                if self._chain_matches_node(child, chain):
+                    return True
+                    
+        # Recursively check child nodes for complex conditions
+        if hasattr(condition_node, 'children'):
+            for child in condition_node.children:
+                if self._condition_tests_object(child, chain):
+                    return True
+                    
         return False
 
     def _expression_contains_chain(self, node: Tree, chain: str) -> bool:
