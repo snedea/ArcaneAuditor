@@ -73,8 +73,9 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
             elif pod_model:
                 line_number = self._get_pod_widget_line_number(pod_model, widget_id)
             
-            # Create descriptive message
-            path_description = f" at path '{widget_path}'" if widget_path else ""
+            # Create a full readable path description using the same logic as WidgetIdRequiredRule
+            readable_path = self._build_readable_widget_path(widget, widget_path, section, pmd_model, pod_model)
+            path_description = f" at {readable_path}" if readable_path else ""
             
             yield self._create_finding(
                 message=f"Widget ID '{widget_id}'{path_description} has invalid name '{widget_id}'. Must follow lowerCamelCase convention (e.g., 'myField', 'userName').",
@@ -93,3 +94,82 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
         if widget_id:
             return PMDLineUtils.find_field_line_number(pod_model, 'id', widget_id)
         return 1
+    
+    def _build_readable_widget_path(self, widget, widget_path, section, pmd_model=None, pod_model=None):
+        """
+        Build a readable path to a widget using the same logic as script rules.
+        
+        Args:
+            widget: The widget dictionary
+            widget_path: Technical path like "body.children.0"
+            section: Section name (body, title, footer, etc.)
+            pmd_model: PMD model for context
+            pod_model: POD model for context
+            
+        Returns:
+            Readable path string like "body->primaryLayout->label: Primary content"
+        """
+        try:
+            if not widget_path:
+                # Fallback to just the widget identifier
+                return self._get_readable_identifier(widget, 0)
+            
+            # Split the technical path into components
+            path_parts = widget_path.split('.')
+            
+            # Start with the section name
+            display_prefix = section
+            
+            # Build readable path by following the technical path and using readable identifiers
+            if pmd_model and pmd_model.presentation:
+                current_data = pmd_model.presentation.__dict__.get(section, {})
+                display_prefix = self._build_path_from_data(current_data, path_parts[1:], display_prefix)
+            elif pod_model and pod_model.seed and pod_model.seed.template:
+                current_data = pod_model.seed.template
+                display_prefix = self._build_path_from_data(current_data, path_parts, display_prefix)
+            
+            # The display_prefix already includes the widget identifier from the traversal
+            return display_prefix
+            
+        except Exception:
+            # Fallback to just the widget identifier
+            return self._get_readable_identifier(widget, 0)
+    
+    def _build_path_from_data(self, data, path_parts, current_prefix):
+        """
+        Build readable path by traversing data structure following path_parts.
+        Uses the same logic as script rules for consistency.
+        """
+        if not path_parts or not isinstance(data, dict):
+            return current_prefix
+        
+        current_key = path_parts[0]
+        
+        if current_key in data:
+            current_value = data[current_key]
+            
+            if isinstance(current_value, list) and len(path_parts) > 1:
+                # This is an array, get the index from next path part
+                try:
+                    index = int(path_parts[1])
+                    if 0 <= index < len(current_value):
+                        item = current_value[index]
+                        if isinstance(item, dict):
+                            # Include array index in the path: key[index]->readable_id
+                            readable_id = self._get_readable_identifier(item, index)
+                            new_prefix = f"{current_prefix}->{current_key}[{index}]->{readable_id}"
+                            
+                            # Continue with remaining path parts
+                            remaining_parts = path_parts[2:] if len(path_parts) > 2 else []
+                            return self._build_path_from_data(item, remaining_parts, new_prefix)
+                        else:
+                            return f"{current_prefix}->{current_key}[{index}]"
+                except (ValueError, IndexError):
+                    return f"{current_prefix}->{current_key}"
+            else:
+                # This is a direct field
+                new_prefix = f"{current_prefix}->{current_key}"
+                remaining_parts = path_parts[1:] if len(path_parts) > 1 else []
+                return self._build_path_from_data(current_value, remaining_parts, new_prefix)
+        
+        return current_prefix
