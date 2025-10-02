@@ -82,17 +82,17 @@ pip install uv
 ```bash
 # Download the latest release ZIP from GitHub
 # Visit: https://github.com/Developers-and-Dragons/ArcaneAuditor/releases
-# Download arcane-auditor-v0.7.0.zip and extract it
+# Download arcane-auditor-0.1.0-beta.1.zip and extract it
 
 # Or using command line (Windows PowerShell)
-Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.7.0.zip" -OutFile "arcane-auditor.zip"
+Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.1.0-beta.1.zip" -OutFile "arcane-auditor.zip"
 Expand-Archive -Path "arcane-auditor.zip" -DestinationPath "."
-cd ArcaneAuditor-0.7.0
+cd ArcaneAuditor-0.1.0-beta.1
 
 # Or using command line (macOS)
-curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.7.0.zip"
+curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.1.0-beta.1.zip"
 unzip arcane-auditor.zip
-cd ArcaneAuditor-0.7.0
+cd ArcaneAuditor-0.1.0-beta.1
 
 # Install dependencies (UV handles Python version and virtual environment automatically)
 uv sync
