@@ -365,6 +365,18 @@ class NullSafetyDetector(ScriptDetector):
                     if self._expression_contains_chain(true_expr, chain):
                         return True
                 
+        # Check for Elvis operators (obj ?: fallback) - equivalent to obj ? obj : fallback
+        if node.data == 'elvis_expression':
+            # For Elvis: left_expr ?: right_expr
+            # The Elvis operator is inherently safe because it only uses left_expr if it's truthy
+            if len(node.children) >= 2:
+                left_expr = node.children[0]
+                right_expr = node.children[1]
+                
+                # If the left expression contains our chain, it's safe
+                if self._expression_contains_chain(left_expr, chain):
+                    return True
+                
         return False
 
     def _condition_tests_object(self, condition_node: Tree, chain: str) -> bool:
