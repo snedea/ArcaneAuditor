@@ -1057,13 +1057,70 @@ function processData() {
 ### FooterPodRequiredRule
 
 **Severity:** INFO
-**Description:** Ensures footer widgets utilize pods
-**Applies to:** PMD footer widget definitions
+**Description:** Ensures footer uses pod structure (direct pod or footer with pod children). Excludes PMD pages with tabs.
+**Applies to:** PMD footer widget definitions (excludes PMD pages with tabs section)
 
 **What it catches:**
 
 - Footer widgets that should use pod components
 - Missing pod references in footer widgets
+- Footer sections that don't utilize proper pod structure
+
+**What it excludes:**
+
+- PMD pages with tabs section (populated or empty) - tabs don't require footer pods
+
+**Example violations:**
+
+```json
+{
+  "presentation": {
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "text",
+          "label": "Footer text"
+          // ❌ Missing pod structure
+        }
+      ]
+    }
+  }
+}
+```
+
+**Fix:**
+
+```json
+{
+  "presentation": {
+    "footer": {
+      "type": "pod",
+      "podId": "footerPod"
+      // ✅ Direct pod structure
+    }
+  }
+}
+```
+
+**Or:**
+
+```json
+{
+  "presentation": {
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "pod",
+          "podId": "footerPod"
+          // ✅ Footer with pod child
+        }
+      ]
+    }
+  }
+}
+```
 
 ---
 

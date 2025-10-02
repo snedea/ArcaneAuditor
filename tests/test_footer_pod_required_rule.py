@@ -10,7 +10,7 @@ class TestFooterPodRequiredRule:
     def test_rule_initialization(self):
         """Test that the rule initializes correctly."""
         rule = FooterPodRequiredRule()
-        assert rule.DESCRIPTION == "Ensures footer uses pod structure (direct pod or footer with pod children)"
+        assert rule.DESCRIPTION == "Ensures footer uses pod structure (direct pod or footer with pod children). Excludes PMD pages with tabs."
         assert rule.SEVERITY == "INFO"
 
     def test_get_description(self):
@@ -205,3 +205,81 @@ class TestFooterPodRequiredRule:
         
         findings = list(rule.analyze(context))
         assert len(findings) == 0
+
+    def test_pmd_with_tabs_excluded(self):
+        """Test that PMD pages with tabs are excluded from footer pod validation."""
+        rule = FooterPodRequiredRule()
+        
+        # PMD with tabs should be excluded (no findings)
+        pmd_data = {
+            "pageId": "testPage",
+            "presentation": {
+                "body": {
+                    "type": "areaLayout",
+                    "children": []
+                },
+                "tabs": [
+                    {
+                        "type": "section",
+                        "label": "Tab 1",
+                        "children": []
+                    }
+                ]
+                # No footer - but should be excluded due to tabs
+            }
+        }
+        
+        pmd_model = PMDModel(**pmd_data, file_path="test.pmd", source_content="{}")
+        context = ProjectContext()
+        context.pmds = {"test": pmd_model}
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 0, "PMD with tabs should be excluded from footer pod validation"
+
+    def test_pmd_with_empty_tabs_excluded(self):
+        """Test that PMD pages with empty tabs are excluded from footer pod validation."""
+        rule = FooterPodRequiredRule()
+        
+        # PMD with empty tabs should be excluded (no findings)
+        pmd_data = {
+            "pageId": "testPage",
+            "presentation": {
+                "body": {
+                    "type": "areaLayout",
+                    "children": []
+                },
+                "tabs": []
+                # No footer but empty tabs - should be excluded
+            }
+        }
+        
+        pmd_model = PMDModel(**pmd_data, file_path="test.pmd", source_content="{}")
+        context = ProjectContext()
+        context.pmds = {"test": pmd_model}
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 0, "PMD with empty tabs should be excluded from footer pod validation"
+
+    def test_pmd_without_tabs_still_checked(self):
+        """Test that PMD pages without tabs are still checked for footer pod requirements."""
+        rule = FooterPodRequiredRule()
+        
+        # PMD without tabs should still be checked (should find missing footer)
+        pmd_data = {
+            "pageId": "testPage",
+            "presentation": {
+                "body": {
+                    "type": "areaLayout",
+                    "children": []
+                }
+                # No footer and no tabs - should trigger violation
+            }
+        }
+        
+        pmd_model = PMDModel(**pmd_data, file_path="test.pmd", source_content="{}")
+        context = ProjectContext()
+        context.pmds = {"test": pmd_model}
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1, "PMD without tabs should still be checked for footer pod requirements"
+        assert "Footer section is missing" in findings[0].message
