@@ -43,20 +43,19 @@ let myVariable = "value";    // ✅ Use 'let' for mutable values
 
 ---
 
-### ScriptFileVarUsageRule - Script File Variable Usage Rule
+### ScriptDeadCodeRule - Script Dead Code Rule
 
 **Severity:** WARNING
 **Description:** Detects and removes dead code from standalone script files
 **Applies to:** Standalone .script files
 
-**Why This Rule Focuses on Dead Code:**
+**What This Rule Does:**
 This rule addresses dead code cleanup specific to standalone script files. It identifies variables that are declared but serve no purpose - they're neither exported for external use nor called internally by other functions.
-
-Note: Variable declaration style (`var` vs `const`/`let`) is handled by `ScriptVarUsageRule` which applies to both PMD embedded scripts and standalone script files. Export consistency errors (typos in export maps) are caught by the compiler.
 
 **What it catches:**
 
 - Top-level variables declared but not exported and not used internally
+- Dead code that increases bundle size unnecessarily
 
 **Example violations:**
 
@@ -89,7 +88,7 @@ If you want to keep unused helper functions, simply disable the entire rule:
 
 ```json
 {
-  "ScriptFileVarUsageRule": {
+  "ScriptDeadCodeRule": {
     "enabled": false     // Disable dead code detection entirely
   }
 }

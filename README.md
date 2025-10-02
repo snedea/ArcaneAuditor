@@ -298,8 +298,8 @@ arcane-auditor/
 │       │   │   ├── __init__.py
 │       │   │   ├── var_usage.py                    	# ScriptVarUsageRule
 │       │   │   ├── var_usage_detector.py
-│       │   │   ├── script_file_var_usage.py        	# ScriptFileVarUsageRule
-│       │   │   ├── script_file_var_usage_detector.py
+│       │   │   ├── script_dead_code.py        	# ScriptDeadCodeRule
+│       │   │   ├── script_dead_code_detector.py
 │       │   │   ├── variable_naming.py              	# ScriptVariableNamingRule
 │       │   │   ├── variable_naming_detector.py
 │       │   │   ├── console_log.py                  	# ScriptConsoleLogRule
@@ -405,7 +405,7 @@ arcane-auditor/
 │   ├── test_script_complexity_rule.py              	# Complexity rule tests
 │   ├── test_script_descriptive_parameters.py       	# Descriptive parameters tests
 │   ├── test_script_empty_function_rule.py          	# Empty function tests
-│   ├── test_script_file_var_usage.py               	# File var usage tests
+│   ├── test_script_dead_code.py               	# Dead code tests
 │   ├── test_script_function_parameter_count_rule.py    # Parameter count tests
 │   ├── test_script_functional_method_usage_rule.py     # Functional method tests
 │   ├── test_script_verbose_boolean_rule.py         	# Verbose boolean tests
@@ -440,7 +440,7 @@ Arcane Auditor features a **unified rule architecture** that provides consistenc
 **Core Rules** (`parser/rules/script/core/`)
 
 - **ScriptVarUsageRule**: Var Usage Rule - Prefer `let`/`const` over `var`
-- **ScriptFileVarUsageRule**: File Var Usage Rule - Script file variable usage patterns
+- **ScriptDeadCodeRule**: Dead Code Rule - Detects dead code in standalone script files
 - **ScriptConsoleLogRule**: Console Log Rule - Avoid console statements in production
 - **ScriptVariableNamingRule**: Variable Naming Rule - Use lowerCamelCase convention
 

@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-Tests for ScriptFileVarUsageRule.
+Tests for ScriptDeadCodeRule.
 """
 
 import pytest
-from parser.rules.script.core.script_file_var_usage import ScriptFileVarUsageRule
+from parser.rules.script.core.script_dead_code import ScriptDeadCodeRule
 from parser.models import ProjectContext, ScriptModel
 
 
-class TestScriptFileVarUsageRule:
-    """Test cases for ScriptFileVarUsageRule class."""
+class TestScriptDeadCodeRule:
+    """Test cases for ScriptDeadCodeRule class."""
     
     def setup_method(self):
         """Set up test fixtures."""
-        self.rule = ScriptFileVarUsageRule()
+        self.rule = ScriptDeadCodeRule()
         self.context = ProjectContext()
     
     def test_rule_metadata(self):
@@ -136,7 +136,7 @@ const formatDate = function(date) {
         config = {
             "check_unused_variables": True
         }
-        rule = ScriptFileVarUsageRule(config)
+        rule = ScriptDeadCodeRule(config)
         
         script_content = """var getCurrentTime = function() {
     return date:now();
@@ -168,7 +168,7 @@ const unusedFunction = function() {
         # This test is kept for backward compatibility but will always find violations
         # since the rule is enabled and will detect dead code
         
-        rule = ScriptFileVarUsageRule()
+        rule = ScriptDeadCodeRule()
         
         script_content = """const getCurrentTime = function() {
     return date:now();

@@ -34,7 +34,7 @@
       "severity_override": null,
       "custom_settings": {}
     },
-    "ScriptFileVarUsageRule": {
+    "ScriptDeadCodeRule": {
       "enabled": false,
       "severity_override": null,
       "custom_settings": {}

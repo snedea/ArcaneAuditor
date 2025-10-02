@@ -35,7 +35,7 @@ class RulesConfig(BaseModel):
     # Script Code Quality Rules
     ScriptConsoleLogRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't contain console.log statements (production code)")
     ScriptVarUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts use 'let' or 'const' instead of 'var' (best practice)")
-    ScriptFileVarUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Validates variable declaration and export patterns in standalone script files")
+    ScriptDeadCodeRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects dead code in standalone script files")
     ScriptVariableNamingRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures variables follow lowerCamelCase naming convention")
     ScriptFunctionalMethodUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using functional methods (map, filter, forEach) instead of manual loops")
     ScriptMagicNumberRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't contain magic numbers (use named constants)")

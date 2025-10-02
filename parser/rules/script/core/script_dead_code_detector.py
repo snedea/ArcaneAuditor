@@ -1,4 +1,4 @@
-"""Script file variable usage detection logic for ScriptFileVarUsageRule."""
+"""Script dead code detection logic for ScriptDeadCodeRule."""
 
 from typing import Generator, Set, Dict, Any
 from lark import Tree
@@ -6,15 +6,15 @@ from ...script.shared import ScriptDetector
 from ...common import Violation
 
 
-class ScriptFileVarUsageDetector(ScriptDetector):
-    """Detects variable usage patterns in standalone script files."""
+class ScriptDeadCodeDetector(ScriptDetector):
+    """Detects dead code in standalone script files."""
 
     def __init__(self, file_path: str = "", line_offset: int = 1, config: Dict[str, Any] = None):
         super().__init__(file_path, line_offset)
         self.config = config or {}
 
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
-        """Detect variable usage issues in standalone script files."""
+        """Detect dead code issues in standalone script files."""
         if ast is None:
             return
         
@@ -23,7 +23,7 @@ class ScriptFileVarUsageDetector(ScriptDetector):
         exported_vars = self._extract_exported_variables(ast)
         
         # Check for issues
-        yield from self._check_var_usage_issues(declared_vars, exported_vars, ast)
+        yield from self._check_dead_code_issues(declared_vars, exported_vars, ast)
 
     def _extract_declared_variables(self, ast) -> Dict[str, dict]:
         """Extract all variable declarations from the AST, marking their scope."""
@@ -160,7 +160,7 @@ class ScriptFileVarUsageDetector(ScriptDetector):
         
         return internal_calls
 
-    def _check_var_usage_issues(self, declared_vars: Dict[str, dict], exported_vars: Set[str], 
+    def _check_dead_code_issues(self, declared_vars: Dict[str, dict], exported_vars: Set[str], 
                                ast: Tree) -> Generator[Violation, None, None]:
         """Check for variable usage issues based on configuration."""
         

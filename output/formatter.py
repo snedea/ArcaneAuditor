@@ -273,7 +273,7 @@ class OutputFormatter:
                             max_length = len(str(cell.value))
                     except:
                         pass
-                adjusted_width = min(max_length + 2, 150)  # Cap at 50
+                adjusted_width = min(max_length + 2, 150)  # Cap at 150
                 ws.column_dimensions[column_letter].width = adjusted_width
             
             # Update summary sheet

@@ -90,7 +90,7 @@ You can create your own configuration by:
 #### Script Code Quality (10 rules)
 
 - Console log detection (`ScriptConsoleLogRule`)
-- Variable usage patterns (`ScriptVarUsageRule`, `ScriptFileVarUsageRule`)
+- Variable usage patterns (`ScriptVarUsageRule`, `ScriptDeadCodeRule`)
 - Naming conventions (`ScriptVariableNamingRule`)
 - Functional method usage (`ScriptFunctionalMethodUsageRule`)
 - Magic number detection (`ScriptMagicNumberRule`)
