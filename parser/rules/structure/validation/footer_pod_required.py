@@ -8,7 +8,7 @@ from ..shared import StructureRuleBase
 class FooterPodRequiredRule(StructureRuleBase):
     """Ensures footer uses pod structure - either direct pod or footer with pod children."""
     
-    DESCRIPTION = "Ensures footer uses pod structure (direct pod or footer with pod children). Excludes PMD pages with tabs."
+    DESCRIPTION = "Ensures footer uses pod structure (direct pod or footer with pod children). Excludes PMD pages with tabs, hub pages, and microConclusion pages."
     SEVERITY = "INFO"
 
     def get_description(self) -> str:
@@ -23,6 +23,14 @@ class FooterPodRequiredRule(StructureRuleBase):
         # Skip PMD pages that use tabs - tabs don't require footer pods
         # Check if tabs section exists (None means no tabs, [] or populated means tabs exist)
         if hasattr(pmd_model.presentation, 'tabs') and pmd_model.presentation.tabs is not None:
+            return
+
+        # Skip hub pages - hub pages don't require footer pods
+        if self._is_hub_page(pmd_model):
+            return
+
+        # Skip microConclusion pages - microConclusion pages don't require footer pods
+        if self._is_micro_conclusion_page(pmd_model):
             return
 
         footer = pmd_model.presentation.footer
@@ -91,3 +99,20 @@ class FooterPodRequiredRule(StructureRuleBase):
     def _get_footer_line_number(self, pmd_model: PMDModel) -> int:
         """Get approximate line number for the footer section."""
         return PMDLineUtils.find_section_line_number(pmd_model, 'footer')
+
+    def _is_hub_page(self, pmd_model: PMDModel) -> bool:
+        """Check if the PMD page is a hub page."""
+        if not pmd_model.presentation or not pmd_model.presentation.body:
+            return False
+        
+        # Check if presentation.body.type == "hub"
+        return pmd_model.presentation.body.get('type') == 'hub'
+
+    def _is_micro_conclusion_page(self, pmd_model: PMDModel) -> bool:
+        """Check if the PMD page is a microConclusion page."""
+        if not pmd_model.presentation:
+            return False
+        
+        # Check if presentation.microConclusion is true
+        # microConclusion is stored in the attributes dictionary
+        return pmd_model.presentation.attributes.get('microConclusion', False) is True

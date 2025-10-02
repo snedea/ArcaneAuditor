@@ -1057,7 +1057,7 @@ function processData() {
 ### FooterPodRequiredRule
 
 **Severity:** INFO
-**Description:** Ensures footer uses pod structure (direct pod or footer with pod children). Excludes PMD pages with tabs.
+**Description:** Ensures footer uses pod structure (direct pod or footer with pod children). Excludes PMD pages with tabs, hub pages, and microConclusion pages.
 **Applies to:** PMD footer widget definitions (excludes PMD pages with tabs section)
 
 **What it catches:**
@@ -1069,6 +1069,8 @@ function processData() {
 **What it excludes:**
 
 - PMD pages with tabs section (populated or empty) - tabs don't require footer pods
+- Hub pages (presentation.body.type == "hub") - hub pages don't require footer pods
+- MicroConclusion pages (presentation.attributes.microConclusion == true) - microConclusion pages don't require footer pods
 
 **Example violations:**
 
