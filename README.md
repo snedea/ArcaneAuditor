@@ -337,7 +337,7 @@ arcane-auditor/
 │       │       ├── null_safety_detector.py
 │       │       ├── descriptive_parameters.py       	# ScriptDescriptiveParameterRule
 │       │       ├── descriptive_parameters_detector.py
-│       │       ├── functional_method_usage.py      	# ScriptFunctionalMethodUsageRule
+│       │       ├── array_method_usage.py      	# ScriptArrayMethodUsageRule
 │       │       ├── functional_method_usage_detector.py
 │       │       ├── verbose_boolean.py              	# ScriptVerboseBooleanCheckRule
 │       │       ├── verbose_boolean_detector.py
@@ -464,7 +464,7 @@ Arcane Auditor features a **unified rule architecture** that provides consistenc
 - **ScriptMagicNumberRule**: Magic Numbers Rule - Use named constants
 - **ScriptNullSafetyRule**: Null Safety Rule - Proper null checking
 - **ScriptDescriptiveParameterRule**: Descriptive Parameters Rule - Use descriptive parameter names
-- **ScriptFunctionalMethodUsageRule**: Functional Method Usage Rule - Prefer functional programming methods
+- **ScriptArrayMethodUsageRule**: Array Method Usage Rule - Prefer array higher-order methods over manual loops
 - **ScriptVerboseBooleanCheckRule**: Verbose Boolean Rule - Simplify boolean expressions
 - **ScriptFunctionReturnConsistencyRule**: Return Consistency Rule - Consistent return patterns
 - **ScriptStringConcatRule**: String Concatenation Rule - Use template literals instead of string concatenation

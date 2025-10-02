@@ -92,7 +92,7 @@ You can create your own configuration by:
 - Console log detection (`ScriptConsoleLogRule`)
 - Variable usage patterns (`ScriptVarUsageRule`, `ScriptDeadCodeRule`)
 - Naming conventions (`ScriptVariableNamingRule`)
-- Functional method usage (`ScriptFunctionalMethodUsageRule`)
+- Array method usage (`ScriptArrayMethodUsageRule`)
 - Magic number detection (`ScriptMagicNumberRule`)
 - Null safety checks (`ScriptNullSafetyRule`)
 - Return consistency (`ScriptFunctionReturnConsistencyRule`)

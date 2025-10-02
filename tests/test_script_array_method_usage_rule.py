@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-"""Test cases for ScriptFunctionalMethodUsageRule."""
+"""Test cases for ScriptArrayMethodUsageRule."""
 
-from parser.rules.script.logic.functional_method_usage import ScriptFunctionalMethodUsageRule
-from parser.rules.script.logic.functional_method_usage_detector import FunctionalMethodUsageDetector
+from parser.rules.script.logic.array_method_usage import ScriptArrayMethodUsageRule
+from parser.rules.script.logic.array_method_usage_detector import ArrayMethodUsageDetector
 from parser.app_parser import ModelParser
 
 
-class TestScriptFunctionalMethodUsageRule:
-    """Test cases for ScriptFunctionalMethodUsageRule."""
+class TestScriptArrayMethodUsageRule:
+    """Test cases for ScriptArrayMethodUsageRule."""
     
     def setup_method(self):
         """Set up test fixtures."""
-        self.rule = ScriptFunctionalMethodUsageRule()
+        self.rule = ScriptArrayMethodUsageRule()
     
     def test_rule_metadata(self):
         """Test rule metadata."""
-        assert self.rule.DESCRIPTION == "Detects manual loops that could be replaced with functional methods like map, filter, forEach"
+        assert self.rule.DESCRIPTION == "Detects manual loops that could be replaced with array higher-order methods like map, filter, forEach"
         assert self.rule.SEVERITY == "WARNING"
-        assert self.rule.DETECTOR == FunctionalMethodUsageDetector
+        assert self.rule.DETECTOR == ArrayMethodUsageDetector
 
     def test_simple_script_no_manual_loops(self):
         """Test a simple script with no manual loops."""
@@ -27,7 +27,7 @@ class TestScriptFunctionalMethodUsageRule:
         return y;
         """
         ast = self.rule._parse_script_content(script_content, None)
-        detector = FunctionalMethodUsageDetector("test.pmd", 1)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 0
 
@@ -39,7 +39,7 @@ class TestScriptFunctionalMethodUsageRule:
         }
         """
         ast = self.rule._parse_script_content(script_content, None)
-        detector = FunctionalMethodUsageDetector("test.pmd", 1)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
         assert "manual for loop" in violations[0].message
@@ -53,7 +53,7 @@ class TestScriptFunctionalMethodUsageRule:
         }
         """
         ast = self.rule._parse_script_content(script_content, None)
-        detector = FunctionalMethodUsageDetector("test.pmd", 1)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
         assert "manual for loop" in violations[0].message
@@ -66,7 +66,7 @@ class TestScriptFunctionalMethodUsageRule:
         }
         """
         ast = self.rule._parse_script_content(script_content, None)
-        detector = FunctionalMethodUsageDetector("test.pmd", 1)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
         assert "manual for loop" in violations[0].message
@@ -79,7 +79,7 @@ class TestScriptFunctionalMethodUsageRule:
         return y;
         """
         ast = self.rule._parse_script_content(script_content, None)
-        detector = FunctionalMethodUsageDetector("test.pmd", 1)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 0
 
@@ -91,7 +91,7 @@ class TestScriptFunctionalMethodUsageRule:
         }
         """
         ast = self.rule._parse_script_content(script_content, None)
-        detector = FunctionalMethodUsageDetector("test.pmd", 1)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
         # The suggestion should be map() for array transformation
@@ -105,7 +105,7 @@ class TestScriptFunctionalMethodUsageRule:
         }
         """
         ast = self.rule._parse_script_content(script_content, None)
-        detector = FunctionalMethodUsageDetector("test.pmd", 1)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
         # The suggestion should be forEach() for side effects
@@ -120,7 +120,7 @@ class TestScriptFunctionalMethodUsageRule:
         }
         """
         ast = self.rule._parse_script_content(script_content, None)
-        detector = FunctionalMethodUsageDetector("test.pmd", 1)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
         assert violations[0].line == 2  # for loop is on line 2
@@ -129,7 +129,7 @@ class TestScriptFunctionalMethodUsageRule:
         """Test that PMD wrappers are stripped correctly and rule still applies."""
         script_content = "<% for (let i = 0; i < items.length; i++) { result.push(items[i]); } %>"
         ast = self.rule._parse_script_content(script_content, None)
-        detector = FunctionalMethodUsageDetector("test.pmd", 1)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
         assert "manual for loop" in violations[0].message
@@ -145,7 +145,7 @@ class TestScriptFunctionalMethodUsageRule:
         }
         """
         ast = self.rule._parse_script_content(script_content, None)
-        detector = FunctionalMethodUsageDetector("test.pmd", 1)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 2
 
@@ -157,17 +157,17 @@ class TestScriptFunctionalMethodUsageRule:
         }
         """
         ast = self.rule._parse_script_content(script_content, None)
-        detector = FunctionalMethodUsageDetector("test.pmd", 1)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 0
 
 
-class TestScriptFunctionalMethodUsageRuleIntegration:
-    """Integration tests for ScriptFunctionalMethodUsageRule."""
-
+class TestScriptArrayMethodUsageRuleIntegration:
+    """Integration tests for ScriptArrayMethodUsageRule."""
+    
     def setup_method(self):
         """Set up test fixtures."""
-        self.rule = ScriptFunctionalMethodUsageRule()
+        self.rule = ScriptArrayMethodUsageRule()
         self.parser = ModelParser()
 
     def test_with_real_pmd_file(self):
@@ -193,7 +193,7 @@ class TestScriptFunctionalMethodUsageRuleIntegration:
             context = parser.parse_files({'test_functional_method.pmd': 'test_functional_method.pmd'})
             
             if context.pmds:
-                rule = ScriptFunctionalMethodUsageRule()
+                rule = ScriptArrayMethodUsageRule()
                 
                 # Check for violations
                 findings = list(rule.analyze(context))
@@ -229,7 +229,7 @@ class TestScriptFunctionalMethodUsageRuleIntegration:
             context = parser.parse_files({'test_simple_functional.pmd': 'test_simple_functional.pmd'})
             
             if context.pmds:
-                rule = ScriptFunctionalMethodUsageRule()
+                rule = ScriptArrayMethodUsageRule()
                 
                 # Check for violations
                 findings = list(rule.analyze(context))

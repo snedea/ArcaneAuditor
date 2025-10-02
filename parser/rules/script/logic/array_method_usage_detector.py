@@ -1,4 +1,4 @@
-"""Functional method usage detection logic for ScriptFunctionalMethodUsageRule."""
+"""Array method usage detection logic for ScriptArrayMethodUsageRule."""
 
 from typing import Generator, Dict, Any
 from lark import Tree
@@ -6,20 +6,20 @@ from ...script.shared import ScriptDetector
 from ...common import Violation
 
 
-class FunctionalMethodUsageDetector(ScriptDetector):
-    """Detects manual loops that could be replaced with functional methods."""
+class ArrayMethodUsageDetector(ScriptDetector):
+    """Detects manual loops that could be replaced with array higher-order methods."""
 
     def __init__(self, file_path: str = "", line_offset: int = 1):
         super().__init__(file_path, line_offset)
 
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
-        """Detect manual for loops that could use functional methods."""
+        """Detect manual for loops that could use array higher-order methods."""
         if ast is None:
             return
         yield from self._find_manual_for_loops(ast, field_name)
 
     def _find_manual_for_loops(self, ast: Tree, field_name: str):
-        """Find manual for loops that could use functional methods using efficient AST traversal."""
+        """Find manual for loops that could use array higher-order methods using efficient AST traversal."""
         # Define manual for loop types (exclude PMD for...in loops)
         manual_for_types = {'for_statement', 'for_let_statement', 'for_var_statement'}
         
@@ -40,11 +40,11 @@ class FunctionalMethodUsageDetector(ScriptDetector):
         """Create a violation for a detected manual for loop."""
         line_number = self.get_line_number(for_stmt)
         
-        # Analyze the loop to suggest appropriate functional method
-        suggestion = self._suggest_functional_method(for_stmt)
+        # Analyze the loop to suggest appropriate array higher-order method
+        suggestion = self._suggest_array_method(for_stmt)
         
         yield Violation(
-            message=f"File section '{field_name}' uses manual for loop that could be replaced with functional method. Consider using {suggestion} instead for better readability and maintainability.",
+            message=f"File section '{field_name}' uses manual for loop that could be replaced with array higher-order method. Consider using {suggestion} instead for better readability and maintainability.",
             line=line_number
         )
 
@@ -160,7 +160,7 @@ class FunctionalMethodUsageDetector(ScriptDetector):
         
         return increment_node.data in increment_types
 
-    def _suggest_functional_method(self, for_stmt: Tree) -> str:
+    def _suggest_array_method(self, for_stmt: Tree) -> str:
         """Suggest an appropriate functional method based on loop body analysis."""
         # Extract loop body efficiently
         loop_components = self._extract_loop_components(for_stmt)

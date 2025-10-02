@@ -37,7 +37,7 @@ class RulesConfig(BaseModel):
     ScriptVarUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts use 'let' or 'const' instead of 'var' (best practice)")
     ScriptDeadCodeRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects dead code in standalone script files")
     ScriptVariableNamingRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures variables follow lowerCamelCase naming convention")
-    ScriptFunctionalMethodUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using functional methods (map, filter, forEach) instead of manual loops")
+    ScriptArrayMethodUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using array higher-order methods instead of manual loops")
     ScriptMagicNumberRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't contain magic numbers (use named constants)")
     ScriptNullSafetyRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures property access chains are protected against null reference exceptions")
     ScriptFunctionReturnConsistencyRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures functions have consistent return patterns")

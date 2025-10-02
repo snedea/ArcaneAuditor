@@ -45,7 +45,7 @@
       "severity_override": null,
       "custom_settings": {}
     },
-    "ScriptFunctionalMethodUsageRule": {
+    "ScriptArrayMethodUsageRule": {
       "enabled": false,
       "severity_override": null,
       "custom_settings": {}

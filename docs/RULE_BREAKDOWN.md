@@ -404,15 +404,15 @@ var isNewDateAfterReferenceDate = function (widget, newDate, referenceDate, mess
 
 ---
 
-### ScriptFunctionalMethodUsageRule
+### ScriptArrayMethodUsageRule
 
 **Severity:** INFO
-**Description:** Recommends using functional methods (map, filter, forEach) instead of manual loops
+**Description:** Recommends using array higher-order methods (map, filter, forEach) instead of manual loops
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
 **What it catches:**
 
-- Traditional for loops that could be replaced with functional methods
+- Traditional for loops that could be replaced with array higher-order methods
 - Code that's more verbose than necessary
 
 **Example violations:**
@@ -430,7 +430,7 @@ for (let i = 0; i < items.length; i++) {  // ❌ Manual loop
 
 ```javascript
 const results = items
-    .filter(item => item.active)     // ✅ Functional approach
+    .filter(item => item.active)     // ✅ Array higher-order methods
     .map(item => item.name);
 ```
 

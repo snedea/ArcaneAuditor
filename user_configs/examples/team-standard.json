@@ -48,7 +48,7 @@
       "severity_override": "WARNING",
       "custom_settings": {}
     },
-    "ScriptFunctionalMethodUsageRule": {
+    "ScriptArrayMethodUsageRule": {
       "enabled": true,
       "severity_override": "INFO",
       "custom_settings": {}
