@@ -59,7 +59,7 @@ class EndpointNameLowerCamelCaseRule(StructureRuleBase):
                 line_number = self._get_pod_endpoint_line_number(pod_model, endpoint_name)
             
             yield self._create_finding(
-                message=f"{endpoint_type.title()} '{endpoint_name}' has invalid name '{endpoint_name}'. Must follow lowerCamelCase convention (e.g., 'myField', 'userName').",
+                message=f"{endpoint_type.title()} '{endpoint_name}' doesn't follow naming conventions. Must follow lowerCamelCase convention (e.g., 'myField', 'userName').",
                 file_path=pmd_model.file_path if pmd_model else pod_model.file_path,
                 line=line_number
             )
