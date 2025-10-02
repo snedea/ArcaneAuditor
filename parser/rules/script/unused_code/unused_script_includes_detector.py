@@ -2,7 +2,7 @@
 
 from typing import Any, List, Set
 from ...script.shared import ScriptDetector, Violation
-from ...script.shared.ast_utils import get_line_number
+from ...common import ASTLineUtils
 
 
 class UnusedScriptIncludesDetector(ScriptDetector):

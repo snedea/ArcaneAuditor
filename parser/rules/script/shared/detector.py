@@ -28,5 +28,5 @@ class ScriptDetector(ABC):
     
     def get_line_number(self, node: Any) -> int:
         """Get line number from AST node with offset."""
-        from ...common import get_line_number as shared_get_line_number
-        return shared_get_line_number(node, self.line_offset)
+        from ...common import ASTLineUtils
+        return ASTLineUtils.get_line_number(node, self.line_offset)

@@ -14,7 +14,7 @@ CONTROL_FLOW_NODES: Set[str] = {
 
 
 # Import from central common location
-from ...common import get_line_number
+from ...common import ASTLineUtils
 
 
 def extract_expression_text(node: Any) -> str:

@@ -2,7 +2,7 @@
 
 from typing import Any, List
 from ...script.shared import ScriptDetector, Violation
-from ...script.shared.ast_utils import get_line_number
+from ...common import ASTLineUtils
 
 
 class UnusedParametersDetector(ScriptDetector):
@@ -38,7 +38,7 @@ class UnusedParametersDetector(ScriptDetector):
                 if param_name not in used_parameters:
                     violations.append(Violation(
                         message=f"Unused parameter '{param_name}' in function '{function_name}'",
-                        line=self.get_line_number(function_node),
+                        line=ASTLineUtils.get_line_number(function_node, self.line_offset),
                         metadata={
                             'function_name': function_name,
                             'parameter_name': param_name

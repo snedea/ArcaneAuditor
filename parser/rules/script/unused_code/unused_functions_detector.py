@@ -2,7 +2,7 @@
 
 from typing import Any, List, Set
 from ...script.shared import ScriptDetector, Violation
-from ...script.shared.ast_utils import get_line_number
+from ...common import ASTLineUtils
 
 
 class UnusedFunctionsDetector(ScriptDetector):
@@ -61,7 +61,7 @@ class UnusedFunctionsDetector(ScriptDetector):
                                 if len(child.children) >= 2:
                                     initializer = child.children[1]
                                     if self._is_function_assignment(initializer):
-                                        return self.get_line_number(var_statement)
+                                        return ASTLineUtils.get_line_number(var_statement, self.line_offset)
         except Exception:
             pass
         return self.line_offset

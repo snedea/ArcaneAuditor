@@ -3,7 +3,7 @@
 from typing import Any, List, Optional, Set
 from lark import Tree
 from ...script.shared import ScriptDetector, Violation
-from ...script.shared.ast_utils import get_line_number
+from ...common import ASTLineUtils
 
 
 class NullSafetyDetector(ScriptDetector):
@@ -34,7 +34,7 @@ class NullSafetyDetector(ScriptDetector):
         for access_info in unsafe_accesses:
             violations.append(Violation(
                 message=f"Potentially unsafe property access: {access_info['chain']} - consider using null coalescing (??) or empty checks",
-                line=self.get_line_number(access_info['node'])
+                line=ASTLineUtils.get_line_number(access_info['node'], self.line_offset)
             ))
         
         return violations

@@ -2,7 +2,7 @@
 
 from typing import Any, List, Set, Dict
 from ...script.shared import ScriptDetector, Violation
-from ...script.shared.ast_utils import get_line_number
+from ...common import ASTLineUtils
 
 
 class UnusedVariableDetector(ScriptDetector):
@@ -51,7 +51,7 @@ class UnusedVariableDetector(ScriptDetector):
                     # Create violation
                     violations.append(Violation(
                         message=f"Unused variable '{var_name}' in {scope_type} scope",
-                        line=self.get_line_number(var_info['node']),
+                        line=ASTLineUtils.get_line_number(var_info['node'], self.line_offset),
                         metadata={
                             'variable_name': var_name,
                             'scope_type': scope_type,

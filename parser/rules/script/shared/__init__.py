@@ -3,7 +3,6 @@
 from .violation import Violation
 from .detector import ScriptDetector
 from .ast_utils import (
-    get_line_number,
     extract_expression_text,
     find_member_access_chains,
     find_data_nodes,
@@ -19,7 +18,6 @@ __all__ = [
     'Violation',
     'ScriptDetector', 
     'ScriptRuleBase',
-    'get_line_number',
     'extract_expression_text',
     'find_member_access_chains',
     'find_data_nodes',
