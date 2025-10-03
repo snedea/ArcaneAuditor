@@ -8,7 +8,7 @@ from parser.config import ArcaneAuditorConfig
 from parser.config_manager import load_configuration, get_config_manager
 from output.formatter import OutputFormatter, OutputFormat
 
-app = typer.Typer()
+app = typer.Typer(add_completion=False, help="Arcane Auditor CLI: A mystical code review tool for Workday Extend applications - part of Developers and Dragons")
 
 @app.command()
 def review_app(
