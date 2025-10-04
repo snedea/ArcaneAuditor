@@ -21,8 +21,8 @@ class ArcaneAuditorApp {
     }
 
     initializeTheme() {
-        // Check for saved theme preference or default to light mode
-        const savedTheme = localStorage.getItem('arcane-auditor-theme') || 'light';
+        // Check for saved theme preference or default to dark mode
+        const savedTheme = localStorage.getItem('arcane-auditor-theme') || 'dark';
         this.setTheme(savedTheme);
     }
 
