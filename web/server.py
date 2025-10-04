@@ -210,9 +210,10 @@ def cleanup_old_jobs():
         
         for job_id in jobs_to_remove:
             job = analysis_jobs.pop(job_id)
-            # Clean up temporary files
+            # Clean up any remaining temporary files (ZIP files are now deleted immediately after processing)
             if job.zip_path.exists():
                 job.zip_path.unlink()
+                print(f"Cleaned up remaining ZIP file: {job.zip_path.name}")
 
 def run_analysis_background(job: AnalysisJob):
     """Run analysis in background thread."""
@@ -231,6 +232,11 @@ def run_analysis_background(job: AnalysisJob):
         processor = FileProcessor()
         source_files_map = processor.process_zip_file(job.zip_path)
         file_processing_time = time.time() - file_processing_start
+        
+        # Delete ZIP file immediately after successful processing
+        if job.zip_path.exists():
+            job.zip_path.unlink()
+            print(f"Deleted processed ZIP file: {job.zip_path.name}")
         
         if not source_files_map:
             job.error = "No PMD Script files found in the uploaded ZIP"
