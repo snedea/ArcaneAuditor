@@ -360,7 +360,7 @@ class ArcaneAuditorApp {
                 <div class="severity-section">
                     <h5>Issues by Severity:</h5>
                     <div class="severity-badges">
-                        ${Object.entries(severityCounts).map(([severity, count]) => `
+                        ${this.getOrderedSeverityEntries(severityCounts).map(([severity, count]) => `
                             <div class="severity-badge">
                                 ${this.getSeverityIcon(severity)}
                                 <span class="severity-count">${count}</span>
@@ -405,7 +405,7 @@ class ArcaneAuditorApp {
                 <label for="severity-filter">Filter by severity:</label>
                 <select id="severity-filter" onchange="app.updateSeverityFilter(this.value)">
                     <option value="all">All (${result.findings.length})</option>
-                    ${Object.entries(severityCounts).map(([severity, count]) => `
+                    ${this.getOrderedSeverityEntries(severityCounts).map(([severity, count]) => `
                         <option value="${severity}">${severity} (${count})</option>
                     `).join('')}
                 </select>
@@ -485,7 +485,7 @@ class ArcaneAuditorApp {
                                         ${fileFindings.length} issue${fileFindings.length !== 1 ? 's' : ''}
                                     </div>
                                     <div class="severity-badges">
-                                        ${Object.entries(severityCounts).map(([severity, count]) => `
+                                        ${this.getOrderedSeverityEntries(severityCounts).map(([severity, count]) => `
                                             <span class="severity-count-badge ${severity.toLowerCase()}">
                                                 ${count} ${severity.toLowerCase()}
                                             </span>
@@ -554,8 +554,8 @@ class ArcaneAuditorApp {
             return acc;
         }, {});
         
-        // Define severity order: issues, action, advice
-        const severityOrder = ['issues', 'action', 'advice'];
+        // Define severity order: ISSUES, ACTION, ADVICE (uppercase to match backend)
+        const severityOrder = ['ISSUES', 'ACTION', 'ADVICE'];
         
         // Create ordered object
         const orderedCounts = {};
@@ -573,6 +573,28 @@ class ArcaneAuditorApp {
         });
         
         return orderedCounts;
+    }
+
+    getOrderedSeverityEntries(severityCounts) {
+        // Define severity order: ISSUES, ACTION, ADVICE (uppercase to match backend)
+        const severityOrder = ['ISSUES', 'ACTION', 'ADVICE'];
+        
+        // Create ordered array of entries
+        const orderedEntries = [];
+        severityOrder.forEach(severity => {
+            if (severityCounts[severity]) {
+                orderedEntries.push([severity, severityCounts[severity]]);
+            }
+        });
+        
+        // Add any other severities not in the predefined order
+        Object.entries(severityCounts).forEach(([severity, count]) => {
+            if (!severityOrder.includes(severity)) {
+                orderedEntries.push([severity, count]);
+            }
+        });
+        
+        return orderedEntries;
     }
 
     getFileTypeCounts(findings) {
