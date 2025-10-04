@@ -6,7 +6,7 @@ This directory contains pre-configured spell sets for the Arcane Auditor. Choose
 
 ### 🚀 **default.json** (Recommended)
 
-- **All 32 rules enabled** with their default settings
+- **All 34 rules enabled** with their default settings
 - Includes comprehensive analysis for PMD, Pod, and standalone .script files
 - Best for teams that want comprehensive code quality analysis
 - Good starting point for most users
@@ -25,10 +25,9 @@ This directory contains pre-configured spell sets for the Arcane Auditor. Choose
 
 ### 🎯 **comprehensive.json** (Production Ready)
 
-- **All 32 rules enabled** with optimized severity levels
-- **SEVERE severity** for must fix findings (console.log, etc.)
-- **WARNING severity** for structure issues (PMD section ordering)
-- **INFO severity** for preferences (string booleans, footer pods)
+- **All 34 rules enabled** with optimized severity levels
+- **ACTION severity** for must fix findings (console.log, null safety, etc.)
+- **ADVICE severity** for preferences and style improvements (string booleans, footer pods)
 - Best for production code reviews and CI/CD pipelines
 
 ## How to Use
@@ -47,13 +46,13 @@ This directory contains pre-configured spell sets for the Arcane Auditor. Choose
 
 ```bash
 # Use default configuration (all rules)
-uv run python main.py analyze myapp.zip
+uv run main.py review-app myapp.zip
 
 # Use minimal configuration
-uv run python main.py analyze myapp.zip --config minimal
+uv run main.py review-app myapp.zip --config minimal
 
 # Use comprehensive configuration
-uv run python main.py analyze myapp.zip --config comprehensive
+uv run main.py review-app myapp.zip --config comprehensive
 ```
 
 ### Custom Configuration
@@ -74,9 +73,9 @@ You can create your own configuration by:
    - Create anywhere on the filesystem
    - Use full path when specifying the configuration
 
-## Rule Categories (32 Total Rules)
+## Rule Categories (34 Total Rules)
 
-### Script Rules (20 rules)
+### Script Rules (21 rules)
 
 **Applies to PMD embedded scripts, Pod endpoint/widget scripts, AND standalone .script files:**
 
@@ -87,11 +86,11 @@ You can create your own configuration by:
 - Function length limits (`ScriptLongFunctionRule`)
 - Nesting level limits (`ScriptNestingLevelRule`)
 
-#### Script Code Quality (10 rules)
+#### Script Code Quality (11 rules)
 
 - Console log detection (`ScriptConsoleLogRule`)
 - Variable usage patterns (`ScriptVarUsageRule`, `ScriptDeadCodeRule`)
-- Naming conventions (`ScriptVariableNamingRule`)
+- Naming conventions (`ScriptVariableNamingRule`, `ScriptFunctionParameterNamingRule`)
 - Array method usage (`ScriptArrayMethodUsageRule`)
 - Magic number detection (`ScriptMagicNumberRule`)
 - Null safety checks (`ScriptNullSafetyRule`)
@@ -117,7 +116,7 @@ You can create your own configuration by:
 - Self.data usage (`EndpointOnSendSelfDataRule`) - *PMD outbound only*
 - URL base type validation (`EndpointBaseUrlTypeRule`)
 
-### Structure Rules (4 rules)
+### Structure Rules (5 rules)
 
 **Applies to PMD presentation widgets and Pod template widgets:**
 
@@ -125,6 +124,7 @@ You can create your own configuration by:
 - Widget naming conventions (`WidgetIdLowerCamelCaseRule`)
 - Footer pod requirements (`FooterPodRequiredRule`) - *PMD footer only*
 - String boolean detection (`StringBooleanRule`)
+- Embedded images detection (`EmbeddedImagesRule`) - *Detects base64 encoded images*
 
 ### PMD Rules (4 rules)
 

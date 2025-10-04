@@ -22,7 +22,7 @@ This directory is **protected from application updates** and is the recommended 
 user_configs/
 ├── README.md              # This file
 ├── examples/              # Example configurations (reference only)
-│   ├── team-standard.json # Example team configuration (32 rules)
+│   ├── team-standard.json # Example team configuration (34 rules)
 │   └── beginner-friendly.json # Example beginner configuration (8 rules)
 ├── my-team-config.json    # Your team's active configuration
 └── project-specific.json  # Project-specific active rules
@@ -93,8 +93,8 @@ uv run main.py review-app myapp.zip --config user_configs/my-config.json
 ## 🎯 Configuration Examples
 
 ### Team Standard Configuration
-Comprehensive configuration with all 32 rules enabled - perfect for enforcing team-wide coding standards:
-- **32 rules enabled** with appropriate severity levels
+Comprehensive configuration with all 34 rules enabled - perfect for enforcing team-wide coding standards:
+- **34 rules enabled** with appropriate severity levels
 - Stricter thresholds for complexity and function length
 - Enhanced security rules (hardcoded values, null safety)
 - Custom PMD section ordering

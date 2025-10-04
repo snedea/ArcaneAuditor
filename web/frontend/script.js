@@ -62,7 +62,7 @@ class ArcaneAuditorApp {
                 id: 'default',
                 name: 'Default',
                 description: 'Standard configuration with all rules enabled',
-                rules_count: 32,
+                rules_count: 34,
                 performance: 'Balanced'
             }];
             this.renderConfigurations();
