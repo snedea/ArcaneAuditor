@@ -613,16 +613,11 @@ header p {
     border: 1px solid #334155;
 }
 
-/* Dark mode file group - collapsed header state */
-[data-theme="dark"] .file-group.collapsed {
-    background: #0f172a;   /* even darker, for contrast */
-    border: 1px solid #1e293b;
-}
-
-/* Ensure text inside file group headers is always readable */
-[data-theme="dark"] .file-group,
-[data-theme="dark"] .file-group * {
-    color: #f1f5f9; /* light text on dark background */
+/* Ensure key text stays readable in dark headers */
+[data-theme="dark"] .file-header,
+[data-theme="dark"] .file-name,
+[data-theme="dark"] .file-path {
+  color: #f1f5f9;
 }
 
 .file-header {
