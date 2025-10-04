@@ -481,9 +481,11 @@ class ArcaneAuditorApp {
                                     </div>
                                 </div>
                                 <div class="file-header-right">
-                                    <div class="file-count-badge">
-                                        ${fileFindings.length} issue${fileFindings.length !== 1 ? 's' : ''}
-                                    </div>
+                                    ${this.currentFilters.severity === 'all' ? `
+                                        <div class="file-count-badge">
+                                            ${fileFindings.length} issue${fileFindings.length !== 1 ? 's' : ''}
+                                        </div>
+                                    ` : ''}
                                     <div class="severity-badges">
                                         ${this.getOrderedSeverityEntries(severityCounts).map(([severity, count]) => `
                                             <span class="severity-count-badge ${severity.toLowerCase()}">
