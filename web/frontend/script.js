@@ -548,11 +548,31 @@ class ArcaneAuditorApp {
 
     // Utility methods
     getSeverityCounts(findings) {
-        return findings.reduce((acc, finding) => {
+        const counts = findings.reduce((acc, finding) => {
             const severity = finding.severity || 'unknown';
             acc[severity] = (acc[severity] || 0) + 1;
             return acc;
         }, {});
+        
+        // Define severity order: issues, action, advice
+        const severityOrder = ['issues', 'action', 'advice'];
+        
+        // Create ordered object
+        const orderedCounts = {};
+        severityOrder.forEach(severity => {
+            if (counts[severity]) {
+                orderedCounts[severity] = counts[severity];
+            }
+        });
+        
+        // Add any other severities not in the predefined order
+        Object.keys(counts).forEach(severity => {
+            if (!severityOrder.includes(severity)) {
+                orderedCounts[severity] = counts[severity];
+            }
+        });
+        
+        return orderedCounts;
     }
 
     getFileTypeCounts(findings) {
