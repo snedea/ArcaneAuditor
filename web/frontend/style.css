@@ -692,13 +692,15 @@ header p {
 }
 
 .severity-count-badge.action {
-    background: #fef2f2;
+    background: #fee2e2;
     color: #dc2626;
+    border: 1px solid #fecaca;
 }
 
 .severity-count-badge.advice {
-    background: #eff6ff;
-    color: #2563eb;
+    background: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
 }
 
 .file-findings {
