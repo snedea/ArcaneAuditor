@@ -4,10 +4,10 @@
     --bg-primary: #f8fafc;
     --bg-secondary: #ffffff;
     --bg-tertiary: #f1f5f9;
-    --text-primary: #333333;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
-    --border-color: #e2e8f0;
+    --text-primary: #1e293b;    /* Darker for better contrast */
+    --text-secondary: #475569;  /* Slightly darker gray-blue */
+    --text-muted: #64748b;      /* Keep this tone for subtle info */
+    --border-color: #cbd5e1;    /* Slightly darker for separation */
     --border-light: #f1f5f9;
     --shadow: rgba(0, 0, 0, 0.1);
     --shadow-hover: rgba(0, 0, 0, 0.15);
@@ -236,11 +236,37 @@ header p {
     box-shadow: 0 4px 16px rgba(79, 70, 229, 0.15);
 }
 
-.config-option.selected {
+/* Light mode selected config */
+[data-theme="light"] .config-option.selected,
+:not([data-theme]) .config-option.selected {
     border-color: #4f46e5;
     background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3), 0 4px 12px rgba(79, 70, 229, 0.2);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3),
+                0 4px 12px rgba(79, 70, 229, 0.2);
     transform: translateY(-2px);
+}
+
+/* Dark mode selected config */
+[data-theme="dark"] .config-option.selected {
+    border-color: #a5b4fc;
+    background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%);
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.5),
+                0 4px 16px rgba(129, 140, 248, 0.3);
+    transform: translateY(-2px);
+    color: #ffffff; /* primary text always white */
+}
+
+/* Secondary sentence text inside selected config */
+[data-theme="dark"] .config-option.selected .config-description {
+    color: #f3f4f6;   /* light gray, strong enough to read over indigo */
+}
+
+/* Rule count + performance badges inside selected config */
+[data-theme="dark"] .config-option.selected .config-rules-count,
+[data-theme="dark"] .config-option.selected .config-performance,
+[data-theme="dark"] .config-option.selected .badge {
+    color: #f9fafb;  
+    font-weight: 500;
 }
 
 .config-option.selected .config-name {
@@ -285,12 +311,19 @@ header p {
     color: var(--text-muted);
 }
 
-.config-rules-count {
-    background: var(--bg-tertiary);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 500;
+/* Light mode rule counter chips */
+[data-theme="light"] .config-rules-count,
+:not([data-theme]) .config-rules-count {
+    background: #f1f5f9;   /* light gray */
+    color: #1e293b;        /* dark text */
 }
+
+/* Dark mode rule counter chips */
+[data-theme="dark"] .config-rules-count {
+    background: #1e293b;   /* slightly lighter than card background */
+    color: #e0e7ff;        /* soft indigo text for contrast */
+}
+
 
 .config-performance {
     font-weight: 500;
@@ -567,11 +600,29 @@ header p {
     margin-top: 20px;
 }
 
-.file-group {
-    margin-bottom: 20px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    overflow: hidden;
+/* Light mode file group row (unchanged) */
+[data-theme="light"] .file-group,
+:not([data-theme]) .file-group {
+    background: #f9fafb;
+    border: 1px solid #e2e8f0;
+}
+
+/* Dark mode file group row */
+[data-theme="dark"] .file-group {
+    background: #1e293b;   /* dark slate, matches your cards */
+    border: 1px solid #334155;
+}
+
+/* Dark mode file group - collapsed header state */
+[data-theme="dark"] .file-group.collapsed {
+    background: #0f172a;   /* even darker, for contrast */
+    border: 1px solid #1e293b;
+}
+
+/* Ensure text inside file group headers is always readable */
+[data-theme="dark"] .file-group,
+[data-theme="dark"] .file-group * {
+    color: #f1f5f9; /* light text on dark background */
 }
 
 .file-header {
@@ -582,10 +633,6 @@ header p {
     background: var(--bg-tertiary);
     cursor: pointer;
     transition: background 0.2s ease;
-}
-
-.file-header:hover {
-    background: var(--border-color);
 }
 
 .file-header-left {
@@ -693,6 +740,100 @@ header p {
     border-radius: 8px;
     color: #16a34a;
     font-size: 1.1rem;
+}
+
+/* Light mode hover effects */
+[data-theme="light"] .config-option:hover,
+:not([data-theme]) .config-option:hover {
+    border-color: #4f46e5;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.15);
+}
+
+/* Light-mode hover */
+[data-theme="light"] .file-header:hover,
+:not([data-theme]) .file-header:hover {
+  background-color: #f9fafb;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+[data-theme="light"] {
+    --bg-tertiary: #f0f4f8; /* improved separation only in light mode */
+}
+
+/* Dark-mode header base & hover */
+[data-theme="dark"] .file-header {
+  background: var(--bg-tertiary);           /* #334155 from your tokens */
+}
+
+[data-theme="dark"] .file-header:hover {
+  background: #2a3647;                      /* subtle lift, still dark */
+  box-shadow: 0 4px 10px rgba(0,0,0,.35);
+  transform: translateY(-2px);
+}
+
+/* Dark-mode collapsed group header: ensure it never goes light */
+[data-theme="dark"] .file-group.collapsed .file-header {
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
+  color: #e5e7eb;
+}
+
+/* === Dark Mode File Group Borders Enhancements === */
+[data-theme="dark"] .file-group,
+[data-theme="dark"] .file-header {
+border: 1px solid #475569; /* medium slate border for contrast */
+border-radius: 6px;
+}
+
+[data-theme="dark"] .file-group + .file-group {
+margin-top: 4px;
+}
+
+[data-theme="dark"] .file-group:hover {
+border-color: #818cf8; /* indigo hover accent */
+box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
+}  
+
+/* Dark mode hover for config blocks */
+[data-theme="dark"] .config-option:hover {
+    border-color: #818cf8;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(129, 140, 248, 0.2);
+}
+
+
+/* === Color-blind friendly cues === */
+.config-performance.fast::before {
+    content: "⚡ ";
+}
+
+.config-performance.balanced::before {
+    content: "⚖️ ";
+}
+
+.config-performance.thorough::before {
+    content: "🔍 ";
+}
+
+/* === Reduced motion support === */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ===  High contrast mode support (Windows / system setting) === */
+@media (forced-colors: active) {
+    .btn, .config-option, .file-group, .upload-area, .results-section, header {
+        border: 1px solid CanvasText;
+    }
+    .btn { background: ButtonFace; color: ButtonText; }
 }
 
 /* Responsive */
