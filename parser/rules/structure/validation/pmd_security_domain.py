@@ -7,7 +7,7 @@ class PMDSecurityDomainRule(Rule):
     """Ensures PMD pages have required security domains with selective exclusions."""
     
     DESCRIPTION = "Ensures PMD pages have at least one security domain defined (excludes microConclusion and error pages)"
-    SEVERITY = "SEVERE"
+    SEVERITY = "ACTION"
 
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze all PMD models for security domain requirements."""

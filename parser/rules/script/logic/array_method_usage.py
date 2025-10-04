@@ -8,7 +8,7 @@ class ScriptArrayMethodUsageRule(ScriptRuleBase):
     """Rule to detect manual loops that could be replaced with array higher-order methods."""
 
     DESCRIPTION = "Detects manual loops that could be replaced with array higher-order methods like map, filter, forEach"
-    SEVERITY = "WARNING"
+    SEVERITY = "ADVICE"
     DETECTOR = ArrayMethodUsageDetector
 
     def get_description(self) -> str:

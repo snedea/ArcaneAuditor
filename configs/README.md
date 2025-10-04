@@ -140,7 +140,7 @@ You can create your own configuration by:
 Each rule can be configured with:
 
 - `enabled`: true/false to enable/disable the rule
-- `severity_override`: "INFO", "WARNING", or "SEVERE" to override default severity
+- `severity_override`: "ADVICE" or "ACTION" to override default severity
 - `custom_settings`: Rule-specific configuration options
 
 ### Basic Configuration Example
@@ -149,7 +149,7 @@ Each rule can be configured with:
 {
   "ScriptLongFunctionRule": {
     "enabled": true,
-    "severity_override": "WARNING",
+    "severity_override": "ACTION",
     "custom_settings": {
       "max_lines": 30
     }
@@ -165,7 +165,7 @@ The `PMDSectionOrderingRule` supports custom section ordering:
 {
   "PMDSectionOrderingRule": {
     "enabled": true,
-    "severity_override": "WARNING",
+    "severity_override": "ACTION",
     "custom_settings": {
       "section_order": [
         "id",

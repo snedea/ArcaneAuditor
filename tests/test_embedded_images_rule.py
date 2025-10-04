@@ -12,7 +12,7 @@ class TestEmbeddedImagesRule:
         rule = EmbeddedImagesRule()
         assert rule.ID == "EmbeddedImagesRule"
         assert rule.DESCRIPTION == "Detects embedded images that should be stored as external files"
-        assert rule.SEVERITY == "WARNING"
+        assert rule.SEVERITY == "ACTION"
 
     def test_detect_base64_image(self):
         """Test detection of base64 encoded images."""

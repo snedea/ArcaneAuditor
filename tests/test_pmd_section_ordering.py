@@ -25,7 +25,7 @@ class TestPMDSectionOrderingRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly defined."""
         assert self.rule.DESCRIPTION == "Ensures PMD file root-level sections follow consistent ordering for better readability"
-        assert self.rule.SEVERITY == "INFO"
+        assert self.rule.SEVERITY == "ADVICE"
     
     def test_default_section_order(self):
         """Test that default section order is correctly configured."""

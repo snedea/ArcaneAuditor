@@ -10,7 +10,7 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
     """Validates that functions are not declared but never used."""
 
     DESCRIPTION = "Ensures functions are not declared but never used"
-    SEVERITY = "WARNING"
+    SEVERITY = "ACTION"
     DETECTOR = UnusedFunctionsDetector
 
     def get_description(self) -> str:

@@ -15,7 +15,7 @@ class TestScriptFunctionParameterCountRule:
     def test_rule_metadata(self):
         """Test rule metadata."""
         assert self.rule.DESCRIPTION == "Functions should not have too many parameters (max 4 by default)"
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ADVICE"
         assert self.rule.DETECTOR == FunctionParameterCountDetector
         assert self.rule.get_description() == "Functions should not have too many parameters (max 4 by default)"
     

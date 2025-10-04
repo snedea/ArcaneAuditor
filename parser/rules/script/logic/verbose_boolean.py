@@ -8,7 +8,7 @@ class ScriptVerboseBooleanCheckRule(ScriptRuleBase):
     """Rule to check for overly verbose boolean checks."""
 
     DESCRIPTION = "Ensures scripts don't use overly verbose boolean checks (if(var == true) return true else return false)"
-    SEVERITY = "WARNING"
+    SEVERITY = "ADVICE"
     DETECTOR = VerboseBooleanDetector
 
     def get_description(self) -> str:

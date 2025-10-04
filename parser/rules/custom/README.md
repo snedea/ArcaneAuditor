@@ -46,6 +46,7 @@ custom/
 Arcane Auditor now supports a **unified rule architecture** with specialized base classes:
 
 #### For Script Rules (Recommended)
+
 ```python
 from typing import Generator
 from ...script.shared import ScriptRuleBase, ScriptDetector, Violation
@@ -53,15 +54,15 @@ from ....models import ProjectContext, PMDModel, ScriptModel
 
 class CustomScriptMyRule(ScriptRuleBase):
     """Custom script rule using unified architecture."""
-    
+  
     DESCRIPTION = "Description of what this rule checks"
-    SEVERITY = "WARNING"  # "ERROR", "WARNING", "INFO"
-    
+    SEVERITY = "WARNING"  # "ERROR", "WARNING", "ADVICE"
+  
     def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
         """Main analysis method using unified architecture."""
         # The base class handles PMD/POD/script iteration automatically
         yield from self._analyze_scripts(context)
-    
+  
     def _analyze_scripts(self, context: ProjectContext) -> Generator[Violation, None, None]:
         """Analyze scripts using the unified pattern."""
         # Your analysis logic here
@@ -69,6 +70,7 @@ class CustomScriptMyRule(ScriptRuleBase):
 ```
 
 #### For Structure Rules (Recommended)
+
 ```python
 from typing import Generator
 from ...structure.shared import StructureRuleBase
@@ -76,25 +78,24 @@ from ....models import ProjectContext, PMDModel, PodModel
 
 class CustomStructureMyRule(StructureRuleBase):
     """Custom structure rule using unified architecture."""
-    
+  
     DESCRIPTION = "Description of what this rule checks"
     SEVERITY = "WARNING"
-    
+  
     def get_description(self) -> str:
         """Required by StructureRuleBase."""
         return self.DESCRIPTION
-    
+  
     def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze PMD model."""
         # Your PMD analysis logic here
         pass
-    
+  
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze POD model."""
         # Your POD analysis logic here
         pass
 ```
-
 
 ### Benefits of Unified Architecture
 
@@ -120,18 +121,19 @@ If you create example rules for demonstration purposes, exclude them from automa
 ```python
 class MyExampleRule(ScriptRuleBase):
     """Example rule for demonstration purposes."""
-    
+  
     IS_EXAMPLE = True  # This flag excludes the rule from automatic discovery
-    
+  
     DESCRIPTION = "This is just an example"
-    SEVERITY = "INFO"
-    
+    SEVERITY = "ADVICE"
+  
     def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
         return  # Example rule - no actual analysis
         yield  # Make it a generator
 ```
 
 **Benefits of using `IS_EXAMPLE = True`:**
+
 - ✅ Example rules won't run during normal analysis
 - ✅ Keeps example code visible for reference
 - ✅ Prevents confusion with production rules
@@ -146,20 +148,20 @@ Script rules analyze scripts across **all supported file types** (PMD embedded s
 ```python
 class CustomScriptSecurityRule(ScriptRuleBase):
     """Example script rule using unified architecture."""
-    
+  
     DESCRIPTION = "Ensures scripts follow security best practices"
     SEVERITY = "ERROR"
-    
+  
     def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
         # Use the unified architecture - base class handles iteration
         yield from self._analyze_scripts(context)
-    
+  
     def _analyze_scripts(self, context: ProjectContext) -> Generator[Violation, None, None]:
         """Analyze scripts using the unified architecture."""
         # The ScriptRuleBase automatically calls this method for each script
         # Your analysis logic here
         pass
-    
+  
     def _check_security(self, script_content: str, field_name: str, file_path: str, line_offset: int) -> Generator[Violation, None, None]:
         # Your security analysis logic here
         if "eval(" in script_content:  # Example security check
@@ -176,14 +178,14 @@ For analyzing PMD structure/configuration:
 ```python
 class CustomStructureRule(StructureRuleBase):
     """Example structure rule using unified architecture."""
-    
+  
     DESCRIPTION = "Validates PMD structure compliance"
     SEVERITY = "WARNING"
-    
+  
     def get_description(self) -> str:
         """Required by StructureRuleBase."""
         return self.DESCRIPTION
-    
+  
     def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze PMD structure."""
         # Analyze PMD structure (widgets, endpoints, etc.)
@@ -194,7 +196,7 @@ class CustomStructureRule(StructureRuleBase):
                 line=1,
                 file_path=pmd_model.file_path
             )
-    
+  
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """POD files don't need structure validation for this rule."""
         yield  # Make it a generator
@@ -207,23 +209,23 @@ For analyzing API endpoint configurations:
 ```python
 class CustomEndpointRule(StructureRuleBase):
     """Example endpoint rule using unified architecture."""
-    
+  
     DESCRIPTION = "Validates endpoint security configuration"
     SEVERITY = "ERROR"
-    
+  
     def get_description(self) -> str:
         """Required by StructureRuleBase."""
         return self.DESCRIPTION
-    
+  
     def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze endpoint configurations."""
         if pmd_model.endpoints:
             yield from self._analyze_endpoints(pmd_model)
-    
+  
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """POD files don't have endpoints."""
         yield  # Make it a generator
-    
+  
     def _analyze_endpoints(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
         for endpoint in pmd_model.endpoints:
             if not endpoint.get('failOnStatusCodes'):
@@ -257,6 +259,7 @@ yield finding  # Always yield, never return
 ```
 
 **Line Number Accuracy:**
+
 - Line numbers use hash-based mapping for exact accuracy
 - No off-by-one errors
 - `line_offset` from `find_script_fields()` is already calculated correctly
@@ -278,6 +281,7 @@ except Exception as e:
 ```
 
 **Caching System Benefits:**
+
 - ✅ **Performance**: ASTs are cached at the context level, avoiding redundant parsing
 - ✅ **Memory efficient**: Only unique script content is parsed and cached
 - ✅ **Automatic**: Caching happens transparently - no manual cache management needed
@@ -301,6 +305,7 @@ for field_path, field_value, display_name, line_offset in script_fields:
 ```
 
 **Readable Widget Paths:**
+
 - Widget paths use identifiers instead of array indices
 - Priority order: `id` → `label` → `type` → `name` → `[index]`
 - Makes violation messages much easier to navigate
@@ -330,6 +335,7 @@ actual_line = line_offset + relative_line_in_ast - 1
 ```
 
 **Benefits of hash-based line mapping:**
+
 - ✅ Exact line numbers (no approximations)
 - ✅ Handles multiline scripts correctly
 - ✅ No off-by-one errors
@@ -406,19 +412,19 @@ Support rule configuration through custom_settings:
 ```python
 class CustomScriptComplexityRule(ScriptRuleBase):
     """Configurable complexity rule using unified architecture."""
-    
+  
     def __init__(self, config: dict = None):
         """Initialize with optional configuration."""
         self.config = config or {}
         self.max_complexity = self.config.get('max_complexity', 10)
-    
+  
     DESCRIPTION = "Validates script complexity doesn't exceed threshold"
     SEVERITY = "WARNING"
-    
+  
     def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
         # Use the unified architecture - base class handles iteration
         yield from self._analyze_scripts(context)
-    
+  
     def _analyze_scripts(self, context: ProjectContext) -> Generator[Violation, None, None]:
         """Analyze scripts using the unified architecture."""
         # Use self.max_complexity in your analysis
@@ -463,10 +469,10 @@ from ....models import ProjectContext
 
 class CustomScriptCommentRule(ScriptRuleBase):
     """Ensures functions have adequate comments using unified architecture."""
-    
+  
     DESCRIPTION = "Functions should have comments for maintainability"
-    SEVERITY = "INFO"
-    
+    SEVERITY = "ADVICE"
+  
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """
         Unified analysis pattern with key features:
@@ -478,7 +484,7 @@ class CustomScriptCommentRule(ScriptRuleBase):
         # Iterate through all PMD files and their script fields
         for pmd_model in context.pmds.values():
             script_fields = self.find_script_fields(pmd_model, context)
-            
+  
             for field_path, field_value, display_name, line_offset in script_fields:
                 # line_offset is hash-based (exact positioning)
                 # display_name includes readable widget identifiers
@@ -489,7 +495,7 @@ class CustomScriptCommentRule(ScriptRuleBase):
                     line_offset,
                     context
                 )
-    
+  
     def _check_comments(self, script_content: str, field_name: str, file_path: str, 
                         line_offset: int, context: ProjectContext) -> Generator[Finding, None, None]:
         """Check for adequate comments in script content."""
@@ -498,15 +504,15 @@ class CustomScriptCommentRule(ScriptRuleBase):
             ast = self.get_cached_ast(script_content, context)
             if ast is None:
                 return
-            
+  
             lines = script_content.split('\n')
             function_lines = [i for i, line in enumerate(lines) if 'function' in line]
-            
+  
             for func_line in function_lines:
                 # Simple check: look for comment within 3 lines before function
                 has_comment = any('//' in lines[max(0, func_line-i)] or '/*' in lines[max(0, func_line-i)] 
                                 for i in range(1, 4) if func_line-i >= 0)
-                
+  
                 if not has_comment:
                     # Create Finding (not Violation - that's for detectors)
                     yield Finding(
@@ -520,6 +526,7 @@ class CustomScriptCommentRule(ScriptRuleBase):
 ```
 
 **This example demonstrates:**
+
 - ✅ Hash-based line numbers (no off-by-one errors)
 - ✅ Context-based AST caching (better performance)
 - ✅ Readable widget paths in field_name (easier navigation)
@@ -589,7 +596,7 @@ Add your custom rule to configuration files:
   "rules": {
     "CustomScriptCommentRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "ACTION",
       "custom_settings": {
         "min_comment_ratio": 0.2
       }
@@ -606,7 +613,6 @@ If you create useful custom rules, consider:
 - **Proposing as official rules** - Submit pull requests
 - **Contributing to the main codebase** - Help improve the platform
 - **Creating rule templates** - Help other developers get started
-
 
 **Happy mystical rule development! 🔮✨**
 

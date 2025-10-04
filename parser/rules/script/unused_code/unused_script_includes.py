@@ -11,7 +11,7 @@ class ScriptUnusedScriptIncludesRule(ScriptRuleBase):
     """Validates that included script files are actually used in PMD files."""
 
     DESCRIPTION = "Ensures included script files are actually used (via script.function() calls)"
-    SEVERITY = "WARNING"
+    SEVERITY = "ACTION"
     DETECTOR = UnusedScriptIncludesDetector
 
     def get_description(self) -> str:

@@ -2,7 +2,7 @@
   "rules": {
     "ScriptComplexityRule": {
       "enabled": true,
-      "severity_override": "INFO",
+      "severity_override": "ADVICE",
       "custom_settings": {
         "max_complexity": 15
       }
@@ -14,7 +14,7 @@
     },
     "ScriptLongFunctionRule": {
       "enabled": true,
-      "severity_override": "INFO",
+      "severity_override": "ADVICE",
       "custom_settings": {
         "max_lines": 75
       }
@@ -26,7 +26,7 @@
     },
     "ScriptConsoleLogRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "ACTION",
       "custom_settings": {}
     },
     "ScriptVarUsageRule": {
@@ -56,12 +56,12 @@
     },
     "ScriptNullSafetyRule": {
       "enabled": true,
-      "severity_override": "SEVERE",
+      "severity_override": "ACTION",
       "custom_settings": {}
     },
     "ScriptFunctionReturnConsistencyRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "ACTION",
       "custom_settings": {}
     },
     "ScriptStringConcatRule": {
@@ -81,7 +81,7 @@
     },
     "ScriptEmptyFunctionRule": {
       "enabled": true,
-      "severity_override": "INFO",
+      "severity_override": "ADVICE",
       "custom_settings": {}
     },
     "ScriptUnusedFunctionRule": {
@@ -96,7 +96,7 @@
     },
     "ScriptUnusedVariableRule": {
       "enabled": true,
-      "severity_override": "INFO",
+      "severity_override": "ADVICE",
       "custom_settings": {}
     },
     "ScriptUnusedScriptIncludesRule": {
@@ -106,7 +106,7 @@
     },
     "EndpointFailOnStatusCodesRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "ACTION",
       "custom_settings": {}
     },
     "EndpointNameLowerCamelCaseRule": {
@@ -126,7 +126,7 @@
     },
     "WidgetIdRequiredRule": {
       "enabled": true,
-      "severity_override": "SEVERE",
+      "severity_override": "ACTION",
       "custom_settings": {}
     },
     "WidgetIdLowerCamelCaseRule": {
@@ -151,12 +151,12 @@
     },
     "HardcodedApplicationIdRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "ACTION",
       "custom_settings": {}
     },
     "HardcodedWidRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "ACTION",
       "custom_settings": {}
     },
     "EmbeddedImagesRule": {

@@ -28,7 +28,7 @@ class Rule(ABC):
     # --- Metadata for the rule ---
     ID: str = "RULE000"
     DESCRIPTION: str = "This is a base rule."
-    SEVERITY: str = "INFO" # Can be 'INFO', 'WARNING', 'ERROR'
+    SEVERITY: str = "ADVICE" # Can be 'ADVICE', 'ACTION'
     
 
     @abstractmethod

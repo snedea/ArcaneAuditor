@@ -8,7 +8,7 @@ class PMDSectionOrderingRule(Rule):
     """Validates that PMD file sections follow the configured ordering."""
     
     DESCRIPTION = "Ensures PMD file root-level sections follow consistent ordering for better readability"
-    SEVERITY = "INFO"
+    SEVERITY = "ADVICE"
 
     def __init__(self, config: Dict[str, Any] = None):
         """Initialize with configurable section order."""

@@ -64,11 +64,11 @@ Before installing Arcane Auditor, you'll need:
 #### 3. **UV** (Modern Python package manager - **recommended**)
 
 ```bash
-# Install UV (MacOS)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Or on Windows (PowerShell)
+# Windows (PowerShell)
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# MacOS (Shell w/Curl)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Or using pip (if you prefer)
 pip install uv
@@ -562,14 +562,14 @@ Create custom configurations in JSON format:
   "rules": {
     "CustomScriptCommentQualityRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "ADVICE",
       "custom_settings": {
         "min_comment_density": 0.15
       }
     },
     "ScriptVarUsageRule": {
       "enabled": true,
-      "severity_override": "SEVERE",
+      "severity_override": "ACTION",
       "custom_settings": {}
     },
     "ScriptMagicNumberRule": {

@@ -282,9 +282,8 @@ def run_analysis_background(job: AnalysisJob):
                 "total_findings": len(findings),
                 "rules_executed": len(rules_engine.rules),
                 "by_severity": {
-                    "error": len([f for f in findings if f.severity == "SEVERE"]),
-                    "warning": len([f for f in findings if f.severity == "WARNING"]),
-                    "info": len([f for f in findings if f.severity == "INFO"])
+                    "action": len([f for f in findings if f.severity == "ACTION"]),
+                    "advice": len([f for f in findings if f.severity == "ADVICE"])
                 }
             }
         }
@@ -434,11 +433,10 @@ async def download_excel(job_id: str):
             summary_sheet.append(["Files Analyzed", len(findings_by_file)])
             summary_sheet.append(["Rules Executed", job.result["summary"]["rules_executed"]])
             summary_sheet.append(["Total Issues", len(findings)])
-            summary_sheet.append(["Severe", len([f for f in findings if f.severity == "SEVERE"])])
-            summary_sheet.append(["Warnings", len([f for f in findings if f.severity == "WARNING"])])
-            summary_sheet.append(["Info", len([f for f in findings if f.severity == "INFO"])])
+            summary_sheet.append(["Action", len([f for f in findings if f.severity == "ACTION"])])
+            summary_sheet.append(["Advices", len([f for f in findings if f.severity == "ADVICE"])])
             summary_sheet.append([])
-            summary_sheet.append(["File", "Issues", "Severe", "Warnings", "Info"])
+            summary_sheet.append(["File", "Issues", "Action", "Advice"])
             
             # Style summary sheet
             summary_sheet['A1'].font = Font(bold=True, size=14)
@@ -447,10 +445,9 @@ async def download_excel(job_id: str):
             
             # Add file summary data
             for file_path, file_findings in findings_by_file.items():
-                severe_count = len([f for f in file_findings if f.severity == "SEVERE"])
-                warning_count = len([f for f in file_findings if f.severity == "WARNING"])
-                info_count = len([f for f in file_findings if f.severity == "INFO"])
-                summary_sheet.append([file_path, len(file_findings), severe_count, warning_count, info_count])
+                action_count = len([f for f in file_findings if f.severity == "ACTION"])
+                advice_count = len([f for f in file_findings if f.severity == "ADVICE"])
+                summary_sheet.append([file_path, len(file_findings), action_count, advice_count])
             
             # Create sheets for each file
             for file_path, file_findings in findings_by_file.items():
@@ -488,10 +485,8 @@ async def download_excel(job_id: str):
                     
                     # Color code by severity
                     severity_colors = {
-                        "SEVERE": "FFCCCC",    # Light red
-                        "WARNING": "FFFFCC",  # Light yellow
-                        "INFO": "CCE5FF",     # Light blue
-                        "HINT": "E6FFE6"      # Light green
+                        "ACTION": "FFCCCC",    # Light red
+                        "ADVICE": "CCE5FF",     # Light blue
                     }
                     
                     if finding.severity in severity_colors:

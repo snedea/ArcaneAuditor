@@ -560,7 +560,7 @@ const total = numbers.reduce((acc, num) => {acc + num});
 {
   "ScriptDescriptiveParameterRule": {
     "enabled": true,
-    "severity_override": "WARNING",
+    "severity_override": "ACTION",
     "custom_settings": {
       "allowed_single_letters": ["i", "j", "k"],
       "additional_functional_methods": []
@@ -1246,7 +1246,7 @@ Each rule supports:
 {
   "ScriptComplexityRule": {
     "enabled": true,
-    "severity_override": "SEVERE",
+    "severity_override": "ACTION",
     "custom_settings": {
       "max_complexity": 8
     }

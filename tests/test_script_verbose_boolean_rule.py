@@ -15,7 +15,7 @@ class TestScriptVerboseBooleanCheckRule:
     def test_rule_metadata(self):
         """Test rule metadata."""
         assert self.rule.DESCRIPTION == "Ensures scripts don't use overly verbose boolean checks (if(var == true) return true else return false)"
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ADVICE"
         assert self.rule.DETECTOR == VerboseBooleanDetector
         assert self.rule.get_description() == "Ensures scripts don't use overly verbose boolean checks (if(var == true) return true else return false)"
     

@@ -11,7 +11,7 @@ class TestFooterPodRequiredRule:
         """Test that the rule initializes correctly."""
         rule = FooterPodRequiredRule()
         assert rule.DESCRIPTION == "Ensures footer uses pod structure (direct pod or footer with pod children). Excludes PMD pages with tabs, hub pages, and microConclusion pages."
-        assert rule.SEVERITY == "INFO"
+        assert rule.SEVERITY == "ADVICE"
 
     def test_get_description(self):
         """Test that get_description returns the correct description."""

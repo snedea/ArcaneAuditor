@@ -38,7 +38,7 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
     IS_EXAMPLE = True  # Flag to exclude from automatic discovery
     
     DESCRIPTION = "Functions should have adequate comments for maintainability (configurable threshold)"
-    SEVERITY = "INFO"
+    SEVERITY = "ADVICE"
     
     def __init__(self, config: dict = None):
         """Initialize with optional configuration."""
@@ -233,7 +233,7 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
     IS_EXAMPLE = True  # Exclude from discovery
     
     DESCRIPTION = "PMD files should follow organizational structure standards"
-    SEVERITY = "WARNING"
+    SEVERITY = "ACTION"
     
     def __init__(self, config: dict = None):
         """Initialize with configuration."""
@@ -284,7 +284,7 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
   "rules": {
     "CustomScriptCommentQualityRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "ADVICE",
       "custom_settings": {
         "min_comment_density": 0.15,
         "min_function_lines": 8
@@ -292,7 +292,7 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
     },
     "CustomPMDSectionValidationRule": {
       "enabled": true,
-      "severity_override": "SEVERE",
+      "severity_override": "ACTION",
       "custom_settings": {
         "required_sections": ["id", "presentation", "endPoints"],
         "max_endpoints": 5

@@ -8,7 +8,7 @@ class ScriptLongFunctionRule(ScriptRuleBase):
     """Rule to check for functions that exceed maximum line count."""
 
     DESCRIPTION = "Ensures functions don't exceed maximum line count (max 50 lines)"
-    SEVERITY = "WARNING"
+    SEVERITY = "ACTION"
     DETECTOR = LongFunctionDetector
 
     def get_description(self) -> str:

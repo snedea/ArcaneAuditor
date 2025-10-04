@@ -649,24 +649,14 @@ header p {
     font-weight: 500;
 }
 
-.severity-count-badge.severe {
+.severity-count-badge.action {
     background: #fef2f2;
     color: #dc2626;
 }
 
-.severity-count-badge.warning {
-    background: #fffbeb;
-    color: #d97706;
-}
-
-.severity-count-badge.info {
+.severity-count-badge.advice {
     background: #eff6ff;
     color: #2563eb;
-}
-
-.severity-count-badge.hint {
-    background: #f0fdf4;
-    color: #16a34a;
 }
 
 .file-findings {

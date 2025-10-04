@@ -58,7 +58,7 @@ Edit `user_configs/my-config.json` to match your team's needs:
   "rules": {
     "ScriptComplexityRule": {
       "enabled": true,
-      "severity_override": "SEVERE",
+      "severity_override": "ACTION",
       "custom_settings": {
         "max_complexity": 8
       }

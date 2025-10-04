@@ -7,7 +7,7 @@ class EndpointBaseUrlTypeRule(Rule):
     """Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values."""
     
     DESCRIPTION = "Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values"
-    SEVERITY = "WARNING"
+    SEVERITY = "ADVICE"
 
     def analyze(self, context):
         """Main entry point - analyze all PMD models and POD models in the context."""

@@ -6,7 +6,7 @@ class EndpointOnSendSelfDataRule(Rule):
     """Validates that endpoints don't use the anti-pattern 'self.data = {:}' in onSend scripts."""
     
     DESCRIPTION = "Ensures outbound endpoints don't use anti-pattern 'self.data = {:}' in onSend scripts"
-    SEVERITY = "WARNING"
+    SEVERITY = "ADVICE"
 
     def analyze(self, context):
         """Main entry point - analyze all PMD models in the context."""

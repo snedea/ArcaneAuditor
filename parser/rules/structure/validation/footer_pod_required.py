@@ -9,7 +9,7 @@ class FooterPodRequiredRule(StructureRuleBase):
     """Ensures footer uses pod structure - either direct pod or footer with pod children."""
     
     DESCRIPTION = "Ensures footer uses pod structure (direct pod or footer with pod children). Excludes PMD pages with tabs, hub pages, and microConclusion pages."
-    SEVERITY = "INFO"
+    SEVERITY = "ADVICE"
 
     def get_description(self) -> str:
         """Get rule description."""

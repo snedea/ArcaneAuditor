@@ -11,7 +11,7 @@ from enum import Enum
 
 class SeverityLevel(str, Enum):
     """Severity levels for findings."""
-    INFO = "INFO"
+    INFO = "ADVICE"
     WARNING = "WARNING"
     SEVERE = "SEVERE"
 
@@ -80,7 +80,7 @@ class FileProcessingConfig(BaseModel):
         description="File extensions to process"
     )
     encoding: str = Field(default="utf-8", description="Default file encoding")
-    log_level: str = Field(default="INFO", description="Logging level")
+    log_level: str = Field(default="ADVICE", description="Logging level")
     chunk_size: int = Field(default=16384, description="Chunk size for file reading")
     max_concurrent_files: int = Field(default=20, description="Maximum concurrent files to process")
     fallback_encodings: List[str] = Field(

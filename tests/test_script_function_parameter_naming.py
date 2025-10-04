@@ -19,7 +19,7 @@ class TestScriptFunctionParameterNamingRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly defined."""
         assert self.rule.DESCRIPTION == "Ensures function parameters follow lowerCamelCase naming convention"
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ACTION"
     
     def test_lowercamelcase_violations_in_pmd(self):
         """Test detection of non-lowerCamelCase parameters in PMD scripts."""

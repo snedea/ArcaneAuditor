@@ -15,7 +15,7 @@ class TestScriptComplexityRule:
     def test_rule_metadata(self):
         """Test rule metadata."""
         assert self.rule.DESCRIPTION == "Ensures scripts don't exceed complexity thresholds (max 10 cyclomatic complexity)"
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ACTION"
         assert self.rule.DETECTOR == CyclomaticComplexityDetector
         assert self.rule.get_description() == "Ensures scripts don't exceed complexity thresholds (max 10 cyclomatic complexity)"
     

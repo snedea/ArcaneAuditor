@@ -8,7 +8,7 @@ class ScriptStringConcatRule(ScriptRuleBase):
     """Rule to check for string concatenation using + operator."""
 
     DESCRIPTION = "Detects string concatenation with + operator - use PMD templates with backticks and {{ }} instead"
-    SEVERITY = "WARNING"
+    SEVERITY = "ADVICE"
     DETECTOR = StringConcatDetector
 
     def get_description(self) -> str:

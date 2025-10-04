@@ -16,7 +16,7 @@ class TestScriptArrayMethodUsageRule:
     def test_rule_metadata(self):
         """Test rule metadata."""
         assert self.rule.DESCRIPTION == "Detects manual loops that could be replaced with array higher-order methods like map, filter, forEach"
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ADVICE"
         assert self.rule.DETECTOR == ArrayMethodUsageDetector
 
     def test_simple_script_no_manual_loops(self):

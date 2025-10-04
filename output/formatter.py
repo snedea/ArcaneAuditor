@@ -23,10 +23,8 @@ class OutputFormatter:
     
     # Emoji mappings for different severity levels
     SEVERITY_EMOJIS = {
-        "SEVERE": "🔴",
-        "WARNING": "🟡", 
-        "INFO": "🔵",
-        "HINT": "💡"
+        "ACTION": "🔴",
+        "ADVICE": "🔵"
     }
     
     # Emoji mappings for different rule categories
@@ -110,14 +108,13 @@ class OutputFormatter:
         output = []
         
         # Quick stats
-        severe_count = len([f for f in findings if f.severity == "SEVERE"])
-        warning_count = len([f for f in findings if f.severity == "WARNING"])
-        info_count = len([f for f in findings if f.severity == "INFO"])
+        action_count = len([f for f in findings if f.severity == "ACTION"])
+        advice_count = len([f for f in findings if f.severity == "ADVICE"])
         
         if not findings:
             return "✅ No issues found!"
         
-        output.append(f"🔍 Found {len(findings)} issue(s): {severe_count} severe, {warning_count} warnings, {info_count} info")
+        output.append(f"🔍 Found {len(findings)} issue(s): {action_count} action, {advice_count} advice")
         
         # Show top 3 issues
         top_findings = findings[:3]
@@ -138,9 +135,8 @@ class OutputFormatter:
                 "total_rules": total_rules,
                 "total_findings": len(findings),
                 "findings_by_severity": {
-                    "SEVERE": len([f for f in findings if f.severity == "SEVERE"]),
-                    "WARNING": len([f for f in findings if f.severity == "WARNING"]),
-                    "INFO": len([f for f in findings if f.severity == "INFO"])
+                    "ACTION": len([f for f in findings if f.severity == "ACTION"]),
+                    "ADVICE": len([f for f in findings if f.severity == "ADVICE"])
                 }
             },
             "findings": [
@@ -177,7 +173,7 @@ class OutputFormatter:
             groups[severity].append(finding)
         
         # Sort by severity priority
-        severity_order = ["SEVERE", "WARNING", "INFO", "HINT"]
+        severity_order = ["ACTION", "ADVICE"]
         return {k: groups[k] for k in severity_order if k in groups}
     
     def _format_excel(self, findings: List[Finding], total_files: int, total_rules: int) -> str:
@@ -204,11 +200,10 @@ class OutputFormatter:
         summary_sheet.append(["Files Analyzed", total_files])
         summary_sheet.append(["Rules Executed", total_rules])
         summary_sheet.append(["Total Issues", len(findings)])
-        summary_sheet.append(["Severe", len([f for f in findings if f.severity == "SEVERE"])])
-        summary_sheet.append(["Warnings", len([f for f in findings if f.severity == "WARNING"])])
-        summary_sheet.append(["Info", len([f for f in findings if f.severity == "INFO"])])
+        summary_sheet.append(["Action", len([f for f in findings if f.severity == "ACTION"])])
+        summary_sheet.append(["Advice", len([f for f in findings if f.severity == "ADVICE"])])
         summary_sheet.append([])
-        summary_sheet.append(["File", "Issues", "Severe", "Warnings", "Info"])
+        summary_sheet.append(["File", "Issues", "Action", "Advice"])
         
         # Style summary sheet
         summary_sheet['A1'].font = Font(bold=True, size=14)
@@ -250,10 +245,8 @@ class OutputFormatter:
                 
                 # Color code by severity
                 severity_colors = {
-                    "SEVERE": "FFCCCC",    # Light red
-                    "WARNING": "FFFFCC",  # Light yellow
-                    "INFO": "CCE5FF",     # Light blue
-                    "HINT": "E6FFE6"      # Light green
+                    "ACTION": "FFCCCC",    # Light red
+                    "ADVICE": "CCE5FF"     # Light blue
                 }
                 
                 if finding.severity in severity_colors:
@@ -277,10 +270,9 @@ class OutputFormatter:
                 ws.column_dimensions[column_letter].width = adjusted_width
             
             # Update summary sheet
-            severe_count = len([f for f in file_findings if f.severity == "SEVERE"])
-            warning_count = len([f for f in file_findings if f.severity == "WARNING"])
-            info_count = len([f for f in file_findings if f.severity == "INFO"])
-            summary_sheet.append([file_path, len(file_findings), severe_count, warning_count, info_count])
+            action_count = len([f for f in file_findings if f.severity == "ACTION"])
+            advice_count = len([f for f in file_findings if f.severity == "ADVICE"])
+            summary_sheet.append([file_path, len(file_findings), action_count, advice_count])
         
         # Save to temporary file and return path
         import tempfile

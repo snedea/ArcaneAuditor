@@ -2,7 +2,7 @@
   "rules": {
     "ScriptVarUsageRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "ACTION",
       "custom_settings": {}
     },
     "ScriptNestingLevelRule": {
@@ -21,7 +21,7 @@
     },
     "ScriptNullSafetyRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "ACTION",
       "custom_settings": {}
     },
     "ScriptStringConcatRule": {
@@ -31,7 +31,7 @@
     },
     "WidgetIdRequiredRule": {
       "enabled": true,
-      "severity_override": "SEVERE",
+      "severity_override": "ACTION",
       "custom_settings": {}
     },
     "WidgetIdLowerCamelCaseRule": {
@@ -51,7 +51,7 @@
     },
     "EndpointOnSendSelfDataRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "ACTION",
       "custom_settings": {}
     }
   },

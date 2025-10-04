@@ -8,7 +8,7 @@ class ScriptMagicNumberRule(ScriptRuleBase):
     """Rule to check for magic numbers."""
 
     DESCRIPTION = "Ensures scripts don't contain magic numbers (use named constants)"
-    SEVERITY = "INFO"
+    SEVERITY = "ADVICE"
     DETECTOR = MagicNumberDetector
 
     def get_description(self) -> str:

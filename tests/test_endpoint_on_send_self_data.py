@@ -19,7 +19,7 @@ class TestEndpointOnSendSelfDataRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly defined."""
         assert self.rule.DESCRIPTION == "Ensures outbound endpoints don't use anti-pattern 'self.data = {:}' in onSend scripts"
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ADVICE"
     
     def test_outbound_endpoint_with_anti_pattern(self):
         """Test that outbound endpoints with self.data anti-pattern are flagged."""

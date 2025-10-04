@@ -19,7 +19,7 @@ class TestScriptDescriptiveParameterRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly defined."""
         assert self.rule.DESCRIPTION == "Ensures function parameters use descriptive names when functions take function parameters (except 'i', 'j', 'k' for indices)"
-        assert self.rule.SEVERITY == "INFO"
+        assert self.rule.SEVERITY == "ADVICE"
     
     def test_functional_methods_detection(self):
         """Test that the rule detects PMD script functional methods."""

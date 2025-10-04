@@ -343,16 +343,16 @@ class ArcaneAuditorApp {
                     <div class="summary-label">Issues Found</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-number summary-number-purple">${result.summary?.rules_executed || 30}</div>
+                    <div class="summary-number summary-number-purple">${result.summary?.rules_executed || 34}</div>
                     <div class="summary-label">Rules Executed</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-number summary-number-orange">${result.summary?.by_severity?.error || 0}</div>
-                    <div class="summary-label">Errors</div>
+                    <div class="summary-number summary-number-orange">${result.summary?.by_severity?.action || 0}</div>
+                    <div class="summary-label">Actions</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-number summary-number-yellow">${result.summary?.by_severity?.warning || 0}</div>
-                    <div class="summary-label">Warnings</div>
+                    <div class="summary-number summary-number-yellow">${result.summary?.by_severity?.advice || 0}</div>
+                    <div class="summary-label">Advices</div>
                 </div>
             </div>
             
@@ -446,7 +446,7 @@ class ArcaneAuditorApp {
         if (this.filteredFindings.length === 0) {
             findings.innerHTML = `
                 <div class="no-issues">
-                    ✅ <strong>No issues found!</strong> Your code looks great!
+                    ✅ <strong>No issues found!</strong> Your code is magical!
                 </div>
             `;
             return;
@@ -456,7 +456,7 @@ class ArcaneAuditorApp {
         
         findings.innerHTML = `
             <div class="findings-header">
-                <h4>🚨 Issues Found (${this.filteredFindings.length})</h4>
+                <h4>🔎 Issues Found (${this.filteredFindings.length})</h4>
                 <div class="findings-actions">
                     <button class="btn btn-secondary" onclick="app.expandAllFiles()">Expand All</button>
                     <button class="btn btn-secondary" onclick="app.collapseAllFiles()">Collapse All</button>
@@ -580,10 +580,8 @@ class ArcaneAuditorApp {
 
     getSeverityIcon(severity) {
         switch (severity) {
-            case 'SEVERE': return '🚨';
-            case 'WARNING': return '⚠️';
-            case 'INFO': return 'ℹ️';
-            case 'HINT': return '💡';
+            case 'ACTION': return '🚨';
+            case 'ADVICE': return 'ℹ️';
             default: return 'ℹ️';
         }
     }
@@ -617,7 +615,7 @@ class ArcaneAuditorApp {
         return [...findings].sort((a, b) => {
             switch (this.currentFilters.sortBy) {
                 case 'severity':
-                    const severityOrder = { SEVERE: 0, WARNING: 1, INFO: 2, HINT: 3 };
+                    const severityOrder = { ACTION: 0, ADVICE: 1 };
                     return severityOrder[a.severity] - severityOrder[b.severity];
                 case 'line':
                     return a.line - b.line;

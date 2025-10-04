@@ -58,7 +58,7 @@ This directory is for **personal developer configurations** that:
       "enabled": false
     },
     "ScriptVariableNamingRule": {
-      "severity_override": "INFO"
+      "severity_override": "ADVICE"
     }
   }
 }
@@ -136,9 +136,9 @@ This means your local configurations **always win**! 🏆
 ```json
 {
   "rules": {
-    "ScriptNullSafetyRule": { "enabled": true, "severity_override": "SEVERE" },
+    "ScriptNullSafetyRule": { "enabled": true, "severity_override": "ACTION" },
     "ScriptEmptyFunctionRule": { "enabled": true },
-    "WidgetIdRequiredRule": { "enabled": true, "severity_override": "SEVERE" }
+    "WidgetIdRequiredRule": { "enabled": true, "severity_override": "ACTION" }
   }
 }
 ```

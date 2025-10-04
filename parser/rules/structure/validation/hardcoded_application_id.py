@@ -25,7 +25,7 @@ class HardcodedApplicationIdRule(Rule):
     
     ID = "HardcodedApplicationIdRule"
     DESCRIPTION = "Detects hardcoded applicationId values that should be replaced with site.applicationId"
-    SEVERITY = "WARNING"
+    SEVERITY = "ACTION"
     
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze PMD and POD files for hardcoded applicationId values."""
