@@ -218,3 +218,6 @@ web/uploads/
 
 # Local development plans and notes
 plan_*.md
+
+# Release notes generation
+release_notes/
