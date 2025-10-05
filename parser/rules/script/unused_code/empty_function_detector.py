@@ -15,7 +15,7 @@ class EmptyFunctionDetector(ScriptDetector):
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
         """Detect empty function bodies in the AST."""
         violations = []
-        self._check_functions(ast, violations)
+        self._check_functions(ast, violations, None)
         
         for violation in violations:
             yield Violation(
@@ -23,17 +23,20 @@ class EmptyFunctionDetector(ScriptDetector):
                 line=violation['line']
             )
     
-    def _check_functions(self, node, violations: List[dict]):
+    def _check_functions(self, node, violations: List[dict], variable_declaration_context):
         """Recursively check functions in AST nodes."""
         if hasattr(node, 'data') and node.data == 'function_expression':
-            self._analyze_function(node, violations)
+            self._analyze_function(node, violations, variable_declaration_context)
+        elif hasattr(node, 'data') and node.data == 'variable_declaration':
+            # Update context when we find a variable declaration
+            variable_declaration_context = node
         
         # Recursively check children
         if hasattr(node, 'children'):
             for child in node.children:
-                self._check_functions(child, violations)
+                self._check_functions(child, violations, variable_declaration_context)
     
-    def _analyze_function(self, function_node, violations: List[dict]):
+    def _analyze_function(self, function_node, violations: List[dict], variable_declaration_context):
         """Analyze a specific function for empty body."""
         # Find the function body
         function_body = None
@@ -47,10 +50,33 @@ class EmptyFunctionDetector(ScriptDetector):
         
         # Check if function body is empty
         if function_body and self._is_empty_function_body(function_body):
+            # Try to find the function name from the variable declaration context
+            function_name = self._extract_function_name_from_context(variable_declaration_context)
+            
+            if function_name:
+                message = f"Function '{function_name}' has empty body - implement the function or remove it"
+            else:
+                message = "Function has empty body - implement the function or remove it"
+            
             violations.append({
-                'message': "Function has empty body - implement the function or remove it",
+                'message': message,
                 'line': self.get_line_number(function_node)
             })
+    
+    def _extract_function_name_from_context(self, variable_declaration_context) -> str:
+        """Extract the function name from the variable declaration context."""
+        if not variable_declaration_context:
+            return None
+        
+        try:
+            if len(variable_declaration_context.children) >= 1:
+                identifier = variable_declaration_context.children[0]
+                if hasattr(identifier, 'value'):
+                    return identifier.value
+        except Exception:
+            pass
+        
+        return None
     
     def _is_empty_function_body(self, function_body) -> bool:
         """Check if function body is empty (only whitespace/comments)"""
