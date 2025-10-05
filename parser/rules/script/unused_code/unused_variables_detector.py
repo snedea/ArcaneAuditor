@@ -51,7 +51,7 @@ class UnusedVariableDetector(ScriptDetector):
                     # Create violation
                     violations.append(Violation(
                         message=f"Unused variable '{var_name}' in {scope_type} scope",
-                        line=ASTLineUtils.get_line_number(var_info['node'], self.line_offset),
+                        line=self.get_line_number_from_token(var_info['node']),
                         metadata={
                             'variable_name': var_name,
                             'scope_type': scope_type,

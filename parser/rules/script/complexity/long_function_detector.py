@@ -18,7 +18,7 @@ class LongFunctionDetector(ScriptDetector):
         long_functions = self._find_long_functions(ast, self.max_lines)
         
         for func_info in long_functions:
-            # Use line_offset as base, add relative line if available
+            # Get line number from function info and apply offset
             relative_line = func_info.get('line', 1) or 1
             line_number = self.line_offset + relative_line - 1
             

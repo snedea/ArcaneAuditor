@@ -38,7 +38,8 @@ class ArrayMethodUsageDetector(ScriptDetector):
 
     def _create_violation(self, for_stmt: Tree, field_name: str):
         """Create a violation for a detected manual for loop."""
-        line_number = self.get_line_number(for_stmt)
+        # Get line number from the first token in the for statement
+        line_number = self._get_line_from_tree_node(for_stmt)
         
         # Analyze the loop to suggest appropriate array higher-order method
         suggestion = self._suggest_array_method(for_stmt)
@@ -83,6 +84,20 @@ class ArrayMethodUsageDetector(ScriptDetector):
                 return (for_stmt.children[2], for_stmt.children[3], for_stmt.children[4])
         
         return None
+    
+    def _get_line_from_tree_node(self, node: Tree) -> int:
+        """Get line number from a Tree node by finding the first token with line info."""
+        if hasattr(node, 'children') and len(node.children) > 0:
+            for child in node.children:
+                # Check if child has line info directly
+                if hasattr(child, 'line') and child.line is not None:
+                    return child.line + self.line_offset - 1
+                # If child is a Tree, recurse into it
+                elif isinstance(child, Tree) and hasattr(child, 'children'):
+                    for grandchild in child.children:
+                        if hasattr(grandchild, 'line') and grandchild.line is not None:
+                            return grandchild.line + self.line_offset - 1
+        return 1
 
     def _is_counter_initialization(self, init_node) -> bool:
         """Check if initialization creates a counter variable."""

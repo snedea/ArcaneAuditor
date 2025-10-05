@@ -80,8 +80,8 @@ class EmbeddedImagesRule(StructureRuleBase):
         
         matches = list(re.finditer(base64_image_pattern, text, re.IGNORECASE))
         for match in matches:
-            # Calculate line number
-            line_num = text[:match.start()].count('\n') + 1
+            # Calculate line number using unified method
+            line_num = self.get_line_from_text_position(text, match.start())
             
             yield self._create_finding(
                 message=f"Embedded base64 image found in {field_name}. Consider storing the image as an external file and referencing it by path instead.",

@@ -80,5 +80,5 @@ class EndpointBaseUrlTypeRule(Rule):
     def _get_endpoint_url_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:
         """Get line number for the endpoint URL field."""
         if endpoint_name and isinstance(model, PMDModel):
-            return PMDLineUtils.find_field_after_entity(model, 'name', endpoint_name, 'url')
+            return self.get_field_after_entity_line_number(model, 'name', endpoint_name, 'url')
         return 1

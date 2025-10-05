@@ -23,7 +23,7 @@ class StringConcatDetector(ScriptDetector):
         
         for add_expr in addition_expressions:
             if self._is_string_concatenation(add_expr):
-                line_number = self.get_line_number(add_expr)
+                line_number = self._get_line_from_tree_node(add_expr)
                 
                 # Skip if we've already reported a violation on this line
                 if line_number in reported_lines:
@@ -52,6 +52,20 @@ class StringConcatDetector(ScriptDetector):
                     message=message,
                     line=line_number
                 )
+    
+    def _get_line_from_tree_node(self, node: Tree) -> int:
+        """Get line number from a Tree node by finding the first token with line info."""
+        if hasattr(node, 'children') and len(node.children) > 0:
+            for child in node.children:
+                # Check if child has line info directly
+                if hasattr(child, 'line') and child.line is not None:
+                    return child.line + self.line_offset - 1
+                # If child is a Tree, recurse into it
+                elif isinstance(child, Tree) and hasattr(child, 'children'):
+                    for grandchild in child.children:
+                        if hasattr(grandchild, 'line') and grandchild.line is not None:
+                            return grandchild.line + self.line_offset - 1
+        return 1
     
     def _is_string_concatenation(self, add_expr: Tree) -> bool:
         """Check if an addition expression is actually string concatenation."""

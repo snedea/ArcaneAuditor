@@ -38,7 +38,7 @@ class UnusedParametersDetector(ScriptDetector):
                 if param_name not in used_parameters:
                     violations.append(Violation(
                         message=f"Unused parameter '{param_name}' in function '{function_name}'",
-                        line=ASTLineUtils.get_line_number(function_node, self.line_offset),
+                        line=self.get_line_number_from_token(function_node),
                         metadata={
                             'function_name': function_name,
                             'parameter_name': param_name

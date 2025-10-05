@@ -103,6 +103,7 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
                 # Only check functions that meet minimum line threshold
                 if func_info['line_count'] >= self.min_function_lines and comment_density < self.min_comment_density:
                     # Create Violation (internal format for detectors)
+                    # Use unified line calculation method for consistency
                     violation = Violation(
                         message=f"Function '{func_info['name']}' has low comment density "
                                f"({comment_density:.1%}, minimum: {self.min_comment_density:.1%}). "
@@ -259,11 +260,13 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
         # Check for required sections
         for section in self.required_sections:
             if not hasattr(pmd_model, section) or getattr(pmd_model, section) is None:
+                # Use unified line calculation method for consistency
+                line_number = self.get_section_line_number(pmd_model, section) if section != 'id' else 1
                 yield Finding(
                     rule=self,
                     message=f"PMD file is missing required section: '{section}'. "
                            f"This section is required by organizational standards.",
-                    line=1,
+                    line=line_number,
                     file_path=pmd_model.file_path
                 )
         

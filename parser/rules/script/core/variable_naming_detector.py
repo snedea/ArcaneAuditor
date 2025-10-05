@@ -21,7 +21,7 @@ class VariableNamingDetector(ScriptDetector):
         for var_name, var_info in declared_vars.items():
             is_valid, suggestion = self._validate_camel_case(var_name)
             if not is_valid:
-                # Use line_offset as base, add relative line if available
+                # Get line number from the variable info and apply offset
                 relative_line = var_info.get('line', 1) or 1
                 line_number = self.line_offset + relative_line - 1
                 

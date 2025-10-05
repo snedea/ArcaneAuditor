@@ -31,7 +31,7 @@ class VerboseBooleanDetector(ScriptDetector):
             verbose_info = self._analyze_if_statement_for_verbosity(if_stmt)
             if verbose_info:
                 # Get line number from the if statement
-                line_number = self.get_line_number(if_stmt)
+                line_number = self._get_line_from_tree_node(if_stmt)
                 
                 yield Violation(
                     message=f"File section '{field_name}' has verbose boolean check: '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'.",
@@ -46,12 +46,26 @@ class VerboseBooleanDetector(ScriptDetector):
             verbose_info = self._analyze_ternary_expression_for_verbosity(ternary_expr)
             if verbose_info:
                 # Get line number from the ternary expression
-                line_number = self.get_line_number(ternary_expr)
+                line_number = self._get_line_from_tree_node(ternary_expr)
                 
                 yield Violation(
                     message=f"File section '{field_name}' has verbose boolean check: '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'.",
                     line=line_number
                 )
+    
+    def _get_line_from_tree_node(self, node: Tree) -> int:
+        """Get line number from a Tree node by finding the first token with line info."""
+        if hasattr(node, 'children') and len(node.children) > 0:
+            for child in node.children:
+                # Check if child has line info directly
+                if hasattr(child, 'line') and child.line is not None:
+                    return child.line + self.line_offset - 1
+                # If child is a Tree, recurse into it
+                elif isinstance(child, Tree) and hasattr(child, 'children'):
+                    for grandchild in child.children:
+                        if hasattr(grandchild, 'line') and grandchild.line is not None:
+                            return grandchild.line + self.line_offset - 1
+        return 1
     
     def _analyze_if_statement_for_verbosity(self, if_node):
         """Analyze an if statement to see if it's a verbose boolean pattern."""

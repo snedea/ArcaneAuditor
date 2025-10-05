@@ -102,24 +102,8 @@ class HardcodedWidRule(StructureRuleBase):
     
     def _find_wid_line_number(self, wid_value: str, pmd_model: PMDModel = None, pod_model: PodModel = None) -> int:
         """Find the line number where a WID value appears in the source content."""
-        source_content = None
-        
-        if pmd_model and hasattr(pmd_model, 'source_content'):
-            source_content = pmd_model.source_content
-        elif pod_model and hasattr(pod_model, 'source_content'):
-            source_content = pod_model.source_content
-        
-        if not source_content:
-            return 1
-        
-        try:
-            lines = source_content.split('\n')
-            
-            # Search for the WID value in the source content
-            for i, line in enumerate(lines):
-                if wid_value.lower() in line.lower():
-                    return i + 1  # Convert to 1-based line numbering
-            
-            return 1  # Fallback if not found
-        except Exception:
-            return 1
+        if pmd_model:
+            return self.find_pattern_line_number(pmd_model, wid_value, case_sensitive=False)
+        elif pod_model:
+            return self.find_pattern_line_number(pod_model, wid_value, case_sensitive=False)
+        return 1

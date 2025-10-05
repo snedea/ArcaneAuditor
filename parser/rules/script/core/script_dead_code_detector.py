@@ -77,7 +77,7 @@ class ScriptDeadCodeDetector(ScriptDetector):
             if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
                 if len(var_declaration.children) > 0:
                     var_name = var_declaration.children[0].value
-                    line_number = self.get_line_number(var_stmt)
+                    line_number = self._get_line_from_tree_node(var_stmt)
                     
                     return {
                         'name': var_name,
@@ -89,6 +89,20 @@ class ScriptDeadCodeDetector(ScriptDetector):
                         }
                     }
         return None
+    
+    def _get_line_from_tree_node(self, node: Tree) -> int:
+        """Get line number from a Tree node by finding the first token with line info."""
+        if hasattr(node, 'children') and len(node.children) > 0:
+            for child in node.children:
+                # Check if child has line info directly
+                if hasattr(child, 'line') and child.line is not None:
+                    return child.line + self.line_offset - 1
+                # If child is a Tree, recurse into it
+                elif isinstance(child, Tree) and hasattr(child, 'children'):
+                    for grandchild in child.children:
+                        if hasattr(grandchild, 'line') and grandchild.line is not None:
+                            return grandchild.line + self.line_offset - 1
+        return 1
 
     def _extract_exported_variables(self, ast) -> Set[str]:
         """Extract variables that are exported in the final object literal."""

@@ -54,3 +54,46 @@ class StructureRuleBase(Rule, ABC):
             line=line,
             file_path=file_path
         )
+    
+    # Unified line calculation methods
+    def get_field_line_number(self, model, field_name: str, field_value: str) -> int:
+        """Get line number for a specific field with a specific value."""
+        from ...common import PMDLineUtils
+        return PMDLineUtils.find_field_line_number(model, field_name, field_value)
+    
+    def get_section_line_number(self, model, section_name: str) -> int:
+        """Get line number for a specific section."""
+        from ...common import PMDLineUtils
+        return PMDLineUtils.find_section_line_number(model, section_name)
+    
+    def get_field_after_entity_line_number(self, model, entity_field: str, entity_value: str, target_field: str) -> int:
+        """Get line number for a field that appears after a specific entity."""
+        from ...common import PMDLineUtils
+        return PMDLineUtils.find_field_after_entity(model, entity_field, entity_value, target_field)
+    
+    def find_pattern_line_number(self, model, pattern: str, case_sensitive: bool = False) -> int:
+        """Find line number where a pattern appears in the source content."""
+        if not hasattr(model, 'source_content') or not model.source_content:
+            return 1
+        
+        try:
+            lines = model.source_content.split('\n')
+            for i, line in enumerate(lines):
+                if case_sensitive:
+                    if pattern in line:
+                        return i + 1
+                else:
+                    if pattern.lower() in line.lower():
+                        return i + 1
+            return 1
+        except Exception:
+            return 1
+    
+    def get_line_from_text_position(self, text: str, position: int) -> int:
+        """Get line number from a text position (character offset)."""
+        if not text or position < 0:
+            return 1
+        try:
+            return text[:position].count('\n') + 1
+        except Exception:
+            return 1

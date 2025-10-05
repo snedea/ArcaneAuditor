@@ -214,14 +214,14 @@ class ReturnConsistencyDetector(ScriptDetector):
                 if analysis.is_inconsistent:
                     violations.append(Violation(
                         message="Function has inconsistent return pattern - some paths return values, others don't",
-                        line=ASTLineUtils.get_line_number(node, self.line_offset)
+                        line=self.get_line_number_from_token(node)
                     ))
                 # Only flag partial returns if there are control flow structures that create multiple paths
                 # Don't flag simple sequential functions with a single return at the end
                 elif analysis.has_return and not analysis.all_paths_return and has_control_flow_structures(node):
                     violations.append(Violation(
                         message="Function has some return statements but not all code paths return - consider adding else branches",
-                        line=ASTLineUtils.get_line_number(node, self.line_offset)
+                        line=self.get_line_number_from_token(node)
                     ))
             
             # Add any violations from the analysis

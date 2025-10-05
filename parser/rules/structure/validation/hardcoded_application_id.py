@@ -98,8 +98,8 @@ class HardcodedApplicationIdRule(Rule):
                 if 'site.applicationId' in context_before or 'site.applicationId' in context_after:
                     continue
                 
-                # Calculate line number
-                line_num = text[:match.start()].count('\n') + 1
+                # Calculate line number using unified method
+                line_num = self.get_line_from_text_position(text, match.start())
                 
                 yield Finding(
                     rule=self,

@@ -41,8 +41,7 @@ class MagicNumberDetector(ScriptDetector):
                         
                         if is_magic:
                             # Get line number from the token inside the literal_expression
-                            relative_line = getattr(node.children[0], 'line', 1) or 1
-                            line_number = self.get_line_number(node)
+                            line_number = self.get_line_number_from_token(node.children[0])
                             
                             findings.append({
                                 'message': f"File section '{field_name}' contains magic number '{number}'. Consider using a named constant instead.",

@@ -98,7 +98,7 @@ class FooterPodRequiredRule(StructureRuleBase):
 
     def _get_footer_line_number(self, pmd_model: PMDModel) -> int:
         """Get approximate line number for the footer section."""
-        return PMDLineUtils.find_section_line_number(pmd_model, 'footer')
+        return self.get_section_line_number(pmd_model, 'footer')
 
     def _is_hub_page(self, pmd_model: PMDModel) -> bool:
         """Check if the PMD page is a hub page."""

@@ -21,7 +21,7 @@ class CyclomaticComplexityDetector(ScriptDetector):
         line = complexity_info.get('line', 1)
         
         if complexity > self.max_complexity:
-            # Use line_offset as base, add relative line if available
+            # Get line number from complexity info and apply offset
             relative_line = complexity_info.get('line', 1) or 1
             line_number = self.line_offset + relative_line - 1
             

@@ -30,3 +30,9 @@ class ScriptDetector(ABC):
         """Get line number from AST node with offset."""
         from ...common import ASTLineUtils
         return ASTLineUtils.get_line_number(node, self.line_offset)
+    
+    def get_line_number_from_token(self, token: Any) -> int:
+        """Get line number from token with offset - more reliable than get_line_number()."""
+        # First try direct token access (most reliable for Lark tokens)
+        relative_line = getattr(token, 'line', 1) or 1
+        return relative_line + self.line_offset - 1

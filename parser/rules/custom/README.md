@@ -190,10 +190,12 @@ class CustomStructureRule(StructureRuleBase):
         """Analyze PMD structure."""
         # Analyze PMD structure (widgets, endpoints, etc.)
         if not pmd_model.presentation:
+            # Use unified line calculation method for consistency
+            line_number = self.get_section_line_number(pmd_model, 'presentation')
             yield Finding(
                 rule=self,
                 message="PMD must have a presentation section",
-                line=1,
+                line=line_number,
                 file_path=pmd_model.file_path
             )
   
@@ -201,6 +203,50 @@ class CustomStructureRule(StructureRuleBase):
         """POD files don't need structure validation for this rule."""
         yield  # Make it a generator
 ```
+
+### Unified Line Calculation Methods
+
+**StructureRuleBase** now provides unified line calculation methods for consistent and reliable line number detection:
+
+#### Field Line Numbers
+```python
+# Get line number for a specific field with a specific value
+line_number = self.get_field_line_number(model, 'name', 'myEndpoint')
+line_number = self.get_field_line_number(model, 'id', 'myWidget')
+```
+
+#### Section Line Numbers
+```python
+# Get line number for a specific section
+line_number = self.get_section_line_number(model, 'footer')
+line_number = self.get_section_line_number(model, 'presentation')
+```
+
+#### Field After Entity Line Numbers
+```python
+# Get line number for a field that appears after a specific entity
+line_number = self.get_field_after_entity_line_number(model, 'name', 'myEndpoint', 'url')
+line_number = self.get_field_after_entity_line_number(model, 'name', 'myEndpoint', 'failOnStatusCodes')
+```
+
+#### Pattern Search Line Numbers
+```python
+# Find line number where a pattern appears in source content
+line_number = self.find_pattern_line_number(model, 'hardcoded_value', case_sensitive=False)
+line_number = self.find_pattern_line_number(model, 'data:image/', case_sensitive=True)
+```
+
+#### Text Position Line Numbers
+```python
+# Get line number from a text position (character offset)
+line_number = self.get_line_from_text_position(text, match.start())
+```
+
+**Benefits:**
+- ✅ **Consistent**: All structure rules use the same reliable methods
+- ✅ **Maintainable**: Single source of truth for line calculation logic
+- ✅ **DRY**: Eliminates code duplication across rules
+- ✅ **Reliable**: Handles edge cases and errors gracefully
 
 #### Endpoint Rules
 
