@@ -98,7 +98,8 @@ class EmptyFunctionDetector(ScriptDetector):
                 if child.data in ['statement', 'expression_statement', 'return_statement', 
                                 'if_statement', 'while_statement', 'for_statement',
                                 'assignment_expression', 'call_expression', 'identifier_expression',
-                                'literal_expression', 'binary_expression', 'unary_expression']:
+                                'literal_expression', 'binary_expression', 'unary_expression',
+                                'variable_statement', 'source_elements']:
                     return False
         
         return True
