@@ -33,10 +33,10 @@ class ArcaneAuditorApp {
         
         if (theme === 'dark') {
             themeIcon.textContent = '☀️';
-            themeText.textContent = 'Light';
+            themeText.textContent = 'Go Light';
         } else {
             themeIcon.textContent = '🌙';
-            themeText.textContent = 'Dark';
+            themeText.textContent = 'Go Dark';
         }
         
         // Save preference

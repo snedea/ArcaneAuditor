@@ -65,7 +65,7 @@ header {
 
 .header-content {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     max-width: 1000px;
     margin: 0 auto;
@@ -73,8 +73,7 @@ header {
 }
 
 .header-text {
-    text-align: left;
-    flex: 1;
+    text-align: center;
 }
 
 header h1 {
@@ -88,22 +87,42 @@ header p {
     opacity: 0.9;
 }
 
-.theme-toggle {
-    flex-shrink: 0;
-    margin-left: 20px;
+/* Fixed theme toggle in bottom corner */
+.theme-toggle-fixed {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
 }
 
-.theme-toggle .btn {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+.theme-toggle-fixed .btn {
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    border: 2px solid var(--accent);
     backdrop-filter: blur(10px);
+    border-radius: 50px;
+    padding: 12px 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    font-weight: 600;
 }
 
-.theme-toggle .btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+[data-theme="dark"] .theme-toggle-fixed .btn {
+    background: rgba(30, 41, 59, 0.95);
+    color: #f1f5f9;
+    border: 2px solid var(--accent);
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4), 0 0 30px rgba(124, 58, 237, 0.2);
+}
+
+.theme-toggle-fixed .btn:hover {
+    background: var(--accent);
+    color: var(--bg-primary);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .theme-toggle-fixed .btn:hover {
+    box-shadow: 0 8px 25px rgba(124, 58, 237, 0.6), 0 0 40px rgba(124, 58, 237, 0.3);
 }
 
 /* Buttons */
@@ -878,5 +897,18 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
     
     .file-count-badge {
         order: -1; /* Show total count first on mobile */
+    }
+    
+    /* Adjust theme toggle for mobile */
+    .theme-toggle-fixed {
+        bottom: 15px;
+        right: 15px;
+    }
+    
+    .theme-toggle-fixed .btn {
+        padding: 10px 14px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border-width: 2px;
     }
 }
