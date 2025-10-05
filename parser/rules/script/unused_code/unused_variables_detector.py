@@ -48,9 +48,14 @@ class UnusedVariableDetector(ScriptDetector):
                     if scope_type == 'global' and var_name in scope_analysis['global_used_vars']:
                         continue
                     
-                    # Create violation
+                    # Create violation with function name context
+                    if scope_type == 'function':
+                        message = f"Unused variable '{var_name}' in function '{scope_name}'"
+                    else:
+                        message = f"Unused variable '{var_name}' in {scope_type} scope"
+                    
                     violations.append(Violation(
-                        message=f"Unused variable '{var_name}' in {scope_type} scope",
+                        message=message,
                         line=self.get_line_from_tree_node(var_info['node']),
                         metadata={
                             'variable_name': var_name,
