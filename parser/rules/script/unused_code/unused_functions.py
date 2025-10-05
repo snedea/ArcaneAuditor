@@ -119,11 +119,18 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
         declared_functions = set()
         
         try:
-            # Find all variable declarations
+            # Find all variable declarations recursively (including nested ones)
             for var_decl_node in ast.find_data('variable_statement'):
                 # Look for variables that are assigned to functions
                 variable_names = self._extract_function_variable_names(var_decl_node)
                 declared_functions.update(variable_names)
+            
+            # Also check for assignment expressions that assign functions
+            # This handles cases where the parser incorrectly parses function declarations as assignments
+            for assignment_node in ast.find_data('assignment_expression'):
+                function_name = self._extract_function_from_assignment(assignment_node)
+                if function_name:
+                    declared_functions.add(function_name)
         except Exception:
             pass  # If AST traversal fails, return empty set
         
@@ -220,3 +227,29 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
         except Exception:
             pass
         return False
+    
+    def _extract_function_from_assignment(self, assignment_node) -> str:
+        """
+        Extract function name from assignment expressions that assign functions.
+        
+        This handles cases where the parser incorrectly parses function declarations as assignments.
+        For example: const funcName = function() { ... } might be parsed as an assignment.
+        """
+        try:
+            # Check if this is an assignment to a function
+            if len(assignment_node.children) >= 2:
+                left_side = assignment_node.children[0]
+                right_side = assignment_node.children[1]
+                
+                # Check if left side is an identifier (variable name)
+                if (hasattr(left_side, 'data') and left_side.data == 'identifier_expression' and
+                    len(left_side.children) >= 1 and hasattr(left_side.children[0], 'value')):
+                    
+                    variable_name = left_side.children[0].value
+                    
+                    # Check if right side is a function expression
+                    if self._is_function_assignment(right_side):
+                        return variable_name
+        except Exception:
+            pass
+        return None
