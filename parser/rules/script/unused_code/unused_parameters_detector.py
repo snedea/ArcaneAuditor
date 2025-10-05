@@ -36,9 +36,11 @@ class UnusedParametersDetector(ScriptDetector):
             # Check for unused parameters
             for param_name in parameters:
                 if param_name not in used_parameters:
+                    # Get line number from the parameter token or function node
+                    line_number = self._get_function_line_number(function_node)
                     violations.append(Violation(
                         message=f"Unused parameter '{param_name}' in function '{function_name}'",
-                        line=self.get_line_number_from_token(function_node),
+                        line=line_number,
                         metadata={
                             'function_name': function_name,
                             'parameter_name': param_name
@@ -59,13 +61,21 @@ class UnusedParametersDetector(ScriptDetector):
         """Extract parameter names from a function expression node."""
         parameters = []
         if hasattr(node, 'children') and len(node.children) >= 2:
+            # Check if the second child is a parameter list or a single parameter
             params_node = node.children[1]
-            if hasattr(params_node, 'children'):
+            
+            # If it's a single parameter token
+            if hasattr(params_node, 'value'):
+                parameters.append(params_node.value)
+            # If it's a parameter list node
+            elif hasattr(params_node, 'children'):
                 for param in params_node.children:
                     if hasattr(param, 'children') and param.children:
                         param_name = param.children[0]
                         if hasattr(param_name, 'value'):
                             parameters.append(param_name.value)
+                    elif hasattr(param, 'value'):
+                        parameters.append(param.value)
         return parameters
 
     def _get_function_body(self, node: Any) -> Any:
@@ -86,3 +96,14 @@ class UnusedParametersDetector(ScriptDetector):
                     used_params.add(identifier.value)
         
         return used_params
+    
+    def _get_function_line_number(self, function_node: Any) -> int:
+        """Get line number from function expression node by finding the first token with line info."""
+        if hasattr(function_node, 'children') and len(function_node.children) > 0:
+            # Look for the first token with line information
+            for child in function_node.children:
+                if hasattr(child, 'line') and child.line is not None:
+                    # Apply the same line calculation as other working detectors
+                    relative_line = child.line
+                    return self.line_offset + relative_line - 1
+        return self.line_offset
