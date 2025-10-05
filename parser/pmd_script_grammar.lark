@@ -1,9 +1,14 @@
 ?program: source_elements?
 
-%import common.WS
-%ignore WS
+%import common.WS_INLINE
+%import common.NEWLINE
+%ignore WS_INLINE
 
-?source_elements: statement+
+?eos: ";" | NEWLINE
+
+_eos: eos
+
+?source_elements: statement (_eos statement)* _eos?
 
 ?statement: if_statement
     | block
@@ -19,9 +24,9 @@
 
 ?statement_list: statement+
 
-?variable_statement: VAR variable_declaration_list eos?
-    | LET variable_declaration_list eos?
-    | CONST variable_declaration_list eos?
+?variable_statement: VAR variable_declaration_list
+    | LET variable_declaration_list
+    | CONST variable_declaration_list
 
 ?variable_declaration_list: variable_declaration ("," variable_declaration)*
 
@@ -35,7 +40,7 @@
 
 ?if_statement: IF "(" expression_sequence ")" statement (ELSE statement)?
 
-?iteration_statement: DO statement WHILE "(" expression_sequence ")" eos? -> do_statement
+?iteration_statement: DO statement WHILE "(" expression_sequence ")" -> do_statement
     | WHILE "(" expression_sequence ")" statement -> while_statement
     | FOR "(" expression_sequence? ";" expression_sequence? ";" expression_sequence? ")" statement -> for_statement
     | FOR "(" VAR variable_declaration_list ";" expression_sequence? ";" expression_sequence? ")" statement -> for_var_statement
@@ -45,11 +50,11 @@
     | FOR "(" VAR IDENTIFIER ":" expression_sequence ")" statement -> for_var_in_statement
     | FOR "(" CONST IDENTIFIER ":" expression_sequence ")" statement -> for_const_in_statement
     
-?continue_statement: CONTINUE [IDENTIFIER] eos?
+?continue_statement: CONTINUE [IDENTIFIER]
 
-?break_statement: BREAK [IDENTIFIER] eos?
+?break_statement: BREAK [IDENTIFIER]
 
-?return_statement: RETURN [single_expression] eos?
+?return_statement: RETURN [single_expression]
 
 
 ?formal_parameter_list: IDENTIFIER ("," IDENTIFIER)*
@@ -181,8 +186,6 @@ _curly_tail: ":" single_expression ("," property_assignment)* ","? "}"
 
 ?keyword: BREAK | DO | INSTANCEOF | TYPEOF | ELSE | VAR | RETURN | CONTINUE | FOR | WHILE | FUNCTION | IF | EMPTY
 ?future_reserved_word: CONST | LET
-
-?eos: ";"
 
 REGULAR_EXPRESSION_LITERAL: /\/[^\/\\r\\n]+\/[a-zA-Z$_]*/
 
