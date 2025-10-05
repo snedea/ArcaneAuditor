@@ -62,24 +62,10 @@ class UnusedFunctionsDetector(ScriptDetector):
                                 if len(child.children) >= 2:
                                     initializer = child.children[1]
                                     if self._is_function_assignment(initializer):
-                                        return self._get_line_from_tree_node(var_statement)
+                                        return self.get_line_from_tree_node(var_statement)
         except Exception:
             pass
         return self.line_offset
-    
-    def _get_line_from_tree_node(self, node: Any) -> int:
-        """Get line number from a Tree node by finding the first token with line info."""
-        if hasattr(node, 'children') and len(node.children) > 0:
-            for child in node.children:
-                # Check if child has line info directly
-                if hasattr(child, 'line') and child.line is not None:
-                    return child.line + self.line_offset - 1
-                # If child is a Tree, recurse into it
-                elif isinstance(child, Tree) and hasattr(child, 'children'):
-                    for grandchild in child.children:
-                        if hasattr(grandchild, 'line') and grandchild.line is not None:
-                            return grandchild.line + self.line_offset - 1
-        return 1
     
     def _is_function_assignment(self, initializer_node: Any) -> bool:
         """Check if an initializer node assigns a function."""

@@ -26,26 +26,12 @@ class ConsoleLogDetector(ScriptDetector):
                 # Check if it's a console method call
                 if self._is_console_method_call(object_node, method_node):
                     method_name = self._extract_method_name(method_node)
-                    line_number = self._get_line_from_tree_node(member_expr)
+                    line_number = self.get_line_from_tree_node(member_expr)
                     
                     yield Violation(
                         message=f"File section '{field_name}' contains console.{method_name} statement. Remove debug statements from production code.",
                         line=line_number
                     )
-    
-    def _get_line_from_tree_node(self, node: Tree) -> int:
-        """Get line number from a Tree node by finding the first token with line info."""
-        if hasattr(node, 'children') and len(node.children) > 0:
-            for child in node.children:
-                # Check if child has line info directly
-                if hasattr(child, 'line') and child.line is not None:
-                    return child.line + self.line_offset - 1
-                # If child is a Tree, recurse into it
-                elif isinstance(child, Tree) and hasattr(child, 'children'):
-                    for grandchild in child.children:
-                        if hasattr(grandchild, 'line') and grandchild.line is not None:
-                            return grandchild.line + self.line_offset - 1
-        return 1
     
     def _is_console_method_call(self, object_node, method_node) -> bool:
         """Check if the member expression is a console method call."""
