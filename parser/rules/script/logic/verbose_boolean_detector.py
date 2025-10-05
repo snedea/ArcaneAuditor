@@ -33,8 +33,16 @@ class VerboseBooleanDetector(ScriptDetector):
                 # Get line number from the if statement
                 line_number = self.get_line_from_tree_node(if_stmt)
                 
+                # Check if this verbose boolean check is inside a function
+                function_name = self.get_function_context_for_node(if_stmt, ast)
+                
+                if function_name:
+                    message = f"File section '{field_name}' has verbose boolean check in function '{function_name}': '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'."
+                else:
+                    message = f"File section '{field_name}' has verbose boolean check: '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'."
+                
                 yield Violation(
-                    message=f"File section '{field_name}' has verbose boolean check: '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'.",
+                    message=message,
                     line=line_number
                 )
     
@@ -48,8 +56,16 @@ class VerboseBooleanDetector(ScriptDetector):
                 # Get line number from the ternary expression
                 line_number = self.get_line_from_tree_node(ternary_expr)
                 
+                # Check if this verbose boolean check is inside a function
+                function_name = self.get_function_context_for_node(ternary_expr, ast)
+                
+                if function_name:
+                    message = f"File section '{field_name}' has verbose boolean check in function '{function_name}': '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'."
+                else:
+                    message = f"File section '{field_name}' has verbose boolean check: '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'."
+                
                 yield Violation(
-                    message=f"File section '{field_name}' has verbose boolean check: '{verbose_info['pattern']}'. Consider simplifying to '{verbose_info['suggestion']}'.",
+                    message=message,
                     line=line_number
                 )
     

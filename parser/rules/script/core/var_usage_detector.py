@@ -26,8 +26,16 @@ class VarUsageDetector(ScriptDetector):
                     # Get line number from the VAR token (first child)
                     line_number = self.get_line_number_from_token(var_stmt.children[0])
                     
+                    # Check if this var statement is inside a function
+                    function_name = self.get_function_context_for_node(var_stmt, ast)
+                    
+                    if function_name:
+                        message = f"File section '{field_name}' uses 'var' declaration for variable '{var_name}' in function '{function_name}'. Consider using 'let' or 'const' instead."
+                    else:
+                        message = f"File section '{field_name}' uses 'var' declaration for variable '{var_name}'. Consider using 'let' or 'const' instead."
+                    
                     yield Violation(
-                        message=f"File section '{field_name}' uses 'var' declaration for variable '{var_name}'. Consider using 'let' or 'const' instead.",
+                        message=message,
                         line=line_number
                     )
         

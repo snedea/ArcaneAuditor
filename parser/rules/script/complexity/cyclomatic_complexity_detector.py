@@ -25,8 +25,16 @@ class CyclomaticComplexityDetector(ScriptDetector):
             relative_line = complexity_info.get('line', 1) or 1
             line_number = self.line_offset + relative_line - 1
             
+            # Check if this complexity issue is inside a function
+            function_name = self.get_function_context_for_node(ast, ast)
+            
+            if function_name:
+                message = f"File section '{field_name}' has complexity of {complexity} in function '{function_name}' (max recommended: {self.max_complexity}). Consider refactoring."
+            else:
+                message = f"File section '{field_name}' has complexity of {complexity} (max recommended: {self.max_complexity}). Consider refactoring."
+            
             yield Violation(
-                message=f"File section '{field_name}' has complexity of {complexity} (max recommended: {self.max_complexity}). Consider refactoring.",
+                message=message,
                 line=line_number
             )
     

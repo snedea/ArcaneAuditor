@@ -32,8 +32,16 @@ class NullSafetyDetector(ScriptDetector):
         unsafe_accesses = self._find_unsafe_property_accesses_with_context(ast, self.safe_variables)
         
         for access_info in unsafe_accesses:
+            # Check if this unsafe access is inside a function
+            function_name = self.get_function_context_for_node(access_info['node'], ast)
+            
+            if function_name:
+                message = f"Potentially unsafe property access in function '{function_name}': {access_info['chain']} - consider using null coalescing (??) or empty checks"
+            else:
+                message = f"Potentially unsafe property access: {access_info['chain']} - consider using null coalescing (??) or empty checks"
+            
             violations.append(Violation(
-                message=f"Potentially unsafe property access: {access_info['chain']} - consider using null coalescing (??) or empty checks",
+                message=message,
                 line=self.get_line_number_from_token(access_info['node'])
             ))
         

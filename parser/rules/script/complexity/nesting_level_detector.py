@@ -18,9 +18,11 @@ class NestingLevelDetector(ScriptDetector):
         # Analyze nesting levels using AST
         nesting_info = self._analyze_ast_nesting(ast, 0)
         max_nesting_found = nesting_info['max_nesting']
-        function_context = nesting_info['function_context']
         
         if max_nesting_found > self.max_nesting:
+            # Get function context using the common base class method
+            function_context = self.get_function_context_for_node(ast, ast)
+            
             # Create a more descriptive message with function context
             if function_context:
                 context_info = f" in function '{function_context}'"

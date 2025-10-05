@@ -23,7 +23,7 @@ class ScriptDeadCodeDetector(ScriptDetector):
         exported_vars = self._extract_exported_variables(ast)
         
         # Check for issues
-        yield from self._check_dead_code_issues(declared_vars, exported_vars, ast)
+        yield from self._check_dead_code_issues(declared_vars, exported_vars, ast, field_name)
 
     def _extract_declared_variables(self, ast) -> Dict[str, dict]:
         """Extract all variable declarations from the AST, marking their scope."""
@@ -85,7 +85,8 @@ class ScriptDeadCodeDetector(ScriptDetector):
                             'type': var_type,
                             'line': line_number,
                             'has_initializer': len(var_declaration.children) > 1,
-                            'scope': scope
+                            'scope': scope,
+                            'node': var_stmt
                         }
                     }
         return None
@@ -160,8 +161,21 @@ class ScriptDeadCodeDetector(ScriptDetector):
         
         return internal_calls
 
+    def _is_variable_used(self, var_name: str, ast: Tree) -> bool:
+        """Check if a variable is used anywhere in the AST."""
+        try:
+            # Find all identifier_expression nodes that reference this variable
+            for node in ast.find_data('identifier_expression'):
+                if len(node.children) > 0:
+                    identifier = node.children[0]
+                    if hasattr(identifier, 'value') and identifier.value == var_name:
+                        return True
+        except Exception:
+            pass
+        return False
+
     def _check_dead_code_issues(self, declared_vars: Dict[str, dict], exported_vars: Set[str], 
-                               ast: Tree) -> Generator[Violation, None, None]:
+                               ast: Tree, field_name: str) -> Generator[Violation, None, None]:
         """Check for variable usage issues based on configuration."""
         
         # Separate top-level and function-scoped variables
@@ -181,3 +195,23 @@ class ScriptDeadCodeDetector(ScriptDetector):
                 message=f"Top-level variable '{var_name}' is declared but neither exported nor used internally. Consider removing if unused.",
                 line=var_info['line']
             )
+        
+        # Issue 2: Function-scoped variables that are unused
+        for var_name, var_info in function_vars.items():
+            # Check if this variable is used anywhere in the AST
+            if not self._is_variable_used(var_name, ast):
+                # Get the function name for this variable
+                variable_node = var_info.get('node')
+                function_name = None
+                if variable_node:
+                    function_name = self.get_function_context_for_node(variable_node, ast)
+                
+                if function_name:
+                    message = f"File section '{field_name}' has unused variable '{var_name}' in function '{function_name}'. Consider removing if unused."
+                else:
+                    message = f"File section '{field_name}' has unused variable '{var_name}'. Consider removing if unused."
+                
+                yield Violation(
+                    message=message,
+                    line=var_info['line']
+                )

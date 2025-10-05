@@ -26,17 +26,17 @@ class ArrayMethodUsageDetector(ScriptDetector):
         # Use efficient traversal to find all manual for loops
         for for_stmt in ast.find_data('for_statement'):
             if self._is_counter_based_loop(for_stmt):
-                yield from self._create_violation(for_stmt, field_name)
+                yield from self._create_violation(for_stmt, field_name, ast)
         
         for for_stmt in ast.find_data('for_let_statement'):
             if self._is_counter_based_loop(for_stmt):
-                yield from self._create_violation(for_stmt, field_name)
+                yield from self._create_violation(for_stmt, field_name, ast)
         
         for for_stmt in ast.find_data('for_var_statement'):
             if self._is_counter_based_loop(for_stmt):
-                yield from self._create_violation(for_stmt, field_name)
+                yield from self._create_violation(for_stmt, field_name, ast)
 
-    def _create_violation(self, for_stmt: Tree, field_name: str):
+    def _create_violation(self, for_stmt: Tree, field_name: str, ast: Tree):
         """Create a violation for a detected manual for loop."""
         # Get line number from the first token in the for statement
         line_number = self.get_line_from_tree_node(for_stmt)
@@ -44,8 +44,16 @@ class ArrayMethodUsageDetector(ScriptDetector):
         # Analyze the loop to suggest appropriate array higher-order method
         suggestion = self._suggest_array_method(for_stmt)
         
+        # Check if this manual for loop is inside a function
+        function_name = self.get_function_context_for_node(for_stmt, ast)
+        
+        if function_name:
+            message = f"File section '{field_name}' uses manual for loop in function '{function_name}' that could be replaced with array higher-order method. Consider using {suggestion} instead for better readability and maintainability."
+        else:
+            message = f"File section '{field_name}' uses manual for loop that could be replaced with array higher-order method. Consider using {suggestion} instead for better readability and maintainability."
+        
         yield Violation(
-            message=f"File section '{field_name}' uses manual for loop that could be replaced with array higher-order method. Consider using {suggestion} instead for better readability and maintainability.",
+            message=message,
             line=line_number
         )
 

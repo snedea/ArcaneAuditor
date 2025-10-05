@@ -25,8 +25,19 @@ class VariableNamingDetector(ScriptDetector):
                 relative_line = var_info.get('line', 1) or 1
                 line_number = self.line_offset + relative_line - 1
                 
+                # Check if this variable is inside a function
+                variable_node = var_info.get('node')
+                function_name = None
+                if variable_node:
+                    function_name = self.get_function_context_for_node(variable_node, ast)
+                
+                if function_name:
+                    message = f"File section '{field_name}' declares variable '{var_name}' in function '{function_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'."
+                else:
+                    message = f"File section '{field_name}' declares variable '{var_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'."
+                
                 yield Violation(
-                    message=f"File section '{field_name}' declares variable '{var_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'.",
+                    message=message,
                     line=line_number
                 )
     

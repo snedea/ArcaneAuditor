@@ -34,6 +34,9 @@ class StringConcatDetector(ScriptDetector):
                 # Extract the concatenation expression for better error message
                 concat_text = self._extract_expression_text(add_expr)
                 
+                # Check if this string concatenation is inside a function
+                function_name = self.get_function_context_for_node(add_expr, ast)
+                
                 # Create better message using the utility method
                 # Extract field_path from field_name if it follows the pattern
                 field_path = ""
@@ -45,7 +48,10 @@ class StringConcatDetector(ScriptDetector):
                         field_path = parts[0]  # Get "inboundEndpoints[1]"
                 
                 # Use the utility method to create a better message
-                issue_description = f"uses string concatenation with + operator: '{concat_text}'. Consider using PMD template strings with backticks and {{{{ }}}} syntax instead (e.g., `Hello {{{{name}}}}!`)."
+                if function_name:
+                    issue_description = f"uses string concatenation with + operator in function '{function_name}': '{concat_text}'. Consider using PMD template strings with backticks and {{{{ }}}} syntax instead (e.g., `Hello {{{{name}}}}!`)."
+                else:
+                    issue_description = f"uses string concatenation with + operator: '{concat_text}'. Consider using PMD template strings with backticks and {{{{ }}}} syntax instead (e.g., `Hello {{{{name}}}}!`)."
                 message = Rule._create_endpoint_message(field_path, field_name, issue_description)
                 
                 yield Violation(
