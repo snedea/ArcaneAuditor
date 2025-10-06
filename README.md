@@ -25,24 +25,29 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 
 ## 🛡️ Update-Safe Configuration System
 
-Arcane Auditor features a **layered configuration system** that protects your customizations during app updates:
+Arcane Auditor features a **consolidated layered configuration system** that protects your customizations during app updates:
 
-- **🔒 App Configs** (`configs/`) - Base configurations (updated with app)
-- **🛡️ User Configs** (`user_configs/`) - Team/project settings (update-safe)
-- **🏠 Local Configs** (`local_configs/`) - Personal overrides (highest priority)
+- **🔒 Presets** (`config/presets/`) - Built-in configurations (updated with app)
+- **🛡️ Teams** (`config/teams/`) - Team/project settings (update-safe)
+- **🏠 Personal** (`config/personal/`) - Personal overrides (highest priority)
+
+### Available Presets
+
+- **Development** (`development.json`) - Development-friendly validation allowing console.debug, etc.
+- **Production-Ready** (`production-ready.json`) - Pre-deployment validation with strict settings
 
 ```bash
 # List all available configurations and safety status
 uv run main.py list-configs
 
 # Use team configuration (searches all directories)
-uv run main.py review-app myapp.zip --config team-standard
+uv run main.py review-app myapp.zip --config development
 
 # Use explicit path
-uv run main.py review-app myapp.zip --config user_configs/my-config.json
+uv run main.py review-app myapp.zip --config config/personal/my-config.json
 ```
 
-Your customizations in `user_configs/` and `local_configs/` are **completely protected** from app updates! 🛡️
+Your customizations in `config/teams/` and `config/personal/` are **completely protected** from app updates! 🛡️
 
 ## 🚀 Quick Start
 
@@ -83,17 +88,17 @@ pip install uv
 ```bash
 # Download the latest release ZIP from GitHub
 # Visit: https://github.com/Developers-and-Dragons/ArcaneAuditor/releases
-# Download arcane-auditor-0.1.0-beta.1.zip and extract it
+# Download arcane-auditor-0.2.0-beta.1.zip and extract it
 
 # Or using command line (Windows PowerShell)
-Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.1.0-beta.1.zip" -OutFile "arcane-auditor.zip"
+Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.2.0-beta.1.zip" -OutFile "arcane-auditor.zip"
 Expand-Archive -Path "arcane-auditor.zip" -DestinationPath "."
-cd ArcaneAuditor-0.1.0-beta.1
+cd ArcaneAuditor-0.2.0-beta.1
 
 # Or using command line (macOS)
-curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.1.0-beta.1.zip"
+curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.2.0-beta.1.zip"
 unzip arcane-auditor.zip
-cd ArcaneAuditor-0.1.0-beta.1
+cd ArcaneAuditor-0.2.0-beta.1
 
 # Install dependencies (UV handles Python version and virtual environment automatically)
 uv sync
@@ -152,6 +157,33 @@ uv run main.py --help
 
 You should see mystical analysis output with validation findings! 🔮
 
+## 🆕 What's New in 0.2.0
+
+This release brings significant improvements to the configuration system and validation rules:
+
+### 🔧 Major Configuration System Overhaul
+
+- **Consolidated Configuration Structure**: All configurations now live in a single `config/` directory with clear separation:
+
+  - `config/presets/` - Built-in configurations (development, production-ready)
+  - `config/teams/` - Team/project settings (update-safe)
+  - `config/personal/` - Personal overrides (highest priority)
+- **Simplified Presets**: Streamlined to just 2 essential presets:
+
+  - **Development** - Development-friendly validation allowing console.debug, etc.
+  - **Production-Ready** - Pre-deployment validation with strict settings
+
+### 🛠️ Enhanced Validation Rules
+
+- **Improved Rule Architecture**: All structure rules now follow consistent patterns
+- **Better Line Number Accuracy**: Enhanced source content analysis for precise violation reporting
+
+### 🌐 Web Interface Improvements
+
+- **Configuration Persistence**: Remembers your last selected configuration
+- **Unique Configuration Keys**: Shows all versions of configs (personal, team, built-in) with unique identifiers
+- **Cache-Busting**: Prevents stale configuration data from being displayed
+
 ### Web Interface (Recommended)
 
 For a user-friendly mystical web interface with FastAPI backend:
@@ -174,9 +206,10 @@ python web/server.py --port 8081
 The web interface provides:
 
 - **Drag & drop file upload** for ZIP files
-- **Dynamic configuration selection** with interactive cards
+- **Dynamic configuration selection** with interactive cards showing all available configs (presets, teams, personal)
 - **Real-time analysis** with all validation rules
 - **Asynchronous processing** - Multiple users can upload files simultaneously
+- **Configuration persistence** - Remembers your last selected configuration
 - **Dark/light mode** toggle
 - **Results filtering** and sorting
 - **Excel export** functionality
@@ -191,7 +224,7 @@ The FastAPI server provides the following REST API endpoints:
 
   - Returns: `{"job_id": "uuid", "status": "queued"}`
   - Content-Type: `multipart/form-data`
-  - Parameters: `file` (required), `config` (optional, defaults to "default")
+  - Parameters: `file` (required), `config` (optional, defaults to "development")
 - **`GET /api/job/{job_id}`** - Get analysis job status and results
 
   - Returns: `{"job_id": "uuid", "status": "completed|running|failed", "result": {...}}`
@@ -213,7 +246,7 @@ The FastAPI server provides the following REST API endpoints:
 uv run main.py review-app myapp_abcdef.zip
 
 # Use custom magical configuration (supports layered loading)
-uv run main.py review-app myapp_abcdef.zip --config team-standard
+uv run main.py review-app myapp_abcdef.zip --config development
 
 # List available configurations
 uv run main.py list-configs
@@ -378,7 +411,6 @@ arcane-auditor/
 │
 ├── web/                                            	# Web interface
 │   ├── server.py                                   	# FastAPI web server
-│   ├── configs/                                    	# Web-specific configurations
 │   ├── uploads/                                    	# Temporary upload directory
 │   └── frontend/                                  		# HTML/CSS/JS frontend
 │       ├── README.md                              		# Frontend documentation
@@ -577,13 +609,11 @@ Create custom configurations in JSON format:
 ### Core Documentation
 
 - **[📜 Rule Breakdown](docs/RULE_BREAKDOWN.md)**: Comprehensive guide to all validation rules, with examples!
-- **[⚙️ Configuration Guide](configs/README.md)**: Layered configuration system and rule customization
+- **[⚙️ Configuration Guide](config/README.md)**: Consolidated configuration system and rule customization
 
 ### Advanced Guides
 
 - **[🔧 Custom Rules Development](parser/rules/custom/README.md)**: Create your own validation rules
-- **[👥 User Configuration Examples](user_configs/README.md)**: Team and personal configuration templates
-- **[🏠 Local Configuration Guide](local_configs/README.md)**: Personal overrides and local settings
 
 ## 📄 License
 
