@@ -11,7 +11,7 @@ class ArcaneAuditorApp {
             sortFilesBy: 'alphabetical'
         };
         this.expandedFiles = new Set();
-        this.selectedConfig = 'default';
+        this.selectedConfig = this.getLastSelectedConfig();
         this.availableConfigs = [];
         this.uploadedFileName = null;
         
@@ -49,6 +49,16 @@ class ArcaneAuditorApp {
         this.setTheme(newTheme);
     }
 
+    getLastSelectedConfig() {
+        // Get the last selected config from localStorage, fallback to production-ready
+        return localStorage.getItem('arcane-auditor-selected-config') || 'production-ready';
+    }
+
+    saveSelectedConfig(configId) {
+        // Save the selected config to localStorage
+        localStorage.setItem('arcane-auditor-selected-config', configId);
+    }
+
     async loadConfigurations() {
         try {
             const response = await fetch('/api/configs');
@@ -57,13 +67,14 @@ class ArcaneAuditorApp {
             this.renderConfigurations();
         } catch (error) {
             console.error('Failed to load configurations:', error);
-            // Fallback to default configuration
+            // Fallback to production-ready configuration
             this.availableConfigs = [{
-                id: 'default',
-                name: 'Default',
-                description: 'Standard configuration with all rules enabled',
+                id: 'production-ready',
+                name: 'Production-Ready',
+                description: 'Pre-deployment validation with strict settings',
                 rules_count: 34,
-                performance: 'Balanced'
+                performance: 'Thorough',
+                type: 'Built-in'
             }];
             this.renderConfigurations();
         }
@@ -129,6 +140,7 @@ class ArcaneAuditorApp {
 
     selectConfiguration(configId) {
         this.selectedConfig = configId;
+        this.saveSelectedConfig(configId);
         this.renderConfigurations();
     }
 
