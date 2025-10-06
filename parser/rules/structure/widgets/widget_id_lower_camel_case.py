@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Generator, List
 from ...base import Finding
 from ...common_validations import validate_lower_camel_case
 from ...common import PMDLineUtils
@@ -60,6 +60,29 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
         
         # Skip widget types that are excluded from ID requirements
         if widget_type in self.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT:
+            return
+        
+        # Check template syntax - if it's template syntax, validate static parts for lowerCamelCase
+        if self._is_template_syntax(widget_id):
+            # For template syntax, validate that any static string prefixes follow lowerCamelCase
+            template_validation_errors = self._validate_template_id_naming(widget_id)
+            if template_validation_errors:
+                # Get line number
+                line_number = 1
+                if pmd_model:
+                    line_number = self._get_widget_line_number(pmd_model, widget_id)
+                elif pod_model:
+                    line_number = self._get_pod_widget_line_number(pod_model, widget_id)
+                
+                # Create a full readable path description
+                readable_path = self._build_readable_widget_path(widget, widget_path, section, pmd_model, pod_model)
+                path_description = f" at {readable_path}" if readable_path else ""
+                
+                yield self._create_finding(
+                    message=f"Widget ID '{widget_id}'{path_description} has invalid name '{widget_id}'. Must follow lowerCamelCase convention (e.g., 'myField', 'userName').",
+                    file_path=pmd_model.file_path if pmd_model else pod_model.file_path,
+                    line=line_number
+                )
             return
         
         # Validate the ID follows lowerCamelCase convention
@@ -134,6 +157,114 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
         except Exception:
             # Fallback to just the widget identifier
             return self._get_readable_identifier(widget, 0)
+    
+    def _is_template_syntax(self, widget_id: str) -> bool:
+        """
+        Check if a widget ID contains template syntax that should be skipped from lowerCamelCase validation.
+        
+        Template syntax includes:
+        - <% %> delimiters
+        - Backticks with template variables
+        - Other PMD Script template constructs
+        
+        Args:
+            widget_id: The widget ID to check
+            
+        Returns:
+            True if the ID contains template syntax and should be skipped from validation
+        """
+        if not isinstance(widget_id, str):
+            return False
+        
+        # Check for template delimiters
+        if '<%' in widget_id and '%>' in widget_id:
+            return True
+        
+        # Check for backticks (template literals)
+        if '`' in widget_id:
+            return True
+        
+        # Check for template variable syntax with curly braces
+        if '{{' in widget_id and '}}' in widget_id:
+            return True
+        
+        return False
+    
+    def _validate_template_id_naming(self, widget_id: str) -> List[str]:
+        """
+        Validate that static string prefixes in template syntax follow lowerCamelCase convention.
+        
+        Args:
+            widget_id: The template widget ID to validate
+            
+        Returns:
+            List of validation error messages (empty if valid)
+        """
+        errors = []
+        
+        if not isinstance(widget_id, str):
+            return errors
+        
+        # Extract static string parts from template syntax
+        static_parts = self._extract_static_parts_from_template(widget_id)
+        
+        for static_part in static_parts:
+            if static_part and not self._is_lower_camel_case(static_part):
+                errors.append(f"Static prefix '{static_part}' should follow lowerCamelCase convention")
+        
+        return errors
+    
+    def _extract_static_parts_from_template(self, template_id: str) -> List[str]:
+        """
+        Extract static string parts from template syntax.
+        
+        Examples:
+        - "<% `question{{id}}`  %>" -> ["question"]
+        - "<% `Question{{id}}`  %>" -> ["Question"] 
+        - "<% `myField{{value}}`  %>" -> ["myField"]
+        - "<% someStaticText %>" -> ["someStaticText"]
+        """
+        static_parts = []
+        
+        # Handle backtick template literals: `<% `text{{var}}`  %>`
+        if '`' in template_id:
+            # Find content between backticks
+            import re
+            backtick_matches = re.findall(r'`([^`]+)`', template_id)
+            for match in backtick_matches:
+                # Extract static text before template variables
+                static_text = re.split(r'\{\{.*?\}\}', match)[0].strip()
+                static_parts.append(static_text)  # Include empty strings to catch cases like `{{id}}`
+        
+        # Handle simple template syntax: `<% staticText %>`
+        elif '<%' in template_id and '%>' in template_id:
+            # Extract content between <% and %>
+            import re
+            template_content = re.search(r'<%(.*?)%>', template_id)
+            if template_content:
+                content = template_content.group(1).strip()
+                # If it's just static text (no template variables), use the whole content
+                if '{{' not in content and '`' not in content:
+                    static_parts.append(content)
+        
+        return static_parts
+    
+    def _is_lower_camel_case(self, text: str) -> bool:
+        """
+        Check if a string follows lowerCamelCase convention.
+        
+        Args:
+            text: The text to check
+            
+        Returns:
+            True if the text follows lowerCamelCase convention
+        """
+        if not text:
+            return True
+        
+        import re
+        camel_case_pattern = re.compile(r'^[a-z][a-zA-Z0-9]*$')
+        return bool(camel_case_pattern.match(text))
     
     def _build_path_from_data(self, data, path_parts, current_prefix):
         """
