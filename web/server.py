@@ -20,7 +20,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # FastAPI imports
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Response
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -63,7 +63,9 @@ def get_dynamic_config_info():
                 enabled_rules = 0
                 if 'rules' in config_data:
                     for rule_name, rule_config in config_data['rules'].items():
-                        if rule_config.get('enabled', True):
+                        # Check if rule is explicitly enabled (defaults to True if not present)
+                        is_enabled = rule_config.get('enabled', True)
+                        if is_enabled:
                             enabled_rules += 1
                 
                 # Determine performance level based on rule count
@@ -370,8 +372,13 @@ async def upload_file(file: UploadFile = File(...), config: str = Form("default"
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 @app.get("/api/configs")
-async def get_available_configs():
+async def get_available_configs(response: Response):
     """Get list of available configurations."""
+    # Add cache-busting headers
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    
     config_info = get_dynamic_config_info()
     available_configs = []
     

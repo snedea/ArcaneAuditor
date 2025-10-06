@@ -355,7 +355,7 @@ class ArcaneAuditorApp {
                     <div class="summary-label">Issues Found</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-number summary-number-purple">${result.summary?.rules_executed || 34}</div>
+                    <div class="summary-number summary-number-purple">${result.summary?.rules_executed || 0}</div>
                     <div class="summary-label">Rules Executed</div>
                 </div>
                 <div class="summary-item">
