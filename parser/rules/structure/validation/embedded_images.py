@@ -84,7 +84,7 @@ class EmbeddedImagesRule(StructureRuleBase):
             line_num = self.get_line_from_text_position(text, match.start())
             
             yield self._create_finding(
-                message=f"Embedded base64 image found in {field_name}. Consider storing the image as an external file and referencing it by path instead.",
+                message=f"Embedded base64 image found in {field_name}. Large files can cause performance issues and/or cause pages to exceed the file size limits. Consider linking to an external image file, instead of embedding it directly.",
                 file_path=file_path,
                 line=line_num
             )
