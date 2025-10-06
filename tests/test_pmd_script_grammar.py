@@ -62,8 +62,11 @@ class TestPMDScriptGrammar:
         
         for script_content, expected_rule in test_cases:
             ast = pmd_script_parser.parse(script_content)
-            # The root should be the expected rule type
-            assert ast.data == expected_rule
+            # With ASI, the root is source_elements, so check the first child
+            if ast.data == 'source_elements' and len(ast.children) > 0:
+                assert ast.children[0].data == expected_rule
+            else:
+                assert ast.data == expected_rule
 
     def test_mixed_namespace_and_regular_identifiers(self):
         """Test mixing namespace identifiers with regular identifiers."""
@@ -118,7 +121,11 @@ class TestPMDScriptGrammar:
         
         for script_content, expected_rule in test_cases:
             ast = pmd_script_parser.parse(script_content)
-            assert ast.data == expected_rule
+            # With ASI, the root is source_elements, so check the first child
+            if ast.data == 'source_elements' and len(ast.children) > 0:
+                assert ast.children[0].data == expected_rule
+            else:
+                assert ast.data == expected_rule
 
     def test_empty_object_literal_parsing(self):
         """Test that empty object literals {:} parse correctly."""
@@ -360,7 +367,7 @@ class TestPMDScriptGrammar:
         test_cases = [
             # Empty blocks (statements)
             ("if (true) {}", "Empty block should parse as block"),
-            ("function test() {}", "Empty function body should parse as block"),
+            ("var func = function() {}", "Empty function body should parse as block"),
             ("while (x > 0) {}", "Empty while body should parse as block"),
             
             # Non-empty sets (expressions)

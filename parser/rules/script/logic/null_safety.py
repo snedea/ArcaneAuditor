@@ -11,7 +11,7 @@ class ScriptNullSafetyRule(ScriptRuleBase):
     """Validates that property access chains are properly null-safe."""
 
     DESCRIPTION = "Ensures property access chains are protected against null reference exceptions"
-    SEVERITY = "WARNING"
+    SEVERITY = "ACTION"
     DETECTOR = NullSafetyDetector
 
     def get_description(self) -> str:

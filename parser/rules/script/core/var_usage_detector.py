@@ -24,11 +24,18 @@ class VarUsageDetector(ScriptDetector):
                 if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
                     var_name = var_declaration.children[0].value
                     # Get line number from the VAR token (first child)
-                    relative_line = getattr(var_stmt.children[0], 'line', 1) or 1
-                    line_number = self.line_offset + relative_line - 1
+                    line_number = self.get_line_number_from_token(var_stmt.children[0])
+                    
+                    # Check if this var statement is inside a function
+                    function_name = self.get_function_context_for_node(var_stmt, ast)
+                    
+                    if function_name:
+                        message = f"File section '{field_name}' uses 'var' declaration for variable '{var_name}' in function '{function_name}'. Consider using 'let' or 'const' instead."
+                    else:
+                        message = f"File section '{field_name}' uses 'var' declaration for variable '{var_name}'. Consider using 'let' or 'const' instead."
                     
                     yield Violation(
-                        message=f"File section '{field_name}' uses 'var' declaration for variable '{var_name}'. Consider using 'let' or 'const' instead.",
+                        message=message,
                         line=line_number
                     )
         
@@ -43,8 +50,7 @@ class VarUsageDetector(ScriptDetector):
                     if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
                         var_name = var_declaration.children[0].value
                         # Get line number from the VAR token (first child of for statement)
-                        relative_line = getattr(for_stmt.children[0], 'line', 1) or 1
-                        line_number = self.line_offset + relative_line - 1
+                        line_number = self.get_line_number_from_token(for_stmt.children[0])
                         
                         yield Violation(
                             message=f"File section '{field_name}' uses 'var' declaration for variable '{var_name}' in for loop. Consider using 'let' or 'const' instead.",
@@ -57,8 +63,7 @@ class VarUsageDetector(ScriptDetector):
             # Get the variable name (second child)
             var_name = for_stmt.children[1].value
             # Get line number from the VAR token (first child)
-            relative_line = getattr(for_stmt.children[0], 'line', 1) or 1
-            line_number = self.line_offset + relative_line - 1
+            line_number = self.get_line_number_from_token(for_stmt.children[0])
             
             yield Violation(
                 message=f"File section '{field_name}' uses 'var' declaration for variable '{var_name}' in for-in loop. Consider using 'let' or 'const' instead.",

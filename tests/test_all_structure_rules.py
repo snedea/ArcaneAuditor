@@ -25,7 +25,7 @@ class TestWidgetIdRequiredRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ACTION"
         assert "widget" in self.rule.DESCRIPTION.lower()
 
 
@@ -40,7 +40,7 @@ class TestWidgetIdLowerCamelCaseRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "WidgetIdLowerCamelCaseRule"  # ValidationRule uses class name
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ACTION"
         assert "widget" in self.rule.DESCRIPTION.lower()
 
 
@@ -55,7 +55,7 @@ class TestEndpointNameLowerCamelCaseRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "EndpointNameLowerCamelCaseRule"  # ValidationRule uses class name
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ACTION"
         assert "endpoint" in self.rule.DESCRIPTION.lower()
 
 
@@ -70,7 +70,7 @@ class TestEndpointOnSendSelfDataRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ADVICE"
         assert "self.data" in self.rule.DESCRIPTION.lower()
 
 
@@ -85,7 +85,7 @@ class TestEndpointFailOnStatusCodesRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "SEVERE"
+        assert self.rule.SEVERITY == "ACTION"
         assert "status" in self.rule.DESCRIPTION.lower()
 
 
@@ -100,7 +100,7 @@ class TestEndpointBaseUrlTypeRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ADVICE"
         assert "url" in self.rule.DESCRIPTION.lower()
 
 
@@ -115,7 +115,7 @@ class TestFooterPodRequiredRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "INFO"
+        assert self.rule.SEVERITY == "ADVICE"
         assert "footer" in self.rule.DESCRIPTION.lower()
 
 
@@ -130,7 +130,7 @@ class TestStringBooleanRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "INFO"
+        assert self.rule.SEVERITY == "ADVICE"
         assert "string" in self.rule.DESCRIPTION.lower()
 
 

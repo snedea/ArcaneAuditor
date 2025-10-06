@@ -30,6 +30,32 @@ class TestScriptEmptyFunctionRule:
         assert len(violations) == 1
         assert "empty body" in violations[0].message.lower()
     
+    def test_function_name_in_message(self):
+        """Test that function name is included in the validation message."""
+        script_content = """
+        var myFunction = function() {
+        }
+        
+        const anotherFunction = function() {
+        }
+        """
+        
+        ast = self.rule._parse_script_content(script_content)
+        detector = EmptyFunctionDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
+        
+        assert len(violations) == 2
+        
+        # Check that function names are included in messages
+        messages = [v.message for v in violations]
+        assert any("'myFunction'" in msg for msg in messages)
+        assert any("'anotherFunction'" in msg for msg in messages)
+        
+        # Check that the messages are properly formatted
+        for violation in violations:
+            assert "Function '" in violation.message
+            assert "' has empty body" in violation.message
+    
     def test_non_empty_function_detection(self):
         """Test that non-empty functions are not flagged."""
         script_content = """

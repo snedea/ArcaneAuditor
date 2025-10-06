@@ -26,10 +26,18 @@ class ConsoleLogDetector(ScriptDetector):
                 # Check if it's a console method call
                 if self._is_console_method_call(object_node, method_node):
                     method_name = self._extract_method_name(method_node)
-                    line_number = self.get_line_number(member_expr)
+                    line_number = self.get_line_from_tree_node(member_expr)
+                    
+                    # Check if this console statement is inside a function
+                    function_name = self.get_function_context_for_node(member_expr, ast)
+                    
+                    if function_name:
+                        message = f"File section '{field_name}' contains console.{method_name} statement in function '{function_name}'. Remove debug statements from production code."
+                    else:
+                        message = f"File section '{field_name}' contains console.{method_name} statement. Remove debug statements from production code."
                     
                     yield Violation(
-                        message=f"File section '{field_name}' contains console.{method_name} statement. Remove debug statements from production code.",
+                        message=message,
                         line=line_number
                     )
     

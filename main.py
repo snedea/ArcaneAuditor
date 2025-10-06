@@ -8,7 +8,7 @@ from parser.config import ArcaneAuditorConfig
 from parser.config_manager import load_configuration, get_config_manager
 from output.formatter import OutputFormatter, OutputFormat
 
-app = typer.Typer()
+app = typer.Typer(add_completion=False, help="Arcane Auditor CLI: A mystical code review tool for Workday Extend applications - part of Developers and Dragons")
 
 @app.command()
 def review_app(
@@ -229,13 +229,13 @@ def review_app(
     
     # Set appropriate exit code based on findings (outside try block)
     if findings:
-        severe_count = len([f for f in findings if f.severity == "SEVERE"])
-        if severe_count > 0:
-            typer.echo(f"Analysis completed with {severe_count} severe issue(s)")
-            raise typer.Exit(2)  # Exit code 2 for severe issues
+        action_count = len([f for f in findings if f.severity == "ACTION"])
+        if action_count > 0:
+            typer.echo(f"Analysis completed with {action_count} action issue(s)")
+            raise typer.Exit(2)  # Exit code 2 for action issues
         else:
-            typer.echo("Analysis completed with warnings/info issues")
-            raise typer.Exit(1)  # Exit code 1 for warnings/info
+            typer.echo("Analysis completed with advices")
+            raise typer.Exit(1)  # Exit code 1 for advices
     else:
         typer.echo("Analysis completed successfully - no issues found!")
         raise typer.Exit(0)  # Exit code 0 for no issues

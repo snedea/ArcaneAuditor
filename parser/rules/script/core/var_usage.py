@@ -8,7 +8,7 @@ class ScriptVarUsageRule(ScriptRuleBase):
     """Rule to check for use of 'var' instead of 'let' or 'const'."""
 
     DESCRIPTION = "Ensures scripts use 'let' or 'const' instead of 'var' (best practice)"
-    SEVERITY = "WARNING"
+    SEVERITY = "ACTION"
     DETECTOR = VarUsageDetector
 
     def get_description(self) -> str:

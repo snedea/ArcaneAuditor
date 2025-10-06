@@ -11,7 +11,7 @@ class TestStringBooleanRule:
         """Test that the rule initializes correctly."""
         rule = StringBooleanRule()
         assert rule.DESCRIPTION == "Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans"
-        assert rule.SEVERITY == "INFO"
+        assert rule.SEVERITY == "ADVICE"
 
     def test_get_description(self):
         """Test that get_description returns the correct description."""

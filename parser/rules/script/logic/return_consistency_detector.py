@@ -198,10 +198,10 @@ class ReturnConsistencyDetector(ScriptDetector):
     def detect(self, ast: Any, field_name: str = "") -> List[Violation]:
         """Detect return consistency violations in the AST."""
         violations = []
-        self._check_functions_with_visitor(ast, violations)
+        self._check_functions_with_visitor(ast, violations, ast)
         return violations
     
-    def _check_functions_with_visitor(self, node: Any, violations: List[Violation]):
+    def _check_functions_with_visitor(self, node: Any, violations: List[Violation], full_ast: Any):
         """Recursively check functions in AST nodes using the visitor pattern."""
         if hasattr(node, 'data') and node.data == 'function_expression':
             # Use the visitor to analyze the function expression
@@ -210,18 +210,31 @@ class ReturnConsistencyDetector(ScriptDetector):
             
             # Apply policy decisions here (not in the visitor)
             if analysis.node_type == "function_definition":
+                # Get the function name for context
+                function_name = self.get_function_context_for_node(node, full_ast)
+                
                 # Check for inconsistencies (mixed return patterns)
                 if analysis.is_inconsistent:
+                    if function_name:
+                        message = f"Function '{function_name}' has inconsistent return pattern - some paths return values, others don't"
+                    else:
+                        message = "Function has inconsistent return pattern - some paths return values, others don't"
+                    
                     violations.append(Violation(
-                        message="Function has inconsistent return pattern - some paths return values, others don't",
-                        line=ASTLineUtils.get_line_number(node, self.line_offset)
+                        message=message,
+                        line=self.get_line_number_from_token(node)
                     ))
                 # Only flag partial returns if there are control flow structures that create multiple paths
                 # Don't flag simple sequential functions with a single return at the end
                 elif analysis.has_return and not analysis.all_paths_return and has_control_flow_structures(node):
+                    if function_name:
+                        message = f"Function '{function_name}' has some return statements but not all code paths return - consider adding else branches"
+                    else:
+                        message = "Function has some return statements but not all code paths return - consider adding else branches"
+                    
                     violations.append(Violation(
-                        message="Function has some return statements but not all code paths return - consider adding else branches",
-                        line=ASTLineUtils.get_line_number(node, self.line_offset)
+                        message=message,
+                        line=self.get_line_number_from_token(node)
                     ))
             
             # Add any violations from the analysis
@@ -230,4 +243,5 @@ class ReturnConsistencyDetector(ScriptDetector):
         # Recursively check children
         if hasattr(node, 'children'):
             for child in node.children:
-                self._check_functions_with_visitor(child, violations)
+                self._check_functions_with_visitor(child, violations, full_ast)
+    

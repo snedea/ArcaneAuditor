@@ -8,7 +8,7 @@ class ScriptEmptyFunctionRule(ScriptRuleBase):
     """Rule to check for empty function bodies."""
 
     DESCRIPTION = "Ensures functions have actual implementation (not empty bodies)"
-    SEVERITY = "SEVERE"
+    SEVERITY = "ACTION"
     DETECTOR = EmptyFunctionDetector
 
     def get_description(self) -> str:

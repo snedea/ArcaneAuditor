@@ -9,7 +9,7 @@ class MockRule(Rule):
     """Mock rule for testing Finding class."""
     ID = "TEST001"
     DESCRIPTION = "Test rule for unit testing"
-    SEVERITY = "WARNING"
+    SEVERITY = "ACTION"
     
     def analyze(self, context):
         """Mock analysis that yields test findings."""
@@ -61,7 +61,7 @@ class TestFinding:
         # Check derived fields
         assert finding.rule_id == "MockRule"
         assert finding.rule_description == "Test rule for unit testing"
-        assert finding.severity == "WARNING"
+        assert finding.severity == "ACTION"
     
     def test_finding_repr(self):
         """Test Finding string representation."""
@@ -72,7 +72,7 @@ class TestFinding:
             file_path="sample.pmd"
         )
         
-        expected_repr = "[MockRule:20] (WARNING) in 'sample.pmd': Test finding message"
+        expected_repr = "[MockRule:20] (ACTION) in 'sample.pmd': Test finding message"
         assert repr(finding) == expected_repr
     
     def test_finding_repr_no_file_path(self):
@@ -83,7 +83,7 @@ class TestFinding:
             line=25
         )
         
-        expected_repr = "[MockRule:25] (WARNING) in '': Test finding message"
+        expected_repr = "[MockRule:25] (ACTION) in '': Test finding message"
         assert repr(finding) == expected_repr
     
     def test_finding_equality(self):
@@ -133,11 +133,11 @@ class TestFinding:
         """Test Finding with different rule."""
         rule1 = MockRule()
         rule1.ID = "RULE001"
-        rule1.SEVERITY = "SEVERE"
+        rule1.SEVERITY = "ACTION"
         
         rule2 = MockRule()
         rule2.ID = "RULE002"
-        rule2.SEVERITY = "INFO"
+        rule2.SEVERITY = "ADVICE"
         
         finding1 = Finding(
             rule=rule1,
@@ -152,9 +152,9 @@ class TestFinding:
         )
         
         assert finding1.rule_id == "MockRule"
-        assert finding1.severity == "SEVERE"
+        assert finding1.severity == "ACTION"
         assert finding2.rule_id == "MockRule"
-        assert finding2.severity == "INFO"
+        assert finding2.severity == "ADVICE"
     
     def test_finding_attributes(self):
         """Test that Finding has all expected attributes."""

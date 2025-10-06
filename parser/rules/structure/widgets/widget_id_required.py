@@ -18,7 +18,7 @@ class WidgetIdRequiredRule(StructureRuleBase):
     """Ensures all widgets have an 'id' field - important for code reviewers to catch."""
     
     DESCRIPTION = "Ensures all widgets have an 'id' field set (structure validation for PMD and POD files)"
-    SEVERITY = "WARNING"
+    SEVERITY = "ACTION"
     
     # Widget types that do not require or support ID values
     WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {

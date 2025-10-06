@@ -1,6 +1,7 @@
 """Detector for unused functions in script code."""
 
 from typing import Any, List, Set
+from lark import Tree
 from ...script.shared import ScriptDetector, Violation
 from ...common import ASTLineUtils
 
@@ -61,7 +62,7 @@ class UnusedFunctionsDetector(ScriptDetector):
                                 if len(child.children) >= 2:
                                     initializer = child.children[1]
                                     if self._is_function_assignment(initializer):
-                                        return ASTLineUtils.get_line_number(var_statement, self.line_offset)
+                                        return self.get_line_from_tree_node(var_statement)
         except Exception:
             pass
         return self.line_offset

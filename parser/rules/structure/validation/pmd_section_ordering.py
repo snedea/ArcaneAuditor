@@ -8,7 +8,7 @@ class PMDSectionOrderingRule(Rule):
     """Validates that PMD file sections follow the configured ordering."""
     
     DESCRIPTION = "Ensures PMD file root-level sections follow consistent ordering for better readability"
-    SEVERITY = "INFO"
+    SEVERITY = "ADVICE"
 
     def __init__(self, config: Dict[str, Any] = None):
         """Initialize with configurable section order."""
@@ -95,16 +95,16 @@ class PMDSectionOrderingRule(Rule):
         if actual_order == expected_order:
             return  # No violations found
         
-        # Generate a single finding showing the full order comparison
-        current_order_str = " → ".join(actual_order)
-        expected_order_str = " → ".join(expected_order)
+        # Generate a single finding showing the full order comparison with numbered prefixes
+        current_order_str = self._format_sections_with_numbers(actual_order)
+        expected_order_str = self._format_sections_with_numbers(expected_order)
         
         # Find the first violation for line number reference
         first_violation_line = self._get_first_violation_line(pmd_model, actual_order, expected_order)
         
         yield Finding(
             rule=self,
-            message=f"PMD sections are not in the correct order. Current: [{current_order_str}] | Expected: [{expected_order_str}]",
+            message=f"PMD sections are not in the correct order.\nExpected: {expected_order_str}\nActual:   {current_order_str}",
             line=first_violation_line,
             file_path=pmd_model.file_path
         )
@@ -124,6 +124,17 @@ class PMDSectionOrderingRule(Rule):
                 expected_order.append(key)
         
         return expected_order
+
+    def _format_sections_with_numbers(self, sections: List[str]) -> str:
+        """Format sections with numbered prefixes for easy reading."""
+        if not sections:
+            return "[]"
+        
+        formatted_sections = []
+        for i, section in enumerate(sections, 1):
+            formatted_sections.append(f"{i}. {section}")
+        
+        return "[" + ", ".join(formatted_sections) + "]"
 
     def _get_first_violation_line(self, pmd_model: PMDModel, actual_order: List[str], expected_order: List[str]) -> int:
         """Get the line number of the first section that's out of order."""

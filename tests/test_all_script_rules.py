@@ -30,7 +30,7 @@ class TestScriptVarUsageRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ACTION"
         assert "var" in self.rule.DESCRIPTION.lower()
     
     def test_analyze_no_pmds(self):
@@ -87,7 +87,7 @@ class TestScriptConsoleLogRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "SEVERE"
+        assert self.rule.SEVERITY == "ACTION"
         assert "console" in self.rule.DESCRIPTION.lower()
 
 
@@ -102,7 +102,7 @@ class TestScriptVariableNamingRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ACTION"
         assert "naming" in self.rule.DESCRIPTION.lower()
 
 
@@ -117,7 +117,7 @@ class TestScriptNestingLevelRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ADVICE"
         assert "nesting" in self.rule.DESCRIPTION.lower()
 
 
@@ -132,7 +132,7 @@ class TestScriptComplexityRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ACTION"
         assert "complexity" in self.rule.DESCRIPTION.lower()
 
 
@@ -147,7 +147,7 @@ class TestScriptLongFunctionRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ACTION"
         assert "function" in self.rule.DESCRIPTION.lower()
 
 
@@ -162,7 +162,7 @@ class TestScriptUnusedVariableRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ACTION"
         assert "variable" in self.rule.DESCRIPTION.lower()
 
 
@@ -177,7 +177,7 @@ class TestScriptUnusedFunctionParametersRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ACTION"
         assert "parameter" in self.rule.DESCRIPTION.lower()
 
 
@@ -192,7 +192,7 @@ class TestScriptEmptyFunctionRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "SEVERE"
+        assert self.rule.SEVERITY == "ACTION"
         assert "empty" in self.rule.DESCRIPTION.lower()
 
 
@@ -207,7 +207,7 @@ class TestScriptMagicNumberRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "INFO"
+        assert self.rule.SEVERITY == "ADVICE"
         assert "magic" in self.rule.DESCRIPTION.lower()
 
 
@@ -222,7 +222,7 @@ class TestScriptNullSafetyRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ACTION"
         assert "null" in self.rule.DESCRIPTION.lower()
 
 
@@ -237,7 +237,7 @@ class TestScriptVerboseBooleanCheckRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ADVICE"
         assert "boolean" in self.rule.DESCRIPTION.lower()
 
 
@@ -252,7 +252,7 @@ class TestScriptFunctionReturnConsistencyRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "SEVERE"
+        assert self.rule.SEVERITY == "ACTION"
         assert "return" in self.rule.DESCRIPTION.lower()
 
 

@@ -8,7 +8,7 @@ class ScriptFunctionParameterCountRule(ScriptRuleBase):
     """Rule to check for functions with too many parameters."""
 
     DESCRIPTION = "Functions should not have too many parameters (max 4 by default)"
-    SEVERITY = "WARNING"
+    SEVERITY = "ADVICE"
     DETECTOR = FunctionParameterCountDetector
 
     def get_description(self) -> str:

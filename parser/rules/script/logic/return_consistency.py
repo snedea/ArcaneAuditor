@@ -8,7 +8,7 @@ class ScriptFunctionReturnConsistencyRule(ScriptRuleBase):
     """Rule to check for consistent return patterns in script functions."""
     
     DESCRIPTION = "Functions should have consistent return patterns - either all code paths return a value or none do"
-    SEVERITY = "SEVERE"
+    SEVERITY = "ACTION"
     DETECTOR = ReturnConsistencyDetector
     
     def get_description(self) -> str:

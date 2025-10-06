@@ -11,7 +11,7 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
     
     ID = "WidgetIdLowerCamelCaseRule"
     DESCRIPTION = "Ensures widget IDs follow lowerCamelCase naming convention (style guide for PMD and POD files)"
-    SEVERITY = "WARNING"
+    SEVERITY = "ACTION"
     
     # Widget types that do not require or support ID values
     WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {
@@ -86,13 +86,13 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
     def _get_widget_line_number(self, pmd_model: PMDModel, widget_id: str) -> int:
         """Get line number for widget ID field."""
         if widget_id:
-            return PMDLineUtils.find_field_line_number(pmd_model, 'id', widget_id)
+            return self.get_field_line_number(pmd_model, 'id', widget_id)
         return 1
     
     def _get_pod_widget_line_number(self, pod_model: PodModel, widget_id: str) -> int:
         """Get line number for widget ID field in POD."""
         if widget_id:
-            return PMDLineUtils.find_field_line_number(pod_model, 'id', widget_id)
+            return self.get_field_line_number(pod_model, 'id', widget_id)
         return 1
     
     def _build_readable_widget_path(self, widget, widget_path, section, pmd_model=None, pod_model=None):

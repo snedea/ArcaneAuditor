@@ -54,6 +54,7 @@ Before installing Arcane Auditor, you'll need:
 
 - **Windows**: Download from [python.org](https://www.python.org/downloads/) or install via [Microsoft Store](https://www.microsoft.com/store/productId/9NRWMJP3717K)
 - **macOS**: `brew install python` or download from [python.org](https://www.python.org/downloads/)
+- **NOTE**: If using UV (see below), you don't need to install Python. It will be downloaded and run in the project folder for you.
 
 #### 2. **Git** (for cloning the repository)
 
@@ -63,11 +64,11 @@ Before installing Arcane Auditor, you'll need:
 #### 3. **UV** (Modern Python package manager - **recommended**)
 
 ```bash
-# Install UV (cross-platform)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Or on Windows (PowerShell)
+# Windows (PowerShell)
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# MacOS (Shell w/Curl)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Or using pip (if you prefer)
 pip install uv
@@ -101,7 +102,7 @@ uv sync
 uv run main.py review-app your-app.zip
 ```
 
-#### **Option B: Git Clone (For Developers)**
+#### **Option B: Git Clone (Recommended For Developers)**
 
 ```bash
 # Clone the repository (SSH - if you have GitHub SSH keys)
@@ -160,7 +161,7 @@ For a user-friendly mystical web interface with FastAPI backend:
 ```bash
 # Start the FastAPI web server
 # Make sure you're in the project directory with dependencies available
-# Adjust port as necessary
+# Adjust port as necessary - defaults to port 8080
 uv run python web/server.py --port 8081
 
 # Or if you have a virtual environment activated:
@@ -232,22 +233,13 @@ arcane-auditor/
 ├── assets/                                         	# Static assets
 │   └── arcane-auditor-logo.png                     	# Project logo
 │
-├── configs/                                        	# Base configurations (updated with app)
+├── config/                                         	# Consolidated configurations
 │   ├── README.md                                   	# Configuration guide
-│   ├── default.json                                	# Default rule configuration
-│   ├── minimal.json                                	# Minimal rule set
-│   ├── comprehensive.json                          	# All rules enabled
-│   └── examples/
-│       └── example_config.json                     	# Configuration example
-│
-├── user_configs/                                   	# Team/project settings (update-safe)
-│   ├── README.md                                   	# User configuration guide
-│   └── examples/
-│       ├── beginner-friendly.json                  	# Beginner-friendly rule set
-│       └── team-standard.json                      	# Team standard configuration
-│
-├── local_configs/                                  	# Personal overrides (highest priority)
-│   └── README.md                                   	# Local configuration guide
+│   ├── presets/                                    	# Built-in configurations (updated with app)
+│   │   ├── development.json                        	# Development-friendly validation
+│   │   └── production-ready.json                   	# Pre-deployment validation
+│   ├── teams/                                      	# Team/project settings (update-safe)
+│   └── personal/                                   	# Personal overrides (highest priority)
 │
 ├── docs/                                           	# Documentation
 │   └── RULE_BREAKDOWN.md                           	# Detailed rule documentation
@@ -561,14 +553,14 @@ Create custom configurations in JSON format:
   "rules": {
     "CustomScriptCommentQualityRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "ADVICE",
       "custom_settings": {
         "min_comment_density": 0.15
       }
     },
     "ScriptVarUsageRule": {
       "enabled": true,
-      "severity_override": "SEVERE",
+      "severity_override": "ACTION",
       "custom_settings": {}
     },
     "ScriptMagicNumberRule": {

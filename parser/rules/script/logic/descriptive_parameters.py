@@ -10,7 +10,7 @@ class ScriptDescriptiveParameterRule(ScriptRuleBase):
     """Validates that function parameters use descriptive names when functions take function parameters."""
 
     DESCRIPTION = "Ensures function parameters use descriptive names when functions take function parameters (except 'i', 'j', 'k' for indices)"
-    SEVERITY = "INFO"
+    SEVERITY = "ADVICE"
     DETECTOR = DescriptiveParameterDetector
 
     # Expose constants for testing

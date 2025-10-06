@@ -29,7 +29,7 @@ class FunctionParameterNamingDetector(ScriptDetector):
                             is_valid, suggestion = validate_script_variable_camel_case(param_name)
                             if not is_valid:
                                 # Get line number from the parameter token
-                                line_number = self.get_line_number(param)
+                                line_number = self.get_line_number_from_token(param)
                                 
                                 yield Violation(
                                     message=f"File section '{field_name}' has function parameter '{param_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'.",
@@ -43,7 +43,7 @@ class FunctionParameterNamingDetector(ScriptDetector):
                         is_valid, suggestion = validate_script_variable_camel_case(param_name)
                         if not is_valid:
                             # Get line number from the parameter token
-                            line_number = self.get_line_number(child)
+                            line_number = self.get_line_number_from_token(child)
                             
                             yield Violation(
                                 message=f"File section '{field_name}' has function parameter '{param_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'.",

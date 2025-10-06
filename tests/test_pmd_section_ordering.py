@@ -25,7 +25,7 @@ class TestPMDSectionOrderingRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly defined."""
         assert self.rule.DESCRIPTION == "Ensures PMD file root-level sections follow consistent ordering for better readability"
-        assert self.rule.SEVERITY == "INFO"
+        assert self.rule.SEVERITY == "ADVICE"
     
     def test_default_section_order(self):
         """Test that default section order is correctly configured."""
@@ -90,10 +90,46 @@ class TestPMDSectionOrderingRule:
         # Should find ordering violations
         assert len(findings) > 0
         
-        # Check that violations mention expected order
+        # Check that violations mention expected order with numbered format
         violation_messages = [f.message for f in findings]
         assert any("Expected:" in msg for msg in violation_messages)
+        assert any("Actual:" in msg for msg in violation_messages)
+        assert any("1." in msg for msg in violation_messages)  # Check for numbered format
         assert any("script" in msg for msg in violation_messages)
+    
+    def test_numbered_output_format(self):
+        """Test that the output format includes numbered prefixes."""
+        # Create PMD with clearly wrong order
+        source_content = """{
+  "presentation": {},
+  "id": "test-page",
+  "script": "<% %>"
+}"""
+        
+        pmd_model = PMDModel(
+            pageId="test-page",
+            file_path="wrong_order.pmd",
+            source_content=source_content
+        )
+        self.context.pmds["test-page"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        
+        # Should find ordering violations
+        assert len(findings) > 0
+        
+        # Check the specific format
+        violation_message = findings[0].message
+        assert "Expected:" in violation_message
+        assert "Actual:" in violation_message
+        assert "1. id" in violation_message  # First expected section
+        assert "2. script" in violation_message  # Second expected section
+        assert "3. presentation" in violation_message  # Third expected section
+        
+        # Check that actual order shows the wrong sequence
+        assert "1. presentation" in violation_message  # First actual section (wrong)
+        assert "2. id" in violation_message  # Second actual section
+        assert "3. script" in violation_message  # Third actual section
     
     def test_pmd_with_partial_sections(self):
         """Test PMD file with only some sections present."""

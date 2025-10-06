@@ -38,7 +38,7 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
     IS_EXAMPLE = True  # Flag to exclude from automatic discovery
     
     DESCRIPTION = "Functions should have adequate comments for maintainability (configurable threshold)"
-    SEVERITY = "INFO"
+    SEVERITY = "ADVICE"
     
     def __init__(self, config: dict = None):
         """Initialize with optional configuration."""
@@ -103,6 +103,7 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
                 # Only check functions that meet minimum line threshold
                 if func_info['line_count'] >= self.min_function_lines and comment_density < self.min_comment_density:
                     # Create Violation (internal format for detectors)
+                    # Use unified line calculation method for consistency
                     violation = Violation(
                         message=f"Function '{func_info['name']}' has low comment density "
                                f"({comment_density:.1%}, minimum: {self.min_comment_density:.1%}). "
@@ -233,7 +234,7 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
     IS_EXAMPLE = True  # Exclude from discovery
     
     DESCRIPTION = "PMD files should follow organizational structure standards"
-    SEVERITY = "WARNING"
+    SEVERITY = "ACTION"
     
     def __init__(self, config: dict = None):
         """Initialize with configuration."""
@@ -259,11 +260,13 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
         # Check for required sections
         for section in self.required_sections:
             if not hasattr(pmd_model, section) or getattr(pmd_model, section) is None:
+                # Use unified line calculation method for consistency
+                line_number = self.get_section_line_number(pmd_model, section) if section != 'id' else 1
                 yield Finding(
                     rule=self,
                     message=f"PMD file is missing required section: '{section}'. "
                            f"This section is required by organizational standards.",
-                    line=1,
+                    line=line_number,
                     file_path=pmd_model.file_path
                 )
         
@@ -284,7 +287,7 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
   "rules": {
     "CustomScriptCommentQualityRule": {
       "enabled": true,
-      "severity_override": "WARNING",
+      "severity_override": "ADVICE",
       "custom_settings": {
         "min_comment_density": 0.15,
         "min_function_lines": 8
@@ -292,7 +295,7 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
     },
     "CustomPMDSectionValidationRule": {
       "enabled": true,
-      "severity_override": "SEVERE",
+      "severity_override": "ACTION",
       "custom_settings": {
         "required_sections": ["id", "presentation", "endPoints"],
         "max_endpoints": 5

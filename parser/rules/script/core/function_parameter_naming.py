@@ -8,7 +8,7 @@ class ScriptFunctionParameterNamingRule(ScriptRuleBase):
     """Rule to check for function parameter naming conventions."""
 
     DESCRIPTION = "Ensures function parameters follow lowerCamelCase naming convention"
-    SEVERITY = "WARNING"
+    SEVERITY = "ACTION"
     DETECTOR = FunctionParameterNamingDetector
 
     def get_description(self) -> str:

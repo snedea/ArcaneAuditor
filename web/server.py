@@ -20,7 +20,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # FastAPI imports
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Response
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -39,11 +39,11 @@ def get_dynamic_config_info():
     """Dynamically discover configuration information from all config directories."""
     config_info = {}
     
-    # Search in priority order: local_configs, user_configs, configs
+    # Search in priority order: personal, teams, presets
     config_dirs = [
-        project_root / "local_configs",
-        project_root / "user_configs", 
-        project_root / "configs"
+        project_root / "config" / "personal",
+        project_root / "config" / "teams", 
+        project_root / "config" / "presets"
     ]
     
     for config_dir in config_dirs:
@@ -63,7 +63,9 @@ def get_dynamic_config_info():
                 enabled_rules = 0
                 if 'rules' in config_data:
                     for rule_name, rule_config in config_data['rules'].items():
-                        if rule_config.get('enabled', True):
+                        # Check if rule is explicitly enabled (defaults to True if not present)
+                        is_enabled = rule_config.get('enabled', True)
+                        if is_enabled:
                             enabled_rules += 1
                 
                 # Determine performance level based on rule count
@@ -75,23 +77,28 @@ def get_dynamic_config_info():
                     performance = "Thorough"
                 
                 # Determine config type based on directory
-                if config_dir.name == "local_configs":
+                if config_dir.name == "personal":
                     config_type = "Personal"
                     description = f"Personal configuration with {enabled_rules} rules enabled"
-                elif config_dir.name == "user_configs":
+                elif config_dir.name == "teams":
                     config_type = "Team"
                     description = f"Team configuration with {enabled_rules} rules enabled"
-                elif config_dir.name == "configs":
+                elif config_dir.name == "presets":
                     config_type = "Built-in"
                     description = f"Built-in configuration with {enabled_rules} rules enabled"
                 
-                config_info[config_name] = {
+                # Create unique key by combining config name with directory type
+                # This allows showing all versions (personal, team, built-in) in the UI
+                config_key = f"{config_name}_{config_dir.name}"
+                config_info[config_key] = {
                     "name": config_name.replace('_', ' ').title(),
                     "description": description,
                     "rules_count": enabled_rules,
                     "performance": performance,
                     "type": config_type,
-                    "path": str(config_file.relative_to(project_root))
+                    "path": str(config_file.relative_to(project_root)),
+                    "id": config_name,  # Original name for API compatibility
+                    "source": config_dir.name  # Track which directory it came from
                 }
                 
             except Exception as e:
@@ -210,9 +217,10 @@ def cleanup_old_jobs():
         
         for job_id in jobs_to_remove:
             job = analysis_jobs.pop(job_id)
-            # Clean up temporary files
+            # Clean up any remaining temporary files (ZIP files are now deleted immediately after processing)
             if job.zip_path.exists():
                 job.zip_path.unlink()
+                print(f"Cleaned up remaining ZIP file: {job.zip_path.name}")
 
 def run_analysis_background(job: AnalysisJob):
     """Run analysis in background thread."""
@@ -231,6 +239,11 @@ def run_analysis_background(job: AnalysisJob):
         processor = FileProcessor()
         source_files_map = processor.process_zip_file(job.zip_path)
         file_processing_time = time.time() - file_processing_start
+        
+        # Delete ZIP file immediately after successful processing
+        if job.zip_path.exists():
+            job.zip_path.unlink()
+            print(f"Deleted processed ZIP file: {job.zip_path.name}")
         
         if not source_files_map:
             job.error = "No PMD Script files found in the uploaded ZIP"
@@ -282,9 +295,8 @@ def run_analysis_background(job: AnalysisJob):
                 "total_findings": len(findings),
                 "rules_executed": len(rules_engine.rules),
                 "by_severity": {
-                    "error": len([f for f in findings if f.severity == "SEVERE"]),
-                    "warning": len([f for f in findings if f.severity == "WARNING"]),
-                    "info": len([f for f in findings if f.severity == "INFO"])
+                    "action": len([f for f in findings if f.severity == "ACTION"]),
+                    "advice": len([f for f in findings if f.severity == "ADVICE"])
                 }
             }
         }
@@ -317,6 +329,10 @@ async def upload_file(file: UploadFile = File(...), config: str = Form("default"
     if config not in config_info:
         raise HTTPException(status_code=400, detail=f"Invalid configuration: {config}")
     
+    # Get the actual config path from the selected config key
+    selected_config_info = config_info[config]
+    actual_config_path = selected_config_info["path"]  # This is the full path to the specific config file
+    
     # Generate job ID
     job_id = str(uuid.uuid4())
     
@@ -333,8 +349,8 @@ async def upload_file(file: UploadFile = File(...), config: str = Form("default"
                 buffer.write(chunk)
         
         # Create analysis job with configuration
-        job = AnalysisJob(job_id, zip_path, config)
-        print(f"DEBUG: Created job {job_id} with config='{config}'")
+        job = AnalysisJob(job_id, zip_path, actual_config_path)
+        print(f"DEBUG: Created job {job_id} with config='{actual_config_path}'")
         
         with job_lock:
             analysis_jobs[job_id] = job
@@ -347,7 +363,7 @@ async def upload_file(file: UploadFile = File(...), config: str = Form("default"
         # Cleanup old jobs
         cleanup_old_jobs()
         
-        return {"job_id": job_id, "status": "queued", "config": config}
+        return {"job_id": job_id, "status": "queued", "config": actual_config_path}
             
     except Exception as e:
         # Clean up file if upload failed
@@ -356,8 +372,13 @@ async def upload_file(file: UploadFile = File(...), config: str = Form("default"
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 @app.get("/api/configs")
-async def get_available_configs():
+async def get_available_configs(response: Response):
     """Get list of available configurations."""
+    # Add cache-busting headers
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    
     config_info = get_dynamic_config_info()
     available_configs = []
     
@@ -434,11 +455,10 @@ async def download_excel(job_id: str):
             summary_sheet.append(["Files Analyzed", len(findings_by_file)])
             summary_sheet.append(["Rules Executed", job.result["summary"]["rules_executed"]])
             summary_sheet.append(["Total Issues", len(findings)])
-            summary_sheet.append(["Severe", len([f for f in findings if f.severity == "SEVERE"])])
-            summary_sheet.append(["Warnings", len([f for f in findings if f.severity == "WARNING"])])
-            summary_sheet.append(["Info", len([f for f in findings if f.severity == "INFO"])])
+            summary_sheet.append(["Action", len([f for f in findings if f.severity == "ACTION"])])
+            summary_sheet.append(["Advices", len([f for f in findings if f.severity == "ADVICE"])])
             summary_sheet.append([])
-            summary_sheet.append(["File", "Issues", "Severe", "Warnings", "Info"])
+            summary_sheet.append(["File", "Issues", "Action", "Advice"])
             
             # Style summary sheet
             summary_sheet['A1'].font = Font(bold=True, size=14)
@@ -447,10 +467,9 @@ async def download_excel(job_id: str):
             
             # Add file summary data
             for file_path, file_findings in findings_by_file.items():
-                severe_count = len([f for f in file_findings if f.severity == "SEVERE"])
-                warning_count = len([f for f in file_findings if f.severity == "WARNING"])
-                info_count = len([f for f in file_findings if f.severity == "INFO"])
-                summary_sheet.append([file_path, len(file_findings), severe_count, warning_count, info_count])
+                action_count = len([f for f in file_findings if f.severity == "ACTION"])
+                advice_count = len([f for f in file_findings if f.severity == "ADVICE"])
+                summary_sheet.append([file_path, len(file_findings), action_count, advice_count])
             
             # Create sheets for each file
             for file_path, file_findings in findings_by_file.items():
@@ -488,10 +507,8 @@ async def download_excel(job_id: str):
                     
                     # Color code by severity
                     severity_colors = {
-                        "SEVERE": "FFCCCC",    # Light red
-                        "WARNING": "FFFFCC",  # Light yellow
-                        "INFO": "CCE5FF",     # Light blue
-                        "HINT": "E6FFE6"      # Light green
+                        "ACTION": "FFCCCC",    # Light red
+                        "ADVICE": "CCE5FF",     # Light blue
                     }
                     
                     if finding.severity in severity_colors:

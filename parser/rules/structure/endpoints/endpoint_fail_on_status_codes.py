@@ -9,7 +9,7 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
     """Ensures endpoints have proper failOnStatusCodes structure with required codes 400 and 403."""
     
     DESCRIPTION = "Ensures endpoints have failOnStatusCodes with minimum required codes 400 and 403"
-    SEVERITY = "SEVERE"
+    SEVERITY = "ACTION"
 
     def get_description(self) -> str:
         """Get rule description."""
@@ -90,9 +90,9 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
     def _get_endpoint_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:
         """Get line number for the endpoint."""
         if endpoint_name and hasattr(model, 'source_content'):
-            # For PMD models, use the existing line number utility
+            # For PMD models, use the unified method
             if isinstance(model, PMDModel):
-                return PMDLineUtils.find_field_line_number(model, 'name', endpoint_name)
+                return self.get_field_line_number(model, 'name', endpoint_name)
             # For POD models, return a basic line number (could be enhanced later)
             return 1
         return 1
@@ -100,9 +100,9 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
     def _get_fail_on_status_codes_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:
         """Get line number for the failOnStatusCodes field."""
         if endpoint_name and hasattr(model, 'source_content'):
-            # For PMD models, use the existing line number utility
+            # For PMD models, use the unified method
             if isinstance(model, PMDModel):
-                return PMDLineUtils.find_field_after_entity(model, 'name', endpoint_name, 'failOnStatusCodes')
+                return self.get_field_after_entity_line_number(model, 'name', endpoint_name, 'failOnStatusCodes')
             # For POD models, return a basic line number (could be enhanced later)
             return 1
         return 1

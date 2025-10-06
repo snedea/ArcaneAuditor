@@ -11,7 +11,7 @@ class MockRule(Rule):
     """Mock rule for testing purposes."""
     ID = "TEST001"
     DESCRIPTION = "Test rule for unit testing"
-    SEVERITY = "INFO"
+    SEVERITY = "ADVICE"
     
     def analyze(self, context):
         """Mock analysis that yields test findings."""
@@ -42,7 +42,7 @@ class MockRuleNoFindings(Rule):
     """Mock rule that finds no issues."""
     ID = "EMPTY001"
     DESCRIPTION = "Rule that finds nothing"
-    SEVERITY = "INFO"
+    SEVERITY = "ADVICE"
     
     def analyze(self, context):
         """Mock analysis that finds nothing."""
@@ -186,7 +186,7 @@ class TestRulesEngine:
         # Check values
         assert finding.rule_id == "MockRule"
         assert finding.rule_description == "Test rule for unit testing"
-        assert finding.severity == "INFO"
+        assert finding.severity == "ADVICE"
         assert "Test finding" in finding.message
     
     def test_discover_rules_real_package_structure(self):

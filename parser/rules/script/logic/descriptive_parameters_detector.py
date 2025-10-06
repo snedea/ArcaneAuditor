@@ -29,10 +29,21 @@ class DescriptiveParameterDetector(ScriptDetector):
         # Use AST traversal to find arrow function expressions in call expressions
         violations = self._find_arrow_function_violations(ast)
         for violation in violations:
+            # Check if this parameter is inside a function (only if node is available)
+            function_name = None
+            if 'node' in violation:
+                function_name = self.get_function_context_for_node(violation['node'], ast)
+            
+            if function_name:
+                message = f"Parameter '{violation['param_name']}' in {violation['method_name']}() in function '{function_name}' should be more descriptive. "
+            else:
+                message = f"Parameter '{violation['param_name']}' in {violation['method_name']}() should be more descriptive. "
+            
+            message += f"Consider using '{violation['suggested_name']}' instead. Single-letter parameters make functions "
+            message += f"that take function parameters harder to read and debug."
+            
             yield Violation(
-                message=f"Parameter '{violation['param_name']}' in {violation['method_name']}() should be more descriptive. "
-                       f"Consider using '{violation['suggested_name']}' instead. Single-letter parameters make functions "
-                       f"that take function parameters harder to read and debug.",
+                message=message,
                 line=violation['line']
             )
 
@@ -480,7 +491,8 @@ class DescriptiveParameterDetector(ScriptDetector):
                         'suggested_name': suggested_name,
                         'line': self.get_line_number(arrow_func),  # Approximate
                         'context': context,
-                        'param_index': 0
+                        'param_index': 0,
+                        'node': arrow_func
                     })
         
         # Handle multi-parameter arrow functions: (param1, param2) => expression
@@ -501,7 +513,8 @@ class DescriptiveParameterDetector(ScriptDetector):
                             'suggested_name': suggested_name,
                             'line': self.get_line_number(arrow_func),
                             'context': context,
-                            'param_index': i
+                            'param_index': i,
+                            'node': arrow_func
                         })
         
         return violations

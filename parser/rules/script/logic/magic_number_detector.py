@@ -17,7 +17,7 @@ class MagicNumberDetector(ScriptDetector):
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
         """Detect magic numbers in the AST."""
         findings = []
-        self._visit_node(ast, field_name, findings)
+        self._visit_node(ast, field_name, findings, ast)
         
         for finding in findings:
             yield Violation(
@@ -25,7 +25,7 @@ class MagicNumberDetector(ScriptDetector):
                 line=finding['line']
             )
     
-    def _visit_node(self, node, field_name: str, findings: List[dict], parent=None):
+    def _visit_node(self, node, field_name: str, findings: List[dict], ast: Tree, parent=None):
         """Recursively visit AST nodes to find magic numbers."""
         # Check if the current node is a numeric literal
         if hasattr(node, 'data') and node.data == 'literal_expression':
@@ -41,11 +41,18 @@ class MagicNumberDetector(ScriptDetector):
                         
                         if is_magic:
                             # Get line number from the token inside the literal_expression
-                            relative_line = getattr(node.children[0], 'line', 1) or 1
-                            line_number = self.get_line_number(node)
+                            line_number = self.get_line_number_from_token(node.children[0])
+                            
+                            # Check if this magic number is inside a function
+                            function_name = self.get_function_context_for_node(node, ast)
+                            
+                            if function_name:
+                                message = f"File section '{field_name}' contains magic number '{number}' in function '{function_name}'. Consider using a named constant instead."
+                            else:
+                                message = f"File section '{field_name}' contains magic number '{number}'. Consider using a named constant instead."
                             
                             findings.append({
-                                'message': f"File section '{field_name}' contains magic number '{number}'. Consider using a named constant instead.",
+                                'message': message,
                                 'line': line_number
                             })
                 except (ValueError, AttributeError):
@@ -55,4 +62,4 @@ class MagicNumberDetector(ScriptDetector):
         # Recurse into children
         if hasattr(node, 'children'):
             for child in node.children:
-                self._visit_node(child, field_name, findings, parent=node)
+                self._visit_node(child, field_name, findings, ast, parent=node)

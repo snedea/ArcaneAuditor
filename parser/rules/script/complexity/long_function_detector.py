@@ -18,12 +18,23 @@ class LongFunctionDetector(ScriptDetector):
         long_functions = self._find_long_functions(ast, self.max_lines)
         
         for func_info in long_functions:
-            # Use line_offset as base, add relative line if available
+            # Get line number from function info and apply offset
             relative_line = func_info.get('line', 1) or 1
             line_number = self.line_offset + relative_line - 1
             
+            # Check if this long function is inside another function
+            function_node = func_info.get('node')
+            parent_function_name = None
+            if function_node:
+                parent_function_name = self.get_function_context_for_node(function_node, ast)
+            
+            if parent_function_name:
+                message = f"File section '{field_name}' contains function '{func_info['name']}' in function '{parent_function_name}' with {func_info['lines']} lines (max recommended: {self.max_lines}). Consider breaking it into smaller functions."
+            else:
+                message = f"File section '{field_name}' contains function '{func_info['name']}' with {func_info['lines']} lines (max recommended: {self.max_lines}). Consider breaking it into smaller functions."
+            
             yield Violation(
-                message=f"File section '{field_name}' contains function '{func_info['name']}' with {func_info['lines']} lines (max recommended: {self.max_lines}). Consider breaking it into smaller functions.",
+                message=message,
                 line=line_number
             )
     
@@ -60,7 +71,8 @@ class LongFunctionDetector(ScriptDetector):
                                 long_functions.append({
                                     'name': var_name,
                                     'lines': line_count,
-                                    'line': line_number
+                                    'line': line_number,
+                                    'node': node
                                 })
         
         # Recursively check children

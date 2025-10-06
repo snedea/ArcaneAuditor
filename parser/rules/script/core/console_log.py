@@ -8,7 +8,7 @@ class ScriptConsoleLogRule(ScriptRuleBase):
     """Rule to check for console statements in scripts."""
 
     DESCRIPTION = "Ensures scripts don't contain console statements (production code)"
-    SEVERITY = "SEVERE"
+    SEVERITY = "ACTION"
     DETECTOR = ConsoleLogDetector
 
     def get_description(self) -> str:

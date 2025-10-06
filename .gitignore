@@ -215,3 +215,12 @@ temp/
 
 # Web uploads folder for user uploads
 web/uploads/
+
+# Local development plans and notes
+plan_*.md
+
+# Release notes generation
+release_notes/
+
+# Personal configurations (highest priority)
+config/personal/

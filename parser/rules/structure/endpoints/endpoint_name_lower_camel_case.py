@@ -11,7 +11,7 @@ class EndpointNameLowerCamelCaseRule(StructureRuleBase):
     
     ID = "EndpointNameLowerCamelCaseRule"
     DESCRIPTION = "Ensures endpoint names follow lowerCamelCase naming convention (style guide)"
-    SEVERITY = "WARNING"
+    SEVERITY = "ACTION"
     
     def get_description(self) -> str:
         """Get rule description."""
@@ -67,11 +67,11 @@ class EndpointNameLowerCamelCaseRule(StructureRuleBase):
     def _get_endpoint_line_number(self, pmd_model: PMDModel, endpoint_name: str) -> int:
         """Get line number for endpoint name field."""
         if endpoint_name:
-            return PMDLineUtils.find_field_line_number(pmd_model, 'name', endpoint_name)
+            return self.get_field_line_number(pmd_model, 'name', endpoint_name)
         return 1
     
     def _get_pod_endpoint_line_number(self, pod_model: PodModel, endpoint_name: str) -> int:
         """Get line number for endpoint name field in POD."""
         if endpoint_name:
-            return PMDLineUtils.find_field_line_number(pod_model, 'name', endpoint_name)
+            return self.get_field_line_number(pod_model, 'name', endpoint_name)
         return 1

@@ -11,9 +11,8 @@ from enum import Enum
 
 class SeverityLevel(str, Enum):
     """Severity levels for findings."""
-    INFO = "INFO"
-    WARNING = "WARNING"
-    SEVERE = "SEVERE"
+    ADVICE = "ADVICE"
+    ACTION = "ACTION"
 
 
 class RuleConfig(BaseModel):
@@ -37,6 +36,7 @@ class RulesConfig(BaseModel):
     ScriptVarUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts use 'let' or 'const' instead of 'var' (best practice)")
     ScriptDeadCodeRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects dead code in standalone script files")
     ScriptVariableNamingRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures variables follow lowerCamelCase naming convention")
+    ScriptFunctionParameterNamingRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures function parameters follow lowerCamelCase naming convention")
     ScriptArrayMethodUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using array higher-order methods instead of manual loops")
     ScriptMagicNumberRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't contain magic numbers (use named constants)")
     ScriptNullSafetyRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures property access chains are protected against null reference exceptions")
@@ -65,6 +65,7 @@ class RulesConfig(BaseModel):
     # General Structure Rules
     FooterPodRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures footer widgets utilize pods")
     StringBooleanRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures boolean values are not stored as strings")
+    EmbeddedImagesRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects base64 encoded images and large binary content")
     PMDSectionOrderingRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures PMD file sections follow consistent ordering for better readability")
     HardcodedApplicationIdRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects hardcoded applicationId values that should be replaced with site.applicationId")
     HardcodedWidRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects hardcoded WID values that should be configured in app attributes")
@@ -80,7 +81,7 @@ class FileProcessingConfig(BaseModel):
         description="File extensions to process"
     )
     encoding: str = Field(default="utf-8", description="Default file encoding")
-    log_level: str = Field(default="INFO", description="Logging level")
+    log_level: str = Field(default="ADVICE", description="Logging level")
     chunk_size: int = Field(default=16384, description="Chunk size for file reading")
     max_concurrent_files: int = Field(default=20, description="Maximum concurrent files to process")
     fallback_encodings: List[str] = Field(

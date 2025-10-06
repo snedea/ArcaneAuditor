@@ -11,7 +11,7 @@ class ArcaneAuditorApp {
             sortFilesBy: 'alphabetical'
         };
         this.expandedFiles = new Set();
-        this.selectedConfig = 'default';
+        this.selectedConfig = this.getLastSelectedConfig();
         this.availableConfigs = [];
         this.uploadedFileName = null;
         
@@ -21,8 +21,8 @@ class ArcaneAuditorApp {
     }
 
     initializeTheme() {
-        // Check for saved theme preference or default to light mode
-        const savedTheme = localStorage.getItem('arcane-auditor-theme') || 'light';
+        // Check for saved theme preference or default to dark mode
+        const savedTheme = localStorage.getItem('arcane-auditor-theme') || 'dark';
         this.setTheme(savedTheme);
     }
 
@@ -33,10 +33,10 @@ class ArcaneAuditorApp {
         
         if (theme === 'dark') {
             themeIcon.textContent = '☀️';
-            themeText.textContent = 'Light';
+            themeText.textContent = 'Go Light';
         } else {
             themeIcon.textContent = '🌙';
-            themeText.textContent = 'Dark';
+            themeText.textContent = 'Go Dark';
         }
         
         // Save preference
@@ -49,6 +49,16 @@ class ArcaneAuditorApp {
         this.setTheme(newTheme);
     }
 
+    getLastSelectedConfig() {
+        // Get the last selected config from localStorage, fallback to production-ready
+        return localStorage.getItem('arcane-auditor-selected-config') || 'production-ready';
+    }
+
+    saveSelectedConfig(configId) {
+        // Save the selected config to localStorage
+        localStorage.setItem('arcane-auditor-selected-config', configId);
+    }
+
     async loadConfigurations() {
         try {
             const response = await fetch('/api/configs');
@@ -57,13 +67,14 @@ class ArcaneAuditorApp {
             this.renderConfigurations();
         } catch (error) {
             console.error('Failed to load configurations:', error);
-            // Fallback to default configuration
+            // Fallback to production-ready configuration
             this.availableConfigs = [{
-                id: 'default',
-                name: 'Default',
-                description: 'Standard configuration with all rules enabled',
-                rules_count: 32,
-                performance: 'Balanced'
+                id: 'production-ready',
+                name: 'Production-Ready',
+                description: 'Pre-deployment validation with strict settings',
+                rules_count: 34,
+                performance: 'Thorough',
+                type: 'Built-in'
             }];
             this.renderConfigurations();
         }
@@ -129,6 +140,7 @@ class ArcaneAuditorApp {
 
     selectConfiguration(configId) {
         this.selectedConfig = configId;
+        this.saveSelectedConfig(configId);
         this.renderConfigurations();
     }
 
@@ -343,16 +355,16 @@ class ArcaneAuditorApp {
                     <div class="summary-label">Issues Found</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-number summary-number-purple">${result.summary?.rules_executed || 30}</div>
+                    <div class="summary-number summary-number-purple">${result.summary?.rules_executed || 0}</div>
                     <div class="summary-label">Rules Executed</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-number summary-number-orange">${result.summary?.by_severity?.error || 0}</div>
-                    <div class="summary-label">Errors</div>
+                    <div class="summary-number summary-number-orange">${result.summary?.by_severity?.action || 0}</div>
+                    <div class="summary-label">Actions</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-number summary-number-yellow">${result.summary?.by_severity?.warning || 0}</div>
-                    <div class="summary-label">Warnings</div>
+                    <div class="summary-number summary-number-yellow">${result.summary?.by_severity?.advice || 0}</div>
+                    <div class="summary-label">Advices</div>
                 </div>
             </div>
             
@@ -360,7 +372,7 @@ class ArcaneAuditorApp {
                 <div class="severity-section">
                     <h5>Issues by Severity:</h5>
                     <div class="severity-badges">
-                        ${Object.entries(severityCounts).map(([severity, count]) => `
+                        ${this.getOrderedSeverityEntries(severityCounts).map(([severity, count]) => `
                             <div class="severity-badge">
                                 ${this.getSeverityIcon(severity)}
                                 <span class="severity-count">${count}</span>
@@ -405,7 +417,7 @@ class ArcaneAuditorApp {
                 <label for="severity-filter">Filter by severity:</label>
                 <select id="severity-filter" onchange="app.updateSeverityFilter(this.value)">
                     <option value="all">All (${result.findings.length})</option>
-                    ${Object.entries(severityCounts).map(([severity, count]) => `
+                    ${this.getOrderedSeverityEntries(severityCounts).map(([severity, count]) => `
                         <option value="${severity}">${severity} (${count})</option>
                     `).join('')}
                 </select>
@@ -446,7 +458,7 @@ class ArcaneAuditorApp {
         if (this.filteredFindings.length === 0) {
             findings.innerHTML = `
                 <div class="no-issues">
-                    ✅ <strong>No issues found!</strong> Your code looks great!
+                    ✅ <strong>No issues found!</strong> Your code is magical!
                 </div>
             `;
             return;
@@ -456,7 +468,7 @@ class ArcaneAuditorApp {
         
         findings.innerHTML = `
             <div class="findings-header">
-                <h4>🚨 Issues Found (${this.filteredFindings.length})</h4>
+                <h4>🔎 Issues Found (${this.filteredFindings.length})</h4>
                 <div class="findings-actions">
                     <button class="btn btn-secondary" onclick="app.expandAllFiles()">Expand All</button>
                     <button class="btn btn-secondary" onclick="app.collapseAllFiles()">Collapse All</button>
@@ -481,11 +493,13 @@ class ArcaneAuditorApp {
                                     </div>
                                 </div>
                                 <div class="file-header-right">
-                                    <div class="file-count-badge">
-                                        ${fileFindings.length} issue${fileFindings.length !== 1 ? 's' : ''}
-                                    </div>
+                                    ${this.currentFilters.severity === 'all' ? `
+                                        <div class="file-count-badge">
+                                            ${fileFindings.length} issue${fileFindings.length !== 1 ? 's' : ''}
+                                        </div>
+                                    ` : ''}
                                     <div class="severity-badges">
-                                        ${Object.entries(severityCounts).map(([severity, count]) => `
+                                        ${this.getOrderedSeverityEntries(severityCounts).map(([severity, count]) => `
                                             <span class="severity-count-badge ${severity.toLowerCase()}">
                                                 ${count} ${severity.toLowerCase()}
                                             </span>
@@ -548,11 +562,53 @@ class ArcaneAuditorApp {
 
     // Utility methods
     getSeverityCounts(findings) {
-        return findings.reduce((acc, finding) => {
+        const counts = findings.reduce((acc, finding) => {
             const severity = finding.severity || 'unknown';
             acc[severity] = (acc[severity] || 0) + 1;
             return acc;
         }, {});
+        
+        // Define severity order: ISSUES, ACTION, ADVICE (uppercase to match backend)
+        const severityOrder = ['ISSUES', 'ACTION', 'ADVICE'];
+        
+        // Create ordered object
+        const orderedCounts = {};
+        severityOrder.forEach(severity => {
+            if (counts[severity]) {
+                orderedCounts[severity] = counts[severity];
+            }
+        });
+        
+        // Add any other severities not in the predefined order
+        Object.keys(counts).forEach(severity => {
+            if (!severityOrder.includes(severity)) {
+                orderedCounts[severity] = counts[severity];
+            }
+        });
+        
+        return orderedCounts;
+    }
+
+    getOrderedSeverityEntries(severityCounts) {
+        // Define severity order: ISSUES, ACTION, ADVICE (uppercase to match backend)
+        const severityOrder = ['ISSUES', 'ACTION', 'ADVICE'];
+        
+        // Create ordered array of entries
+        const orderedEntries = [];
+        severityOrder.forEach(severity => {
+            if (severityCounts[severity]) {
+                orderedEntries.push([severity, severityCounts[severity]]);
+            }
+        });
+        
+        // Add any other severities not in the predefined order
+        Object.entries(severityCounts).forEach(([severity, count]) => {
+            if (!severityOrder.includes(severity)) {
+                orderedEntries.push([severity, count]);
+            }
+        });
+        
+        return orderedEntries;
     }
 
     getFileTypeCounts(findings) {
@@ -580,10 +636,8 @@ class ArcaneAuditorApp {
 
     getSeverityIcon(severity) {
         switch (severity) {
-            case 'SEVERE': return '🚨';
-            case 'WARNING': return '⚠️';
-            case 'INFO': return 'ℹ️';
-            case 'HINT': return '💡';
+            case 'ACTION': return '🚨';
+            case 'ADVICE': return 'ℹ️';
             default: return 'ℹ️';
         }
     }
@@ -617,7 +671,7 @@ class ArcaneAuditorApp {
         return [...findings].sort((a, b) => {
             switch (this.currentFilters.sortBy) {
                 case 'severity':
-                    const severityOrder = { SEVERE: 0, WARNING: 1, INFO: 2, HINT: 3 };
+                    const severityOrder = { ACTION: 0, ADVICE: 1 };
                     return severityOrder[a.severity] - severityOrder[b.severity];
                 case 'line':
                     return a.line - b.line;

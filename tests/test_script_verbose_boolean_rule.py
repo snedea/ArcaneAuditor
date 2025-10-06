@@ -15,7 +15,7 @@ class TestScriptVerboseBooleanCheckRule:
     def test_rule_metadata(self):
         """Test rule metadata."""
         assert self.rule.DESCRIPTION == "Ensures scripts don't use overly verbose boolean checks (if(var == true) return true else return false)"
-        assert self.rule.SEVERITY == "WARNING"
+        assert self.rule.SEVERITY == "ADVICE"
         assert self.rule.DETECTOR == VerboseBooleanDetector
         assert self.rule.get_description() == "Ensures scripts don't use overly verbose boolean checks (if(var == true) return true else return false)"
     
@@ -240,14 +240,14 @@ class TestScriptVerboseBooleanCheckRule:
     
     def test_multiple_verbose_patterns(self):
         """Test multiple verbose boolean patterns in the same script."""
-        script_content = "<% if (x == true) { return true; } else { return false; } var result1 = y ? true : false; if (z == false) { return false; } else { return true; } var result2 = w ? false : true; %>"
+        script_content = "<% if (x == true) { return true; } else { return false; }; var result1 = y ? true : false; if (z == false) { return false; } else { return true; }; var result2 = w ? false : true; %>"
         
         ast = self.rule._parse_script_content(script_content, None)
         detector = VerboseBooleanDetector("test.pmd", 1)
         detector.set_original_content(script_content)
         violations = list(detector.detect(ast, "test"))
         
-        assert len(violations) == 3  # Three patterns should be flagged (second if statement has parsing issues)
+        assert len(violations) == 4  # Four patterns should be flagged
     
     def test_boolean_literal_identifiers(self):
         """Test that true/false as identifiers are handled correctly."""
@@ -258,7 +258,7 @@ class TestScriptVerboseBooleanCheckRule:
         detector.set_original_content(script_content)
         violations = list(detector.detect(ast, "test"))
         
-        assert len(violations) == 0  # Grammar limitation - complex multi-statement scripts not parsed correctly
+        assert len(violations) == 1  # ASI now allows proper parsing of complex scripts
 
 
 class TestScriptVerboseBooleanCheckRuleIntegration:
