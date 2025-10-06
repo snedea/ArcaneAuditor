@@ -1,34 +1,24 @@
-# Arcane Auditor Configuration Scrolls 📜
+# Arcane Auditor Configuration Guide 📜
 
-This directory contains pre-configured spell sets for the Arcane Auditor. Choose the configuration that best fits your needs:
+This directory contains pre-configured rule sets for the Arcane Auditor. Choose the configuration that best fits your development workflow:
 
 ## Available Configurations
 
-### 🚀 **default.json** (Recommended)
+### 🚀 **development.json** (Recommended for Daily Development)
 
-- **All 34 rules enabled** with their default settings
-- Includes comprehensive analysis for PMD, Pod, and standalone .script files
-- Best for teams that want comprehensive code quality analysis
-- Good starting point for most users
+- **Development-friendly validation** with relaxed settings for active coding
+- **Console.log detection disabled** - allows debugging output during development
+- **Complexity rules relaxed** - allows longer functions during prototyping
+- **Critical safety rules enabled** - catches null safety, empty functions, etc.
+- **Use case**: Daily development, debugging, prototyping
 
-### ⚡ **minimal.json** (Quick Start)
+### 🎯 **production-ready.json** (Pre-Deployment Validation)
 
-- **Only 6 critical rules enabled**:
-  - `ScriptNullSafetyRule` - Prevents null reference exceptions
-  - `ScriptConsoleLogRule` - Removes console.log from production code
-  - `ScriptEmptyFunctionRule` - Detects empty function bodies
-  - `ScriptFunctionReturnConsistencyRule` - Ensures consistent return patterns
-  - `EndpointFailOnStatusCodesRule` - Proper error handling
-  - `WidgetIdRequiredRule` - Required widget IDs for debugging
-- Perfect for quick analysis or when you want to focus on critical issues only
-- **Note:** PMDSectionOrderingRule is disabled (style preference)
-
-### 🎯 **comprehensive.json** (Production Ready)
-
-- **All 34 rules enabled** with optimized severity levels
-- **ACTION severity** for must fix findings (console.log, null safety, etc.)
-- **ADVICE severity** for preferences and style improvements (string booleans, footer pods)
-- Best for production code reviews and CI/CD pipelines
+- **All 34 rules enabled** with strict settings for production code
+- **Console.log detection enabled** - ensures no debug output in production
+- **Strict complexity limits** - enforces clean, maintainable code
+- **ACTION severity** for critical issues, **ADVICE** for code quality
+- **Use case**: Pre-deployment validation, CI/CD pipelines, production code reviews
 
 ## How to Use
 
@@ -36,7 +26,7 @@ This directory contains pre-configured spell sets for the Arcane Auditor. Choose
 
 1. Go to the Arcane Auditor mystical web interface
 2. **Select a configuration** from the available options:
-   - **Built-in Configurations**: Default, Minimal, Comprehensive
+   - **Built-in Configurations**: Development, Production-Ready
    - **Team Configurations**: Custom team/project configurations (if available)
    - **Personal Configurations**: Personal developer overrides (if available)
 3. Upload your ZIP file
@@ -45,14 +35,11 @@ This directory contains pre-configured spell sets for the Arcane Auditor. Choose
 ### Command Line
 
 ```bash
-# Use default configuration (all rules)
-uv run main.py review-app myapp.zip
+# Use development configuration (recommended for daily development)
+uv run main.py review-app myapp.zip --config development
 
-# Use minimal configuration
-uv run main.py review-app myapp.zip --config minimal
-
-# Use comprehensive configuration
-uv run main.py review-app myapp.zip --config comprehensive
+# Use production-ready configuration (pre-deployment validation)
+uv run main.py review-app myapp.zip --config production-ready
 ```
 
 ### Custom Configuration

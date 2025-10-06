@@ -1,4 +1,4 @@
-# User Configurations Directory 🛡️
+# Team Configurations Directory 🛡️
 
 *Update-safe configurations for teams and projects*
 
@@ -19,11 +19,8 @@ This directory is **protected from application updates** and is the recommended 
 ## 📁 Directory Structure
 
 ```
-user_configs/
+config/teams/
 ├── README.md              # This file
-├── examples/              # Example configurations (reference only)
-│   ├── team-standard.json # Example team configuration (34 rules)
-│   └── beginner-friendly.json # Example beginner configuration (8 rules)
 ├── my-team-config.json    # Your team's active configuration
 └── project-specific.json  # Project-specific active rules
 ```
@@ -31,24 +28,23 @@ user_configs/
 ## ⚠️ Important: Active vs Example Configurations
 
 **Active Configurations** (used by the tool):
-- Place in the **root** of `user_configs/` directory
+- Place in the **root** of `config/teams/` directory
 - These are automatically discovered by the web interface
 - Use these for your actual team/project configurations
 
-**Example Configurations** (reference only):
-- Located in `user_configs/examples/` directory
-- These are templates to copy and modify
-- The tool does NOT automatically discover these
+**Reference Configurations**:
+- Use the preset configurations (`config/presets/`) as starting points
+- Copy and modify them to create your team configurations
 
 ## 🚀 Quick Start
 
-### 1. Copy an Example Configuration
+### 1. Copy a Preset Configuration
 ```bash
-# Copy an example to the root directory (not examples/)
-cp user_configs/examples/team-standard.json user_configs/my-config.json
+# Copy a preset as your starting point
+cp config/presets/development.json config/teams/my-config.json
 ```
 
-**Important**: Always copy examples to the **root** of `user_configs/`, not to `examples/`. The tool only discovers configurations in the root directory.
+**Important**: The preset configurations serve as perfect examples of how to configure the rules.
 
 ### 2. Customize Your Configuration
 Edit `user_configs/my-config.json` to match your team's needs:

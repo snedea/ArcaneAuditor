@@ -2,10 +2,12 @@
 Configuration Manager for Arcane Auditor
 
 Provides layered configuration loading with update-safe user configurations.
-Configurations are loaded in priority order:
-1. Local configs (local_configs/) - Highest priority, personal overrides
-2. User configs (user_configs/) - User/team customizations  
-3. App configs (configs/) - Application defaults
+Uses consolidated config structure for better organization and clarity.
+
+Structure (config/):
+1. Personal configs (config/personal/) - Highest priority, personal overrides
+2. Team configs (config/teams/) - Team/project customizations  
+3. Preset configs (config/presets/) - Application defaults
 
 This ensures user customizations survive application updates.
 """
@@ -25,11 +27,12 @@ class ConfigurationManager:
         """
         self.base_path = base_path or Path.cwd()
         
-        # Configuration directory paths in priority order (highest to lowest)
+        # Use consolidated config structure
+        config_dir = self.base_path / "config"
         self.config_paths = [
-            self.base_path / "local_configs",   # Highest priority - personal overrides
-            self.base_path / "user_configs",    # User/team customizations
-            self.base_path / "configs"          # Lowest priority - app defaults
+            config_dir / "personal",   # Highest priority - personal overrides
+            config_dir / "teams",      # Team/project customizations
+            config_dir / "presets"     # Lowest priority - app defaults
         ]
     
     def load_config(self, config_name: Optional[str] = None) -> ArcaneAuditorConfig:
@@ -61,8 +64,9 @@ class ConfigurationManager:
                 config_files.append(config_file)
         
         if not config_files:
-            # Fallback to default configuration
-            default_config_file = self.base_path / "configs" / "default.json"
+            # Fallback to development configuration (our new default)
+            default_config_file = self.base_path / "config" / "presets" / "development.json"
+            
             if default_config_file.exists():
                 return ArcaneAuditorConfig.from_file(str(default_config_file))
             else:
@@ -163,12 +167,21 @@ class ConfigurationManager:
             if not config_dir.exists():
                 continue
                 
-            dir_name = config_dir.name
+            # Use friendly directory names
+            if config_dir.name == "personal":
+                dir_name = "Personal Configurations"
+            elif config_dir.name == "teams":
+                dir_name = "Team Configurations"
+            elif config_dir.name == "presets":
+                dir_name = "Built-in Configurations"
+            else:
+                dir_name = config_dir.name
+            
             configs = []
             
             for config_file in config_dir.glob("*.json"):
-                # Skip files in examples subdirectory for user_configs
-                if config_dir.name == "user_configs" and "examples" in str(config_file):
+                # Skip files in examples subdirectory
+                if "examples" in str(config_file):
                     continue
                 configs.append(config_file.stem)
             
@@ -192,7 +205,10 @@ class ConfigurationManager:
             
             gitignore_file = config_dir / ".gitignore"
             
-            if config_dir.name == "configs":
+            # Check if this is an app-managed directory
+            is_app_managed = (config_dir.name == "presets")
+            
+            if is_app_managed:
                 safety_status[config_dir.name] = "App-managed (will be updated)"
             elif gitignore_file.exists():
                 safety_status[config_dir.name] = "Protected (update-safe)"

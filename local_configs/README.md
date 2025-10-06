@@ -1,4 +1,4 @@
-# Local Configurations Directory 🏠
+# Personal Configurations Directory 🏠
 
 *Personal developer settings and overrides*
 
@@ -76,7 +76,7 @@ echo '{
       "custom_settings": {}
     }
   }
-}' > local_configs/dev-mode.json
+}' > config/personal/dev-mode.json
 ```
 
 ### Use Personal Configuration
@@ -92,15 +92,15 @@ echo '{
 uv run main.py review-app myapp.zip --config dev-mode
 
 # Or full path
-uv run main.py review-app myapp.zip --config local_configs/dev-mode.json
+uv run main.py review-app myapp.zip --config config/personal/dev-mode.json
 ```
 
 ## 🎯 Configuration Priority
 
 When you specify a configuration name, the system searches in order:
-1. **`local_configs/name.json`** ← **Highest Priority** (Your personal settings)
-2. `user_configs/name.json` ← Team/project settings
-3. `configs/name.json` ← App default settings
+1. **`config/personal/name.json`** ← **Highest Priority** (Your personal settings)
+2. `config/teams/name.json` ← Team/project settings
+3. `config/presets/name.json` ← App default settings
 
 This means your local configurations **always win**! 🏆
 
@@ -148,13 +148,13 @@ This means your local configurations **always win**! 🏆
 Perfect for temporary rule adjustments:
 ```bash
 # Create a quick debugging config
-echo '{"rules":{"ScriptConsoleLogRule":{"enabled":false}}}' > local_configs/debug.json
+echo '{"rules":{"ScriptConsoleLogRule":{"enabled":false}}}' > config/personal/debug.json
 
 # Use it
 uv run main.py review-app myapp.zip --config debug
 
 # Remove when done
-rm local_configs/debug.json
+rm config/personal/debug.json
 ```
 
 Your personal configurations are **completely private** and will never interfere with team settings! 🏠✨

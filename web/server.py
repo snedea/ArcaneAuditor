@@ -39,11 +39,11 @@ def get_dynamic_config_info():
     """Dynamically discover configuration information from all config directories."""
     config_info = {}
     
-    # Search in priority order: local_configs, user_configs, configs
+    # Search in priority order: personal, teams, presets
     config_dirs = [
-        project_root / "local_configs",
-        project_root / "user_configs", 
-        project_root / "configs"
+        project_root / "config" / "personal",
+        project_root / "config" / "teams", 
+        project_root / "config" / "presets"
     ]
     
     for config_dir in config_dirs:
@@ -75,13 +75,13 @@ def get_dynamic_config_info():
                     performance = "Thorough"
                 
                 # Determine config type based on directory
-                if config_dir.name == "local_configs":
+                if config_dir.name == "personal":
                     config_type = "Personal"
                     description = f"Personal configuration with {enabled_rules} rules enabled"
-                elif config_dir.name == "user_configs":
+                elif config_dir.name == "teams":
                     config_type = "Team"
                     description = f"Team configuration with {enabled_rules} rules enabled"
-                elif config_dir.name == "configs":
+                elif config_dir.name == "presets":
                     config_type = "Built-in"
                     description = f"Built-in configuration with {enabled_rules} rules enabled"
                 

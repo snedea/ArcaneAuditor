@@ -221,3 +221,6 @@ plan_*.md
 
 # Release notes generation
 release_notes/
+
+# Personal configurations (highest priority)
+config/personal/

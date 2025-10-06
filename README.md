@@ -233,22 +233,13 @@ arcane-auditor/
 ├── assets/                                         	# Static assets
 │   └── arcane-auditor-logo.png                     	# Project logo
 │
-├── configs/                                        	# Base configurations (updated with app)
+├── config/                                         	# Consolidated configurations
 │   ├── README.md                                   	# Configuration guide
-│   ├── default.json                                	# Default rule configuration
-│   ├── minimal.json                                	# Minimal rule set
-│   ├── comprehensive.json                          	# All rules enabled
-│   └── examples/
-│       └── example_config.json                     	# Configuration example
-│
-├── user_configs/                                   	# Team/project settings (update-safe)
-│   ├── README.md                                   	# User configuration guide
-│   └── examples/
-│       ├── beginner-friendly.json                  	# Beginner-friendly rule set
-│       └── team-standard.json                      	# Team standard configuration
-│
-├── local_configs/                                  	# Personal overrides (highest priority)
-│   └── README.md                                   	# Local configuration guide
+│   ├── presets/                                    	# Built-in configurations (updated with app)
+│   │   ├── development.json                        	# Development-friendly validation
+│   │   └── production-ready.json                   	# Pre-deployment validation
+│   ├── teams/                                      	# Team/project settings (update-safe)
+│   └── personal/                                   	# Personal overrides (highest priority)
 │
 ├── docs/                                           	# Documentation
 │   └── RULE_BREAKDOWN.md                           	# Detailed rule documentation

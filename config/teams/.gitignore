@@ -1,15 +1,11 @@
-# User Configurations - Protected from App Updates
+# Team Configurations - Protected from App Updates
 # 
-# This directory contains user-created configurations that should
+# This directory contains team-created configurations that should
 # survive application updates. These files are excluded from git
 # to prevent conflicts during updates.
 
 # Ignore all JSON configuration files
 *.json
-
-# But keep the examples directory
-!examples/
-!examples/*.json
 
 # Keep documentation
 !README.md
