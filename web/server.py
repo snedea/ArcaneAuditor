@@ -85,13 +85,18 @@ def get_dynamic_config_info():
                     config_type = "Built-in"
                     description = f"Built-in configuration with {enabled_rules} rules enabled"
                 
-                config_info[config_name] = {
+                # Create unique key by combining config name with directory type
+                # This allows showing all versions (personal, team, built-in) in the UI
+                config_key = f"{config_name}_{config_dir.name}"
+                config_info[config_key] = {
                     "name": config_name.replace('_', ' ').title(),
                     "description": description,
                     "rules_count": enabled_rules,
                     "performance": performance,
                     "type": config_type,
-                    "path": str(config_file.relative_to(project_root))
+                    "path": str(config_file.relative_to(project_root)),
+                    "id": config_name,  # Original name for API compatibility
+                    "source": config_dir.name  # Track which directory it came from
                 }
                 
             except Exception as e:
@@ -322,6 +327,10 @@ async def upload_file(file: UploadFile = File(...), config: str = Form("default"
     if config not in config_info:
         raise HTTPException(status_code=400, detail=f"Invalid configuration: {config}")
     
+    # Get the actual config path from the selected config key
+    selected_config_info = config_info[config]
+    actual_config_path = selected_config_info["path"]  # This is the full path to the specific config file
+    
     # Generate job ID
     job_id = str(uuid.uuid4())
     
@@ -338,8 +347,8 @@ async def upload_file(file: UploadFile = File(...), config: str = Form("default"
                 buffer.write(chunk)
         
         # Create analysis job with configuration
-        job = AnalysisJob(job_id, zip_path, config)
-        print(f"DEBUG: Created job {job_id} with config='{config}'")
+        job = AnalysisJob(job_id, zip_path, actual_config_path)
+        print(f"DEBUG: Created job {job_id} with config='{actual_config_path}'")
         
         with job_lock:
             analysis_jobs[job_id] = job
@@ -352,7 +361,7 @@ async def upload_file(file: UploadFile = File(...), config: str = Form("default"
         # Cleanup old jobs
         cleanup_old_jobs()
         
-        return {"job_id": job_id, "status": "queued", "config": config}
+        return {"job_id": job_id, "status": "queued", "config": actual_config_path}
             
     except Exception as e:
         # Clean up file if upload failed
