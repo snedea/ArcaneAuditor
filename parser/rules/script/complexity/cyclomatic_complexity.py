@@ -8,7 +8,7 @@ class ScriptComplexityRule(ScriptRuleBase):
     """Rule to check for excessive cyclomatic complexity."""
 
     DESCRIPTION = "Ensures scripts don't exceed complexity thresholds (max 10 cyclomatic complexity)"
-    SEVERITY = "ACTION"
+    SEVERITY = "ADVICE"
     DETECTOR = CyclomaticComplexityDetector
 
     def get_description(self) -> str:

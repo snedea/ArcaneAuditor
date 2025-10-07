@@ -11,7 +11,7 @@ class ScriptUnusedVariableRule(ScriptRuleBase):
     """Validates that all declared variables are used with proper scoping."""
 
     DESCRIPTION = "Ensures all declared variables are used (prevents dead code) with proper scoping awareness"
-    SEVERITY = "ACTION"
+    SEVERITY = "ADVICE"
     DETECTOR = UnusedVariableDetector
 
     def get_description(self) -> str:

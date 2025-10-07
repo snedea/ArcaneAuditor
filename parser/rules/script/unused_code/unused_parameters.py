@@ -9,7 +9,7 @@ class ScriptUnusedFunctionParametersRule(ScriptRuleBase):
     """Validates that function parameters are actually used in the function body."""
 
     DESCRIPTION = "Ensures function parameters are actually used in the function body"
-    SEVERITY = "ACTION"
+    SEVERITY = "ADVICE"
     DETECTOR = UnusedParametersDetector
 
     def get_description(self) -> str:

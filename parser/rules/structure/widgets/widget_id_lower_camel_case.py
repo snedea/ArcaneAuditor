@@ -11,7 +11,7 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
     
     ID = "WidgetIdLowerCamelCaseRule"
     DESCRIPTION = "Ensures widget IDs follow lowerCamelCase naming convention (style guide for PMD and POD files)"
-    SEVERITY = "ACTION"
+    SEVERITY = "ADVICE"
     
     # Widget types that do not require or support ID values
     WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {

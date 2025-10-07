@@ -11,6 +11,13 @@ The rules are organized into two main categories:
 - **Script Rules (21 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
 - **Structure Rules (13 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
+## Severity Levels
+
+Rules use a simplified two-tier severity system:
+
+- **ACTION**: Critical issues that should be addressed immediately
+- **ADVICE**: Recommendations for code quality and best practices
+
 ---
 
 ## Script Rules (21 Rules)
@@ -19,7 +26,7 @@ The rules are organized into two main categories:
 
 ### ScriptVarUsageRule
 
-**Severity:** WARNING
+**Severity:** ADVICE
 **Description:** Ensures scripts use 'let' or 'const' instead of 'var' (best practice)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -45,7 +52,7 @@ let myVariable = "value";    // ✅ Use 'let' for mutable values
 
 ### ScriptDeadCodeRule
 
-**Severity:** WARNING
+**Severity:** ADVICE
 **Description:** Detects and removes dead code from standalone script files
 **Applies to:** Standalone .script files
 
@@ -98,7 +105,7 @@ If you want to keep unused helper functions, simply disable the entire rule:
 
 ### ScriptNestingLevelRule
 
-**Severity:** WARNING
+**Severity:** ADVICE
 **Description:** Ensures scripts don't have excessive nesting levels (max 4 levels)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -145,7 +152,7 @@ function processData(data) {
 
 ### ScriptComplexityRule
 
-**Severity:** WARNING
+**Severity:** ADVICE
 **Description:** Ensures scripts don't have excessive cyclomatic complexity (max 10)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -208,7 +215,7 @@ function processStandardOrder(order) {
 
 ### ScriptLongFunctionRule
 
-**Severity:** WARNING
+**Severity:** ADVICE
 **Description:** Ensures scripts don't have excessively long functions (max 50 lines)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -253,7 +260,7 @@ function formatOutput(data) {
 
 ### ScriptFunctionParameterCountRule
 
-**Severity:** WARNING
+**Severity:** ADVICE
 **Description:** Ensures functions don't have too many parameters (max 4)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -284,7 +291,7 @@ function createUser(personalInfo, contactInfo, workInfo) { // ✅ 3 logical grou
 
 ### ScriptConsoleLogRule
 
-**Severity:** WARNING
+**Severity:** ACTION
 **Description:** Ensures scripts don't contain console log statements (production code)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -317,7 +324,7 @@ function processData(data) {
 
 ### ScriptVariableNamingRule
 
-**Severity:** INFO
+**Severity:** ADVICE
 **Description:** Ensures variables follow lowerCamelCase naming convention
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -346,7 +353,7 @@ const userEmail = "email";    // ✅ lowerCamelCase
 
 ### ScriptFunctionParameterNamingRule
 
-**Severity:** WARNING
+**Severity:** ADVICE
 **Description:** Ensures function parameters follow lowerCamelCase naming convention
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -406,7 +413,7 @@ var isNewDateAfterReferenceDate = function (widget, newDate, referenceDate, mess
 
 ### ScriptArrayMethodUsageRule
 
-**Severity:** INFO
+**Severity:** ADVICE
 **Description:** Recommends using array higher-order methods (map, filter, forEach) instead of manual loops
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -438,7 +445,7 @@ const results = items
 
 ### ScriptMagicNumberRule
 
-**Severity:** INFO
+**Severity:** ADVICE
 **Description:** Ensures scripts don't contain magic numbers (use named constants)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -477,7 +484,7 @@ function calculateDiscount(price) {
 
 ### ScriptNullSafetyRule
 
-**Severity:** WARNING
+**Severity:** ACTION
 **Description:** Ensures property access chains are protected against null reference exceptions
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -505,7 +512,7 @@ const isProgrammer = skills.length > 0 && skills[0] == 'Programming'; // ✅ Saf
 
 ### ScriptDescriptiveParameterRule
 
-**Severity:** INFO
+**Severity:** ADVICE
 **Description:** Ensures functional method parameters use descriptive names instead of single letters (except 'i', 'j', 'k' for indices)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -573,7 +580,7 @@ const total = numbers.reduce((acc, num) => {acc + num});
 
 ### ScriptFunctionReturnConsistencyRule
 
-**Severity:** WARNING
+**Severity:** ADVICE
 **Description:** Ensures functions have consistent return patterns
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -608,7 +615,7 @@ function processUser(user) {
 
 ### ScriptStringConcatRule
 
-**Severity:** INFO
+**Severity:** ADVICE
 **Description:** Recommends using PMD template syntax instead of string concatenation
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -633,7 +640,7 @@ const message = `Hello {{userName}}, welcome to {{appName}}`; // ✅ PMD templat
 
 ### ScriptVerboseBooleanCheckRule
 
-**Severity:** INFO
+**Severity:** ADVICE
 **Description:** Recommends using concise boolean expressions
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -660,7 +667,7 @@ if (!user.active) { }             // ✅ Concise negation
 
 ### ScriptEmptyFunctionRule
 
-**Severity:** INFO
+**Severity:** ADVICE
 **Description:** Detects empty function bodies
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -683,7 +690,7 @@ const handler = function() { }; // ❌ Empty function
 
 ### ScriptUnusedFunctionRule
 
-**Severity:** WARNING
+**Severity:** ADVICE
 **Description:** Detects functions that are declared but never called
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -696,7 +703,7 @@ const handler = function() { }; // ❌ Empty function
 
 ### ScriptUnusedFunctionParametersRule
 
-**Severity:** INFO
+**Severity:** ADVICE
 **Description:** Detects unused function parameters
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -725,7 +732,7 @@ function processUser(user) { // ✅ Only used parameters
 
 ### ScriptUnusedVariableRule
 
-**Severity:** INFO
+**Severity:** ADVICE
 **Description:** Ensures all declared variables are used (prevents dead code)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
@@ -757,7 +764,7 @@ function processData() {
 
 ### ScriptUnusedScriptIncludesRule
 
-**Severity:** WARNING
+**Severity:** ADVICE
 **Description:** Detects script files that are included but never used in PMD files
 **Applies to:** PMD files with script includes
 
@@ -793,13 +800,94 @@ function processData() {
 
 ---
 
+### HardcodedApplicationIdRule
+
+**Severity:** ADVICE
+**Description:** Detects hardcoded applicationId values that should be replaced with site.applicationId
+**Applies to:** PMD and Pod files
+
+**What it catches:**
+
+- Hardcoded applicationId values in scripts and configurations
+- Values that should use site.applicationId instead
+
+**Example violations:**
+
+```javascript
+const appId = "12345"; // ❌ Hardcoded applicationId
+```
+
+**Fix:**
+
+```javascript
+const appId = site.applicationId; // ✅ Use site.applicationId
+```
+
+---
+
+### EmbeddedImagesRule
+
+**Severity:** ADVICE
+**Description:** Detects embedded images that should be stored as external files
+**Applies to:** PMD and Pod files
+
+**What it catches:**
+
+- Base64 encoded images embedded directly in files
+- Images that should be stored as external files
+
+**Example violations:**
+
+```json
+{
+  "type": "image",
+  "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..." // ❌ Embedded image
+}
+```
+
+**Fix:**
+
+```json
+{
+  "type": "image", 
+  "src": "/images/logo.png" // ✅ External image file
+}
+```
+
+---
+
+### HardcodedWidRule
+
+**Severity:** ADVICE
+**Description:** Detects hardcoded WID (Workday ID) values that should be configured in app attributes
+**Applies to:** PMD and Pod files
+
+**What it catches:**
+
+- Hardcoded 32-character WID values
+- WIDs that should be configured in app attributes
+
+**Example violations:**
+
+```javascript
+const workerWid = "d9e41a8c446c11de98360015c5e6daf6"; // ❌ Hardcoded WID
+```
+
+**Fix:**
+
+```javascript
+const workerWid = app.attributes.workerWid; // ✅ Use app attribute
+```
+
+---
+
 ## Structure Rules (13 Rules)
 
 *These rules validate widget configurations, endpoint structures, component compliance, hardcoded values, and PMD organization in both PMD and Pod files.*
 
 ### EndpointFailOnStatusCodesRule
 
-**Severity:** WARNING
+**Severity:** ACTION
 **Description:** Ensures endpoints properly handle 400 and 403 error status codes
 **Applies to:** PMD endpoint definitions and Pod seed endpoints
 
@@ -839,7 +927,7 @@ function processData() {
 
 ### EndpointNameLowerCamelCaseRule
 
-**Severity:** INFO
+**Severity:** ADVICE
 **Description:** Ensures endpoint names follow lowerCamelCase convention
 **Applies to:** PMD endpoint definitions and Pod seed endpoints
 
@@ -876,7 +964,7 @@ function processData() {
 
 ### EndpointOnSendSelfDataRule
 
-**Severity:** WARNING
+**Severity:** ADVICE
 **Description:** Ensures outbound endpoints don't use the anti-pattern 'self.data = {:}' in onSend scripts
 **Applies to:** PMD outbound endpoint definitions only
 
@@ -917,7 +1005,7 @@ function processData() {
 
 ### EndpointBaseUrlTypeRule
 
-**Severity:** WARNING
+**Severity:** ACTION
 **Description:** Ensures endpoint URLs don't include hardcoded *.workday.com or apiGatewayEndpoint values
 **Applies to:** PMD endpoint definitions and Pod seed endpoints
 
@@ -952,220 +1040,11 @@ function processData() {
 
 ---
 
-## Structure Rules (13 Rules)
-
-*These rules validate widget configurations, endpoint structures, and component compliance in both PMD and Pod files.*
-
-### WidgetIdRequiredRule
-
-**Severity:** ERROR
-**Description:** Ensures all widgets have required 'id' field
-**Applies to:** PMD presentation widgets and Pod template widgets
-
-**What it catches:**
-
-- Widgets missing required id field
-- Widgets that can't be properly referenced
-
-**Example violations:**
-
-```json
-{
-  "presentation": {
-    "body": {
-      "type": "section",
-      "children": [{
-        "type": "text",
-        "label": "Welcome"
-        // ❌ Missing required id field
-      }]
-    }
-  }
-}
-```
-
-**Fix:**
-
-```json
-{
-  "presentation": {
-    "body": {
-      "type": "section", 
-      "children": [{
-        "type": "text",
-        "label": "Welcome",
-        "id": "welcomeText" // ✅ Required id field
-      }]
-    }
-  }
-}
-```
-
----
-
-### WidgetIdLowerCamelCaseRule
-
-**Severity:** INFO
-**Description:** Ensures widget IDs follow lowerCamelCase convention
-**Applies to:** PMD presentation widgets and Pod template widgets
-
-**What it catches:**
-
-- Widget IDs that don't follow camelCase naming
-- Inconsistent naming conventions
-
-**Example violations:**
-
-```json
-{
-  "presentation": {
-    "body": {
-      "type": "section",
-      "children": [{
-        "type": "text",
-        "id": "welcome_text"  // ❌ snake_case
-      }, {
-        "type": "button",
-        "id": "UserProfile"   // ❌ PascalCase
-      }]
-    }
-  }
-}
-```
-
-**Fix:**
-
-```json
-{
-  "presentation": {
-    "body": {
-      "type": "section",
-      "children": [{
-        "type": "text",
-        "id": "welcomeText"   // ✅ lowerCamelCase
-      }, {
-        "type": "button", 
-        "id": "userProfile"   // ✅ lowerCamelCase
-      }]
-    }
-  }
-}
-```
-
----
-
-### FooterPodRequiredRule
-
-**Severity:** INFO
-**Description:** Ensures footer uses pod structure (direct pod or footer with pod children). Excludes PMD pages with tabs, hub pages, and microConclusion pages.
-**Applies to:** PMD footer widget definitions (excludes PMD pages with tabs section)
-
-**What it catches:**
-
-- Footer widgets that should use pod components
-- Missing pod references in footer widgets
-- Footer sections that don't utilize proper pod structure
-
-**What it excludes:**
-
-- PMD pages with tabs section (populated or empty) - tabs don't require footer pods
-- Hub pages (presentation.body.type == "hub") - hub pages don't require footer pods
-- MicroConclusion pages (presentation.attributes.microConclusion == true) - microConclusion pages don't require footer pods
-
-**Example violations:**
-
-```json
-{
-  "presentation": {
-    "footer": {
-      "type": "footer",
-      "children": [
-        {
-          "type": "text",
-          "label": "Footer text"
-          // ❌ Missing pod structure
-        }
-      ]
-    }
-  }
-}
-```
-
-**Fix:**
-
-```json
-{
-  "presentation": {
-    "footer": {
-      "type": "pod",
-      "podId": "footerPod"
-      // ✅ Direct pod structure
-    }
-  }
-}
-```
-
-**Or:**
-
-```json
-{
-  "presentation": {
-    "footer": {
-      "type": "footer",
-      "children": [
-        {
-          "type": "pod",
-          "podId": "footerPod"
-          // ✅ Footer with pod child
-        }
-      ]
-    }
-  }
-}
-```
-
----
-
-### StringBooleanRule
-
-**Severity:** INFO
-**Description:** Ensures boolean values are not stored as strings
-**Applies to:** PMD configuration values and Pod widget properties
-
-**What it catches:**
-
-- Boolean values stored as strings ("true"/"false")
-- Configuration that should use proper boolean types
-
-**Example violations:**
-
-```json
-{
-  "type": "text",
-  "id": "welcomeMessage",
-  "visible": "true",  // ❌ String instead of boolean
-  "enabled": "false"  // ❌ String instead of boolean
-}
-```
-
-**Fix:**
-
-```json
-{
-  "type": "text",
-  "id": "welcomeMessage",
-  "visible": true,    // ✅ Proper boolean
-  "enabled": false    // ✅ Proper boolean
-}
-```
-
----
-
 ## PMD Rules (2 Rules)
 
 ### PMDSectionOrderingRule
 
-**Severity:** INFO (configurable)
+**Severity:** ADVICE (configurable)
 **Description:** Ensures PMD file root-level sections follow consistent ordering for better readability
 **Applies to:** PMD file structure
 **Configurable:** ✅ Section order and enforcement can be customized
@@ -1262,7 +1141,7 @@ Each rule supports:
 
 ### PMDSecurityDomainRule
 
-**Severity:** SEVERE
+**Severity:** ACTION
 **Description:** Ensures PMD pages have at least one security domain defined (excludes microConclusion and error pages)
 **Applies to:** PMD file security configuration
 
@@ -1320,5 +1199,9 @@ The Arcane Auditor channels mystical powers through **34 rules** across **2 cate
 
 - ✅ **21 Script Rules** - Code quality for PMD and standalone scripts
 - ✅ **13 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+
+**Severity Distribution:**
+- **6 ACTION Rules**: Critical issues requiring immediate attention
+- **28 ADVICE Rules**: Recommendations for code quality and best practices
 
 These rules help maintain consistent, high-quality Workday Extend applications by catching issues that compilers aren't designed to catch, but are important for maintainability, performance, and team collaboration.

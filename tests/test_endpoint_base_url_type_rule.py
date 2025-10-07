@@ -17,7 +17,7 @@ class TestEndpointBaseUrlTypeRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
-        assert self.rule.SEVERITY == "ADVICE"
+        assert self.rule.SEVERITY == "ACTION"
         assert "url" in self.rule.DESCRIPTION.lower()
 
 

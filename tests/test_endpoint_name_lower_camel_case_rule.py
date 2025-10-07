@@ -17,7 +17,7 @@ class TestEndpointNameLowerCamelCaseRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "EndpointNameLowerCamelCaseRule"  # ValidationRule uses class name
-        assert self.rule.SEVERITY == "ACTION"
+        assert self.rule.SEVERITY == "ADVICE"
         assert "endpoint" in self.rule.DESCRIPTION.lower()
 
 
