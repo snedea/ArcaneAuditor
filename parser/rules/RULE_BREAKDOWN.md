@@ -1302,13 +1302,13 @@ Currently uses strict mode - all PMD pages require security domains unless speci
 
 ## Summary
 
-The Arcane Auditor channels mystical powers through **35 rules** across **2 categories**:
+The Arcane Auditor channels mystical powers through **36 rules** across **2 categories**:
 
-- ✅ **21 Script Rules** - Code quality for PMD and standalone scripts
+- ✅ **22 Script Rules** - Code quality for PMD and standalone scripts
 - ✅ **14 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 **Severity Distribution:**
-- **7 ACTION Rules**: Critical issues requiring immediate attention
-- **28 ADVICE Rules**: Recommendations for code quality and best practices
+- **6 ACTION Rules**: Critical issues requiring immediate attention
+- **30 ADVICE Rules**: Recommendations for code quality and best practices
 
 These rules help maintain consistent, high-quality Workday Extend applications by catching issues that compilers aren't designed to catch, but are important for maintainability, performance, and team collaboration.
