@@ -779,39 +779,13 @@ function showConfigBreakdown() {
         return;
     }
     
-    console.log('Selected config:', config); // Debug logging
-    console.log('Config rules:', config.rules); // Debug logging
-    
-    content.innerHTML = generateConfigBreakdownHTML(config);
-    modal.style.display = 'flex';
-}
-
-function hideConfigBreakdown() {
-    const modal = document.getElementById('config-breakdown-modal');
-    modal.style.display = 'none';
-}
-
-function generateConfigBreakdownHTML(config) {
     const rules = config.rules || {};
     const enabledRules = Object.entries(rules).filter(([_, ruleConfig]) => ruleConfig.enabled);
     const disabledRules = Object.entries(rules).filter(([_, ruleConfig]) => !ruleConfig.enabled);
     
-    // If no rules data is available, show a message
-    if (Object.keys(rules).length === 0) {
-        return `
-            <div class="config-breakdown-section">
-                <h4>📊 Configuration Summary</h4>
-                <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                    <p>⚠️ Rules data not available for this configuration.</p>
-                    <p>This may be a legacy configuration or the data is not loaded.</p>
-                </div>
-            </div>
-        `;
-    }
-    
     let html = `
         <div class="config-breakdown-section">
-            <h4>📊 Configuration Summary</h4>
+            <h4>📊 Configuration: ${config.name}</h4>
             <div class="config-summary-grid">
                 <div class="summary-card enabled">
                     <div class="summary-number">${enabledRules.length}</div>
@@ -847,7 +821,12 @@ function generateConfigBreakdownHTML(config) {
                 <div class="rule-item enabled">
                     <div class="rule-name">${ruleName}</div>
                     <div class="rule-description">Severity: ${severity}</div>
-                    ${settingsText ? `<div class="rule-settings">${settingsText}</div>` : ''}
+                    ${settingsText ? `
+                        <div class="rule-settings">
+                            <div class="settings-label">Custom Settings:</div>
+                            <pre class="settings-json">${settingsText}</pre>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         });
@@ -880,7 +859,14 @@ function generateConfigBreakdownHTML(config) {
         `;
     }
     
-    return html;
+    content.innerHTML = html;
+    
+    modal.style.display = 'flex';
+}
+
+function hideConfigBreakdown() {
+    const modal = document.getElementById('config-breakdown-modal');
+    modal.style.display = 'none';
 }
 
 // Close modal when clicking outside

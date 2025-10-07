@@ -536,19 +536,42 @@ header p {
 }
 
 .rule-settings {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    background: var(--bg-tertiary);
-    padding: 6px 8px;
-    border-radius: 4px;
-    font-family: 'Courier New', monospace;
-    border: 1px solid var(--border-light);
-    white-space: pre-wrap;
-    word-break: break-all;
+    margin-top: 8px;
 }
 
-.rule-settings:empty {
-    display: none;
+.settings-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.settings-json {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border-light);
+    font-family: 'Courier New', 'Consolas', monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 0;
+    overflow-x: auto;
+    line-height: 1.4;
+}
+
+/* Theme-specific JSON styling */
+[data-theme="light"] .settings-json {
+    background: #f8f9fa;
+    border-color: #e9ecef;
+    color: #495057;
+}
+
+[data-theme="dark"] .settings-json {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
 }
 
 /* Configuration Summary Grid */
