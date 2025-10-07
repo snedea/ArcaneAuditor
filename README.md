@@ -221,6 +221,7 @@ The web interface provides:
 For easier web service startup, use the provided scripts instead of remembering the command syntax:
 
 **Windows:**
+
 ```bash
 # Simple startup (opens browser automatically)
 start-web-service.bat
@@ -230,6 +231,7 @@ start-web-service.bat --port 3000 --host 0.0.0.0
 ```
 
 **Linux/macOS:**
+
 ```bash
 # Simple startup (opens browser automatically)
 ./start-web-service.sh
@@ -264,6 +266,40 @@ The FastAPI server provides the following REST API endpoints:
 
   - Returns: `{"status": "healthy"}`
 - **`GET /docs`** - Interactive API documentation (Swagger UI)
+
+## 🧙‍♂️ Arcane Auditor Web User Interface
+
+Arcane Auditor offers both **Dark** and **Light** themes — revealing code quality insights in true mystical style.
+
+<h3>🪄 Upload Your Extend Application</h3>
+<p align="center">
+  <img src="assets/upload-dark.png" width="48%">
+  <img src="assets/upload-light.png" width="48%">
+</p>
+
+<h3>⚙️ Choose Your Configuration</h3>
+<p align="center">
+  <img src="assets/config-dark.png" width="48%">
+  <img src="assets/config-light.png" width="48%">
+</p>
+
+<h3>📊 View Analysis Results</h3>
+<p align="center">
+  <img src="assets/results-dark.png" width="48%">
+  <img src="assets/results-light.png" width="48%">
+</p>
+
+<h3>🗂️ Browse Issues by File</h3>
+<p align="center">
+  <img src="assets/issues-dark.png" width="48%">
+  <img src="assets/issues-light.png" width="48%">
+</p>
+
+<h3>🔍 Inspect Detailed Rule Violations</h3>
+<p align="center">
+  <img src="assets/details-dark.png" width="48%">
+  <img src="assets/details-light.png" width="48%">
+</p>
 
 ### Basic Usage
 
