@@ -18,6 +18,12 @@ class TestFooterPodHubMicroExclusions:
     def context(self):
         """Create ProjectContext instance."""
         return ProjectContext()
+    
+    def test_rule_metadata(self, rule):
+        """Test rule metadata is correctly set."""
+        assert rule.ID == "RULE000"  # Base class default
+        assert rule.SEVERITY == "ADVICE"
+        assert "footer" in rule.DESCRIPTION.lower()
 
     def test_hub_page_excluded(self, rule, context):
         """Test that hub pages are excluded from footer pod requirements."""

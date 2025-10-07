@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-"""Unit tests for ScriptComplexityRule."""
+"""Unit tests for ScriptFunctionReturnConsistencyRule."""
 
 import pytest
-from parser.rules.script.complexity.cyclomatic_complexity import ScriptComplexityRule
+from parser.rules.script.logic.return_consistency import ScriptFunctionReturnConsistencyRule
 from parser.models import ProjectContext
 
 
-class TestScriptComplexityRule:
-    """Test cases for ScriptComplexityRule class."""
+class TestScriptFunctionReturnConsistencyRule:
+    """Test cases for ScriptFunctionReturnConsistencyRule class."""
     
     def setup_method(self):
         """Set up test fixtures."""
-        self.rule = ScriptComplexityRule()
+        self.rule = ScriptFunctionReturnConsistencyRule()
         self.context = ProjectContext()
     
     def test_rule_metadata(self):
         """Test rule metadata is correctly set."""
         assert self.rule.ID == "RULE000"  # Base class default
         assert self.rule.SEVERITY == "ACTION"
-        assert "complexity" in self.rule.DESCRIPTION.lower()
+        assert "return" in self.rule.DESCRIPTION.lower()
 
 
 if __name__ == '__main__':
