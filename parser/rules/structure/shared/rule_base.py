@@ -27,6 +27,10 @@ class StructureRuleBase(Rule, ABC):
         # Analyze POD files
         for pod_model in context.pods.values():
             yield from self._analyze_pod(pod_model, context)
+        
+        # Analyze AMD file if present
+        if context.amd:
+            yield from self._analyze_amd(context.amd, context)
     
     def _analyze_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze PMD file - must be implemented by subclasses."""
@@ -35,6 +39,10 @@ class StructureRuleBase(Rule, ABC):
     def _analyze_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze POD file - must be implemented by subclasses."""
         yield from self.visit_pod(pod_model, context)
+    
+    def _analyze_amd(self, amd_model, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Analyze AMD file - can be overridden by subclasses."""
+        yield from self.visit_amd(amd_model, context)
     
     @abstractmethod
     def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
@@ -45,6 +53,12 @@ class StructureRuleBase(Rule, ABC):
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Visit POD model - must be implemented by subclasses."""
         pass
+    
+    def visit_amd(self, amd_model, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Visit AMD model - can be overridden by subclasses."""
+        # Default implementation does nothing
+        return
+        yield  # This line is never reached, but makes it a generator
     
     def _create_finding(self, message: str, file_path: str, line: int = 1) -> Finding:
         """Create a finding with consistent formatting."""

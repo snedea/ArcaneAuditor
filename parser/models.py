@@ -360,6 +360,7 @@ class AMDModel(BaseModel):
     routes: Dict[str, AMDRoute]
     baseUrls: Optional[Dict[str, str]] = Field(default_factory=dict)
     flows: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    dataProviders: Optional[List[Dict[str, str]]] = Field(default_factory=list)
     file_path: str = Field(..., exclude=True)
     
 class SMDModel(BaseModel):

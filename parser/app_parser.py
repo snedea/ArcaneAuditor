@@ -207,6 +207,7 @@ class ModelParser:
                     routes=amd_data.get('routes', {}),
                     baseUrls=amd_data.get('baseUrls', {}),
                     flows=amd_data.get('flows', {}),
+                    dataProviders=amd_data.get('dataProviders', []),
                     file_path=file_path
                 )
                 context.amd = amd_model
