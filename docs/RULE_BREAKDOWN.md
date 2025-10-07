@@ -1,15 +1,15 @@
 # Arcane Auditor Rules Grimoire 📜
 
-*Ancient wisdom distilled into 34 mystical validation rules*
+*Ancient wisdom distilled into 35 mystical validation rules*
 
-This grimoire provides a comprehensive overview of all **34 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
+This grimoire provides a comprehensive overview of all **35 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
 
 ## Rule Categories
 
 The rules are organized into two main categories:
 
 - **Script Rules (21 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
-- **Structure Rules (13 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- **Structure Rules (14 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 ## Severity Levels
 
@@ -881,7 +881,55 @@ const workerWid = app.attributes.workerWid; // ✅ Use app attribute
 
 ---
 
-## Structure Rules (13 Rules)
+### AMDDataProvidersWorkdayRule
+
+**Severity:** ACTION
+**Description:** Ensures AMD dataProviders don't use hardcoded *.workday.com URLs
+**Applies to:** AMD application definition files
+
+**What it catches:**
+
+- Hardcoded *.workday.com URLs in AMD dataProviders
+- URLs that should use apiGatewayEndpoint variable instead
+- Both HTTP and HTTPS workday.com URLs
+
+**Example violations:**
+
+```json
+{
+  "dataProviders": [
+    {
+      "key": "workday-common",
+      "value": "https://api.workday.com/common/v1/"  // ❌ Hardcoded workday.com URL
+    },
+    {
+      "key": "workday-hcm", 
+      "value": "https://services.workday.com/hcm/v1/"  // ❌ Hardcoded workday.com URL
+    }
+  ]
+}
+```
+
+**Fix:**
+
+```json
+{
+  "dataProviders": [
+    {
+      "key": "workday-app",
+      "value": "<% apiGatewayEndpoint + '/apps/' + site.applicationId + '/v1/' %>"  // ✅ Use apiGatewayEndpoint
+    },
+    {
+      "key": "workday-common",
+      "value": "<% apiGatewayEndpoint + '/common/v1/' %>"  // ✅ Use apiGatewayEndpoint
+    }
+  ]
+}
+```
+
+---
+
+## Structure Rules (14 Rules)
 
 *These rules validate widget configurations, endpoint structures, component compliance, hardcoded values, and PMD organization in both PMD and Pod files.*
 
@@ -1195,13 +1243,13 @@ Currently uses strict mode - all PMD pages require security domains unless speci
 
 ## Summary
 
-The Arcane Auditor channels mystical powers through **34 rules** across **2 categories**:
+The Arcane Auditor channels mystical powers through **35 rules** across **2 categories**:
 
 - ✅ **21 Script Rules** - Code quality for PMD and standalone scripts
-- ✅ **13 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- ✅ **14 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 **Severity Distribution:**
-- **6 ACTION Rules**: Critical issues requiring immediate attention
+- **7 ACTION Rules**: Critical issues requiring immediate attention
 - **28 ADVICE Rules**: Recommendations for code quality and best practices
 
 These rules help maintain consistent, high-quality Workday Extend applications by catching issues that compilers aren't designed to catch, but are important for maintainability, performance, and team collaboration.
