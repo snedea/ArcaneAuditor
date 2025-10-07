@@ -1,5 +1,7 @@
 ![Arcane Auditor Logo](assets/arcane-auditor-logo.png)
 
+**Version: 0.3.0-beta.1** | [📋 Release Notes](RELEASE_NOTES_0.3.0-beta.1.md) | [🚀 Download Latest](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases/tag/v0.3.0-beta.1)
+
 *A mystical code review tool for Workday Extend applications that validates PMD, Pod, and Script syntax, structure compliance, and coding best practices.*
 
 ## 🎯 Overview
@@ -88,17 +90,17 @@ pip install uv
 ```bash
 # Download the latest release ZIP from GitHub
 # Visit: https://github.com/Developers-and-Dragons/ArcaneAuditor/releases
-# Download arcane-auditor-0.2.0-beta.1.zip and extract it
+# Download arcane-auditor-0.3.0-beta.1.zip and extract it
 
 # Or using command line (Windows PowerShell)
-Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.2.0-beta.1.zip" -OutFile "arcane-auditor.zip"
+Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.3.0-beta.1.zip" -OutFile "arcane-auditor.zip"
 Expand-Archive -Path "arcane-auditor.zip" -DestinationPath "."
-cd ArcaneAuditor-0.2.0-beta.1
+cd ArcaneAuditor-0.3.0-beta.1
 
 # Or using command line (macOS)
-curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.2.0-beta.1.zip"
+curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.3.0-beta.1.zip"
 unzip arcane-auditor.zip
-cd ArcaneAuditor-0.2.0-beta.1
+cd ArcaneAuditor-0.3.0-beta.1
 
 # Install dependencies (UV handles Python version and virtual environment automatically)
 uv sync
@@ -157,32 +159,17 @@ uv run main.py --help
 
 You should see mystical analysis output with validation findings! 🔮
 
-## 🆕 What's New in 0.2.0
+## 🆕 What's New in 0.3.0-beta.1
 
-This release brings significant improvements to the configuration system and validation rules:
+This release brings web interface improvements, new validation rules, and enhanced user experience:
 
-### 🔧 Major Configuration System Overhaul
+### 🌐 Web Interface Overhaul
 
-- **Consolidated Configuration Structure**: All configurations now live in a single `config/` directory with clear separation:
-
-  - `config/presets/` - Built-in configurations (development, production-ready)
-  - `config/teams/` - Team/project settings (update-safe)
-  - `config/personal/` - Personal overrides (highest priority)
-- **Simplified Presets**: Streamlined to just 2 essential presets:
-
-  - **Development** - Development-friendly validation allowing console.debug, etc.
-  - **Production-Ready** - Pre-deployment validation with strict settings
-
-### 🛠️ Enhanced Validation Rules
-
-- **Improved Rule Architecture**: All structure rules now follow consistent patterns
-- **Better Line Number Accuracy**: Enhanced source content analysis for precise violation reporting
-
-### 🌐 Web Interface Improvements
-
-- **Configuration Persistence**: Remembers your last selected configuration
-- **Unique Configuration Keys**: Shows all versions of configs (personal, team, built-in) with unique identifiers
-- **Cache-Busting**: Prevents stale configuration data from being displayed
+- **Interactive Configuration Breakdown**: New modal system showing detailed rule information with enabled/disabled counts
+- **Enhanced User Experience**: Improved layout with file upload at top, configuration selection below
+- **Definitive Scroll Jiggle Fix**: 2-part solution eliminating all layout shifts and scroll bar jumping
+- **Enhanced Dark Mode**: Fixed hover text readability and improved contrast across all components
+- **Cross-Platform Startup Scripts**: Windows (`.bat`) and Linux/macOS (`.sh`) convenience scripts
 
 ### Web Interface (Recommended)
 
@@ -329,7 +316,17 @@ arcane-auditor/
 ├── WEB_SERVICE_SCRIPTS.md                         	# Web service scripts documentation
 │
 ├── assets/                                         	# Static assets
-│   └── arcane-auditor-logo.png                     	# Project logo
+│   ├── arcane-auditor-logo.png                     	# Project logo
+│   ├── config-dark.png                             	# Web UI config selection (dark mode)
+│   ├── config-light.png                            	# Web UI config selection (light mode)
+│   ├── details-dark.png                            	# Web UI configuration details (dark mode)
+│   ├── details-light.png                           	# Web UI configuration details (light mode)
+│   ├── issues-dark.png                             	# Web UI issues view (dark mode)
+│   ├── issues-light.png                            	# Web UI issues view (light mode)
+│   ├── results-dark.png                            	# Web UI results view (dark mode)
+│   ├── results-light.png                           	# Web UI results view (light mode)
+│   ├── upload-dark.png                             	# Web UI upload view (dark mode)
+│   └── upload-light.png                            	# Web UI upload view (light mode)
 │
 ├── config/                                         	# Consolidated configurations
 │   ├── README.md                                   	# Configuration guide
