@@ -288,6 +288,9 @@ arcane-auditor/
 ├── README.md                                       	# This file
 ├── LICENSE                                         	# MIT License
 ├── uv.lock                                         	# UV package lock file
+├── start-web-service.bat                          	# Windows web service startup script
+├── start-web-service.sh                           	# Linux/macOS web service startup script
+├── WEB_SERVICE_SCRIPTS.md                         	# Web service scripts documentation
 │
 ├── assets/                                         	# Static assets
 │   └── arcane-auditor-logo.png                     	# Project logo
@@ -325,7 +328,7 @@ arcane-auditor/
 │       ├── __init__.py                             	# Rules package
 │       ├── base.py                                 	# Base Rule class and utilities
 │       ├── common_validations.py                   	# Shared validation functions
-│       ├── line_number_utils.py                    	# Line number calculation utilities
+│       ├── RULE_BREAKDOWN.md                       	# Complete rules documentation
 │       │
 │       ├── common/                                 	# Shared rule utilities
 │       │   ├── __init__.py
@@ -340,7 +343,8 @@ arcane-auditor/
 │       │   │   ├── rule_base.py                    	# ScriptRuleBase class
 │       │   │   ├── detector.py                     	# ScriptDetector abstract class
 │       │   │   ├── violation.py                    	# Script violation dataclass
-│       │   │   └── ast_utils.py                    	# AST manipulation utilities
+│       │   │   ├── ast_utils.py                    	# AST manipulation utilities
+│       │   │   └── template_literal_preprocessor.py	# Template literal preprocessing
 │       │   │
 │       │   ├── core/                               	# Basic syntax/style rules
 │       │   │   ├── __init__.py
@@ -361,6 +365,8 @@ arcane-auditor/
 │       │   │   ├── cyclomatic_complexity_detector.py
 │       │   │   ├── long_function.py                	# ScriptLongFunctionRule
 │       │   │   ├── long_function_detector.py
+│       │   │   ├── long_script_block.py            	# LongScriptBlockRule
+│       │   │   ├── long_script_block_detector.py
 │       │   │   ├── function_parameter_count.py     	# ScriptFunctionParameterCountRule
 │       │   │   └── function_parameter_count_detector.py
 │       │   │
@@ -386,7 +392,7 @@ arcane-auditor/
 │       │       ├── descriptive_parameters.py       	# ScriptDescriptiveParameterRule
 │       │       ├── descriptive_parameters_detector.py
 │       │       ├── array_method_usage.py      	# ScriptArrayMethodUsageRule
-│       │       ├── functional_method_usage_detector.py
+│       │       ├── array_method_usage_detector.py
 │       │       ├── verbose_boolean.py              	# ScriptVerboseBooleanCheckRule
 │       │       ├── verbose_boolean_detector.py
 │       │       ├── return_consistency.py           	# ScriptFunctionReturnConsistencyRule
@@ -415,6 +421,7 @@ arcane-auditor/
 │       │   │
 │       │   └── validation/                         	# General validation rules
 │       │       ├── __init__.py
+│       │       ├── amd_data_providers_workday.py   	# AMDDataProvidersWorkdayRule
 │       │       ├── footer_pod_required.py          	# FooterPodRequiredRule
 │       │       ├── string_boolean.py               	# StringBooleanRule
 │       │       ├── embedded_images.py              	# EmbeddedImagesRule
@@ -454,7 +461,7 @@ arcane-auditor/
 │   ├── test_script_empty_function_rule.py          	# Empty function tests
 │   ├── test_script_dead_code.py               	# Dead code tests
 │   ├── test_script_function_parameter_count_rule.py    # Parameter count tests
-│   ├── test_script_functional_method_usage_rule.py     # Functional method tests
+│   ├── test_script_array_method_usage_rule.py           # Array method tests
 │   ├── test_script_verbose_boolean_rule.py         	# Verbose boolean tests
 │   ├── test_unused_script_includes.py              	# Unused includes tests
 │   ├── test_embedded_images_rule.py                	# Embedded images tests
@@ -463,6 +470,8 @@ arcane-auditor/
 │   ├── test_pmd_section_ordering.py                	# PMD section ordering tests
 │   ├── test_string_boolean_rule.py                 	# String boolean tests
 │   ├── test_widget_traversal.py                    	# Widget traversal tests
+│   ├── test_long_script_block_rule.py             	# Long script block tests
+│   ├── test_amd_data_providers_workday_rule.py     	# AMD data providers tests
 │   └── test_pmd_script_grammar.py                  	# PMD script grammar tests
 │
 └── uploads/                                        	# Temporary file uploads
