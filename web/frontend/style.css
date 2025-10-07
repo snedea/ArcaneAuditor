@@ -1094,6 +1094,28 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
     box-shadow: 0 4px 15px rgba(129, 140, 248, 0.3);
 }
 
+/* Dark mode hover text colors */
+[data-theme="dark"] .config-option:hover .config-name {
+    color: #ffffff;
+}
+
+[data-theme="dark"] .config-option:hover .config-description {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .config-option:hover .config-meta {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .config-option:hover .config-rules-count {
+    background: rgba(129, 140, 248, 0.2);
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .config-option:hover .config-performance {
+    color: #f1f5f9;
+}
+
 
 /* === Color-blind friendly cues === */
 .config-performance.fast::before {
