@@ -1249,7 +1249,7 @@ Each rule supports:
 ### PMDSecurityDomainRule
 
 **Severity:** ACTION
-**Description:** Ensures PMD pages have at least one security domain defined (excludes microConclusion and error pages)
+**Description:** Ensures PMD pages have at least one security domain defined (excludes microConclusion and error pages unless strict mode is enabled)
 **Applies to:** PMD file security configuration
 
 **What it catches:**
@@ -1258,11 +1258,11 @@ Each rule supports:
 - Empty `securityDomains` arrays
 - Enforces security best practices for Workday applications
 
-**Smart Exclusions:**
+**Smart Exclusions (configurable):**
 
-- **MicroConclusion pages**: Pages with `presentation.microConclusion: true` are excluded
-- **Error pages**: Pages whose ID appears in SMD `errorPageConfigurations` are excluded
-- Only enforces security domains on pages that actually need them
+- **MicroConclusion pages**: Pages with `presentation.microConclusion: true` are excluded (unless strict mode)
+- **Error pages**: Pages whose ID appears in SMD `errorPageConfigurations` are excluded (unless strict mode)
+- Only enforces security domains on pages that actually need them (unless strict mode)
 
 **Example violations:**
 
@@ -1284,7 +1284,7 @@ Each rule supports:
   }
 }
 
-// ✅ MicroConclusion page (excluded)
+// ✅ MicroConclusion page (excluded in normal mode)
 {
   "id": "microPage",
   "presentation": {
@@ -1296,7 +1296,22 @@ Each rule supports:
 
 **Configuration:**
 
-Currently uses strict mode - all PMD pages require security domains unless specifically excluded.
+- **`strict`** (boolean, default: false): When enabled, requires security domains for ALL PMD pages, including microConclusion and error pages
+  - `false`: Normal mode with smart exclusions (default for all presets)
+  - `true`: Strict mode requiring security domains for all pages (opt-in only)
+
+**Example configuration:**
+
+```json
+{
+  "PMDSecurityDomainRule": {
+    "enabled": true,
+    "custom_settings": {
+      "strict": true
+    }
+  }
+}
+```
 
 ---
 

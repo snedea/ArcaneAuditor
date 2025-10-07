@@ -180,7 +180,9 @@
     "PMDSecurityDomainRule": {
       "enabled": true,
       "severity_override": "ACTION",
-      "custom_settings": {}
+      "custom_settings": {
+        "strict": false
+      }
     },
     "AMDDataProvidersWorkdayRule": {
       "enabled": true,
