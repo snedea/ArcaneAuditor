@@ -1,14 +1,14 @@
 # Arcane Auditor Rules Grimoire 📜
 
-*Ancient wisdom distilled into 35 mystical validation rules*
+*Ancient wisdom distilled into 36 mystical validation rules*
 
-This grimoire provides a comprehensive overview of all **35 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
+This grimoire provides a comprehensive overview of all **36 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
 
 ## Rule Categories
 
 The rules are organized into two main categories:
 
-- **Script Rules (21 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
+- **Script Rules (22 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
 - **Structure Rules (14 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 ## Severity Levels
@@ -20,7 +20,7 @@ Rules use a simplified two-tier severity system:
 
 ---
 
-## Script Rules (21 Rules)
+## Script Rules (22 Rules)
 
 *These rules analyze PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files for comprehensive code quality validation.*
 
@@ -253,6 +253,65 @@ function transformData(data) {
 
 function formatOutput(data) {
     // ... formatting logic ...
+}
+```
+
+### LongScriptBlockRule
+
+**Severity:** ADVICE
+**Description:** Ensures non-function script blocks in PMD/POD files don't exceed maximum line count (max 30 lines). Excludes function definitions which are handled by ScriptLongFunctionRule.
+**Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+
+**What it catches:**
+
+- Script blocks (onLoad, onChange, onSend, etc.) that exceed 30 statements
+- Long procedural code that should be refactored into functions
+- Script blocks that violate single responsibility principle
+
+**Example violations:**
+
+```javascript
+// In onLoad field
+<%
+    pageVariables.data1 = processData1();
+    pageVariables.data2 = processData2();
+    // ... 35+ statements ...
+    pageVariables.data35 = processData35();
+%>
+```
+
+**Fix:**
+
+```javascript
+// Break into smaller functions
+<%
+    initializePageData();
+    setupEventHandlers();
+    configureWidgets();
+%>
+
+// Define functions elsewhere
+function initializePageData() {
+    pageVariables.data1 = processData1();
+    pageVariables.data2 = processData2();
+    // ... smaller, focused logic
+}
+```
+
+**Configuration:**
+
+The threshold can be customized in config files:
+
+```json
+{
+  "rules": {
+    "LongScriptBlockRule": {
+      "enabled": true,
+      "custom_settings": {
+        "max_lines": 30
+      }
+    }
+  }
 }
 ```
 
