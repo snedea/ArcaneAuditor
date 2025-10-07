@@ -69,6 +69,23 @@ class NullSafetyDetector(ScriptDetector):
                             'line': line,
                             'node': node
                         })
+            
+            # Also check template literals for property access expressions
+            elif node.data == 'literal_expression':
+                template_chains = self._extract_property_chains_from_template_literal(node)
+                for chain_info in template_chains:
+                    chain = chain_info['chain']
+                    if self._is_unsafe_chain_with_context(ast, chain, safe_variables):
+                        line = chain_info['line']
+                        chain_key = (chain, line)
+                        
+                        if chain_key not in seen_chains:
+                            seen_chains.add(chain_key)
+                            all_chains.append({
+                                'chain': chain,
+                                'line': line,
+                                'node': node
+                            })
 
         # Filter out redundant chains - only keep the longest/most specific ones
         filtered_chains = self._filter_redundant_chains(all_chains)
@@ -93,6 +110,10 @@ class NullSafetyDetector(ScriptDetector):
             return False
         
         root_object = parts[0]
+        
+        # Check if the chain is safe due to null coalescing protection (highest priority)
+        if self._is_chain_safe_due_to_null_coalescing(ast, chain):
+            return False
         
         # Check if the entire chain is safe (e.g., from render/exclude conditions)
         if chain in safe_variables:
@@ -225,6 +246,143 @@ class NullSafetyDetector(ScriptDetector):
         else:
             return f"<expression>.{property_name}"
 
+    def _extract_property_chains_from_template_literal(self, node: Tree) -> List[dict]:
+        """Extract property access chains from template literals with {{ }} interpolation."""
+        chains = []
+        
+        if node.data != 'literal_expression' or len(node.children) == 0:
+            return chains
+            
+        # Check if this is a template literal
+        token = node.children[0]
+        if not hasattr(token, 'type') or token.type != 'TEMPLATE_LITERAL':
+            return chains
+            
+        template_content = token.value
+        line = getattr(node.meta, 'line', 1)
+        
+        # Use the template literal preprocessor to get structured AST
+        preprocessor = self._get_template_preprocessor()
+        try:
+            template_tree = preprocessor.preprocess_template_literal(token)
+            
+            # Extract property access chains from the structured template tree
+            chains = self._extract_chains_from_template_tree(template_tree, line)
+            
+        except Exception:
+            # Fallback to regex approach if preprocessor fails
+            chains = self._extract_chains_from_template_regex(template_content, line)
+        
+        return chains
+    
+    def _get_template_preprocessor(self):
+        """Get or create the template literal preprocessor."""
+        if not hasattr(self, '_template_preprocessor'):
+            from ..shared.template_literal_preprocessor import TemplateLiteralPreprocessor
+            self._template_preprocessor = TemplateLiteralPreprocessor()
+        return self._template_preprocessor
+    
+    def _extract_chains_from_template_tree(self, template_tree: Tree, line: int) -> List[dict]:
+        """Extract property access chains from a structured template tree."""
+        chains = []
+        
+        for child in template_tree.children:
+            if child.data == 'template_interpolation':
+                # Extract chains from the interpolation expression
+                interpolation_chains = self._extract_chains_from_interpolation(child.children[0], line)
+                chains.extend(interpolation_chains)
+        
+        return chains
+    
+    def _extract_chains_from_interpolation(self, expr_tree: Tree, line: int) -> List[dict]:
+        """Extract property access chains from an interpolation expression tree."""
+        chains = []
+        
+        # Check if this is a property access chain
+        if expr_tree.data == 'member_dot_expression':
+            chain = self._extract_property_chain(expr_tree)
+            if chain:
+                chains.append({
+                    'chain': chain,
+                    'line': line,
+                    'expression': str(expr_tree)
+                })
+        
+        # Check if this is a null coalescing expression
+        elif expr_tree.data == 'null_coalescing_expression':
+            # Only extract chains from the left side (the potentially unsafe part)
+            left_expr = expr_tree.children[0]
+            if left_expr.data == 'member_dot_expression':
+                chain = self._extract_property_chain(left_expr)
+                if chain:
+                    chains.append({
+                        'chain': chain,
+                        'line': line,
+                        'expression': str(left_expr)
+                    })
+        
+        return chains
+    
+    def _extract_chains_from_template_regex(self, template_content: str, line: int) -> List[dict]:
+        """Fallback regex-based extraction for template literals."""
+        chains = []
+        import re
+        
+        # Find all {{ expression }} patterns
+        interpolation_pattern = r'\{\{([^}]+)\}\}'
+        matches = re.findall(interpolation_pattern, template_content)
+        
+        for match in matches:
+            expression = match.strip()
+            
+            # Check if this expression contains property access (contains dots)
+            if '.' in expression:
+                # Check if the expression has null coalescing protection
+                if self._has_null_coalescing_protection(expression):
+                    # Skip this expression - it's protected by null coalescing
+                    continue
+                
+                # Split by dots to create property access chain
+                parts = expression.split('.')
+                if len(parts) >= 2:
+                    # Create the property access chain (only the property access part)
+                    # Remove any operators after the property access
+                    property_chain = self._extract_property_chain_from_expression(expression)
+                    if property_chain:
+                        chains.append({
+                            'chain': property_chain,
+                            'line': line,
+                            'expression': expression
+                        })
+        
+        return chains
+
+    def _has_null_coalescing_protection(self, expression: str) -> bool:
+        """Check if an expression has null coalescing protection."""
+        # Look for ?? operator in the expression
+        return '??' in expression
+
+    def _extract_property_chain_from_expression(self, expression: str) -> Optional[str]:
+        """Extract the property access chain from an expression, stopping at operators."""
+        # Split by common operators to get the property access part
+        operators = ['??', '?', ':', '&&', '||', '+', '-', '*', '/', '==', '!=', '===', '!==']
+        
+        # Find the first operator and extract everything before it
+        min_pos = len(expression)
+        for op in operators:
+            pos = expression.find(op)
+            if pos != -1 and pos < min_pos:
+                min_pos = pos
+        
+        # Extract the property access part
+        property_part = expression[:min_pos].strip()
+        
+        # Check if it contains dots (property access)
+        if '.' in property_part:
+            return property_part
+        
+        return None
+
     def _is_unsafe_chain(self, ast: Tree, chain: str) -> bool:
         """Check if a property access chain is unsafe (lacks null safety) based on depth and specific patterns."""
         # Split the chain to get individual parts
@@ -327,6 +485,47 @@ class NullSafetyDetector(ScriptDetector):
         ]):
             return True
         
+        return False
+
+    def _is_chain_safe_due_to_null_coalescing(self, ast: Tree, chain: str) -> bool:
+        """Check if a property access chain is safe due to null coalescing protection."""
+        # Look for null coalescing expressions in the AST
+        for node in ast.iter_subtrees():
+            if node.data == 'null_coalescing_expression':
+                # Check if the left side of the null coalescing contains our chain
+                if len(node.children) > 0 and self._expression_contains_chain(node.children[0], chain):
+                    return True
+        
+        # Also check preprocessed template literals
+        for node in ast.iter_subtrees():
+            if node.data == 'literal_expression' and len(node.children) > 0:
+                token = node.children[0]
+                if hasattr(token, 'type') and token.type == 'TEMPLATE_LITERAL':
+                    # Preprocess the template literal and check for null coalescing
+                    try:
+                        preprocessor = self._get_template_preprocessor()
+                        template_tree = preprocessor.preprocess_template_literal(token)
+                        
+                        # Check if the preprocessed template tree has null coalescing protection
+                        if self._template_tree_has_null_coalescing_protection(template_tree, chain):
+                            return True
+                    except Exception:
+                        # Fallback to regex check
+                        if self._has_null_coalescing_protection(token.value):
+                            return True
+        
+        return False
+    
+    def _template_tree_has_null_coalescing_protection(self, template_tree: Tree, chain: str) -> bool:
+        """Check if a preprocessed template tree has null coalescing protection for a chain."""
+        for child in template_tree.children:
+            if child.data == 'template_interpolation':
+                expr_tree = child.children[0]
+                if expr_tree.data == 'null_coalescing_expression':
+                    # Check if the left side contains our chain
+                    left_expr = expr_tree.children[0]
+                    if self._expression_contains_chain(left_expr, chain):
+                        return True
         return False
 
     def _is_global_object(self, object_name: str) -> bool:

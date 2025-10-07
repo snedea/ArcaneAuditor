@@ -398,6 +398,125 @@ class TestScriptNullSafetyRule:
         # Should NOT get violations for single property access
         user_violations = [f for f in findings if "user" in f.message and "." not in f.message]
         assert len(user_violations) == 0, "Expected NO violations for single property access"
+    
+    def test_template_string_interpolation_unsafe_access(self):
+        """Test that template string interpolation with unsafe property access is flagged."""
+        pmd_content = {
+            "pageId": "testPage",
+            "presentation": {
+                "body": {
+                    "children": [
+                        {
+                            "type": "text",
+                            "render": "<% !empty workerPhoto %>",
+                            "value": "<% `{{workerPhoto.workerPhotos.href.ff}}` %>"
+                        }
+                    ]
+                }
+            }
+        }
+        
+        pmd_model = PMDModel(**pmd_content, file_path="test.pmd")
+        context = ProjectContext()
+        context.pmds = {'test': pmd_model}
+        
+        findings = list(self.rule.analyze(context))
+        
+        # Should get violations for workerPhoto.workerPhotos.href.ff (level +3 from workerPhoto)
+        href_violations = [f for f in findings if "workerPhoto.workerPhotos.href.ff" in f.message]
+        assert len(href_violations) > 0, "Expected violations for workerPhoto.workerPhotos.href.ff in template string"
+    
+    def test_template_string_interpolation_safe_access(self):
+        """Test that template string interpolation with safe property access (level +1) is not flagged."""
+        pmd_content = {
+            "pageId": "testPage",
+            "presentation": {
+                "body": {
+                    "children": [
+                        {
+                            "type": "text",
+                            "render": "<% !empty workerPhoto %>",
+                            "value": "<% `{{workerPhoto.workerPhotos}}` %>"
+                        }
+                    ]
+                }
+            }
+        }
+        
+        pmd_model = PMDModel(**pmd_content, file_path="test.pmd")
+        context = ProjectContext()
+        context.pmds = {'test': pmd_model}
+        
+        findings = list(self.rule.analyze(context))
+        
+        # Should NOT get violations for workerPhoto.workerPhotos (level +1 from workerPhoto)
+        photos_violations = [f for f in findings if "workerPhoto.workerPhotos" in f.message and "href" not in f.message]
+        assert len(photos_violations) == 0, "Expected NO violations for workerPhoto.workerPhotos (level +1)"
+    
+    def test_template_string_multiple_interpolations(self):
+        """Test template string with multiple interpolations."""
+        pmd_content = {
+            "pageId": "testPage",
+            "script": "<% `Hello {{user.name}}, your email is {{user.profile.email}}` %>"
+        }
+        
+        pmd_model = PMDModel(**pmd_content, file_path="test.pmd")
+        context = ProjectContext()
+        context.pmds = {'test': pmd_model}
+        
+        findings = list(self.rule.analyze(context))
+        
+        # Should get violations for user.profile.email (level +2 from user)
+        email_violations = [f for f in findings if "user.profile.email" in f.message]
+        assert len(email_violations) > 0, "Expected violations for user.profile.email in template string"
+        
+        # Should NOT get violations for user.name (level +1 from user)
+        name_violations = [f for f in findings if "user.name" in f.message]
+        assert len(name_violations) == 0, "Expected NO violations for user.name (level +1)"
+    
+    def test_template_string_null_coalescing_protection(self):
+        """Test that template string interpolation with null coalescing is safe."""
+        pmd_content = {
+            "pageId": "testPage",
+            "presentation": {
+                "body": {
+                    "children": [
+                        {
+                            "type": "text",
+                            "render": "<% !empty workerPhoto %>",
+                            "value": "<% `{{workerPhoto.workerPhotos.href.ff ?? ''}}` %>"
+                        }
+                    ]
+                }
+            }
+        }
+        
+        pmd_model = PMDModel(**pmd_content, file_path="test.pmd")
+        context = ProjectContext()
+        context.pmds = {'test': pmd_model}
+        
+        findings = list(self.rule.analyze(context))
+        
+        # Should NOT get violations for workerPhoto.workerPhotos.href.ff (protected by null coalescing)
+        href_violations = [f for f in findings if "workerPhoto.workerPhotos.href.ff" in f.message]
+        assert len(href_violations) == 0, "Expected NO violations for workerPhoto.workerPhotos.href.ff (protected by null coalescing)"
+    
+    def test_regular_null_coalescing_protection(self):
+        """Test that regular property access with null coalescing is safe."""
+        pmd_content = {
+            "pageId": "testPage",
+            "script": "<% return user.profile.email ?? 'No email'; %>"
+        }
+        
+        pmd_model = PMDModel(**pmd_content, file_path="test.pmd")
+        context = ProjectContext()
+        context.pmds = {'test': pmd_model}
+        
+        findings = list(self.rule.analyze(context))
+        
+        # Should NOT get violations for user.profile.email (protected by null coalescing)
+        email_violations = [f for f in findings if "user.profile.email" in f.message]
+        assert len(email_violations) == 0, "Expected NO violations for user.profile.email (protected by null coalescing)"
 
 
 class TestScriptVerboseBooleanCheckRule:

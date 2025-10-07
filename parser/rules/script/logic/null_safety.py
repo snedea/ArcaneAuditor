@@ -94,10 +94,10 @@ class ScriptNullSafetyRule(ScriptRuleBase):
                 # For widgets/pods, group by the widget index
                 return f"{parts[0]}.{parts[1]}"
         
-        # Handle PMD presentation structure: "presentation->body->children[0]->type: text->render"
-        if 'presentation' in field_path and 'children[' in field_path:
+        # Handle PMD presentation structure: "presentation.body.children.0.render"
+        if 'presentation' in field_path and 'children.' in field_path:
             # Extract the children index for PMD presentation structure
-            match = re.search(r'children\[(\d+)\]', field_path)
+            match = re.search(r'children\.(\d+)', field_path)
             if match:
                 return f"presentation.children[{match.group(1)}]"
         
