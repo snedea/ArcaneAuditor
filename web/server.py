@@ -134,7 +134,7 @@ def cleanup_orphaned_files():
 
 class AnalysisJob:
     """Represents an analysis job with status tracking."""
-    def __init__(self, job_id: str, zip_path: Path, config: str = "default"):
+    def __init__(self, job_id: str, zip_path: Path = None, config: str = "default"):
         self.job_id = job_id
         self.zip_path = zip_path
         self.config = config
@@ -144,6 +144,8 @@ class AnalysisJob:
         self.start_time = None
         self.end_time = None
         self.thread = None
+        self.is_zip = True  # True for ZIP files, False for individual files
+        self.individual_files = []  # List of Path objects for individual files
     
     def to_dict(self):
         """Convert job to dictionary for JSON serialization."""
@@ -218,10 +220,15 @@ def cleanup_old_jobs():
         
         for job_id in jobs_to_remove:
             job = analysis_jobs.pop(job_id)
-            # Clean up any remaining temporary files (ZIP files are now deleted immediately after processing)
-            if job.zip_path.exists():
+            # Clean up any remaining temporary files
+            if job.is_zip and job.zip_path and job.zip_path.exists():
                 job.zip_path.unlink()
                 print(f"Cleaned up remaining ZIP file: {job.zip_path.name}")
+            elif not job.is_zip and job.individual_files:
+                for file_path in job.individual_files:
+                    if file_path.exists():
+                        file_path.unlink()
+                        print(f"Cleaned up remaining file: {file_path.name}")
 
 def run_analysis_background(job: AnalysisJob):
     """Run analysis in background thread."""
@@ -235,19 +242,32 @@ def run_analysis_background(job: AnalysisJob):
         from parser.rules_engine import RulesEngine
         from parser.config_manager import ConfigurationManager
             
-        # Process ZIP file
+        # Process files based on job type
         file_processing_start = time.time()
         processor = FileProcessor()
-        source_files_map = processor.process_zip_file(job.zip_path)
+        
+        if job.is_zip:
+            # ZIP file mode
+            source_files_map = processor.process_zip_file(job.zip_path)
+            
+            # Delete ZIP file immediately after successful processing
+            if job.zip_path and job.zip_path.exists():
+                job.zip_path.unlink()
+                print(f"Deleted processed ZIP file: {job.zip_path.name}")
+        else:
+            # Individual files mode
+            source_files_map = processor.process_individual_files(job.individual_files)
+            
+            # Delete individual files immediately after successful processing
+            for file_path in job.individual_files:
+                if file_path.exists():
+                    file_path.unlink()
+                    print(f"Deleted processed file: {file_path.name}")
+        
         file_processing_time = time.time() - file_processing_start
         
-        # Delete ZIP file immediately after successful processing
-        if job.zip_path.exists():
-            job.zip_path.unlink()
-            print(f"Deleted processed ZIP file: {job.zip_path.name}")
-        
         if not source_files_map:
-            job.error = "No PMD Script files found in the uploaded ZIP"
+            job.error = "No valid source files found"
             job.status = "failed"
             job.end_time = time.time()
             return
@@ -302,6 +322,10 @@ def run_analysis_background(job: AnalysisJob):
             }
         }
         
+        # Add context awareness information if available
+        if context.analysis_context:
+            result["context"] = context.analysis_context.to_dict()
+        
         job.result = result
         job.status = "completed"
         job.end_time = time.time()
@@ -314,16 +338,24 @@ def run_analysis_background(job: AnalysisJob):
 
 
 @app.post("/api/upload")
-async def upload_file(file: UploadFile = File(...), config: str = Form("default")):
-    """Upload a ZIP file for analysis."""
+async def upload_file(
+    files: list[UploadFile] = File(...), 
+    config: str = Form("default")
+):
+    """
+    Upload file(s) for analysis.
     
-    # Validate file type
-    if not file.filename.lower().endswith('.zip'):
-        raise HTTPException(status_code=400, detail="Only ZIP files are allowed")
+    Supports:
+    - Single ZIP file: Complete application archive
+    - Multiple individual files: .pmd, .pod, .amd, .smd, .script files
+    """
     
-    # Validate file size
-    if file.size and file.size > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB")
+    # Validate we have files
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
+    
+    # Determine if this is a ZIP upload or individual files
+    is_zip_upload = len(files) == 1 and files[0].filename.lower().endswith('.zip')
     
     # Validate configuration
     config_info = get_dynamic_config_info()
@@ -332,26 +364,63 @@ async def upload_file(file: UploadFile = File(...), config: str = Form("default"
     
     # Get the actual config path from the selected config key
     selected_config_info = config_info[config]
-    actual_config_path = selected_config_info["path"]  # This is the full path to the specific config file
+    actual_config_path = selected_config_info["path"]
     
     # Generate job ID
     job_id = str(uuid.uuid4())
     
-    # Save uploaded file
+    # Save uploaded file(s)
     uploads_dir = Path(__file__).parent / "uploads"
     uploads_dir.mkdir(exist_ok=True)
     
-    zip_path = uploads_dir / f"{job_id}.zip"
-    
     try:
-        # Stream file to disk
-        with open(zip_path, "wb") as buffer:
-            while chunk := await file.read(CHUNK_SIZE):
-                buffer.write(chunk)
+        if is_zip_upload:
+            # ZIP file mode
+            file = files[0]
+            
+            # Validate file size
+            if file.size and file.size > MAX_FILE_SIZE:
+                raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB")
+            
+            zip_path = uploads_dir / f"{job_id}.zip"
+            
+            # Stream file to disk
+            with open(zip_path, "wb") as buffer:
+                while chunk := await file.read(CHUNK_SIZE):
+                    buffer.write(chunk)
+            
+            # Create analysis job for ZIP
+            job = AnalysisJob(job_id, zip_path, actual_config_path)
+            job.is_zip = True
+            print(f"DEBUG: Created ZIP job {job_id} with config='{actual_config_path}'")
         
-        # Create analysis job with configuration
-        job = AnalysisJob(job_id, zip_path, actual_config_path)
-        print(f"DEBUG: Created job {job_id} with config='{actual_config_path}'")
+        else:
+            # Individual files mode
+            saved_files = []
+            
+            for file in files:
+                # Validate file extension
+                valid_extensions = ['.pmd', '.pod', '.amd', '.smd', '.script']
+                if not any(file.filename.lower().endswith(ext) for ext in valid_extensions):
+                    raise HTTPException(status_code=400, detail=f"Invalid file type: {file.filename}. Only {', '.join(valid_extensions)} files are allowed.")
+                
+                # Validate file size
+                if file.size and file.size > MAX_FILE_SIZE:
+                    raise HTTPException(status_code=413, detail=f"File {file.filename} too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB")
+                
+                # Save file
+                file_path = uploads_dir / f"{job_id}_{file.filename}"
+                with open(file_path, "wb") as buffer:
+                    while chunk := await file.read(CHUNK_SIZE):
+                        buffer.write(chunk)
+                
+                saved_files.append(file_path)
+            
+            # Create analysis job for individual files
+            job = AnalysisJob(job_id, None, actual_config_path)
+            job.is_zip = False
+            job.individual_files = saved_files
+            print(f"DEBUG: Created individual files job {job_id} with {len(saved_files)} files, config='{actual_config_path}'")
         
         with job_lock:
             analysis_jobs[job_id] = job
@@ -366,10 +435,17 @@ async def upload_file(file: UploadFile = File(...), config: str = Form("default"
         
         return {"job_id": job_id, "status": "queued", "config": actual_config_path}
             
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
     except Exception as e:
-        # Clean up file if upload failed
-        if zip_path.exists():
+        # Clean up files if upload failed
+        if is_zip_upload and 'zip_path' in locals() and zip_path.exists():
             zip_path.unlink()
+        elif 'saved_files' in locals():
+            for file_path in saved_files:
+                if file_path.exists():
+                    file_path.unlink()
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 @app.get("/api/configs")
