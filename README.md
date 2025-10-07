@@ -216,6 +216,30 @@ The web interface provides:
 
 > **🌐 Web Interface Benefits:** Drag-and-drop file upload, interactive results, configuration management, beautiful mystical UI, and modern FastAPI backend with automatic API documentation!
 
+#### **Convenient Startup Scripts**
+
+For easier web service startup, use the provided scripts instead of remembering the command syntax:
+
+**Windows:**
+```bash
+# Simple startup (opens browser automatically)
+start-web-service.bat
+
+# Advanced startup with options
+start-web-service.bat --port 3000 --host 0.0.0.0
+```
+
+**Linux/macOS:**
+```bash
+# Simple startup (opens browser automatically)
+./start-web-service.sh
+
+# Advanced startup with options
+./start-web-service.sh --port 3000 --host 0.0.0.0
+```
+
+See [`WEB_SERVICE_SCRIPTS.md`](WEB_SERVICE_SCRIPTS.md) for detailed usage instructions and all available options.
+
 #### **API Endpoints**
 
 The FastAPI server provides the following REST API endpoints:
