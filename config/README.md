@@ -128,6 +128,6 @@ Your team and personal configurations will **never be overwritten** during app u
 
 ## 📚 Additional Resources
 
-- [Rule Documentation](../docs/RULE_BREAKDOWN.md) - Detailed rule descriptions
+- [Rule Documentation](../parser/rules/RULE_BREAKDOWN.md) - Detailed rule descriptions
 - [Custom Rules Guide](../parser/rules/custom/README.md) - Creating custom validation rules
 - [Web Interface](../web/README.md) - Web-based analysis interface

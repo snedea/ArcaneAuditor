@@ -240,6 +240,8 @@ start-web-service.bat --port 3000 --host 0.0.0.0
 
 See [`WEB_SERVICE_SCRIPTS.md`](WEB_SERVICE_SCRIPTS.md) for detailed usage instructions and all available options.
 
+For a complete overview of all validation rules, see [`parser/rules/RULE_BREAKDOWN.md`](parser/rules/RULE_BREAKDOWN.md).
+
 #### **API Endpoints**
 
 The FastAPI server provides the following REST API endpoints:
@@ -297,9 +299,6 @@ arcane-auditor/
 │   │   └── production-ready.json                   	# Pre-deployment validation
 │   ├── teams/                                      	# Team/project settings (update-safe)
 │   └── personal/                                   	# Personal overrides (highest priority)
-│
-├── docs/                                           	# Documentation
-│   └── RULE_BREAKDOWN.md                           	# Detailed rule documentation
 │
 ├── file_processing/                                	# File processing pipeline
 │   ├── __init__.py
@@ -632,7 +631,7 @@ Create custom configurations in JSON format:
 
 ### Core Documentation
 
-- **[📜 Rule Breakdown](docs/RULE_BREAKDOWN.md)**: Comprehensive guide to all validation rules, with examples!
+- **[📜 Rule Breakdown](parser/rules/RULE_BREAKDOWN.md)**: Comprehensive guide to all validation rules, with examples!
 - **[⚙️ Configuration Guide](config/README.md)**: Consolidated configuration system and rule customization
 
 ### Advanced Guides
