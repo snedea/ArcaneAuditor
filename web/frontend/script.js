@@ -762,3 +762,138 @@ function downloadResults() {
 function toggleTheme() {
     app.toggleTheme();
 }
+
+// Configuration Breakdown Functions
+function showConfigBreakdown() {
+    const modal = document.getElementById('config-breakdown-modal');
+    const content = document.getElementById('config-breakdown-content');
+    
+    if (!app.selectedConfig) {
+        alert('Please select a configuration first');
+        return;
+    }
+    
+    const config = app.availableConfigs.find(c => c.id === app.selectedConfig);
+    if (!config) {
+        alert('Configuration not found');
+        return;
+    }
+    
+    console.log('Selected config:', config); // Debug logging
+    console.log('Config rules:', config.rules); // Debug logging
+    
+    content.innerHTML = generateConfigBreakdownHTML(config);
+    modal.style.display = 'flex';
+}
+
+function hideConfigBreakdown() {
+    const modal = document.getElementById('config-breakdown-modal');
+    modal.style.display = 'none';
+}
+
+function generateConfigBreakdownHTML(config) {
+    const rules = config.rules || {};
+    const enabledRules = Object.entries(rules).filter(([_, ruleConfig]) => ruleConfig.enabled);
+    const disabledRules = Object.entries(rules).filter(([_, ruleConfig]) => !ruleConfig.enabled);
+    
+    // If no rules data is available, show a message
+    if (Object.keys(rules).length === 0) {
+        return `
+            <div class="config-breakdown-section">
+                <h4>📊 Configuration Summary</h4>
+                <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <p>⚠️ Rules data not available for this configuration.</p>
+                    <p>This may be a legacy configuration or the data is not loaded.</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    let html = `
+        <div class="config-breakdown-section">
+            <h4>📊 Configuration Summary</h4>
+            <div class="config-summary-grid">
+                <div class="summary-card enabled">
+                    <div class="summary-number">${enabledRules.length}</div>
+                    <div class="summary-label">Enabled Rules</div>
+                </div>
+                <div class="summary-card disabled">
+                    <div class="summary-number">${disabledRules.length}</div>
+                    <div class="summary-label">Disabled Rules</div>
+                </div>
+                <div class="summary-card total">
+                    <div class="summary-number">${Object.keys(rules).length}</div>
+                    <div class="summary-label">Total Rules</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    if (enabledRules.length > 0) {
+        html += `
+            <div class="config-breakdown-section">
+                <h4>✅ Enabled Rules</h4>
+                <div class="rule-breakdown">
+        `;
+        
+        enabledRules.forEach(([ruleName, ruleConfig]) => {
+            const severity = ruleConfig.severity_override || 'ADVICE';
+            const customSettings = ruleConfig.custom_settings || {};
+            const settingsText = Object.keys(customSettings).length > 0 
+                ? JSON.stringify(customSettings, null, 2) 
+                : '';
+            
+            html += `
+                <div class="rule-item enabled">
+                    <div class="rule-name">${ruleName}</div>
+                    <div class="rule-description">Severity: ${severity}</div>
+                    ${settingsText ? `<div class="rule-settings">${settingsText}</div>` : ''}
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+    
+    if (disabledRules.length > 0) {
+        html += `
+            <div class="config-breakdown-section">
+                <h4>❌ Disabled Rules</h4>
+                <div class="rule-breakdown">
+        `;
+        
+        disabledRules.forEach(([ruleName, ruleConfig]) => {
+            html += `
+                <div class="rule-item disabled">
+                    <div class="rule-name">${ruleName}</div>
+                    <div class="rule-description">Disabled</div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+    
+    return html;
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('config-breakdown-modal');
+    if (event.target === modal) {
+        hideConfigBreakdown();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        hideConfigBreakdown();
+    }
+});

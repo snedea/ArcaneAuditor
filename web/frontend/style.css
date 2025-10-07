@@ -406,6 +406,234 @@ header p {
     margin-bottom: 0;
 }
 
+/* Configuration Actions */
+.config-actions {
+    margin-top: 15px;
+    text-align: center;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    max-width: 90%;
+    max-height: 90%;
+    width: 800px;
+    box-shadow: 0 20px 40px var(--shadow);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-tertiary);
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: var(--border-color);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 24px;
+    max-height: 60vh;
+    overflow-y: auto;
+    background: var(--bg-secondary);
+}
+
+/* Configuration Breakdown Styles */
+.config-breakdown-section {
+    margin-bottom: 24px;
+}
+
+.config-breakdown-section h4 {
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.rule-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.rule-item {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    transition: all 0.2s ease;
+}
+
+.rule-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.rule-item.enabled {
+    border-left: 4px solid #10b981;
+}
+
+.rule-item.disabled {
+    border-left: 4px solid #ef4444;
+    opacity: 0.7;
+}
+
+.rule-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+}
+
+.rule-description {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.rule-settings {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    border: 1px solid var(--border-light);
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.rule-settings:empty {
+    display: none;
+}
+
+/* Configuration Summary Grid */
+.config-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.summary-card {
+    padding: 12px;
+    background: var(--bg-primary);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.summary-card.enabled {
+    border-left: 4px solid #10b981;
+}
+
+.summary-card.disabled {
+    border-left: 4px solid #ef4444;
+}
+
+.summary-card.total {
+    border-left: 4px solid #667eea;
+}
+
+.summary-number {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+}
+
+.summary-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Theme-specific modal overlay */
+[data-theme="light"] .modal {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .modal {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+/* Theme-specific rule item colors */
+[data-theme="light"] .rule-item.enabled,
+[data-theme="light"] .summary-card.enabled {
+    border-left-color: #059669;
+}
+
+[data-theme="dark"] .rule-item.enabled,
+[data-theme="dark"] .summary-card.enabled {
+    border-left-color: #10b981;
+}
+
+[data-theme="light"] .rule-item.disabled,
+[data-theme="light"] .summary-card.disabled {
+    border-left-color: #dc2626;
+}
+
+[data-theme="dark"] .rule-item.disabled,
+[data-theme="dark"] .summary-card.disabled {
+    border-left-color: #ef4444;
+}
+
+[data-theme="light"] .summary-card.total {
+    border-left-color: #4f46e5;
+}
+
+[data-theme="dark"] .summary-card.total {
+    border-left-color: #667eea;
+}
+
 /* Loading Section */
 .loading-section {
     text-align: center;
