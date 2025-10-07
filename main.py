@@ -143,7 +143,7 @@ def review_app(
         total_files = len(context.pmds) + len(context.scripts) + (1 if context.amd else 0)
         total_rules = len(rules_engine.rules)
         
-        formatted_output = formatter.format_results(findings, total_files, total_rules)
+        formatted_output = formatter.format_results(findings, total_files, total_rules, context)
         formatting_time = time.time() - formatting_start_time
         
         if show_timing:
