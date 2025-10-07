@@ -12,19 +12,25 @@ app = typer.Typer(add_completion=False, help="Arcane Auditor CLI: A mystical cod
 
 @app.command()
 def review_app(
-    zip_filepath: Path = typer.Argument(..., exists=True, help="Path to the application .zip file."),
+    path: Path = typer.Argument(..., exists=True, help="Path to application ZIP, individual file(s), or directory."),
+    additional_files: list[Path] = typer.Argument(None, help="Additional files to analyze (optional)"),
     config_file: Path = typer.Option(None, "--config", "-c", help="Path to configuration file (JSON)"),
     output_format: str = typer.Option("console", "--format", "-f", help="Output format: console, json, summary, excel"),
     output_file: Path = typer.Option(None, "--output", "-o", help="Output file path (optional)"),
     show_timing: bool = typer.Option(False, "--timing", "-t", help="Show detailed timing information")
 ):
     """
-    Kicks off the analysis of a Workday Extend application archive.
+    Analyze a Workday Extend application.
+    
+    Supports multiple input modes:
+    - ZIP file: Complete application archive
+    - Individual file(s): One or more .pmd, .pod, .amd, .smd, or .script files
+    - Directory: Recursively scans for all relevant files
     """
     # Start overall timing
     overall_start_time = time.time()
     
-    typer.echo(f"Starting review for '{zip_filepath.name}'...")
+    typer.echo(f"Starting review for '{path.name}'...")
     
     # Load configuration using the layered configuration system
     config_start_time = time.time()
@@ -43,11 +49,30 @@ def review_app(
     if show_timing:
         typer.echo(f"Configuration loading: {config_time:.2f}s")
     
-    # This is the entry point to our pipeline.
-    typer.echo("Extracting and processing files...")
+    # Detect input type and process accordingly
     file_processing_start_time = time.time()
     processor = FileProcessor()
-    source_files_map = processor.process_zip_file(zip_filepath)
+    
+    try:
+        if path.suffix == '.zip':
+            # ZIP file mode
+            typer.echo("Processing ZIP archive...")
+            source_files_map = processor.process_zip_file(path)
+        elif path.is_dir():
+            # Directory mode
+            typer.echo(f"Scanning directory: {path}")
+            source_files_map = processor.process_directory(path)
+        else:
+            # Individual file(s) mode
+            files_to_process = [path]
+            if additional_files:
+                files_to_process.extend(additional_files)
+            typer.echo(f"Processing {len(files_to_process)} individual file(s)...")
+            source_files_map = processor.process_individual_files(files_to_process)
+    except Exception as e:
+        typer.secho(f"File Processing Error: {e}", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    
     file_processing_time = time.time() - file_processing_start_time
     typer.echo(f"Found {len(source_files_map)} relevant files to analyze")
     if show_timing:
@@ -55,7 +80,7 @@ def review_app(
 
     if not source_files_map:
         typer.secho("No source files found to analyze.", fg=typer.colors.RED)
-        typer.echo("Make sure your ZIP contains .pmd, .pod, .script, .amd, or .smd files")
+        typer.echo("Ensure your input contains .pmd, .pod, .script, .amd, or .smd files")
         raise typer.Exit(1)
         
     # --- Next Step: Pass 'source_files_map' to the Parser ---
