@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from typing import Any, List
+from lark import Tree
 from .violation import Violation
 
 
@@ -163,3 +164,83 @@ class ScriptDetector(ABC):
     def clear_function_context_cache(self):
         """Clear the function context cache. Useful for testing or processing multiple files."""
         self._function_context_cache.clear()
+    
+    def extract_variable_from_empty_expression(self, node) -> str:
+        """
+        Extract variable name from empty expression nodes.
+        Handles both empty keyword and empty() function cases.
+        
+        Args:
+            node: AST node (empty_expression, not_empty_expression, or empty_function_expression)
+            
+        Returns:
+            Variable name string, or empty string if not found
+        """
+        if not hasattr(node, 'data') or not hasattr(node, 'children'):
+            return ""
+        
+        # Handle different AST structures for empty keyword vs empty() function
+        if node.data == 'empty_function_expression':
+            # empty_function_expression: ['empty', '(', 'expression', ')']
+            if len(node.children) > 2:
+                return self._extract_variable_from_node(node.children[2])
+        else:
+            # empty_expression: ['empty', 'expression'] 
+            if len(node.children) > 1:
+                child = node.children[1]
+                # Check if it's a parenthesized expression (empty(variable) case)
+                if child.data == 'parenthesized_expression' and len(child.children) > 0:
+                    # Look inside the parentheses
+                    inner_expr = child.children[0]
+                    return self._extract_variable_from_node(inner_expr)
+                else:
+                    return self._extract_variable_from_node(child)
+        
+        return ""
+    
+    def extract_variable_from_not_empty_expression(self, node) -> str:
+        """
+        Extract variable name from not_expression containing empty expressions.
+        Handles both !empty variable and !empty(variable) cases.
+        
+        Args:
+            node: AST node (not_expression)
+            
+        Returns:
+            Variable name string, or empty string if not found
+        """
+        if not hasattr(node, 'data') or not hasattr(node, 'children'):
+            return ""
+        
+        if node.data == 'not_expression':
+            if len(node.children) > 0 and isinstance(node.children[0], Tree) and node.children[0].data == 'empty_function_expression':
+                # not_expression -> empty_function_expression: ['empty', '(', 'expression', ')']
+                empty_func = node.children[0]
+                if len(empty_func.children) > 2:
+                    return self._extract_variable_from_node(empty_func.children[2])
+            elif len(node.children) > 0 and isinstance(node.children[0], Tree) and node.children[0].data == 'empty_expression':
+                # not_expression -> empty_expression -> parenthesized_expression (!empty(variable) case)
+                empty_expr = node.children[0]
+                if len(empty_expr.children) > 1:
+                    child = empty_expr.children[1]
+                    if child.data == 'parenthesized_expression' and len(child.children) > 0:
+                        inner_expr = child.children[0]
+                        return self._extract_variable_from_node(inner_expr)
+                    else:
+                        # not_expression -> empty_expression -> identifier_expression (!empty variable case)
+                        return self._extract_variable_from_node(child)
+        
+        return ""
+    
+    def _extract_variable_from_node(self, node) -> str:
+        """Extract variable name from a node."""
+        if not hasattr(node, 'data'):
+            return ""
+            
+        if node.data == 'identifier_expression' and len(node.children) > 0:
+            return node.children[0].value if hasattr(node.children[0], 'value') else str(node.children[0])
+        elif node.data == 'member_dot_expression':
+            # Extract property chain
+            return self._extract_property_chain(node) or ""
+        
+        return ""

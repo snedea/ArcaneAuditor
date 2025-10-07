@@ -86,7 +86,10 @@ class NullSafetyDetector(ScriptDetector):
         """Check if a property access chain is unsafe, considering conditional execution context."""
         parts = chain.split('.')
         
-        if len(parts) < 2:
+        # Only check property access chains (obj.property, obj.prop.subprop, etc.)
+        # Single identifiers (obj) don't have null safety concerns
+        is_property_access = len(parts) > 1
+        if not is_property_access:
             return False
         
         root_object = parts[0]
@@ -95,19 +98,21 @@ class NullSafetyDetector(ScriptDetector):
         if chain in safe_variables:
             return False
         
-        # Check if the root object is safe
-        if root_object in safe_variables:
-            # If the root is safe, check if any parent chain is also safe
-            for i in range(1, len(parts)):
-                partial_chain = '.'.join(parts[:i+1])
-                if partial_chain in safe_variables:
-                    return False
-        
-        # Check if any parent chain is safe
-        for i in range(len(parts) - 1):
+        # Check if we're safe up to the checked level + 1
+        # This allows accessing one level deeper than what's explicitly checked
+        # e.g., !empty workerPhoto makes workerPhoto.workerPhotos safe
+        for i in range(len(parts)):
             partial_chain = '.'.join(parts[:i+1])
             if partial_chain in safe_variables:
-                return False
+                # If this partial chain is safe, check if we're within level +1
+                if i + 1 < len(parts):
+                    # We have more levels to check - only safe if we're at level +1
+                    if i + 1 == len(parts) - 1:
+                        return False  # Safe up to next level (level +1)
+                    else:
+                        return True   # Unsafe beyond level +1
+                else:
+                    return False  # Safe for the full chain
         
         # Check if the chain is safe due to local variable declaration
         if self._is_chain_safe_due_to_local_declaration(ast, chain):
@@ -347,10 +352,40 @@ class NullSafetyDetector(ScriptDetector):
 
         # Check for empty expressions
         if node.data in ['empty_expression', 'not_empty_expression', 'empty_function_expression']:
-            # For empty expressions, check the child expression being tested
-            # empty_expression has ['empty', 'expression'] structure
-            if len(node.children) > 1 and self._chain_matches_node(node.children[1], chain):
-                return True
+            # Handle different AST structures for empty keyword vs empty() function
+            if node.data == 'empty_function_expression':
+                # empty_function_expression: ['empty', '(', 'expression', ')']
+                if len(node.children) > 2 and self._chain_matches_node(node.children[2], chain):
+                    return True
+            else:
+                # empty_expression: ['empty', 'expression'] 
+                if len(node.children) > 1:
+                    child = node.children[1]
+                    # Check if it's a parenthesized expression (empty(variable) case)
+                    if child.data == 'parenthesized_expression' and len(child.children) > 0:
+                        # Look inside the parentheses
+                        inner_expr = child.children[0]
+                        if self._chain_matches_node(inner_expr, chain):
+                            return True
+                    elif self._chain_matches_node(child, chain):
+                        return True
+        
+        # Check for not_expression containing empty_function_expression (!empty(variable))
+        if node.data == 'not_expression':
+            if len(node.children) > 0 and isinstance(node.children[0], Tree) and node.children[0].data == 'empty_function_expression':
+                # not_expression -> empty_function_expression: ['empty', '(', 'expression', ')']
+                empty_func = node.children[0]
+                if len(empty_func.children) > 2 and self._chain_matches_node(empty_func.children[2], chain):
+                    return True
+            elif len(node.children) > 0 and isinstance(node.children[0], Tree) and node.children[0].data == 'empty_expression':
+                # not_expression -> empty_expression -> parenthesized_expression (!empty(variable) case)
+                empty_expr = node.children[0]
+                if len(empty_expr.children) > 1:
+                    child = empty_expr.children[1]
+                    if child.data == 'parenthesized_expression' and len(child.children) > 0:
+                        inner_expr = child.children[0]
+                        if self._chain_matches_node(inner_expr, chain):
+                            return True
                 
         # Check for null coalescing
         if node.data == 'null_coalescing_expression':
@@ -404,12 +439,46 @@ class NullSafetyDetector(ScriptDetector):
                 if self._chain_matches_node(child, chain):
                     return True
                     
-        # Empty check: empty obj
-        if condition_node.data in ['empty_expression', 'not_empty_expression']:
-            if len(condition_node.children) > 1:
-                child = condition_node.children[1]
-                if self._chain_matches_node(child, chain):
-                    return True
+        # Empty check: empty obj or empty(obj)
+        if condition_node.data in ['empty_expression', 'not_empty_expression', 'empty_function_expression']:
+            # Handle different AST structures for empty keyword vs empty() function
+            if condition_node.data == 'empty_function_expression':
+                # empty_function_expression: ['empty', '(', 'expression', ')']
+                if len(condition_node.children) > 2:
+                    child = condition_node.children[2]
+                    if self._chain_matches_node(child, chain):
+                        return True
+            else:
+                # empty_expression: ['empty', 'expression'] 
+                if len(condition_node.children) > 1:
+                    child = condition_node.children[1]
+                    # Check if it's a parenthesized expression (empty(variable) case)
+                    if child.data == 'parenthesized_expression' and len(child.children) > 0:
+                        # Look inside the parentheses
+                        inner_expr = child.children[0]
+                        if self._chain_matches_node(inner_expr, chain):
+                            return True
+                    elif self._chain_matches_node(child, chain):
+                        return True
+        
+        # Check for not_expression containing empty_function_expression (!empty(variable))
+        if condition_node.data == 'not_expression':
+            if len(condition_node.children) > 0 and isinstance(condition_node.children[0], Tree) and condition_node.children[0].data == 'empty_function_expression':
+                # not_expression -> empty_function_expression: ['empty', '(', 'expression', ')']
+                empty_func = condition_node.children[0]
+                if len(empty_func.children) > 2:
+                    child = empty_func.children[2]
+                    if self._chain_matches_node(child, chain):
+                        return True
+            elif len(condition_node.children) > 0 and isinstance(condition_node.children[0], Tree) and condition_node.children[0].data == 'empty_expression':
+                # not_expression -> empty_expression -> parenthesized_expression (!empty(variable) case)
+                empty_expr = condition_node.children[0]
+                if len(empty_expr.children) > 1:
+                    child = empty_expr.children[1]
+                    if child.data == 'parenthesized_expression' and len(child.children) > 0:
+                        inner_expr = child.children[0]
+                        if self._chain_matches_node(inner_expr, chain):
+                            return True
                     
         # Recursively check child nodes for complex conditions
         if hasattr(condition_node, 'children'):
