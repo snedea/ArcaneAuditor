@@ -19,7 +19,7 @@ class TestScriptDeadCodeRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly defined."""
         assert self.rule.DESCRIPTION == "Detects and removes dead code from standalone script files"
-        assert self.rule.SEVERITY == "ACTION"
+        assert self.rule.SEVERITY == "ADVICE"
     
     def test_proper_script_file_pattern(self):
         """Test script file with proper export pattern (no issues)."""

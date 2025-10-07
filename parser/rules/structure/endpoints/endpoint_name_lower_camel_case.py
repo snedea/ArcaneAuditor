@@ -11,7 +11,7 @@ class EndpointNameLowerCamelCaseRule(StructureRuleBase):
     
     ID = "EndpointNameLowerCamelCaseRule"
     DESCRIPTION = "Ensures endpoint names follow lowerCamelCase naming convention (style guide)"
-    SEVERITY = "ACTION"
+    SEVERITY = "ADVICE"
     
     def get_description(self) -> str:
         """Get rule description."""

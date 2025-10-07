@@ -26,7 +26,7 @@ class HardcodedApplicationIdRule(StructureRuleBase):
     
     ID = "HardcodedApplicationIdRule"
     DESCRIPTION = "Detects hardcoded applicationId values that should be replaced with site.applicationId"
-    SEVERITY = "ACTION"
+    SEVERITY = "ADVICE"
     
     def get_description(self) -> str:
         """Get rule description."""

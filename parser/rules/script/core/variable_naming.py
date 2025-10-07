@@ -8,7 +8,7 @@ class ScriptVariableNamingRule(ScriptRuleBase):
     """Rule to check for variable naming conventions."""
 
     DESCRIPTION = "Ensures variables follow lowerCamelCase naming convention"
-    SEVERITY = "ACTION"
+    SEVERITY = "ADVICE"
     DETECTOR = VariableNamingDetector
 
     def get_description(self) -> str:

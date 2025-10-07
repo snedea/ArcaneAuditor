@@ -19,7 +19,7 @@ class TestScriptUnusedScriptIncludesRule:
     def test_rule_metadata(self):
         """Test rule metadata is correctly defined."""
         assert self.rule.DESCRIPTION == "Ensures included script files are actually used (via script.function() calls)"
-        assert self.rule.SEVERITY == "ACTION"
+        assert self.rule.SEVERITY == "ADVICE"
     
     def test_pmd_with_used_script_include(self):
         """Test PMD that includes and uses a script file."""

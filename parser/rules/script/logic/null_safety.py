@@ -1,5 +1,6 @@
 """Script null safety rule using unified architecture."""
 
+import re
 from typing import Generator, Set, List, Tuple
 from ...script.shared import ScriptRuleBase
 from ...base import Finding
@@ -82,8 +83,8 @@ class ScriptNullSafetyRule(ScriptRuleBase):
         return safe_variables
 
     def _extract_context_name(self, field_path: str) -> str:
-        """Extract context name from field path (endpoint or widget)."""
-        # Field paths look like: "inboundEndpoints.2.exclude" or "widgets.0.render"
+        """Extract context name from field path (endpoint, widget, or PMD presentation)."""
+        # Field paths look like: "inboundEndpoints.2.exclude", "widgets.0.render", or "presentation->body->children[0]->type: text->render"
         parts = field_path.split('.')
         if len(parts) >= 2:
             if parts[0] in ['inboundEndpoints', 'outboundEndpoints']:
@@ -92,6 +93,14 @@ class ScriptNullSafetyRule(ScriptRuleBase):
             elif parts[0] in ['widgets', 'pods']:
                 # For widgets/pods, group by the widget index
                 return f"{parts[0]}.{parts[1]}"
+        
+        # Handle PMD presentation structure: "presentation.body.children.0.render"
+        if 'presentation' in field_path and 'children.' in field_path:
+            # Extract the children index for PMD presentation structure
+            match = re.search(r'children\.(\d+)', field_path)
+            if match:
+                return f"presentation.children[{match.group(1)}]"
+        
         return ""
 
     def _extract_endpoint_name(self, field_path: str) -> str:
@@ -136,11 +145,16 @@ class ScriptNullSafetyRule(ScriptRuleBase):
         # Look for empty expressions (exclude fields)
         for node in ast.iter_subtrees():
             if node.data in ['empty_expression', 'not_empty_expression', 'empty_function_expression']:
-                if len(node.children) > 1:
-                    # Extract the variable being checked
-                    checked_var = self._extract_variable_from_node(node.children[1])
-                    if checked_var:
-                        safe_variables.add(checked_var)
+                checked_var = self._extract_variable_from_empty_expression(node)
+                if checked_var:
+                    safe_variables.add(checked_var)
+        
+        # Look for not_expression containing empty expressions (!empty(variable) or !empty variable)
+        for node in ast.iter_subtrees():
+            if node.data == 'not_expression':
+                checked_var = self._extract_variable_from_not_empty_expression(node)
+                if checked_var:
+                    safe_variables.add(checked_var)
         
         # Look for render conditions (render fields)
         # Render fields typically contain boolean expressions that protect variables

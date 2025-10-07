@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Generator, List
 from ...base import Finding
 from ...common_validations import validate_lower_camel_case
 from ...common import PMDLineUtils
@@ -11,7 +11,7 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
     
     ID = "WidgetIdLowerCamelCaseRule"
     DESCRIPTION = "Ensures widget IDs follow lowerCamelCase naming convention (style guide for PMD and POD files)"
-    SEVERITY = "ACTION"
+    SEVERITY = "ADVICE"
     
     # Widget types that do not require or support ID values
     WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {
@@ -43,12 +43,12 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
     
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze POD model for widget ID naming conventions."""
-        # Use the base rule utility to find all widgets in the POD template
+        # Use the base rule utility to find all widgets in the POD script
         widgets = self.find_pod_widgets(pod_model)
         
         for widget_path, widget_data in widgets:
             if isinstance(widget_data, dict) and 'id' in widget_data:
-                yield from self._check_widget_id_naming(widget_data, None, 'template', widget_path, 0, pod_model)
+                yield from self._check_widget_id_naming(widget_data, None, 'script', widget_path, 0, pod_model)
     
     def _check_widget_id_naming(self, widget, pmd_model=None, section='body', widget_path="", widget_index=0, pod_model=None):
         """Check if a widget ID follows lowerCamelCase convention."""
@@ -60,6 +60,29 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
         
         # Skip widget types that are excluded from ID requirements
         if widget_type in self.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT:
+            return
+        
+        # Check script syntax - if it's script syntax, validate static parts for lowerCamelCase
+        if self._is_script_syntax(widget_id):
+            # For script syntax, validate that any starting static string prefixes follow lowerCamelCase
+            script_validation_errors = self._validate_script_id_naming(widget_id)
+            if script_validation_errors:
+                # Get line number
+                line_number = 1
+                if pmd_model:
+                    line_number = self._get_widget_line_number(pmd_model, widget_id)
+                elif pod_model:
+                    line_number = self._get_pod_widget_line_number(pod_model, widget_id)
+                
+                # Create a full readable path description
+                readable_path = self._build_readable_widget_path(widget, widget_path, section, pmd_model, pod_model)
+                path_description = f" at {readable_path}" if readable_path else ""
+                
+                yield self._create_finding(
+                    message=f"Widget ID '{widget_id}'{path_description} has invalid name '{widget_id}'. Must follow lowerCamelCase convention (e.g., 'myField', 'userName').",
+                    file_path=pmd_model.file_path if pmd_model else pod_model.file_path,
+                    line=line_number
+                )
             return
         
         # Validate the ID follows lowerCamelCase convention
@@ -124,8 +147,8 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
             if pmd_model and pmd_model.presentation:
                 current_data = pmd_model.presentation.__dict__.get(section, {})
                 display_prefix = self._build_path_from_data(current_data, path_parts[1:], display_prefix)
-            elif pod_model and pod_model.seed and pod_model.seed.template:
-                current_data = pod_model.seed.template
+            elif pod_model and pod_model.seed and pod_model.seed.script:
+                current_data = pod_model.seed.script
                 display_prefix = self._build_path_from_data(current_data, path_parts, display_prefix)
             
             # The display_prefix already includes the widget identifier from the traversal
@@ -134,6 +157,120 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
         except Exception:
             # Fallback to just the widget identifier
             return self._get_readable_identifier(widget, 0)
+    
+    def _is_script_syntax(self, widget_id: str) -> bool:
+        """
+        Check if a widget ID contains script syntax that should be skipped from lowerCamelCase validation.
+        
+        Script syntax includes:
+        - <% %> delimiters
+        
+        Args:
+            widget_id: The widget ID to check
+            
+        Returns:
+            True if the ID contains script syntax and should be skipped from validation
+        """
+        if not isinstance(widget_id, str):
+            return False
+        
+        # Check for script delimiters
+        if '<%' in widget_id and '%>' in widget_id:
+            return True
+        
+        return False
+    
+    def _validate_script_id_naming(self, widget_id: str) -> List[str]:
+        """
+        Validate that static string prefixes in script syntax follow lowerCamelCase convention.
+        
+        Args:
+            widget_id: The script widget ID to validate
+            
+        Returns:
+            List of validation error messages (empty if valid)
+        """
+        errors = []
+        
+        if not isinstance(widget_id, str):
+            return errors
+        
+        # Extract static string parts from script syntax
+        static_parts = self._extract_static_parts_from_script(widget_id)
+        
+        for static_part in static_parts:
+            if static_part and not self._is_lower_camel_case(static_part):
+                errors.append(f"Static prefix '{static_part}' should follow lowerCamelCase convention")
+        
+        return errors
+    
+    def _extract_static_parts_from_script(self, script_id: str) -> List[str]:
+        """
+        Extract static string parts from script syntax.
+        
+        Examples:
+        - "<% `question{{id}}`  %>" -> ["question"]
+        - "<% `Question{{id}}`  %>" -> ["Question"] 
+        - "<% 'myField' + value  %>" -> ["myField"]
+        - "<% 'MyField' + value  %>" -> ["MyField"]
+        - "<% someStaticText %>" -> ["someStaticText"]
+        - "<% 'prefix' + variable + 'suffix' %>" -> ["prefix", "suffix"]
+        """
+        static_parts = []
+        
+        if not isinstance(script_id, str):
+            return static_parts
+        
+        import re
+        
+        # Handle script syntax with string literals: `<% 'myField' + value  %>` or `<% `text{{var}}`  %>`
+        if '<%' in script_id and '%>' in script_id:
+            # Extract content between <% and %>
+            script_content = re.search(r'<%(.*?)%>', script_id)
+            if script_content:
+                content = script_content.group(1).strip()
+                
+                # Check if it starts with a variable first
+                if re.match(r'^[a-zA-Z_$][a-zA-Z0-9_$]*', content.strip()):
+                    # Starts with a variable - ignore entire script (treat as passing)
+                    return []
+                
+                # Look for string literals (single quotes, double quotes, and backticks)
+                # Handle regular quotes: 'text' or "text"
+                quote_literals = re.findall(r'[\'"]([^\'"]*)[\'"]', content)
+                for string_literal in quote_literals:
+                    if string_literal.strip():  # Only add non-empty strings
+                        static_parts.append(string_literal.strip())
+                
+                # Handle backticks: `text{{var}}`
+                backtick_matches = re.findall(r'`([^`]+)`', content)
+                for match in backtick_matches:
+                    # Extract static text before template variables
+                    static_text = re.split(r'\{\{.*?\}\}', match)[0].strip()
+                    static_parts.append(static_text)  # Include empty strings to catch cases like `{{id}}`
+                
+                # If no string literals found and it's just static text, use the whole content
+                if not quote_literals and not backtick_matches and '{{' not in content and '+' not in content:
+                    static_parts.append(content)
+        
+        return static_parts
+    
+    def _is_lower_camel_case(self, text: str) -> bool:
+        """
+        Check if a string follows lowerCamelCase convention.
+        
+        Args:
+            text: The text to check
+            
+        Returns:
+            True if the text follows lowerCamelCase convention
+        """
+        if not text:
+            return True
+        
+        import re
+        camel_case_pattern = re.compile(r'^[a-z][a-zA-Z0-9]*$')
+        return bool(camel_case_pattern.match(text))
     
     def _build_path_from_data(self, data, path_parts, current_prefix):
         """

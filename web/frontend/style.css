@@ -216,6 +216,7 @@ header p {
 
 /* Configuration Selection Styles */
 .config-selection {
+    margin-top: 30px;
     margin-bottom: 20px;
     padding: 15px;
     background: var(--bg-secondary);
@@ -244,15 +245,19 @@ header p {
     border-radius: 6px;
     background: var(--bg-primary);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.25s ease;
     position: relative;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
 }
 
 .config-option:hover {
     border-color: #4f46e5;
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.15);
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.25);
 }
 
 /* Light mode selected config */
@@ -260,18 +265,18 @@ header p {
 :not([data-theme]) .config-option.selected {
     border-color: #4f46e5;
     background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3),
-                0 4px 12px rgba(79, 70, 229, 0.2);
-    transform: translateY(-2px);
+    outline: 2px solid #4f46e5;
+    outline-offset: 0;
+    box-shadow: 0 0 10px rgba(79, 70, 229, 0.4);
 }
 
 /* Dark mode selected config */
 [data-theme="dark"] .config-option.selected {
     border-color: #a5b4fc;
     background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%);
-    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.5),
-                0 4px 16px rgba(129, 140, 248, 0.3);
-    transform: translateY(-2px);
+    outline: 2px solid #a5b4fc;
+    outline-offset: 0;
+    box-shadow: 0 0 10px rgba(129, 140, 248, 0.5);
     color: #ffffff; /* primary text always white */
 }
 
@@ -403,6 +408,276 @@ header p {
 
 .config-section .config-grid {
     margin-bottom: 0;
+}
+
+/* Configuration Actions (inline in selected cards) */
+.config-actions {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light);
+}
+
+.config-option.selected .config-actions {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.config-details-btn {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    min-width: auto;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    max-width: 90%;
+    max-height: 90%;
+    width: 800px;
+    box-shadow: 0 20px 40px var(--shadow);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-tertiary);
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: var(--border-color);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 24px;
+    max-height: 60vh;
+    overflow-y: auto;
+    background: var(--bg-secondary);
+}
+
+/* Configuration Breakdown Styles */
+.config-breakdown-section {
+    margin-bottom: 24px;
+}
+
+.config-breakdown-section h4 {
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.rule-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.rule-item {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    transition: all 0.2s ease;
+}
+
+.rule-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.rule-item.enabled {
+    border-left: 4px solid #10b981;
+}
+
+.rule-item.disabled {
+    border-left: 4px solid #ef4444;
+    opacity: 0.7;
+}
+
+.rule-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+}
+
+.rule-description {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.rule-settings {
+    margin-top: 8px;
+}
+
+.settings-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.settings-json {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border-light);
+    font-family: 'Courier New', 'Consolas', monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 0;
+    overflow-x: auto;
+    line-height: 1.4;
+}
+
+/* Theme-specific JSON styling */
+[data-theme="light"] .settings-json {
+    background: #f8f9fa;
+    border-color: #e9ecef;
+    color: #495057;
+}
+
+[data-theme="dark"] .settings-json {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+/* Configuration Summary Grid */
+.config-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.summary-card {
+    padding: 12px;
+    background: var(--bg-primary);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.summary-card.enabled {
+    border-left: 4px solid #10b981;
+}
+
+.summary-card.disabled {
+    border-left: 4px solid #ef4444;
+}
+
+.summary-card.total {
+    border-left: 4px solid #667eea;
+}
+
+.summary-number {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+}
+
+.summary-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Theme-specific modal overlay */
+[data-theme="light"] .modal {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .modal {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+/* Theme-specific rule item colors */
+[data-theme="light"] .rule-item.enabled,
+[data-theme="light"] .summary-card.enabled {
+    border-left-color: #059669;
+}
+
+[data-theme="dark"] .rule-item.enabled,
+[data-theme="dark"] .summary-card.enabled {
+    border-left-color: #10b981;
+}
+
+[data-theme="light"] .rule-item.disabled,
+[data-theme="light"] .summary-card.disabled {
+    border-left-color: #dc2626;
+}
+
+[data-theme="dark"] .rule-item.disabled,
+[data-theme="dark"] .summary-card.disabled {
+    border-left-color: #ef4444;
+}
+
+[data-theme="light"] .summary-card.total {
+    border-left-color: #4f46e5;
+}
+
+[data-theme="dark"] .summary-card.total {
+    border-left-color: #667eea;
 }
 
 /* Loading Section */
@@ -763,8 +1038,7 @@ header p {
 :not([data-theme]) .config-option:hover {
     border-color: #4f46e5;
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.15);
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.25);
 }
 
 /* Light-mode hover */
@@ -817,8 +1091,29 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
 [data-theme="dark"] .config-option:hover {
     border-color: #818cf8;
     background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(129, 140, 248, 0.2);
+    box-shadow: 0 4px 15px rgba(129, 140, 248, 0.3);
+}
+
+/* Dark mode hover text colors */
+[data-theme="dark"] .config-option:hover .config-name {
+    color: #ffffff;
+}
+
+[data-theme="dark"] .config-option:hover .config-description {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .config-option:hover .config-meta {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .config-option:hover .config-rules-count {
+    background: rgba(129, 140, 248, 0.2);
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .config-option:hover .config-performance {
+    color: #f1f5f9;
 }
 
 

@@ -1,5 +1,7 @@
 ![Arcane Auditor Logo](assets/arcane-auditor-logo.png)
 
+**Version: 0.3.0-beta.1** | [📋 Release Notes](RELEASE_NOTES_0.3.0-beta.1.md) | [🚀 Download Latest](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases/tag/v0.3.0-beta.1)
+
 *A mystical code review tool for Workday Extend applications that validates PMD, Pod, and Script syntax, structure compliance, and coding best practices.*
 
 ## 🎯 Overview
@@ -88,17 +90,17 @@ pip install uv
 ```bash
 # Download the latest release ZIP from GitHub
 # Visit: https://github.com/Developers-and-Dragons/ArcaneAuditor/releases
-# Download arcane-auditor-0.2.0-beta.1.zip and extract it
+# Download arcane-auditor-0.3.0-beta.1.zip and extract it
 
 # Or using command line (Windows PowerShell)
-Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.2.0-beta.1.zip" -OutFile "arcane-auditor.zip"
+Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.3.0-beta.1.zip" -OutFile "arcane-auditor.zip"
 Expand-Archive -Path "arcane-auditor.zip" -DestinationPath "."
-cd ArcaneAuditor-0.2.0-beta.1
+cd ArcaneAuditor-0.3.0-beta.1
 
 # Or using command line (macOS)
-curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.2.0-beta.1.zip"
+curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.3.0-beta.1.zip"
 unzip arcane-auditor.zip
-cd ArcaneAuditor-0.2.0-beta.1
+cd ArcaneAuditor-0.3.0-beta.1
 
 # Install dependencies (UV handles Python version and virtual environment automatically)
 uv sync
@@ -157,32 +159,17 @@ uv run main.py --help
 
 You should see mystical analysis output with validation findings! 🔮
 
-## 🆕 What's New in 0.2.0
+## 🆕 What's New in 0.3.0-beta.1
 
-This release brings significant improvements to the configuration system and validation rules:
+This release brings web interface improvements, new validation rules, and enhanced user experience:
 
-### 🔧 Major Configuration System Overhaul
+### 🌐 Web Interface Overhaul
 
-- **Consolidated Configuration Structure**: All configurations now live in a single `config/` directory with clear separation:
-
-  - `config/presets/` - Built-in configurations (development, production-ready)
-  - `config/teams/` - Team/project settings (update-safe)
-  - `config/personal/` - Personal overrides (highest priority)
-- **Simplified Presets**: Streamlined to just 2 essential presets:
-
-  - **Development** - Development-friendly validation allowing console.debug, etc.
-  - **Production-Ready** - Pre-deployment validation with strict settings
-
-### 🛠️ Enhanced Validation Rules
-
-- **Improved Rule Architecture**: All structure rules now follow consistent patterns
-- **Better Line Number Accuracy**: Enhanced source content analysis for precise violation reporting
-
-### 🌐 Web Interface Improvements
-
-- **Configuration Persistence**: Remembers your last selected configuration
-- **Unique Configuration Keys**: Shows all versions of configs (personal, team, built-in) with unique identifiers
-- **Cache-Busting**: Prevents stale configuration data from being displayed
+- **Interactive Configuration Breakdown**: New modal system showing detailed rule information with enabled/disabled counts
+- **Enhanced User Experience**: Improved layout with file upload at top, configuration selection below
+- **Definitive Scroll Jiggle Fix**: 2-part solution eliminating all layout shifts and scroll bar jumping
+- **Enhanced Dark Mode**: Fixed hover text readability and improved contrast across all components
+- **Cross-Platform Startup Scripts**: Windows (`.bat`) and Linux/macOS (`.sh`) convenience scripts
 
 ### Web Interface (Recommended)
 
@@ -216,6 +203,34 @@ The web interface provides:
 
 > **🌐 Web Interface Benefits:** Drag-and-drop file upload, interactive results, configuration management, beautiful mystical UI, and modern FastAPI backend with automatic API documentation!
 
+#### **Convenient Startup Scripts**
+
+For easier web service startup, use the provided scripts instead of remembering the command syntax:
+
+**Windows:**
+
+```bash
+# Simple startup (opens browser automatically)
+start-web-service.bat
+
+# Advanced startup with options
+start-web-service.bat --port 3000 --host 0.0.0.0
+```
+
+**Linux/macOS:**
+
+```bash
+# Simple startup (opens browser automatically)
+./start-web-service.sh
+
+# Advanced startup with options
+./start-web-service.sh --port 3000 --host 0.0.0.0
+```
+
+See [`WEB_SERVICE_SCRIPTS.md`](WEB_SERVICE_SCRIPTS.md) for detailed usage instructions and all available options.
+
+For a complete overview of all validation rules, see [`parser/rules/RULE_BREAKDOWN.md`](parser/rules/RULE_BREAKDOWN.md).
+
 #### **API Endpoints**
 
 The FastAPI server provides the following REST API endpoints:
@@ -238,6 +253,40 @@ The FastAPI server provides the following REST API endpoints:
 
   - Returns: `{"status": "healthy"}`
 - **`GET /docs`** - Interactive API documentation (Swagger UI)
+
+## 🧙‍♂️ Arcane Auditor Web User Interface
+
+Arcane Auditor offers both **Dark** and **Light** themes — revealing code quality insights in true mystical style.
+
+<h3>🪄 Upload Your Extend Application</h3>
+<p align="center">
+  <img src="assets/upload-dark.png" width="48%">
+  <img src="assets/upload-light.png" width="48%">
+</p>
+
+<h3>⚙️ Choose Your Configuration</h3>
+<p align="center">
+  <img src="assets/config-dark.png" width="48%">
+  <img src="assets/config-light.png" width="48%">
+</p>
+
+<h3>📊 View Analysis Results</h3>
+<p align="center">
+  <img src="assets/results-dark.png" width="48%">
+  <img src="assets/results-light.png" width="48%">
+</p>
+
+<h3>🗂️ Browse Issues by File</h3>
+<p align="center">
+  <img src="assets/issues-dark.png" width="48%">
+  <img src="assets/issues-light.png" width="48%">
+</p>
+
+<h3>🔍 Inspect Detailed Rule Violations</h3>
+<p align="center">
+  <img src="assets/details-dark.png" width="48%">
+  <img src="assets/details-light.png" width="48%">
+</p>
 
 ### Basic Usage
 
@@ -262,9 +311,22 @@ arcane-auditor/
 ├── README.md                                       	# This file
 ├── LICENSE                                         	# MIT License
 ├── uv.lock                                         	# UV package lock file
+├── start-web-service.bat                          	# Windows web service startup script
+├── start-web-service.sh                           	# Linux/macOS web service startup script
+├── WEB_SERVICE_SCRIPTS.md                         	# Web service scripts documentation
 │
 ├── assets/                                         	# Static assets
-│   └── arcane-auditor-logo.png                     	# Project logo
+│   ├── arcane-auditor-logo.png                     	# Project logo
+│   ├── config-dark.png                             	# Web UI config selection (dark mode)
+│   ├── config-light.png                            	# Web UI config selection (light mode)
+│   ├── details-dark.png                            	# Web UI configuration details (dark mode)
+│   ├── details-light.png                           	# Web UI configuration details (light mode)
+│   ├── issues-dark.png                             	# Web UI issues view (dark mode)
+│   ├── issues-light.png                            	# Web UI issues view (light mode)
+│   ├── results-dark.png                            	# Web UI results view (dark mode)
+│   ├── results-light.png                           	# Web UI results view (light mode)
+│   ├── upload-dark.png                             	# Web UI upload view (dark mode)
+│   └── upload-light.png                            	# Web UI upload view (light mode)
 │
 ├── config/                                         	# Consolidated configurations
 │   ├── README.md                                   	# Configuration guide
@@ -273,9 +335,6 @@ arcane-auditor/
 │   │   └── production-ready.json                   	# Pre-deployment validation
 │   ├── teams/                                      	# Team/project settings (update-safe)
 │   └── personal/                                   	# Personal overrides (highest priority)
-│
-├── docs/                                           	# Documentation
-│   └── RULE_BREAKDOWN.md                           	# Detailed rule documentation
 │
 ├── file_processing/                                	# File processing pipeline
 │   ├── __init__.py
@@ -302,7 +361,7 @@ arcane-auditor/
 │       ├── __init__.py                             	# Rules package
 │       ├── base.py                                 	# Base Rule class and utilities
 │       ├── common_validations.py                   	# Shared validation functions
-│       ├── line_number_utils.py                    	# Line number calculation utilities
+│       ├── RULE_BREAKDOWN.md                       	# Complete rules documentation
 │       │
 │       ├── common/                                 	# Shared rule utilities
 │       │   ├── __init__.py
@@ -317,7 +376,8 @@ arcane-auditor/
 │       │   │   ├── rule_base.py                    	# ScriptRuleBase class
 │       │   │   ├── detector.py                     	# ScriptDetector abstract class
 │       │   │   ├── violation.py                    	# Script violation dataclass
-│       │   │   └── ast_utils.py                    	# AST manipulation utilities
+│       │   │   ├── ast_utils.py                    	# AST manipulation utilities
+│       │   │   └── template_literal_preprocessor.py	# Template literal preprocessing
 │       │   │
 │       │   ├── core/                               	# Basic syntax/style rules
 │       │   │   ├── __init__.py
@@ -338,6 +398,8 @@ arcane-auditor/
 │       │   │   ├── cyclomatic_complexity_detector.py
 │       │   │   ├── long_function.py                	# ScriptLongFunctionRule
 │       │   │   ├── long_function_detector.py
+│       │   │   ├── long_script_block.py            	# LongScriptBlockRule
+│       │   │   ├── long_script_block_detector.py
 │       │   │   ├── function_parameter_count.py     	# ScriptFunctionParameterCountRule
 │       │   │   └── function_parameter_count_detector.py
 │       │   │
@@ -363,7 +425,7 @@ arcane-auditor/
 │       │       ├── descriptive_parameters.py       	# ScriptDescriptiveParameterRule
 │       │       ├── descriptive_parameters_detector.py
 │       │       ├── array_method_usage.py      	# ScriptArrayMethodUsageRule
-│       │       ├── functional_method_usage_detector.py
+│       │       ├── array_method_usage_detector.py
 │       │       ├── verbose_boolean.py              	# ScriptVerboseBooleanCheckRule
 │       │       ├── verbose_boolean_detector.py
 │       │       ├── return_consistency.py           	# ScriptFunctionReturnConsistencyRule
@@ -392,6 +454,7 @@ arcane-auditor/
 │       │   │
 │       │   └── validation/                         	# General validation rules
 │       │       ├── __init__.py
+│       │       ├── amd_data_providers_workday.py   	# AMDDataProvidersWorkdayRule
 │       │       ├── footer_pod_required.py          	# FooterPodRequiredRule
 │       │       ├── string_boolean.py               	# StringBooleanRule
 │       │       ├── embedded_images.py              	# EmbeddedImagesRule
@@ -431,7 +494,7 @@ arcane-auditor/
 │   ├── test_script_empty_function_rule.py          	# Empty function tests
 │   ├── test_script_dead_code.py               	# Dead code tests
 │   ├── test_script_function_parameter_count_rule.py    # Parameter count tests
-│   ├── test_script_functional_method_usage_rule.py     # Functional method tests
+│   ├── test_script_array_method_usage_rule.py           # Array method tests
 │   ├── test_script_verbose_boolean_rule.py         	# Verbose boolean tests
 │   ├── test_unused_script_includes.py              	# Unused includes tests
 │   ├── test_embedded_images_rule.py                	# Embedded images tests
@@ -440,6 +503,8 @@ arcane-auditor/
 │   ├── test_pmd_section_ordering.py                	# PMD section ordering tests
 │   ├── test_string_boolean_rule.py                 	# String boolean tests
 │   ├── test_widget_traversal.py                    	# Widget traversal tests
+│   ├── test_long_script_block_rule.py             	# Long script block tests
+│   ├── test_amd_data_providers_workday_rule.py     	# AMD data providers tests
 │   └── test_pmd_script_grammar.py                  	# PMD script grammar tests
 │
 └── uploads/                                        	# Temporary file uploads
@@ -608,7 +673,7 @@ Create custom configurations in JSON format:
 
 ### Core Documentation
 
-- **[📜 Rule Breakdown](docs/RULE_BREAKDOWN.md)**: Comprehensive guide to all validation rules, with examples!
+- **[📜 Rule Breakdown](parser/rules/RULE_BREAKDOWN.md)**: Comprehensive guide to all validation rules, with examples!
 - **[⚙️ Configuration Guide](config/README.md)**: Consolidated configuration system and rule customization
 
 ### Advanced Guides

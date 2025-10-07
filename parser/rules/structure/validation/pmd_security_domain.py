@@ -6,8 +6,23 @@ from ....models import ProjectContext, PMDModel
 class PMDSecurityDomainRule(Rule):
     """Ensures PMD pages have required security domains with selective exclusions."""
     
-    DESCRIPTION = "Ensures PMD pages have at least one security domain defined (excludes microConclusion and error pages)"
+    DESCRIPTION = "Ensures PMD pages have at least one security domain defined (excludes microConclusion and error pages unless strict mode is enabled)"
     SEVERITY = "ACTION"
+
+    def __init__(self):
+        super().__init__()
+        self.strict_mode = False  # Default to non-strict mode
+
+    def apply_settings(self, custom_settings: dict):
+        """Apply custom settings from configuration."""
+        if 'strict' in custom_settings:
+            self.strict_mode = custom_settings['strict']
+    
+    def get_description(self) -> str:
+        """Get rule description."""
+        if self.strict_mode:
+            return "Ensures ALL PMD pages have at least one security domain defined (strict mode - no exclusions)"
+        return self.DESCRIPTION
 
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze all PMD models for security domain requirements."""
@@ -16,24 +31,31 @@ class PMDSecurityDomainRule(Rule):
 
     def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Check if a PMD model has required security domains with selective exclusions."""
-        # Check if this page should be excluded from security domain requirements
-        
-        # Exclusion 1: MicroConclusion pages (presentation.microConclusion: true)
-        if self._is_micro_conclusion_page(pmd_model):
-            return  # Skip security domain check for microConclusion pages
-        
-        # Exclusion 2: Error pages (page ID in SMD errorPageConfigurations)
-        if self._is_error_page(pmd_model, context):
-            return  # Skip security domain check for error pages
+        # In strict mode, skip all exclusions and require security domains for ALL pages
+        if not self.strict_mode:
+            # Check if this page should be excluded from security domain requirements
+            
+            # Exclusion 1: MicroConclusion pages (presentation.microConclusion: true)
+            if self._is_micro_conclusion_page(pmd_model):
+                return  # Skip security domain check for microConclusion pages
+            
+            # Exclusion 2: Error pages (page ID in SMD errorPageConfigurations)
+            if self._is_error_page(pmd_model, context):
+                return  # Skip security domain check for error pages
         
         # Check if securityDomains is missing or empty for pages that require it
         # The compiler ensures domain validity, so we only check for presence
         if not pmd_model.securityDomains or len(pmd_model.securityDomains) == 0:
+            if self.strict_mode:
+                message = "PMD page is missing required securityDomains list. ALL PMD pages must define at least one security domain (strict mode enabled)."
+            else:
+                message = "PMD page is missing required securityDomains list. All PMD pages must define at least one security domain (excludes microConclusion and error pages)."
+            
             yield Finding(
                 rule=self,
                 file_path=pmd_model.file_path,
                 line=1,  # Security domains are typically defined at the top of PMD files
-                message="PMD page is missing required securityDomains list. All PMD pages must define at least one security domain (excludes microConclusion and error pages)."
+                message=message
             )
     
     def _is_micro_conclusion_page(self, pmd_model: PMDModel) -> bool:

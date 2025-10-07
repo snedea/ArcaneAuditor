@@ -98,7 +98,8 @@ def get_dynamic_config_info():
                     "type": config_type,
                     "path": str(config_file.relative_to(project_root)),
                     "id": config_name,  # Original name for API compatibility
-                    "source": config_dir.name  # Track which directory it came from
+                    "source": config_dir.name,  # Track which directory it came from
+                    "rules": config_data.get('rules', {})  # Include actual rules data
                 }
                 
             except Exception as e:

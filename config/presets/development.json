@@ -15,6 +15,13 @@
       "severity_override": null,
       "custom_settings": {}
     },
+    "LongScriptBlockRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {
+        "max_lines": 30
+      }
+    },
     "ScriptNestingLevelRule": {
       "enabled": true,
       "severity_override": null,
@@ -171,6 +178,13 @@
       "custom_settings": {}
     },
     "PMDSecurityDomainRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {
+        "strict": false
+      }
+    },
+    "AMDDataProvidersWorkdayRule": {
       "enabled": true,
       "severity_override": null,
       "custom_settings": {}

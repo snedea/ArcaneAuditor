@@ -119,6 +119,7 @@ class ArcaneAuditorApp {
                     configElement.classList.add('selected');
                 }
                 
+                const isSelected = config.id === this.selectedConfig;
                 configElement.innerHTML = `
                     <div class="config-type ${config.type?.toLowerCase() || 'built-in'}">${config.type || 'Built-in'}</div>
                     <div class="config-name">${config.name}</div>
@@ -127,6 +128,13 @@ class ArcaneAuditorApp {
                         <span class="config-rules-count">${config.rules_count} rules</span>
                         <span class="config-performance ${config.performance.toLowerCase()}">${config.performance}</span>
                     </div>
+                    ${isSelected ? `
+                        <div class="config-actions">
+                            <button class="btn btn-secondary config-details-btn" onclick="showConfigBreakdown()">
+                                📋 View Details
+                            </button>
+                        </div>
+                    ` : ''}
                 `;
                 
                 configElement.addEventListener('click', () => this.selectConfiguration(config.id));
@@ -762,3 +770,124 @@ function downloadResults() {
 function toggleTheme() {
     app.toggleTheme();
 }
+
+// Configuration Breakdown Functions
+function showConfigBreakdown() {
+    const modal = document.getElementById('config-breakdown-modal');
+    const content = document.getElementById('config-breakdown-content');
+    
+    if (!app.selectedConfig) {
+        alert('Please select a configuration first');
+        return;
+    }
+    
+    const config = app.availableConfigs.find(c => c.id === app.selectedConfig);
+    if (!config) {
+        alert('Configuration not found');
+        return;
+    }
+    
+    const rules = config.rules || {};
+    const enabledRules = Object.entries(rules).filter(([_, ruleConfig]) => ruleConfig.enabled);
+    const disabledRules = Object.entries(rules).filter(([_, ruleConfig]) => !ruleConfig.enabled);
+    
+    let html = `
+        <div class="config-breakdown-section">
+            <h4>📊 Configuration: ${config.name}</h4>
+            <div class="config-summary-grid">
+                <div class="summary-card enabled">
+                    <div class="summary-number">${enabledRules.length}</div>
+                    <div class="summary-label">Enabled Rules</div>
+                </div>
+                <div class="summary-card disabled">
+                    <div class="summary-number">${disabledRules.length}</div>
+                    <div class="summary-label">Disabled Rules</div>
+                </div>
+                <div class="summary-card total">
+                    <div class="summary-number">${Object.keys(rules).length}</div>
+                    <div class="summary-label">Total Rules</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    if (enabledRules.length > 0) {
+        html += `
+            <div class="config-breakdown-section">
+                <h4>✅ Enabled Rules</h4>
+                <div class="rule-breakdown">
+        `;
+        
+        enabledRules.forEach(([ruleName, ruleConfig]) => {
+            const severity = ruleConfig.severity_override || 'ADVICE';
+            const customSettings = ruleConfig.custom_settings || {};
+            const settingsText = Object.keys(customSettings).length > 0 
+                ? JSON.stringify(customSettings, null, 2) 
+                : '';
+            
+            html += `
+                <div class="rule-item enabled">
+                    <div class="rule-name">${ruleName}</div>
+                    <div class="rule-description">Severity: ${severity}</div>
+                    ${settingsText ? `
+                        <div class="rule-settings">
+                            <div class="settings-label">Custom Settings:</div>
+                            <pre class="settings-json">${settingsText}</pre>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+    
+    if (disabledRules.length > 0) {
+        html += `
+            <div class="config-breakdown-section">
+                <h4>❌ Disabled Rules</h4>
+                <div class="rule-breakdown">
+        `;
+        
+        disabledRules.forEach(([ruleName, ruleConfig]) => {
+            html += `
+                <div class="rule-item disabled">
+                    <div class="rule-name">${ruleName}</div>
+                    <div class="rule-description">Disabled</div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+    
+    content.innerHTML = html;
+    
+    modal.style.display = 'flex';
+}
+
+function hideConfigBreakdown() {
+    const modal = document.getElementById('config-breakdown-modal');
+    modal.style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('config-breakdown-modal');
+    if (event.target === modal) {
+        hideConfigBreakdown();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        hideConfigBreakdown();
+    }
+});

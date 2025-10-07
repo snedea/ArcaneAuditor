@@ -12,7 +12,7 @@ class TestHardcodedApplicationIdRule:
         rule = HardcodedApplicationIdRule()
         assert rule.ID == "HardcodedApplicationIdRule"
         assert rule.DESCRIPTION == "Detects hardcoded applicationId values that should be replaced with site.applicationId"
-        assert rule.SEVERITY == "ACTION"
+        assert rule.SEVERITY == "ADVICE"
 
     def test_get_description(self):
         """Test that get_description returns the correct description."""

@@ -7,7 +7,7 @@ class EndpointBaseUrlTypeRule(StructureRuleBase):
     """Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values."""
     
     DESCRIPTION = "Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values"
-    SEVERITY = "ADVICE"
+    SEVERITY = "ACTION"
 
     def get_description(self) -> str:
         """Get rule description."""

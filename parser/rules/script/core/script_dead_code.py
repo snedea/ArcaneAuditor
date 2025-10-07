@@ -10,7 +10,7 @@ class ScriptDeadCodeRule(ScriptRuleBase):
     """Detects dead code in standalone script files (.script)."""
 
     DESCRIPTION = "Detects and removes dead code from standalone script files"
-    SEVERITY = "ACTION"
+    SEVERITY = "ADVICE"
     DETECTOR = ScriptDeadCodeDetector
 
     def __init__(self, config: Dict[str, Any] = None, context=None):
