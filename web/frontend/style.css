@@ -406,10 +406,36 @@ header p {
     margin-bottom: 0;
 }
 
-/* Configuration Actions */
+/* Configuration Actions (inline in selected cards) */
 .config-actions {
-    margin-top: 15px;
+    margin-top: 12px;
     text-align: center;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light);
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.config-details-btn {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    min-width: auto;
+    transition: all 0.2s ease;
+}
+
+.config-details-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Modal Styles */

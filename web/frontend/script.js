@@ -119,6 +119,7 @@ class ArcaneAuditorApp {
                     configElement.classList.add('selected');
                 }
                 
+                const isSelected = config.id === this.selectedConfig;
                 configElement.innerHTML = `
                     <div class="config-type ${config.type?.toLowerCase() || 'built-in'}">${config.type || 'Built-in'}</div>
                     <div class="config-name">${config.name}</div>
@@ -127,6 +128,13 @@ class ArcaneAuditorApp {
                         <span class="config-rules-count">${config.rules_count} rules</span>
                         <span class="config-performance ${config.performance.toLowerCase()}">${config.performance}</span>
                     </div>
+                    ${isSelected ? `
+                        <div class="config-actions">
+                            <button class="btn btn-secondary config-details-btn" onclick="showConfigBreakdown()">
+                                📋 View Details
+                            </button>
+                        </div>
+                    ` : ''}
                 `;
                 
                 configElement.addEventListener('click', () => this.selectConfiguration(config.id));
