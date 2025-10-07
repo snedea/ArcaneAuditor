@@ -70,6 +70,9 @@ class ModelParser:
         # Pre-compute ASTs for all script fields to avoid repeated parsing
         self._precompute_asts(context)
         
+        # Initialize analysis context for tracking missing cross-file dependencies
+        self._initialize_analysis_context(context, source_files_map)
+        
         return context
     
     def _parse_single_file_safe(self, file_path: str, source_file: Any):
@@ -373,3 +376,45 @@ class ModelParser:
                             error_count += 1
         
         print(f"Pre-computed {ast_count} ASTs (errors: {error_count})")
+    
+    def _initialize_analysis_context(self, context: ProjectContext, source_files_map: Dict[str, Any]):
+        """
+        Initialize the analysis context to track which files were analyzed.
+        
+        This helps inform users when validation is partial due to missing cross-file
+        dependencies like AMD or SMD files.
+        
+        Args:
+            context: The ProjectContext being populated
+            source_files_map: Dictionary mapping file paths to SourceFile objects
+        """
+        from file_processing.context_tracker import AnalysisContext
+        
+        # Detect which file types are present
+        files_present = set()
+        files_analyzed = []
+        
+        for file_path in source_files_map.keys():
+            files_analyzed.append(file_path)
+            
+            if file_path.endswith('.pmd'):
+                files_present.add('PMD')
+            elif file_path.endswith('.pod'):
+                files_present.add('POD')
+            elif file_path.endswith('.amd'):
+                files_present.add('AMD')
+            elif file_path.endswith('.smd'):
+                files_present.add('SMD')
+            elif file_path.endswith('.script'):
+                files_present.add('SCRIPT')
+        
+        # Determine analysis type based on input
+        # If analyzing from ZIP, it's full_app; otherwise it's individual_files
+        analysis_type = "full_app" if any(f.endswith('.zip') for f in source_files_map.keys()) else "individual_files"
+        
+        # Create and attach analysis context
+        context.analysis_context = AnalysisContext(
+            analysis_type=analysis_type,
+            files_analyzed=files_analyzed,
+            files_present=files_present
+        )
