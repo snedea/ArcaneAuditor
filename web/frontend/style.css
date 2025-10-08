@@ -1110,12 +1110,6 @@ header p {
     position: relative;
 }
 
-/* Theme-aware accent colors */
-:root {
-    --accent-action: #f59e0b;
-    --accent-advice: #38bdf8;
-}
-
 /* ⚡️ ARCANE MODE: THE GRAND RITUAL EDITION ⚡️ */
 /* Magical color palette */
 :root {
@@ -1285,7 +1279,7 @@ header p {
 }
 
 /* Summary cards with inline icons */
-.summary-card {
+.magic-summary-card {
     background: var(--bg-secondary);
     color: var(--text-primary);
     border-radius: 8px;
@@ -1295,13 +1289,13 @@ header p {
     box-shadow: 0 2px 4px var(--shadow);
 }
 
-.summary-card .count {
+.magic-summary-card .count {
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: 5px;
 }
 
-.summary-card .label {
+.magic-summary-card .label {
     font-size: 0.9rem;
     color: var(--text-secondary);
     display: flex;
@@ -1310,31 +1304,25 @@ header p {
     gap: 0.25rem;
 }
 
-.summary-card .icon {
+.magic-summary-card .icon {
     font-size: 1rem;
 }
 
 /* Accent colors for icons and borders */
-.summary-card.action .icon { 
+.magic-summary-card.action .icon { 
     color: var(--accent-action); 
 }
 
-.summary-card.advice .icon { 
+.magic-summary-card.advice .icon { 
     color: var(--accent-advice); 
 }
 
-.summary-card.action { 
+.magic-summary-card.action { 
     border-bottom: 2px solid var(--accent-action); 
 }
 
-.summary-card.advice { 
+.magic-summary-card.advice { 
     border-bottom: 2px solid var(--accent-advice); 
-}
-
-.summary-number {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 5px;
 }
 
 .summary-number-blue { color: #3b82f6; }

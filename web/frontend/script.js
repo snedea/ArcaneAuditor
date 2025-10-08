@@ -387,13 +387,13 @@ class ArcaneAuditorApp {
                     <div class="summary-number summary-number-purple">${result.summary?.rules_executed || 0}</div>
                     <div class="summary-label">Rules Executed</div>
                 </div>
-                <div class="summary-item summary-card action">
+                <div class="summary-item magic-summary-card action">
                     <div class="count">${result.summary?.by_severity?.action || 0}</div>
                     <div class="label">
                         <span class="icon">${this.getSeverityIcon('ACTION')}</span> Actions
                     </div>
                 </div>
-                <div class="summary-item summary-card advice">
+                <div class="summary-item magic-summary-card advice">
                     <div class="count">${result.summary?.by_severity?.advice || 0}</div>
                     <div class="label">
                         <span class="icon">${this.getSeverityIcon('ADVICE')}</span> Advices
