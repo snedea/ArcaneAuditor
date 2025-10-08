@@ -492,17 +492,41 @@ async def download_excel(job_id: str):
             raise HTTPException(status_code=500, detail="No results available")
         
         try:
-            # Generate Excel file using the superior CLI method
-            from openpyxl import Workbook
-            from openpyxl.styles import Font, PatternFill, Alignment
-            from openpyxl.utils import get_column_letter
+            # Use shared OutputFormatter logic for Excel generation
+            from output.formatter import OutputFormatter
+            from parser.models import Finding
             from datetime import datetime
-            from pathlib import Path
             
-            wb = Workbook()
+            # Convert web service findings to Finding objects
+            findings = []
+            for finding_data in job.result["findings"]:
+                finding = Finding(
+                    rule_id=finding_data["rule_id"],
+                    severity=finding_data["severity"],
+                    line=finding_data["line"],
+                    message=finding_data["message"],
+                    file_path=finding_data["file_path"]
+                )
+                findings.append(finding)
             
-            # Remove default sheet
-            wb.remove(wb.active)
+            # Generate Excel using shared formatter
+            formatter = OutputFormatter()
+            temp_file_path = formatter._format_excel(
+                findings=findings,
+                total_files=len(set(f.file_path for f in findings)),
+                total_rules=job.result["summary"]["rules_executed"],
+                context=None  # Web doesn't have context yet
+            )
+            
+            # Generate filename
+            timestamp = datetime.now().strftime("%Y-%m-%d")
+            filename = f"arcane-auditor-results-{timestamp}.xlsx"
+            
+            return FileResponse(
+                path=temp_file_path,
+                filename=filename,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
             
             # Convert web service findings to CLI format
             findings = []
@@ -522,9 +546,11 @@ async def download_excel(job_id: str):
             findings_by_file = {}
             for finding in findings:
                 file_path = finding.file_path or "Unknown"
-                if file_path not in findings_by_file:
-                    findings_by_file[file_path] = []
-                findings_by_file[file_path].append(finding)
+                # Clean file path by removing job ID prefix
+                clean_file_path = file_path.replace(r'^[a-f0-9-]+_', '', regex=True)
+                if clean_file_path not in findings_by_file:
+                    findings_by_file[clean_file_path] = []
+                findings_by_file[clean_file_path].append(finding)
             
             # Create summary sheet
             summary_sheet = wb.create_sheet("Summary")
