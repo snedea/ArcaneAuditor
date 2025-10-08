@@ -35,10 +35,10 @@ class ArcaneAuditorApp {
         
         if (theme === 'dark') {
             themeIcon.textContent = '☀️';
-            themeText.textContent = 'Go Light';
+            themeText.textContent = 'Cast Light';
         } else {
             themeIcon.textContent = '🌙';
-            themeText.textContent = 'Go Dark';
+            themeText.textContent = 'Cast Darkness';
         }
         
         // Save preference
@@ -864,13 +864,13 @@ class ArcaneAuditorApp {
         // Determine if analysis is complete or partial
         const isComplete = contextData.context_status === 'complete';
         
-        // Update icon and title with new UX-focused language
+        // Update icon and title with magical flair
         if (isComplete) {
-            contextIcon.textContent = '📊';
-            contextTitleText.textContent = 'Analysis Summary';
+            contextIcon.textContent = '🔮';
+            contextTitleText.textContent = 'Evaluation ✦';
         } else {
-            contextIcon.textContent = '📊';
-            contextTitleText.textContent = 'Analysis Summary';
+            contextIcon.textContent = '🔮';
+            contextTitleText.textContent = 'Divination Incomplete';
         }
         
         // Add status badge to the header
@@ -909,11 +909,11 @@ class ArcaneAuditorApp {
         // Build context content HTML (no duplicate badge)
         let html = '';
         
-        // Files processed (renamed from "analyzed")
+        // Files examined (magical terminology)
         if (contextData.files_analyzed && contextData.files_analyzed.length > 0) {
             html += `
                 <div class="context-files">
-                    <h4>✅ Files Processed (${contextData.files_analyzed.length})</h4>
+                    <h4>✅ Files Examined (${contextData.files_analyzed.length})</h4>
                     <ul>
                         ${contextData.files_analyzed.map(file => {
                             // Remove job ID prefix if present (format: uuid_filename.ext)
@@ -939,7 +939,7 @@ class ArcaneAuditorApp {
             if (requiredFiles.length > 0) {
                 html += `
                     <div class="context-missing">
-                        <h4>⚠️ Files Needed for Full Validation</h4>
+                        <h4>⚠️ Missing Artifacts</h4>
                         <div class="context-missing-items">
                 `;
                 
@@ -955,7 +955,7 @@ class ArcaneAuditorApp {
             }
         }
         
-        // Skipped checks (renamed from "Validation Impact")
+        // Rules not invoked (magical terminology)
         if (contextData.impact) {
             const hasImpact = (contextData.impact.rules_not_executed && contextData.impact.rules_not_executed.length > 0) ||
                              (contextData.impact.rules_partially_executed && contextData.impact.rules_partially_executed.length > 0);
@@ -963,8 +963,8 @@ class ArcaneAuditorApp {
             if (hasImpact) {
                 html += `
                     <div class="context-impact">
-                        <h4>🚫 Checks Skipped</h4>
-                        <p class="context-impact-subtitle">Some rules could not be evaluated due to missing file types.</p>
+                        <h4>🔮 Rules Not Invoked</h4>
+                        <p class="context-impact-subtitle">Some validations could not be cast due to missing components.</p>
                         <div class="context-impact-list">
                 `;
                 
@@ -999,15 +999,15 @@ class ArcaneAuditorApp {
             }
         }
         
-        // Tip (renamed from "Recommendation")
+        // Tip (magical guidance)
         if (!isComplete) {
             const requiredFiles = (contextData.files_missing || []).filter(type => ['AMD', 'SMD'].includes(type));
             
             let tipText = '';
             if (requiredFiles.length > 0) {
-                tipText = `Add ${requiredFiles.join(' and ')} files for complete application validation.`;
+                tipText = `Add these components to complete the circle: ${requiredFiles.join(' and ')}.`;
             } else {
-                tipText = 'Add missing files to enable full validation coverage.';
+                tipText = 'Add missing components to complete the divination.';
             }
             
             html += `
