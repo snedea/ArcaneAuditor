@@ -342,6 +342,11 @@ class ArcaneAuditorApp {
         }
         
         this.renderResults();
+        
+        // Show magical analysis completion if in magic mode
+        if (typeof showMagicalAnalysisComplete === 'function') {
+            showMagicalAnalysisComplete(this.currentResult);
+        }
     }
 
     hideAllSections() {
@@ -1195,3 +1200,137 @@ document.addEventListener('keydown', function(event) {
         hideConfigBreakdown();
     }
 });
+
+// ⚡️ ARCANE MODE: THE GRAND RITUAL EDITION ⚡️
+// Magical functionality for the living spellbook
+
+// 🌠 Particle Wisps of Energy
+function summonParticles(count = 20) {
+    for (let i = 0; i < count; i++) {
+        const spark = document.createElement('div');
+        spark.className = 'arcane-spark';
+        document.body.appendChild(spark);
+        animateSpark(spark);
+    }
+}
+
+function animateSpark(el) {
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    el.style.animationDuration = `${5 + Math.random() * 5}s`;
+    el.addEventListener('animationend', () => el.remove());
+}
+
+// 🌈 Arcane Cursor Trail
+let cursorTrailEnabled = false;
+
+function enableCursorTrail() {
+    if (cursorTrailEnabled) return;
+    cursorTrailEnabled = true;
+    
+    document.addEventListener('mousemove', createWisp);
+}
+
+function disableCursorTrail() {
+    cursorTrailEnabled = false;
+    document.removeEventListener('mousemove', createWisp);
+}
+
+function createWisp(e) {
+    const wisp = document.createElement('div');
+    wisp.className = 'wisp';
+    wisp.style.left = `${e.pageX}px`;
+    wisp.style.top = `${e.pageY}px`;
+    document.body.appendChild(wisp);
+    setTimeout(() => wisp.remove(), 1000);
+}
+
+// 🪄 Magic Mode Toggle
+function toggleMagicMode() {
+    const body = document.body;
+    
+    if (body.classList.contains('magic-mode')) {
+        // Dispel Magic
+        body.classList.remove('magic-mode');
+        
+        // Clean up magical effects
+        document.querySelectorAll('.arcane-spark, .wisp').forEach(el => el.remove());
+        disableCursorTrail();
+        
+        console.log("%c🪄 The Weave settles... Arcane Mode dispelled.", "color:#756AA2; font-weight:bold");
+    } else {
+        // Invoke Magic
+        body.classList.add('magic-mode');
+        
+        // Activate magical effects
+        summonParticles();
+        enableCursorTrail();
+        
+        console.log("%c✨ The Weave stirs... Arcane Mode enabled.", "color:#EAA342; font-weight:bold");
+        
+        // Show magical achievement toast
+        showArcaneToast("✨ The Grand Ritual begins... The Weave awakens!");
+    }
+}
+
+// 🔔 Arcane Achievement Toasts
+function showArcaneToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'arcane-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// 🪄 Keyboard Incantation (Konami-style combo)
+const spell = ['Alt', 'Shift', 'M']; // "Alt + Shift + M" for Magic
+let buffer = [];
+
+document.addEventListener('keydown', e => {
+    buffer.push(e.key);
+    if (buffer.length > spell.length) {
+        buffer.shift();
+    }
+    
+    if (buffer.slice(-spell.length).join('') === spell.join('')) {
+        toggleMagicMode();
+        buffer = [];
+    }
+});
+
+// Initialize Magic Mode functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Show initial magical greeting
+    setTimeout(() => {
+        if (!document.body.classList.contains('magic-mode')) {
+            showArcaneToast("🔮 Welcome, Initiate. The Weave awaits your command...");
+        }
+    }, 1000);
+});
+
+// Enhanced analysis completion with magical flair
+function showMagicalAnalysisComplete(result) {
+    if (document.body.classList.contains('magic-mode')) {
+        const totalFindings = result.findings.length;
+        const actionCount = result.summary?.by_severity?.action || 0;
+        const adviceCount = result.summary?.by_severity?.advice || 0;
+        
+        let message = `✨ Divination Complete — The Weave reveals ${totalFindings} portents`;
+        if (actionCount > 0) {
+            message += ` (${actionCount} urgent omens)`;
+        }
+        if (adviceCount > 0) {
+            message += ` (${adviceCount} wise counsel)`;
+        }
+        
+        showArcaneToast(message);
+        
+        // Summon extra particles for celebration
+        setTimeout(() => summonParticles(10), 500);
+    }
+}
