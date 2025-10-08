@@ -558,6 +558,11 @@ async def download_excel(job_id: str):
                 
                 ws = wb.create_sheet(sheet_name)
                 
+                # Add full filename header if truncated
+                if len(sheet_name) < len(Path(file_path).stem):
+                    ws.append([f"File: {file_path}"])
+                    ws.append([])  # Empty row for spacing
+                
                 # Headers
                 headers = ["Rule ID", "Severity", "Line", "Message"]
                 ws.append(headers)
@@ -565,8 +570,19 @@ async def download_excel(job_id: str):
                 # Style headers
                 header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
                 header_font = Font(color="FFFFFF", bold=True)
+                
+                # Style filename header if present
+                filename_row = 1
+                if len(sheet_name) < len(Path(file_path).stem):
+                    filename_cell = ws.cell(row=filename_row, column=1)
+                    filename_cell.font = Font(bold=True, italic=True, color="666666")
+                    filename_row = 3  # Headers start at row 3 if filename is present
+                else:
+                    filename_row = 1  # Headers start at row 1 if no filename
+                
+                # Style column headers
                 for col_num, header in enumerate(headers, 1):
-                    cell = ws.cell(row=1, column=col_num)
+                    cell = ws.cell(row=filename_row, column=col_num)
                     cell.fill = header_fill
                     cell.font = header_font
                     cell.alignment = Alignment(horizontal="center")
