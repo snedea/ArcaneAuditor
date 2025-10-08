@@ -533,12 +533,28 @@ async def download_excel(job_id: str):
                 summary_sheet[f'A{row}'].font = Font(bold=True)
             
             # Create sheets for each file
+            used_sheet_names = set()  # Track used sheet names to avoid collisions
+            
             for file_path, file_findings in findings_by_file.items():
                 # Clean sheet name (Excel has restrictions)
                 sheet_name = Path(file_path).stem[:31]  # Excel sheet name limit
                 sheet_name = "".join(c for c in sheet_name if c.isalnum() or c in (' ', '-', '_')).strip()
                 if not sheet_name:
                     sheet_name = "Unknown"
+                
+                # Handle sheet name collisions
+                original_sheet_name = sheet_name
+                counter = 1
+                while sheet_name in used_sheet_names:
+                    # Try to fit counter in remaining space
+                    max_length = 31 - len(str(counter)) - 1  # -1 for underscore
+                    if max_length > 0:
+                        sheet_name = original_sheet_name[:max_length] + f"_{counter}"
+                    else:
+                        sheet_name = f"Sheet_{counter}"
+                    counter += 1
+                
+                used_sheet_names.add(sheet_name)
                 
                 ws = wb.create_sheet(sheet_name)
                 
