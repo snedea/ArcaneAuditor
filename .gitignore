@@ -223,7 +223,8 @@ plan_*.md
 release_notes/
 
 # Personal configurations (highest priority)
-config/personal/
+# Ignore JSON files but keep directory structure
+config/personal/*.json
 
 # Team configurations (protected from app updates)
 config/teams/
