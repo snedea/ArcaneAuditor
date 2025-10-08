@@ -330,46 +330,6 @@ yield finding  # Always yield, never return
 - `line_offset` from `find_script_fields()` is already calculated correctly
 - Handles multiline scripts, string concatenations, and nested structures
 
-## 🔍 Debugging
-
-### Check Rule Discovery
-
-Your rules should appear in the discovery output:
-
-```bash
-uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
-
-# Look for:
-# Discovered rule: CustomScriptCommentRule
-```
-
-### List All Rules
-
-```bash
-uv run main.py list-rules
-
-# Your custom rule should appear in the output
-```
-
-### Test with Sample Files
-
-```bash
-# Test with provided samples
-uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
-
-# Test with specific configuration
-uv run main.py review-app samples/archives/template_bad_nkhlsq.zip --config user_configs/my-config.json
-```
-
-### Common Issues
-
-- **Rule not discovered**: Check `__init__.py` files exist in all directories
-- **Import errors**: Verify import paths are correct (use relative imports)
-- **Parse errors**: Add try-catch blocks around script parsing
-- **Generator errors**: Make sure to use `yield` instead of `return` for violations
-- **Missing script analysis**: Use the unified architecture with `ScriptRuleBase` for automatic script analysis
-- **Class name conflicts**: Ensure unique class names with `Custom` prefix
-
 ## 🔧 Available Utilities
 
 ### Script Parsing (Built-in with Caching)
@@ -549,6 +509,46 @@ class CustomScriptComplexityRule(ScriptRuleBase):
 - Include edge cases (empty files, malformed content)
 - Test both PMD embedded and standalone script analysis
 - Verify rule class names don't conflict with existing rules
+
+## 🔍 Debugging
+
+### Check Rule Discovery
+
+Your rules should appear in the discovery output:
+
+```bash
+uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
+
+# Look for:
+# Discovered rule: CustomScriptCommentRule
+```
+
+### List All Rules
+
+```bash
+uv run main.py list-rules
+
+# Your custom rule should appear in the output
+```
+
+### Test with Sample Files
+
+```bash
+# Test with provided samples
+uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
+
+# Test with specific configuration
+uv run main.py review-app samples/archives/template_bad_nkhlsq.zip --config user_configs/my-config.json
+```
+
+### Common Issues
+
+- **Rule not discovered**: Check `__init__.py` files exist in all directories
+- **Import errors**: Verify import paths are correct (use relative imports)
+- **Parse errors**: Add try-catch blocks around script parsing
+- **Generator errors**: Make sure to use `yield` instead of `return` for violations
+- **Missing script analysis**: Use the unified architecture with `ScriptRuleBase` for automatic script analysis
+- **Class name conflicts**: Ensure unique class names with `Custom` prefix
 
 ## 🚀 Getting Started
 
