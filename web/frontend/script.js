@@ -15,7 +15,7 @@ class ArcaneAuditorApp {
         this.availableConfigs = [];
         this.uploadedFileName = null;
         this.selectedFiles = []; // For multiple file uploads
-        this.contextPanelExpanded = true; // Context panel state
+        this.contextPanelExpanded = false; // Context panel starts collapsed
         
         this.initializeEventListeners();
         this.initializeTheme();
@@ -864,53 +864,109 @@ class ArcaneAuditorApp {
         // Determine if analysis is complete or partial
         const isComplete = contextData.context_status === 'complete';
         
-        // Update icon and title
+        // Update icon and title with new UX-focused language
         if (isComplete) {
-            contextIcon.textContent = '✅';
-            contextTitleText.textContent = 'Analysis Context: Complete';
+            contextIcon.textContent = '📊';
+            contextTitleText.textContent = 'Analysis Summary';
         } else {
-            contextIcon.textContent = 'ℹ️';
-            contextTitleText.textContent = 'Analysis Context: Partial';
+            contextIcon.textContent = '📊';
+            contextTitleText.textContent = 'Analysis Summary';
         }
         
-        // Build context content HTML
-        let html = `
-            <div class="context-status ${isComplete ? 'complete' : 'partial'}">
-                ${isComplete ? '✓ Complete Analysis' : '⚠ Partial Analysis'}
-            </div>
-        `;
+        // Add status badge to the header
+        const contextHeader = document.querySelector('.context-header');
+        if (contextHeader) {
+            // Remove any existing status badge
+            const existingBadge = contextHeader.querySelector('.context-header-badge');
+            if (existingBadge) {
+                existingBadge.remove();
+            }
+            
+            // Determine badge text based on context
+            let badgeText = '';
+            if (isComplete) {
+                badgeText = '✅ Complete';
+            } else {
+                // Check if any rules were skipped
+                const hasSkippedRules = contextData.impact && 
+                    ((contextData.impact.rules_not_executed && contextData.impact.rules_not_executed.length > 0) ||
+                     (contextData.impact.rules_partially_executed && contextData.impact.rules_partially_executed.length > 0));
+                
+                if (hasSkippedRules) {
+                    badgeText = '⚠️ Partial';
+                } else {
+                    badgeText = '⚠️ Partial';
+                }
+            }
+            
+            // Add new status badge
+            const statusBadge = document.createElement('div');
+            statusBadge.className = `context-header-badge ${isComplete ? 'complete' : 'partial'}`;
+            statusBadge.textContent = badgeText;
+            contextHeader.appendChild(statusBadge);
+        }
         
-        // Files analyzed
+        // Build context content HTML (no duplicate badge)
+        let html = '';
+        
+        // Files processed (renamed from "analyzed")
         if (contextData.files_analyzed && contextData.files_analyzed.length > 0) {
             html += `
                 <div class="context-files">
-                    <h4>📁 Files Analyzed (${contextData.files_analyzed.length})</h4>
+                    <h4>✅ Files Processed (${contextData.files_analyzed.length})</h4>
                     <ul>
-                        ${contextData.files_analyzed.map(file => `<li>${file}</li>`).join('')}
+                        ${contextData.files_analyzed.map(file => {
+                            // Remove job ID prefix if present (format: uuid_filename.ext)
+                            const cleanFileName = file.replace(/^[a-f0-9-]+_/, '');
+                            const extension = cleanFileName.split('.').pop().toUpperCase();
+                            const icon = extension === 'PMD' ? '📄' : 
+                                       extension === 'SMD' ? '⚙️' : 
+                                       extension === 'AMD' ? '🏗️' : 
+                                       extension === 'POD' ? '🎨' : 
+                                       extension === 'SCRIPT' ? '📜' : '📄';
+                            return `<li>${icon} ${cleanFileName}</li>`;
+                        }).join('')}
                     </ul>
                 </div>
             `;
         }
         
-        // Missing files
+        // Missing files (renamed and restructured)
         if (contextData.files_missing && contextData.files_missing.length > 0) {
-            html += `
-                <div class="context-missing">
-                    <h4>⚠️ Missing File Types</h4>
-                    <div class="context-missing-items">
-                        ${contextData.files_missing.map(type => `<span class="context-missing-item">${type}</span>`).join('')}
+            // Only show AMD and SMD as "needed for full validation"
+            const requiredFiles = contextData.files_missing.filter(type => ['AMD', 'SMD'].includes(type));
+            
+            if (requiredFiles.length > 0) {
+                html += `
+                    <div class="context-missing">
+                        <h4>⚠️ Files Needed for Full Validation</h4>
+                        <div class="context-missing-items">
+                `;
+                
+                // Show only required files
+                requiredFiles.forEach(type => {
+                    html += `<span class="context-missing-item required">${type}</span>`;
+                });
+                
+                html += `
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
         }
         
-        // Impact information
+        // Skipped checks (renamed from "Validation Impact")
         if (contextData.impact) {
             const hasImpact = (contextData.impact.rules_not_executed && contextData.impact.rules_not_executed.length > 0) ||
                              (contextData.impact.rules_partially_executed && contextData.impact.rules_partially_executed.length > 0);
             
             if (hasImpact) {
-                html += `<div class="context-impact"><h4>📊 Validation Impact</h4><div class="context-impact-list">`;
+                html += `
+                    <div class="context-impact">
+                        <h4>🚫 Checks Skipped</h4>
+                        <p class="context-impact-subtitle">Some rules could not be evaluated due to missing file types.</p>
+                        <div class="context-impact-list">
+                `;
                 
                 // Rules not executed
                 if (contextData.impact.rules_not_executed && contextData.impact.rules_not_executed.length > 0) {
@@ -918,7 +974,7 @@ class ArcaneAuditorApp {
                         html += `
                             <div class="context-impact-item">
                                 <strong>🚫 ${rule.rule}</strong>
-                                <span>Not executed - ${rule.reason}</span>
+                                <span>Skipped — missing required ${rule.reason.toLowerCase().replace('requires ', '').replace(' file', '')} file.</span>
                             </div>
                         `;
                     });
@@ -930,21 +986,33 @@ class ArcaneAuditorApp {
                         html += `
                             <div class="context-impact-item">
                                 <strong>⚠️ ${rule.rule}</strong>
-                                <span>Skipped: ${rule.skipped_checks.join(', ')} (${rule.reason})</span>
+                                <span>Skipped: ${rule.skipped_checks.join(', ')} — ${rule.reason.toLowerCase()}</span>
                             </div>
                         `;
                     });
                 }
                 
-                html += `</div></div>`;
+                html += `
+                        </div>
+                    </div>
+                `;
             }
         }
         
-        // Recommendation
+        // Tip (renamed from "Recommendation")
         if (!isComplete) {
+            const requiredFiles = (contextData.files_missing || []).filter(type => ['AMD', 'SMD'].includes(type));
+            
+            let tipText = '';
+            if (requiredFiles.length > 0) {
+                tipText = `Add ${requiredFiles.join(' and ')} files for complete application validation.`;
+            } else {
+                tipText = 'Add missing files to enable full validation coverage.';
+            }
+            
             html += `
-                <div class="context-recommendation">
-                    <p>Provide AMD and SMD files for complete cross-file validation</p>
+                <div class="context-tip">
+                    <p>💡 <strong>Tip:</strong> ${tipText}</p>
                 </div>
             `;
         }
@@ -952,14 +1020,10 @@ class ArcaneAuditorApp {
         contextContent.innerHTML = html;
         contextSection.style.display = 'block';
         
-        // Auto-collapse if complete after 3 seconds
-        if (isComplete) {
-            setTimeout(() => {
-                if (this.contextPanelExpanded) {
-                    this.toggleContextPanel();
-                }
-            }, 3000);
-        }
+        // Set initial collapsed state
+        this.contextPanelExpanded = false;
+        const contextToggle = document.getElementById('context-toggle');
+        contextToggle.classList.remove('expanded');
     }
 
     toggleContextPanel() {

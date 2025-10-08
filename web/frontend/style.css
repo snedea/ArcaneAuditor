@@ -291,22 +291,34 @@ header p {
 
 .context-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 20px;
     cursor: pointer;
     background: var(--bg-tertiary);
     transition: background 0.2s ease;
+    gap: 12px;
 }
 
 .context-header:hover {
     background: var(--bg-primary);
 }
 
+.context-toggle {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+}
+
+.context-toggle.expanded {
+    transform: rotate(180deg);
+}
+
 .context-title {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex: 1;
 }
 
 .context-title h3 {
@@ -319,14 +331,35 @@ header p {
     font-size: 1.5rem;
 }
 
-.context-toggle {
-    font-size: 1.2rem;
-    color: var(--text-secondary);
-    transition: transform 0.3s ease;
+.context-header-badge {
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
-.context-toggle.expanded {
-    transform: rotate(180deg);
+.context-header-badge.complete {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+[data-theme="dark"] .context-header-badge.complete {
+    background: #064e3b;
+    color: #6ee7b7;
+}
+
+.context-header-badge.partial {
+    background: linear-gradient(135deg, #EAA342 0%, #FFC877 100%);
+    color: #92400e;
+    box-shadow: 0 2px 4px rgba(234, 163, 66, 0.3);
+}
+
+[data-theme="dark"] .context-header-badge.partial {
+    background: linear-gradient(135deg, #B45309 0%, #D97706 100%);
+    color: #fcd34d;
+    box-shadow: 0 2px 4px rgba(180, 83, 9, 0.4);
 }
 
 .context-content {
@@ -342,35 +375,7 @@ header p {
     overflow: hidden;
 }
 
-.context-status {
-    display: inline-block;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    margin-bottom: 15px;
-}
-
-.context-status.complete {
-    background: #d1fae5;
-    color: #065f46;
-}
-
-[data-theme="dark"] .context-status.complete {
-    background: #064e3b;
-    color: #6ee7b7;
-}
-
-.context-status.partial {
-    background: #fef3c7;
-    color: #92400e;
-}
-
-[data-theme="dark"] .context-status.partial {
-    background: #78350f;
-    color: #fcd34d;
-}
-
+/* New UX-focused styling */
 .context-files {
     margin-bottom: 20px;
 }
@@ -390,12 +395,9 @@ header p {
     padding: 6px 0;
     color: var(--text-secondary);
     font-size: 0.95rem;
-}
-
-.context-files li::before {
-    content: "✓ ";
-    color: #10b981;
-    margin-right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .context-missing {
@@ -415,34 +417,61 @@ header p {
 }
 
 .context-missing-item {
-    padding: 4px 12px;
-    background: var(--bg-tertiary);
-    border-radius: 4px;
+    padding: 6px 14px;
+    border-radius: 16px;
     font-size: 0.9rem;
     color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+
+.context-missing-item.required {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .context-missing-item.required {
+    background: #7f1d1d;
+    color: #fca5a5;
+    border-color: #991b1b;
 }
 
 .context-impact {
     margin-top: 20px;
+    margin-bottom: 12px;
+    padding: 16px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    border-left: 4px solid #ef4444;
 }
 
 .context-impact h4 {
     color: var(--text-primary);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     font-size: 1.1rem;
+}
+
+.context-impact-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+    font-style: italic;
 }
 
 .context-impact-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .context-impact-item {
-    padding: 12px;
-    background: var(--bg-tertiary);
+    padding: 8px 12px;
+    background: var(--bg-secondary);
     border-radius: 6px;
-    border-left: 4px solid #f59e0b;
+    border: 1px solid var(--border-color);
+    margin-left: 12px;
+    font-size: 0.9rem;
 }
 
 .context-impact-item strong {
@@ -456,23 +485,26 @@ header p {
     font-size: 0.9rem;
 }
 
-.context-recommendation {
+.context-tip {
     margin-top: 20px;
-    padding: 15px;
-    background: var(--bg-tertiary);
+    padding: 16px;
+    background: #eff6ff;
     border-radius: 8px;
     border-left: 4px solid #3b82f6;
 }
 
-.context-recommendation p {
+[data-theme="dark"] .context-tip {
+    background: #1e3a8a;
+}
+
+.context-tip p {
     color: var(--text-secondary);
     font-size: 0.95rem;
     margin: 0;
 }
 
-.context-recommendation p::before {
-    content: "💡 ";
-    margin-right: 8px;
+.context-tip strong {
+    color: var(--text-primary);
 }
 
 /* Configuration Selection Styles */

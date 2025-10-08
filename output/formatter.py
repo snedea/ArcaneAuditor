@@ -210,7 +210,9 @@ class OutputFormatter:
         lines.append("━" * 60)
         lines.append(f"📁 Files Analyzed ({len(analysis_context.files_analyzed)})")
         for file_path in analysis_context.files_analyzed:
-            lines.append(f"   ✓ {file_path}")
+            # Remove job ID prefix if present (format: uuid_filename.ext)
+            clean_file_name = file_path.replace(r'^[a-f0-9-]+_', '', regex=True)
+            lines.append(f"   ✓ {clean_file_name}")
         lines.append("")
         
         if analysis_context.is_complete:
@@ -284,7 +286,9 @@ class OutputFormatter:
         context_sheet.append(["Files Analyzed"])
         context_sheet[f'A{context_sheet.max_row}'].font = Font(bold=True)
         for file_path in analysis_context.files_analyzed:
-            context_sheet.append([file_path])
+            # Remove job ID prefix if present (format: uuid_filename.ext)
+            clean_file_name = file_path.replace(r'^[a-f0-9-]+_', '', regex=True)
+            context_sheet.append([clean_file_name])
         
         context_sheet.append([])
         
