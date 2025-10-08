@@ -75,7 +75,7 @@ class CustomScriptMyRule(ScriptRuleBase):
     """Custom script rule using unified architecture."""
   
     DESCRIPTION = "Description of what this rule checks"
-    SEVERITY = "WARNING"  # "ERROR", "WARNING", "ADVICE"
+    SEVERITY = "ADVICE"  # "ACTION", "ADVICE"
   
     def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
         """Main analysis method using unified architecture."""
@@ -99,7 +99,7 @@ class CustomStructureMyRule(StructureRuleBase):
     """Custom structure rule using unified architecture."""
   
     DESCRIPTION = "Description of what this rule checks"
-    SEVERITY = "WARNING"
+    SEVERITY = "ADVICE"
   
     def get_description(self) -> str:
         """Required by StructureRuleBase."""
@@ -169,7 +169,7 @@ class CustomScriptSecurityRule(ScriptRuleBase):
     """Example script rule using unified architecture."""
   
     DESCRIPTION = "Ensures scripts follow security best practices"
-    SEVERITY = "ERROR"
+    SEVERITY = "ACTION"
   
     def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
         # Use the unified architecture - base class handles iteration
@@ -199,7 +199,7 @@ class CustomStructureRule(StructureRuleBase):
     """Example structure rule using unified architecture."""
   
     DESCRIPTION = "Validates PMD structure compliance"
-    SEVERITY = "WARNING"
+    SEVERITY = "ADVICE"
   
     def get_description(self) -> str:
         """Required by StructureRuleBase."""
@@ -276,7 +276,7 @@ class CustomEndpointRule(StructureRuleBase):
     """Example endpoint rule using unified architecture."""
   
     DESCRIPTION = "Validates endpoint security configuration"
-    SEVERITY = "ERROR"
+    SEVERITY = "ACTION"
   
     def get_description(self) -> str:
         """Required by StructureRuleBase."""
@@ -484,7 +484,7 @@ class CustomScriptComplexityRule(ScriptRuleBase):
         self.max_complexity = self.config.get('max_complexity', 10)
   
     DESCRIPTION = "Validates script complexity doesn't exceed threshold"
-    SEVERITY = "WARNING"
+    SEVERITY = "ADVICE"
   
     def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
         # Use the unified architecture - base class handles iteration
