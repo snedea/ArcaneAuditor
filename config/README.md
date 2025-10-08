@@ -48,9 +48,10 @@ Built-in configurations that come with the application:
 Team and project-specific configurations:
 
 - Shared across your development team
-- Committed to version control
+- Committed to version control (directory structure only)
 - Customized for specific projects or organizational standards
 - **Protected from app updates** - your customizations survive app releases
+- **JSON files are gitignored** - only directory structure is tracked
 
 ### 🔒 Personal Configurations (config/personal/)
 
@@ -135,8 +136,8 @@ uv run main.py review-app myapp.zip --config debug-mode
 | Directory | Managed By | Versioned | Overwritten on Update? | Notes |
 |-----------|------------|-----------|----------------------|-------|
 | `config/presets/` | Application | ✅ Yes | ⚠️ Yes | Updated automatically |
-| `config/teams/` | Your team | ✅ Yes | 🚫 No | Preserved across updates |
-| `config/personal/` | You | 🚫 No | 🚫 No | Private, gitignored |
+| `config/teams/` | Your team | 🚫 No (gitignored) | 🚫 No | Protected, JSON files ignored |
+| `config/personal/` | You | 🚫 No (gitignored) | 🚫 No | Private, completely ignored |
 
 Your team and personal configurations will never be overwritten — your preferences are safe within the Weave.
 

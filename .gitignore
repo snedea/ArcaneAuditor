@@ -224,3 +224,6 @@ release_notes/
 
 # Personal configurations (highest priority)
 config/personal/
+
+# Team configurations (protected from app updates)
+config/teams/
