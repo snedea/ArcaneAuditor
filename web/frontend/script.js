@@ -1305,12 +1305,7 @@ document.addEventListener('keydown', e => {
 
 // Initialize Magic Mode functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Show initial magical greeting
-    setTimeout(() => {
-        if (!document.body.classList.contains('magic-mode')) {
-            showArcaneToast("🔮 Welcome, Initiate. The Weave awaits your command...");
-        }
-    }, 1000);
+    // Magic Mode initialization - no initial greeting for normal users
 });
 
 // Enhanced analysis completion with magical flair
