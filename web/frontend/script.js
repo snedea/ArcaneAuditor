@@ -669,10 +669,12 @@ class ArcaneAuditorApp {
     groupFindingsByFile(findings) {
         const grouped = findings.reduce((acc, finding) => {
             const filePath = finding.file_path || 'Unknown';
-            if (!acc[filePath]) {
-                acc[filePath] = [];
+            // Remove job ID prefix if present (format: uuid_filename.ext)
+            const cleanFilePath = filePath.replace(/^[a-f0-9-]+_/, '');
+            if (!acc[cleanFilePath]) {
+                acc[cleanFilePath] = [];
             }
-            acc[filePath].push(finding);
+            acc[cleanFilePath].push(finding);
             return acc;
         }, {});
 
