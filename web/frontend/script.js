@@ -14,6 +14,8 @@ class ArcaneAuditorApp {
         this.selectedConfig = this.getLastSelectedConfig();
         this.availableConfigs = [];
         this.uploadedFileName = null;
+        this.selectedFiles = []; // For multiple file uploads
+        this.contextPanelExpanded = true; // Context panel state
         
         this.initializeEventListeners();
         this.initializeTheme();
@@ -153,9 +155,13 @@ class ArcaneAuditorApp {
     }
 
     initializeEventListeners() {
-        // File input change
+        // ZIP file input change
         const fileInput = document.getElementById('file-input');
         fileInput.addEventListener('change', (e) => this.handleFileSelect(e.target.files[0]));
+
+        // Multiple files input change
+        const filesInput = document.getElementById('files-input');
+        filesInput.addEventListener('change', (e) => this.handleMultipleFilesSelect(Array.from(e.target.files)));
 
         // Drag and drop
         const uploadArea = document.getElementById('upload-area');
@@ -174,20 +180,23 @@ class ArcaneAuditorApp {
             }
         });
         
-        // Button click handler
+        // ZIP button click handler
         const chooseFileBtn = document.getElementById('choose-file-btn');
         chooseFileBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent upload area click
+            e.stopPropagation();
             fileInput.click();
         });
         
-        // Upload area click handler (for clicking outside the button)
-        uploadArea.addEventListener('click', (e) => {
-            // Only trigger if clicking on the upload area itself, not the button
-            if (e.target === uploadArea || e.target.classList.contains('upload-content')) {
-                fileInput.click();
-            }
+        // Individual files button click handler
+        const chooseFilesBtn = document.getElementById('choose-files-btn');
+        chooseFilesBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            filesInput.click();
         });
+        
+        // Upload files button (for multiple files)
+        const uploadFilesBtn = document.getElementById('upload-files-btn');
+        uploadFilesBtn.addEventListener('click', () => this.uploadSelectedFiles());
     }
 
     handleDragOver(e) {
@@ -231,7 +240,7 @@ class ArcaneAuditorApp {
         }
 
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('files', file); // Changed to 'files' to match API
         formData.append('config', this.selectedConfig);
 
         try {
@@ -326,6 +335,12 @@ class ArcaneAuditorApp {
     showResults() {
         this.hideAllSections();
         document.getElementById('results-section').style.display = 'block';
+        
+        // Display context awareness panel if available
+        if (this.currentResult && this.currentResult.context) {
+            this.displayContext(this.currentResult.context);
+        }
+        
         this.renderResults();
     }
 
@@ -334,6 +349,7 @@ class ArcaneAuditorApp {
         document.getElementById('loading-section').style.display = 'none';
         document.getElementById('error-section').style.display = 'none';
         document.getElementById('results-section').style.display = 'none';
+        document.getElementById('context-section').style.display = 'none';
     }
 
     renderResults() {
@@ -740,6 +756,227 @@ class ArcaneAuditorApp {
         }
     }
 
+    handleMultipleFilesSelect(files) {
+        // Add selected files to the array
+        this.selectedFiles = files;
+        this.renderSelectedFiles();
+    }
+
+    renderSelectedFiles() {
+        const listContainer = document.getElementById('selected-files-list');
+        const listContent = document.getElementById('files-list-content');
+        
+        if (this.selectedFiles.length === 0) {
+            listContainer.style.display = 'none';
+            return;
+        }
+        
+        listContainer.style.display = 'block';
+        listContent.innerHTML = '';
+        
+        this.selectedFiles.forEach((file, index) => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.innerHTML = `
+                <span class="file-item-name">${file.name}</span>
+                <button class="file-item-remove" onclick="app.removeSelectedFile(${index})" title="Remove file">×</button>
+            `;
+            listContent.appendChild(fileItem);
+        });
+    }
+
+    removeSelectedFile(index) {
+        this.selectedFiles.splice(index, 1);
+        this.renderSelectedFiles();
+        
+        // Reset the file input
+        const filesInput = document.getElementById('files-input');
+        filesInput.value = '';
+    }
+
+    async uploadSelectedFiles() {
+        if (this.selectedFiles.length === 0) {
+            this.showError('Please select at least one file');
+            return;
+        }
+        
+        const formData = new FormData();
+        this.selectedFiles.forEach(file => {
+            formData.append('files', file);
+        });
+        formData.append('config', this.selectedConfig);
+        
+        try {
+            this.showLoading();
+            this.updateLoadingMessage('Uploading files...');
+            
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Upload failed');
+            }
+            
+            const data = await response.json();
+            this.updateLoadingMessage('Files uploaded. Analyzing...');
+            this.pollJobStatus(data.job_id);
+            
+        } catch (error) {
+            this.showError(`Upload failed: ${error.message}`);
+        }
+    }
+
+    handleDrop(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('dragover');
+        
+        const files = Array.from(e.dataTransfer.files);
+        
+        // Check if it's a single ZIP file
+        if (files.length === 1 && files[0].name.toLowerCase().endsWith('.zip')) {
+            this.handleFileSelect(files[0]);
+        } else {
+            // Multiple files or individual files
+            const validExtensions = ['.pmd', '.pod', '.amd', '.smd', '.script'];
+            const validFiles = files.filter(file => {
+                return validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+            });
+            
+            if (validFiles.length > 0) {
+                this.handleMultipleFilesSelect(validFiles);
+            } else {
+                this.showError('Please drop valid files (.zip or .pmd, .pod, .amd, .smd, .script)');
+            }
+        }
+    }
+
+    displayContext(contextData) {
+        if (!contextData) return;
+        
+        const contextSection = document.getElementById('context-section');
+        const contextContent = document.getElementById('context-content');
+        const contextIcon = document.getElementById('context-icon');
+        const contextTitleText = document.getElementById('context-title-text');
+        
+        // Determine if analysis is complete or partial
+        const isComplete = contextData.context_status === 'complete';
+        
+        // Update icon and title
+        if (isComplete) {
+            contextIcon.textContent = '✅';
+            contextTitleText.textContent = 'Analysis Context: Complete';
+        } else {
+            contextIcon.textContent = 'ℹ️';
+            contextTitleText.textContent = 'Analysis Context: Partial';
+        }
+        
+        // Build context content HTML
+        let html = `
+            <div class="context-status ${isComplete ? 'complete' : 'partial'}">
+                ${isComplete ? '✓ Complete Analysis' : '⚠ Partial Analysis'}
+            </div>
+        `;
+        
+        // Files analyzed
+        if (contextData.files_analyzed && contextData.files_analyzed.length > 0) {
+            html += `
+                <div class="context-files">
+                    <h4>📁 Files Analyzed (${contextData.files_analyzed.length})</h4>
+                    <ul>
+                        ${contextData.files_analyzed.map(file => `<li>${file}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // Missing files
+        if (contextData.files_missing && contextData.files_missing.length > 0) {
+            html += `
+                <div class="context-missing">
+                    <h4>⚠️ Missing File Types</h4>
+                    <div class="context-missing-items">
+                        ${contextData.files_missing.map(type => `<span class="context-missing-item">${type}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Impact information
+        if (contextData.impact) {
+            const hasImpact = (contextData.impact.rules_not_executed && contextData.impact.rules_not_executed.length > 0) ||
+                             (contextData.impact.rules_partially_executed && contextData.impact.rules_partially_executed.length > 0);
+            
+            if (hasImpact) {
+                html += `<div class="context-impact"><h4>📊 Validation Impact</h4><div class="context-impact-list">`;
+                
+                // Rules not executed
+                if (contextData.impact.rules_not_executed && contextData.impact.rules_not_executed.length > 0) {
+                    contextData.impact.rules_not_executed.forEach(rule => {
+                        html += `
+                            <div class="context-impact-item">
+                                <strong>🚫 ${rule.rule}</strong>
+                                <span>Not executed - ${rule.reason}</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                // Rules partially executed
+                if (contextData.impact.rules_partially_executed && contextData.impact.rules_partially_executed.length > 0) {
+                    contextData.impact.rules_partially_executed.forEach(rule => {
+                        html += `
+                            <div class="context-impact-item">
+                                <strong>⚠️ ${rule.rule}</strong>
+                                <span>Skipped: ${rule.skipped_checks.join(', ')} (${rule.reason})</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += `</div></div>`;
+            }
+        }
+        
+        // Recommendation
+        if (!isComplete) {
+            html += `
+                <div class="context-recommendation">
+                    <p>Provide AMD and SMD files for complete cross-file validation</p>
+                </div>
+            `;
+        }
+        
+        contextContent.innerHTML = html;
+        contextSection.style.display = 'block';
+        
+        // Auto-collapse if complete after 3 seconds
+        if (isComplete) {
+            setTimeout(() => {
+                if (this.contextPanelExpanded) {
+                    this.toggleContextPanel();
+                }
+            }, 3000);
+        }
+    }
+
+    toggleContextPanel() {
+        const contextContent = document.getElementById('context-content');
+        const contextToggle = document.getElementById('context-toggle');
+        
+        this.contextPanelExpanded = !this.contextPanelExpanded;
+        
+        if (this.contextPanelExpanded) {
+            contextContent.classList.remove('collapsed');
+            contextToggle.classList.add('expanded');
+        } else {
+            contextContent.classList.add('collapsed');
+            contextToggle.classList.remove('expanded');
+        }
+    }
+
     resetForNewUpload() {
         this.hideAllSections();
         document.getElementById('upload-section').style.display = 'block';
@@ -747,10 +984,17 @@ class ArcaneAuditorApp {
         this.filteredFindings = [];
         this.expandedFiles.clear();
         this.uploadedFileName = null;
+        this.selectedFiles = [];
+        this.contextPanelExpanded = true;
         
-        // Reset the file input to allow re-uploading the same file
+        // Reset file inputs
         const fileInput = document.getElementById('file-input');
         fileInput.value = '';
+        const filesInput = document.getElementById('files-input');
+        filesInput.value = '';
+        
+        // Hide selected files list
+        document.getElementById('selected-files-list').style.display = 'none';
     }
 }
 
@@ -769,6 +1013,10 @@ function downloadResults() {
 
 function toggleTheme() {
     app.toggleTheme();
+}
+
+function toggleContextPanel() {
+    app.toggleContextPanel();
 }
 
 // Configuration Breakdown Functions
