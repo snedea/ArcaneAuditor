@@ -619,6 +619,98 @@ uv run main.py review-app samples/archives/template_bad_nkhlsq.zip --config user
 - **Missing script analysis**: Use the unified architecture with `ScriptRuleBase` for automatic script analysis
 - **Class name conflicts**: Ensure unique class names with `Custom` prefix
 
+## 🧠 Context Awareness Integration
+
+### Registering Skipped Checks
+
+When your custom rule depends on files that might not be present, you can register skipped checks to inform users about partial analysis:
+
+```python
+from file_processing.context_tracker import SkippedCheck
+
+class CustomStructureMyRule(StructureRuleBase):
+    def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        # Check if required context is available
+        if not context.amds:
+            # Register a skipped check to inform the user
+            context.register_skipped_check(
+                SkippedCheck(
+                    rule=self.__class__.__name__,
+                    reason="Requires AMD file",
+                    skipped_checks=["app_id_detection"]
+                )
+            )
+            return  # Skip analysis if context is missing
+        
+        # Proceed with analysis using available context
+        for amd_model in context.amds.values():
+            # Your analysis logic here
+            pass
+```
+
+### Context-Aware Rule Patterns
+
+#### Pattern 1: Graceful Degradation
+
+```python
+def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
+    # Check for required context
+    if not context.smds:
+        context.register_skipped_check(
+            SkippedCheck(
+                rule=self.__class__.__name__,
+                reason="Requires SMD file",
+                skipped_checks=["security_domain_validation"]
+            )
+        )
+        # Run partial analysis with available data
+        yield from self._analyze_without_smd(pmd_model, context)
+    else:
+        # Run complete analysis
+        yield from self._analyze_with_smd(pmd_model, context)
+```
+
+#### Pattern 2: Conservative Defaults
+
+```python
+def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
+    # Use conservative defaults when context is missing
+    if not context.amds:
+        context.register_skipped_check(
+            SkippedCheck(
+                rule=self.__class__.__name__,
+                reason="Requires AMD file",
+                skipped_checks=["app_id_validation"]
+            )
+        )
+        # Assume safe defaults and skip validation
+        return
+    
+    # Proceed with full validation
+    app_id = context.application_id
+    # Your validation logic here
+```
+
+### Context Information Available
+
+The `ProjectContext` provides access to:
+
+- **`context.pmds`**: Dictionary of PMD models
+- **`context.pods`**: Dictionary of POD models  
+- **`context.amds`**: Dictionary of AMD models
+- **`context.smds`**: Dictionary of SMD models
+- **`context.scripts`**: Dictionary of SCRIPT models
+- **`context.application_id`**: Extracted application ID (if AMD present)
+- **`context.register_skipped_check()`**: Method to register skipped checks
+
+### Best Practices
+
+1. **Always check for required context** before performing analysis
+2. **Register skipped checks** when context is missing
+3. **Provide meaningful reasons** for skipped checks
+4. **Use conservative defaults** when context is unavailable
+5. **Test with partial contexts** to ensure graceful degradation
+
 ## 📚 Examples
 
 ### Complete Working Example
