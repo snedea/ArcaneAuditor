@@ -1247,6 +1247,104 @@ function createWisp(e) {
     setTimeout(() => wisp.remove(), 1000);
 }
 
+// 🌌 Dynamic Constellation Effects
+function createConstellationLines() {
+    if (!document.body.classList.contains('magic-mode')) return;
+    
+    const canvas = document.createElement('canvas');
+    canvas.id = 'constellation-canvas';
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '1';
+    canvas.style.opacity = '0.3';
+    
+    document.body.appendChild(canvas);
+    
+    const ctx = canvas.getContext('2d');
+    const stars = [];
+    
+    // Create star positions
+    for (let i = 0; i < 50; i++) {
+        stars.push({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5,
+            brightness: Math.random()
+        });
+    }
+    
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    
+    function animateConstellation() {
+        if (!document.body.classList.contains('magic-mode')) {
+            canvas.remove();
+            return;
+        }
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Update and draw stars
+        stars.forEach(star => {
+            star.x += star.vx;
+            star.y += star.vy;
+            star.brightness += (Math.random() - 0.5) * 0.02;
+            star.brightness = Math.max(0.3, Math.min(1, star.brightness));
+            
+            // Wrap around screen
+            if (star.x < 0) star.x = canvas.width;
+            if (star.x > canvas.width) star.x = 0;
+            if (star.y < 0) star.y = canvas.height;
+            if (star.y > canvas.height) star.y = 0;
+            
+            // Draw star
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, 1, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(234, 163, 66, ${star.brightness * 0.6})`;
+            ctx.fill();
+        });
+        
+        // Draw constellation lines
+        for (let i = 0; i < stars.length; i++) {
+            for (let j = i + 1; j < stars.length; j++) {
+                const dx = stars[i].x - stars[j].x;
+                const dy = stars[i].y - stars[j].y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 150) {
+                    const opacity = (1 - distance / 150) * 0.3;
+                    ctx.beginPath();
+                    ctx.moveTo(stars[i].x, stars[i].y);
+                    ctx.lineTo(stars[j].x, stars[j].y);
+                    ctx.strokeStyle = `rgba(117, 106, 162, ${opacity})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        requestAnimationFrame(animateConstellation);
+    }
+    
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    animateConstellation();
+}
+
+function removeConstellationLines() {
+    const canvas = document.getElementById('constellation-canvas');
+    if (canvas) {
+        canvas.remove();
+    }
+}
+
 // 🪄 Magic Mode Toggle
 function toggleMagicMode() {
     const body = document.body;
@@ -1258,6 +1356,7 @@ function toggleMagicMode() {
         // Clean up magical effects
         document.querySelectorAll('.arcane-spark, .wisp').forEach(el => el.remove());
         disableCursorTrail();
+        removeConstellationLines();
         
         console.log("%c🪄 The Weave settles... Arcane Mode dispelled.", "color:#756AA2; font-weight:bold");
     } else {
@@ -1267,6 +1366,7 @@ function toggleMagicMode() {
         // Activate magical effects
         summonParticles();
         enableCursorTrail();
+        createConstellationLines();
         
         console.log("%c✨ The Weave stirs... Arcane Mode enabled.", "color:#EAA342; font-weight:bold");
         
