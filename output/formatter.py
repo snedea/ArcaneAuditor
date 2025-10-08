@@ -5,6 +5,7 @@ Provides various output formats with emojis and better formatting.
 from typing import List, Dict, Optional, TYPE_CHECKING
 from pathlib import Path
 import json
+import re
 from enum import Enum
 
 from parser.rules.base import Finding
@@ -106,6 +107,8 @@ class OutputFormatter:
                     
                     # Format the finding with file path
                     file_display = finding.file_path.split('\\')[-1] if finding.file_path else "Unknown"
+                    # Clean file path by removing job ID prefix
+                    file_display = re.sub(r'^[a-f0-9-]+_', '', file_display)
                     output.append(f"    {category_emoji} **[{finding.rule_id}:{finding.line}]** in `{file_display}`: {finding.message}")
             
             output.append("")  # Empty line between files
@@ -175,9 +178,11 @@ class OutputFormatter:
         groups = {}
         for finding in findings:
             file_path = finding.file_path or "Unknown"
-            if file_path not in groups:
-                groups[file_path] = []
-            groups[file_path].append(finding)
+            # Clean file path by removing job ID prefix
+            clean_file_path = re.sub(r'^[a-f0-9-]+_', '', file_path)
+            if clean_file_path not in groups:
+                groups[clean_file_path] = []
+            groups[clean_file_path].append(finding)
         return groups
     
     def _group_findings_by_severity(self, findings: List[Finding]) -> Dict[str, List[Finding]]:
@@ -211,7 +216,7 @@ class OutputFormatter:
         lines.append(f"📁 Files Analyzed ({len(analysis_context.files_analyzed)})")
         for file_path in analysis_context.files_analyzed:
             # Remove job ID prefix if present (format: uuid_filename.ext)
-            clean_file_name = file_path.replace(r'^[a-f0-9-]+_', '', regex=True)
+            clean_file_name = re.sub(r'^[a-f0-9-]+_', '', file_path)
             lines.append(f"   ✓ {clean_file_name}")
         lines.append("")
         
@@ -287,7 +292,7 @@ class OutputFormatter:
         context_sheet[f'A{context_sheet.max_row}'].font = Font(bold=True)
         for file_path in analysis_context.files_analyzed:
             # Remove job ID prefix if present (format: uuid_filename.ext)
-            clean_file_name = file_path.replace(r'^[a-f0-9-]+_', '', regex=True)
+            clean_file_name = re.sub(r'^[a-f0-9-]+_', '', file_path)
             context_sheet.append([clean_file_name])
         
         context_sheet.append([])
