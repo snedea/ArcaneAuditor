@@ -17,7 +17,9 @@ def review_app(
     config_file: Path = typer.Option(None, "--config", "-c", help="Path to configuration file (JSON)"),
     output_format: str = typer.Option("console", "--format", "-f", help="Output format: console, json, summary, excel"),
     output_file: Path = typer.Option(None, "--output", "-o", help="Output file path (optional)"),
-    show_timing: bool = typer.Option(False, "--timing", "-t", help="Show detailed timing information")
+    show_timing: bool = typer.Option(False, "--timing", "-t", help="Show detailed timing information"),
+    fail_on_advice: bool = typer.Option(False, "--fail-on-advice", help="Exit with error code when ADVICE issues are found (CI mode)"),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Minimal output mode (CI-friendly)")
 ):
     """
     Analyze a Workday Extend application.
@@ -30,15 +32,16 @@ def review_app(
     # Start overall timing
     overall_start_time = time.time()
     
-    typer.echo(f"Starting review for '{path.name}'...")
+    if not quiet:
+        typer.echo(f"Starting review for '{path.name}'...")
     
     # Load configuration using the layered configuration system
     config_start_time = time.time()
     try:
         config = load_configuration(str(config_file) if config_file else None)
-        if config_file:
+        if config_file and not quiet:
             typer.echo(f"Loaded configuration: {config_file}")
-        else:
+        elif not quiet:
             typer.echo("Using default configuration with layered loading")
     except Exception as e:
         typer.secho(f"Configuration Error: {e}", fg=typer.colors.RED)
@@ -46,7 +49,7 @@ def review_app(
         raise typer.Exit(1)
     
     config_time = time.time() - config_start_time
-    if show_timing:
+    if show_timing and not quiet:
         typer.echo(f"Configuration loading: {config_time:.2f}s")
     
     # Detect input type and process accordingly
@@ -255,14 +258,23 @@ def review_app(
     # Set appropriate exit code based on findings (outside try block)
     if findings:
         action_count = len([f for f in findings if f.severity == "ACTION"])
+        advice_count = len([f for f in findings if f.severity == "ADVICE"])
+        
         if action_count > 0:
-            typer.echo(f"Analysis completed with {action_count} action issue(s)")
+            if not quiet:
+                typer.echo(f"Analysis completed with {action_count} action issue(s)")
             raise typer.Exit(2)  # Exit code 2 for action issues
+        elif fail_on_advice and advice_count > 0:
+            if not quiet:
+                typer.echo(f"Analysis completed with {advice_count} advice issue(s) (CI mode: failing on advice)")
+            raise typer.Exit(1)  # Exit code 1 for advices in CI mode
         else:
-            typer.echo("Analysis completed with advices")
-            raise typer.Exit(1)  # Exit code 1 for advices
+            if not quiet:
+                typer.echo("Analysis completed with advices")
+            raise typer.Exit(0)  # Exit code 0 for advices in normal mode
     else:
-        typer.echo("Analysis completed successfully - no issues found!")
+        if not quiet:
+            typer.echo("Analysis completed successfully - no issues found!")
         raise typer.Exit(0)  # Exit code 0 for no issues
 
 
