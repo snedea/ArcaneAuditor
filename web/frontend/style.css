@@ -1107,6 +1107,65 @@ header p {
     background: var(--bg-secondary);
     border-radius: 8px;
     box-shadow: 0 2px 4px var(--shadow);
+    position: relative;
+}
+
+/* Theme-aware accent colors */
+:root {
+    --accent-action: #f59e0b;
+    --accent-advice: #38bdf8;
+}
+
+[data-theme="light"] {
+    --accent-action: #d97706;
+    --accent-advice: #0284c7;
+}
+
+/* Summary cards with inline icons */
+.summary-card {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+    text-align: center;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.summary-card .count {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.summary-card .label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.summary-card .icon {
+    font-size: 1rem;
+}
+
+/* Accent colors for icons and borders */
+.summary-card.action .icon { 
+    color: var(--accent-action); 
+}
+
+.summary-card.advice .icon { 
+    color: var(--accent-advice); 
+}
+
+.summary-card.action { 
+    border-bottom: 2px solid var(--accent-action); 
+}
+
+.summary-card.advice { 
+    border-bottom: 2px solid var(--accent-advice); 
 }
 
 .summary-number {

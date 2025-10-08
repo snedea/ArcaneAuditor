@@ -382,30 +382,20 @@ class ArcaneAuditorApp {
                     <div class="summary-number summary-number-purple">${result.summary?.rules_executed || 0}</div>
                     <div class="summary-label">Rules Executed</div>
                 </div>
-                <div class="summary-item">
-                    <div class="summary-number summary-number-orange">${result.summary?.by_severity?.action || 0}</div>
-                    <div class="summary-label">Actions</div>
+                <div class="summary-item summary-card action">
+                    <div class="count">${result.summary?.by_severity?.action || 0}</div>
+                    <div class="label">
+                        <span class="icon">${this.getSeverityIcon('ACTION')}</span> Actions
+                    </div>
                 </div>
-                <div class="summary-item">
-                    <div class="summary-number summary-number-yellow">${result.summary?.by_severity?.advice || 0}</div>
-                    <div class="summary-label">Advices</div>
+                <div class="summary-item summary-card advice">
+                    <div class="count">${result.summary?.by_severity?.advice || 0}</div>
+                    <div class="label">
+                        <span class="icon">${this.getSeverityIcon('ADVICE')}</span> Advices
+                    </div>
                 </div>
             </div>
             
-            ${Object.keys(severityCounts).length > 0 ? `
-                <div class="severity-section">
-                    <h5>Issues by Severity:</h5>
-                    <div class="severity-badges">
-                        ${this.getOrderedSeverityEntries(severityCounts).map(([severity, count]) => `
-                            <div class="severity-badge">
-                                ${this.getSeverityIcon(severity)}
-                                <span class="severity-count">${count}</span>
-                                <span class="severity-name">${severity.toLowerCase()}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
             
             ${Object.keys(fileTypeCounts).length > 0 ? `
                 <div class="severity-section">
