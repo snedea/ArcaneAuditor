@@ -25,7 +25,7 @@ ArcaneAuditor/
 ### `arcane_auditor/` - Main Package
 The heart of the validation engine containing all core functionality.
 
-See also: [Rule Documentation](rules.md)
+See also: [Rule Documentation](../parser/rules/RULE_BREAKDOWN.md)
 
 ```
 arcane_auditor/

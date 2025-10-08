@@ -145,7 +145,7 @@ Your team and personal configurations will never be overwritten — your prefere
 
 - [Rule Documentation](../parser/rules/RULE_BREAKDOWN.md) - Detailed rule descriptions
 - [Custom Rules Guide](../parser/rules/custom/README.md) - Creating custom validation rules
-- [Web Interface](../web/README.md) - Web-based analysis interface
+- [Project Structure](../docs/project-structure.md) - Project architecture overview
 - [See also: Update-Safe Configuration System](../README.md#-update-safe-configuration-system) - Cross-reference to main README
 
 [⬆️ Back to Top](#-arcane-auditor-configuration-guide-)

@@ -32,7 +32,7 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 - [🚀 Quick Start](#-quick-start)
 - [🌐 Web Interface](#-arcane-auditor-web-user-interface)
 - [🧠 Context Awareness](#-context-awareness)
-- [🛡️ Configuration System](#-update-safe-configuration-system)
+- [🛡️ Configuration System](#️-update-safe-configuration-system)
 - [🔧 Validation Rules](#-validation-rules)
 - [🛠️ Development](#-development)
   - [🤝 Contributing](#contributing)
@@ -101,7 +101,7 @@ uv run main.py review-app file1.pmd file2.pod file3.script
 uv run main.py review-app myapp.zip --config my-config.json
 ```
 
-💡 **Need more setup paths?** See [Installation Options](#-installation-options)
+💡 **Need more setup paths?** See [Development Setup](#option-c-development-setup)
 
 [⬆️ Back to Top](#-table-of-contents)
 
@@ -333,9 +333,9 @@ This ensures your customizations persist through updates while allowing flexibil
 
 ### Categories
 
-- 🧠 [Script Quality Rules](#-script-quality-rules)
-- 🏗️ [Structure Validation Rules](#-structure-validation-rules)
-- ⚙️ [Custom Rule Development](#-custom-rule-development)
+- 🧠 [Script Quality Rules](parser/rules/RULE_BREAKDOWN.md#-script-rules)
+- 🏗️ [Structure Validation Rules](parser/rules/RULE_BREAKDOWN.md#-structure-rules)
+- ⚙️ [Custom Rule Development](parser/rules/custom/README.md)
 
 <details>
 <summary>🔧 Script Quality Rules (click to expand)</summary>
@@ -602,8 +602,8 @@ uv run pytest --cov=arcane_auditor
 
 ## 📚 Documentation
 
-- **[Rule Documentation](docs/rules.md)** - Detailed rule descriptions and examples
-- **[API Documentation](docs/api.md)** - API reference and examples
+- **[Rule Documentation](parser/rules/RULE_BREAKDOWN.md)** - Detailed rule descriptions and examples
+- **[Custom Rules Guide](parser/rules/custom/README.md)** - Custom rule development guide
 - **[Configuration Guide](config/README.md)** - Configuration options and examples
 - **[Release Notes](release_notes/)** - Version history and changes
 
