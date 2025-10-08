@@ -1,6 +1,6 @@
 ![Arcane Auditor Logo](assets/arcane-auditor-logo.png)
 
-**Version: 0.3.0-beta.1** | [📋 Release Notes](RELEASE_NOTES_0.3.0-beta.1.md) | [🚀 Download Latest](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases/tag/v0.3.0-beta.1)
+**Version: 0.4.0-beta.1** | [📋 Release Notes](release_notes/RELEASE_NOTES_0.4.0-beta.1.md) | [🚀 Download Latest](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases/tag/v0.4.0-beta.1)
 
 *A mystical code review tool for Workday Extend applications that validates PMD, Pod, and Script syntax, structure compliance, and coding best practices.*
 
@@ -19,11 +19,79 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 - ✅ **Intelligent Detection**: Accurately tracks function usage, unused code, and code complexity
 - 🛡️ **Update-Safe Configuration**: Layered config system protects your customizations
 - 🎨 **Clear Messages**: Actionable violation messages with locations and fix suggestions
+- 🧠 **Context Awareness**: Understands when analysis is partial due to missing files
 
 **Rule Categories:**
 
 - **Script Quality**: Script syntax, complexity, naming conventions, unused code detection
 - **Structure Validation**: Widget configurations, required fields, component validation, hardcoded values, endpoint compliance
+
+## 🧠 Context Awareness
+
+Arcane Auditor provides **intelligent context awareness** to help you understand when analysis is complete or partial:
+
+### **Complete Analysis** ✅
+When you provide all relevant files (PMD, AMD, SMD), Arcane Auditor runs **all validation rules** and provides comprehensive coverage.
+
+### **Partial Analysis** ⚠️
+When files are missing, Arcane Auditor:
+- **Runs available rules** on provided files
+- **Clearly indicates** which files are missing
+- **Shows which rules** couldn't be executed
+- **Provides guidance** on what to add for complete validation
+
+### **Supported Analysis Modes**
+
+**ZIP File Analysis:**
+```bash
+# Complete application archive
+uv run main.py review-app myapp.zip
+```
+
+**Individual File Analysis:**
+```bash
+# Single file
+uv run main.py review-app page.pmd
+
+# Multiple files
+uv run main.py review-app page.pmd app.smd app.amd
+
+# Directory scan
+uv run main.py review-app presentation/
+```
+
+**Web Interface:**
+- Upload ZIP files or individual files
+- Drag and drop support
+- Real-time context panel showing analysis status
+- Visual indicators for complete vs partial analysis
+
+### **Context Information Displayed**
+
+- **📁 Files Processed**: Shows which files were successfully analyzed
+- **⚠️ Files Needed**: Indicates missing AMD/SMD files for complete validation
+- **🚫 Checks Skipped**: Lists rules that couldn't run due to missing context
+- **💡 Tips**: Actionable guidance for complete validation
+
+### **Example Output**
+
+```
+📊 Analysis Summary                    [⚠️ Partial]
+▼
+  ✅ Files Processed (1)
+     📄 page.pmd
+  
+  ⚠️ Files Needed for Full Validation
+     [ AMD ] [ SMD ]
+  
+  🚫 Checks Skipped
+     Some rules could not be evaluated due to missing file types.
+     • AMDDataprov…Rule — Skipped — missing required AMD file.
+  
+  💡 Tip: Add AMD and SMD files for complete application validation.
+```
+
+This ensures you always know **exactly what was validated** and **what might be missing** for comprehensive analysis.
 
 ## 🛡️ Update-Safe Configuration System
 
@@ -90,17 +158,17 @@ pip install uv
 ```bash
 # Download the latest release ZIP from GitHub
 # Visit: https://github.com/Developers-and-Dragons/ArcaneAuditor/releases
-# Download arcane-auditor-0.3.0-beta.1.zip and extract it
+# Download arcane-auditor-0.4.0-beta.1.zip and extract it
 
 # Or using command line (Windows PowerShell)
-Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.3.0-beta.1.zip" -OutFile "arcane-auditor.zip"
+Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.4.0-beta.1.zip" -OutFile "arcane-auditor.zip"
 Expand-Archive -Path "arcane-auditor.zip" -DestinationPath "."
-cd ArcaneAuditor-0.3.0-beta.1
+cd ArcaneAuditor-0.4.0-beta.1
 
 # Or using command line (macOS)
-curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.3.0-beta.1.zip"
+curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/v0.4.0-beta.1.zip"
 unzip arcane-auditor.zip
-cd ArcaneAuditor-0.3.0-beta.1
+cd ArcaneAuditor-0.4.0-beta.1
 
 # Install dependencies (UV handles Python version and virtual environment automatically)
 uv sync
@@ -159,13 +227,22 @@ uv run main.py --help
 
 You should see mystical analysis output with validation findings! 🔮
 
-## 🆕 What's New in 0.3.0-beta.1
+## 🆕 What's New in 0.4.0-beta.1
 
-This release brings web interface improvements, new validation rules, and enhanced user experience:
+This release brings **context awareness**, enhanced analysis modes, and significant user experience improvements:
 
-### 🌐 Web Interface Overhaul
+### 🧠 Context Awareness (NEW!)
 
-- **Interactive Configuration Breakdown**: New modal system showing detailed rule information with enabled/disabled counts
+- **Intelligent Analysis Detection**: Automatically detects when analysis is complete or partial
+- **Missing File Guidance**: Shows which AMD/SMD files are needed for complete validation
+- **Skipped Rule Transparency**: Lists which rules couldn't run due to missing context
+- **Multiple Analysis Modes**: Support for ZIP files, individual files, and directory scanning
+- **Cross-Platform Support**: Context awareness in CLI, Web UI, JSON, and Excel outputs
+
+### 🌐 Web Interface Enhancements
+
+- **Multiple File Upload**: Support for individual files (.pmd, .pod, .amd, .smd, .script) in addition to ZIP files
+- **Context Awareness Panel**: Real-time display of analysis completeness and missing dependencies
 - **Enhanced User Experience**: Improved layout with file upload at top, configuration selection below
 - **Definitive Scroll Jiggle Fix**: 2-part solution eliminating all layout shifts and scroll bar jumping
 - **Enhanced Dark Mode**: Fixed hover text readability and improved contrast across all components
@@ -192,9 +269,11 @@ python web/server.py --port 8081
 
 The web interface provides:
 
-- **Drag & drop file upload** for ZIP files
+- **Drag & drop file upload** for ZIP files and individual files
+- **Multiple file upload** support for PMD, POD, AMD, SMD, and SCRIPT files
 - **Dynamic configuration selection** with interactive cards showing all available configs (presets, teams, personal)
 - **Real-time analysis** with all validation rules
+- **Context awareness panel** showing analysis completeness and missing files
 - **Asynchronous processing** - Multiple users can upload files simultaneously
 - **Configuration persistence** - Remembers your last selected configuration
 - **Dark/light mode** toggle
@@ -235,17 +314,19 @@ For a complete overview of all validation rules, see [`parser/rules/RULE_BREAKDO
 
 The FastAPI server provides the following REST API endpoints:
 
-- **`POST /api/upload`** - Upload ZIP file for analysis
+- **`POST /api/upload`** - Upload files for analysis
 
   - Returns: `{"job_id": "uuid", "status": "queued"}`
   - Content-Type: `multipart/form-data`
-  - Parameters: `file` (required), `config` (optional, defaults to "development")
+  - Parameters: `files` (required, supports multiple files), `config` (optional, defaults to "development")
+  - Supports: ZIP files or individual .pmd, .pod, .amd, .smd, .script files
 - **`GET /api/job/{job_id}`** - Get analysis job status and results
 
-  - Returns: `{"job_id": "uuid", "status": "completed|running|failed", "result": {...}}`
+  - Returns: `{"job_id": "uuid", "status": "completed|running|failed", "result": {...}, "context": {...}}`
+  - Includes context awareness information about analysis completeness
 - **`GET /api/download/{job_id}`** - Download analysis results as Excel file
 
-  - Returns: Excel file (.xlsx) with findings and summary
+  - Returns: Excel file (.xlsx) with findings, summary, and context information
 - **`GET /api/configs`** - Get available configurations
 
   - Returns: List of available configurations with metadata
@@ -291,11 +372,18 @@ Arcane Auditor offers both **Dark** and **Light** themes — revealing code qual
 ### Basic Usage
 
 ```bash
-# Analyze a PMD application with arcane wisdom
-uv run main.py review-app myapp_abcdef.zip
+# Analyze a complete PMD application archive
+uv run main.py review-app myapp.zip
+
+# Analyze individual files
+uv run main.py review-app page.pmd
+uv run main.py review-app page.pmd app.smd app.amd
+
+# Analyze all files in a directory
+uv run main.py review-app presentation/
 
 # Use custom magical configuration (supports layered loading)
-uv run main.py review-app myapp_abcdef.zip --config development
+uv run main.py review-app myapp.zip --config development
 
 # List available configurations
 uv run main.py list-configs
