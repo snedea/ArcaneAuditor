@@ -1,5 +1,7 @@
 # Arcane Auditor Configuration Guide 📜
 
+[⬅️ Back to Main README](../README.md) | [🧠 Rules Overview](../parser/rules/RULE_BREAKDOWN.md)
+
 This directory contains all configuration files for the Arcane Auditor in a consolidated structure.
 
 ## 📁 Directory Structure
@@ -16,9 +18,15 @@ config/
     └── README.md         # Personal configuration guide
 ```
 
-## 🎯 Configuration Types
+## 🎯 Configuration Types — Choosing the Right Layer
 
-### Presets (config/presets/)
+| Type | Location | Use Case | Priority |
+|------|----------|----------|----------|
+| Preset | `config/presets/` | Default app-provided configs for dev or production | 🔹 Lowest |
+| Team | `config/teams/` | Shared standards for your project or team | 🔸 Medium |
+| Personal | `config/personal/` | Your private tweaks and debugging overrides | 🔺 Highest |
+
+### 📦 Presets (config/presets/)
 
 Built-in configurations that come with the application:
 
@@ -35,7 +43,7 @@ Built-in configurations that come with the application:
   - Strict complexity limits (enforces clean, maintainable code)
   - **Use case**: Pre-deployment validation, CI/CD pipelines, production code reviews
 
-### Team Configurations (config/teams/)
+### 👥 Team Configurations (config/teams/)
 
 Team and project-specific configurations:
 
@@ -44,7 +52,7 @@ Team and project-specific configurations:
 - Customized for specific projects or organizational standards
 - **Protected from app updates** - your customizations survive app releases
 
-### Personal Configurations (config/personal/)
+### 🔒 Personal Configurations (config/personal/)
 
 Personal developer overrides:
 
@@ -55,7 +63,7 @@ Personal developer overrides:
 
 ## 🚀 Usage
 
-### Command Line
+### ⚔️ Command Line
 
 ```bash
 # Use development configuration (recommended for daily development)
@@ -71,7 +79,9 @@ uv run main.py review-app myapp.zip --config my-team-config
 uv run main.py review-app myapp.zip --config my-local-config
 ```
 
-### Web Interface
+---
+
+### 🌐 Web Interface
 
 Configurations are automatically discovered and available in the web interface under:
 
@@ -88,6 +98,8 @@ When you specify a configuration name, the system searches in this order:
 3. `config/presets/name.json` ← App defaults
 
 ## 🛠️ Creating Custom Configurations
+
+> ⚠️ **Important**: Use unique names for custom configurations to avoid collisions with preset names.
 
 ### Team Configuration
 
@@ -120,14 +132,19 @@ uv run main.py review-app myapp.zip --config debug-mode
 
 ## 🔒 App Update Safety
 
-- **Presets** (`config/presets/`) - App-managed, updated with releases
-- **Teams** (`config/teams/`) - Protected by `.gitignore`, never overwritten
-- **Personal** (`config/personal/`) - Completely ignored by git, always preserved
+| Directory | Managed By | Versioned | Overwritten on Update? | Notes |
+|-----------|------------|-----------|----------------------|-------|
+| `config/presets/` | Application | ✅ Yes | ⚠️ Yes | Updated automatically |
+| `config/teams/` | Your team | ✅ Yes | 🚫 No | Preserved across updates |
+| `config/personal/` | You | 🚫 No | 🚫 No | Private, gitignored |
 
-Your team and personal configurations will **never be overwritten** during app updates!
+Your team and personal configurations will never be overwritten — your preferences are safe within the Weave.
 
 ## 📚 Additional Resources
 
 - [Rule Documentation](../parser/rules/RULE_BREAKDOWN.md) - Detailed rule descriptions
 - [Custom Rules Guide](../parser/rules/custom/README.md) - Creating custom validation rules
 - [Web Interface](../web/README.md) - Web-based analysis interface
+- [See also: Update-Safe Configuration System](../README.md#-update-safe-configuration-system) - Cross-reference to main README
+
+[⬆️ Back to Top](#-arcane-auditor-configuration-guide-)

@@ -42,9 +42,11 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 ## 🖼️ Web Interface Screenshots
 
 ### Dark Mode Interface
+
 ![Arcane Auditor Web Interface - Dark Mode](assets/results-dark.png)
 
 ### Light Mode Interface
+
 ![Arcane Auditor Web Interface - Light Mode](assets/results-light.png)
 
 <details>
@@ -78,9 +80,9 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 2. **Extract** the archive to your desired location
 3. **Run** the web interface:
    ```bash
-   uv run web/server.py --port 8090
+   uv run web/server.py --port 8080
    ```
-4. **Open** [http://localhost:8090](http://localhost:8090) in your browser
+4. **Open** [http://localhost:8080](http://localhost:8080) in your browser
 5. **Upload** your ZIP file or individual PMD/Pod/Script files
 6. **Review** the analysis results and download Excel reports
 
@@ -141,28 +143,31 @@ uv run pytest  # Run tests
 The web interface provides a modern, intuitive way to analyze your Workday Extend applications:
 
 ### **Features:**
+
 - **📁 Drag & Drop Upload**: Easy file selection with support for ZIP archives and individual files
 - **⚙️ Configuration Selection**: Choose from predefined analysis configurations
-- **📊 Real-time Results**: Instant analysis with detailed violation reports
+- **📊 Real-time Results**: Quick analysis with detailed violation reports
 - **📥 Excel Export**: Download comprehensive reports with context information
 - **🌙 Theme Support**: Dark and light mode themes
-- **📱 Responsive Design**: Works on desktop and mobile devices
 
 ### **Starting the Web Server:**
 
-**Default port (8090):**
+**Default port (8080):**
+
 ```bash
 uv run web/server.py
 ```
 
-**Custom port (8080):**
+**Custom port (8090):**
+
 ```bash
-uv run web/server.py --port 8080
+uv run web/server.py --port 8090
 ```
 
 **Background mode:**
+
 ```bash
-uv run web/server.py --port 8090 &
+uv run web/server.py --port 8080 &
 ```
 
 > 💡 **Tip:** The web interface provides intelligent [context awareness](#-context-awareness) to help you understand when analysis is complete or partial.
@@ -188,17 +193,19 @@ uv run web/server.py --port 8090 &
 
 Arcane Auditor provides **intelligent context awareness** to help you understand when analysis is complete or partial:
 
-| Mode | Description | Example Command |
-|------|--------------|----------------|
-| Complete | Full set of files provided | `uv run main.py review-app myapp.zip` |
-| Partial | Missing one or more files | `uv run main.py review-app mypage.pmd` |
-| Mixed | ZIP + extra scripts | `uv run main.py review-app myapp.zip extra.script` |
+| Mode     | Description                | Example Command                                      |
+| -------- | -------------------------- | ---------------------------------------------------- |
+| Complete | Full set of files provided | `uv run main.py review-app myapp.zip`              |
+| Partial  | Missing AMD or SMD files  | `uv run main.py review-app mypage.pmd`             |
 
 ### **Complete Analysis** ✅
-When you provide all relevant files (PMD, AMD, SMD), Arcane Auditor runs **all validation rules** and provides comprehensive coverage.
+
+When you provide all relevant files (PMD, AMD, SMD), Arcane Auditor runs **all enabled validation rules** and provides comprehensive coverage.
 
 ### **Partial Analysis** ⚠️
+
 When files are missing, Arcane Auditor:
+
 - **Runs available rules** on provided files
 - **Clearly indicates** which files are missing
 - **Shows which rules** couldn't be executed
@@ -207,12 +214,14 @@ When files are missing, Arcane Auditor:
 ### **Supported Analysis Modes**
 
 **ZIP File Analysis:**
+
 ```bash
 # Complete application archive
 uv run main.py review-app myapp.zip
 ```
 
 **Individual File Analysis:**
+
 ```bash
 # Single PMD file
 uv run main.py review-app mypage.pmd
@@ -222,6 +231,7 @@ uv run main.py review-app file1.pmd file2.pod file3.script
 ```
 
 **Mixed Analysis:**
+
 ```bash
 # Some files from archive, some individual
 uv run main.py review-app myapp.zip additional-file.script
@@ -232,6 +242,7 @@ uv run main.py review-app myapp.zip additional-file.script
 The tool provides clear context information in all output formats:
 
 **Console Output:**
+
 ```
 📊 Analysis Context:
 ✅ Complete Analysis - All files provided
@@ -242,11 +253,13 @@ The tool provides clear context information in all output formats:
 ```
 
 **Excel Reports:**
+
 - Dedicated "Context" sheet with analysis completeness
 - Clear indication of missing files and their impact
 - Guidance on achieving complete analysis
 
 **Web Interface:**
+
 - Context panel showing analysis status
 - Visual indicators for complete vs. partial analysis
 - Recommendations for improving analysis coverage
@@ -319,6 +332,7 @@ This ensures your customizations persist through updates while allowing flexibil
 ## 🔧 Validation Rules
 
 ### Categories
+
 - 🧠 [Script Quality Rules](#-script-quality-rules)
 - 🏗️ [Structure Validation Rules](#-structure-validation-rules)
 - ⚙️ [Custom Rule Development](#-custom-rule-development)
@@ -327,24 +341,28 @@ This ensures your customizations persist through updates while allowing flexibil
 <summary>🔧 Script Quality Rules (click to expand)</summary>
 
 ### **Script Syntax & Structure**
+
 - **Valid JavaScript Syntax**: Ensures all script code follows proper JavaScript syntax
 - **Function Declaration Validation**: Validates function declarations and their parameters
 - **Variable Declaration**: Checks for proper variable declarations and scope
 - **Control Flow Validation**: Validates if/else, loops, and other control structures
 
 ### **Code Complexity & Quality**
+
 - **Cyclomatic Complexity**: Measures code complexity (default threshold: 10)
 - **Function Length**: Limits function length (default: 50 lines)
 - **Nested Depth**: Prevents excessive nesting (default: 4 levels)
 - **Code Duplication**: Detects repeated code patterns
 
 ### **Naming Conventions**
+
 - **Function Naming**: Enforces camelCase for function names
 - **Variable Naming**: Ensures consistent variable naming
 - **Constant Naming**: Validates constant naming conventions
 - **Parameter Naming**: Checks parameter naming consistency
 
 ### **Unused Code Detection**
+
 - **Unused Functions**: Identifies functions that are never called
 - **Unused Variables**: Finds variables that are declared but never used
 - **Dead Code**: Detects unreachable code blocks
@@ -358,24 +376,28 @@ This ensures your customizations persist through updates while allowing flexibil
 <summary>🔧 Structure Validation Rules (click to expand)</summary>
 
 ### **Widget Configuration**
+
 - **Required Fields**: Ensures all required widget fields are present
 - **Field Validation**: Validates field types and constraints
 - **Widget Hierarchy**: Checks proper widget nesting and relationships
 - **Component Validation**: Validates component configurations
 
 ### **PMD File Structure**
+
 - **Page Definition**: Validates page structure and metadata
 - **Endpoint Configuration**: Checks endpoint definitions and parameters
 - **Presentation Layer**: Validates UI component configurations
 - **Data Binding**: Ensures proper data binding configurations
 
 ### **Pod File Validation**
+
 - **Template Structure**: Validates pod template structure
 - **Widget Definitions**: Checks widget definitions and properties
 - **Endpoint Integration**: Validates endpoint connections
 - **Data Flow**: Ensures proper data flow between components
 
 ### **Best Practices**
+
 - **Hardcoded Values**: Detects hardcoded values that should be configurable
 - **Security Practices**: Validates security-related configurations
 - **Performance Optimization**: Checks for performance-related issues
@@ -401,7 +423,7 @@ class CustomScriptRule(BaseRule):
             description="Custom script validation rule",
             severity="ADVICE"
         )
-    
+  
     def validate(self, file_content, file_path):
         violations = []
         # Your custom validation logic here
@@ -444,6 +466,7 @@ Custom rules can be configured through the configuration system:
 <summary>🛠️ Development Setup (click to expand)</summary>
 
 ### **Prerequisites**
+
 - Python 3.8+
 - uv package manager
 - Git
@@ -470,8 +493,20 @@ uv run ruff format .
 
 ### **Project Structure**
 
+**Project Structure Overview**
+
+```
+arcane_auditor/   → Core validation engine
+web/              → Web interface (FastAPI + frontend)
+tests/            → Automated test suite
+config/           → Presets, team, and personal configs
+docs/             → Detailed documentation and rule breakdowns
+```
+
+> 🧩 **New contributor?** See [Project Structure](docs/project-structure.md) for an overview of core directories and their roles.
+
 <details>
-<summary>📁 Project Structure (click to expand)</summary>
+<summary>📁 Detailed Project Structure (click to expand)</summary>
 
 ```
 ArcaneAuditor/
@@ -504,9 +539,12 @@ ArcaneAuditor/
 │       └── script.js       # JavaScript
 ├── tests/                   # Test suite
 │   ├── __init__.py
-│   ├── test_rules.py       # Rule tests
-│   ├── test_parser.py      # Parser tests
-│   └── test_output.py       # Output tests
+│   ├── test_rules_engine.py # Core rules engine tests
+│   ├── test_script_*.py     # Script validation rule tests
+│   ├── test_endpoint_*.py   # Endpoint validation tests
+│   ├── test_widget_*.py     # Widget validation tests
+│   ├── test_context_*.py    # Context awareness tests
+│   └── test_*.py            # Additional integration tests
 ├── samples/                 # Sample files
 │   ├── templates/          # Template files
 │   └── archives/          # Sample archives
@@ -566,7 +604,7 @@ uv run pytest --cov=arcane_auditor
 
 - **[Rule Documentation](docs/rules.md)** - Detailed rule descriptions and examples
 - **[API Documentation](docs/api.md)** - API reference and examples
-- **[Configuration Guide](docs/configuration.md)** - Configuration options and examples
+- **[Configuration Guide](config/README.md)** - Configuration options and examples
 - **[Release Notes](release_notes/)** - Version history and changes
 
 ## 📄 License
