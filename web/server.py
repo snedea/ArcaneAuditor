@@ -493,157 +493,12 @@ async def download_excel(job_id: str):
         
         try:
             # Use shared OutputFormatter logic for Excel generation
-            from output.formatter import OutputFormatter
+            from output.formatter import OutputFormatter, OutputFormat
             from datetime import datetime
             import tempfile
-            import openpyxl
-            from openpyxl.styles import Font, PatternFill, Alignment
-            from openpyxl.utils import get_column_letter
             from pathlib import Path
             
-            # Create workbook using shared logic
-            wb = openpyxl.Workbook()
-            wb.remove(wb.active)
-            
-            # Group findings by file (using shared logic)
-            findings_by_file = {}
-            for finding_data in job.result["findings"]:
-                file_path = finding_data["file_path"] or "Unknown"
-                # Clean file path by removing job ID prefix
-                import re
-                clean_file_path = re.sub(r'^[a-f0-9-]+_', '', file_path)
-                if clean_file_path not in findings_by_file:
-                    findings_by_file[clean_file_path] = []
-                findings_by_file[clean_file_path].append(finding_data)
-            
-            # Create summary sheet
-            summary_sheet = wb.create_sheet("Summary")
-            summary_sheet.append(["Analysis Summary"])
-            summary_sheet.append(["Files Analyzed", len(findings_by_file)])
-            summary_sheet.append(["Rules Executed", job.result["summary"]["rules_executed"]])
-            summary_sheet.append(["Total Issues", len(job.result["findings"])])
-            summary_sheet.append(["Action", len([f for f in job.result["findings"] if f["severity"] == "ACTION"])])
-            summary_sheet.append(["Advice", len([f for f in job.result["findings"] if f["severity"] == "ADVICE"])])
-            summary_sheet.append([])
-            summary_sheet.append(["File", "Issues", "Action", "Advice"])
-            
-            # Style summary sheet
-            summary_sheet['A1'].font = Font(bold=True, size=14)
-            for row in range(1, 8):
-                summary_sheet[f'A{row}'].font = Font(bold=True)
-            
-            # Create sheets for each file
-            used_sheet_names = set()  # Track used sheet names to avoid collisions
-            
-            for file_path, file_findings in findings_by_file.items():
-                # Clean sheet name (Excel has restrictions)
-                sheet_name = Path(file_path).stem[:31]  # Excel sheet name limit
-                sheet_name = "".join(c for c in sheet_name if c.isalnum() or c in (' ', '-', '_')).strip()
-                if not sheet_name:
-                    sheet_name = "Unknown"
-                
-                # Handle sheet name collisions
-                original_sheet_name = sheet_name
-                counter = 1
-                while sheet_name in used_sheet_names:
-                    # Try to fit counter in remaining space
-                    max_length = 31 - len(str(counter)) - 1  # -1 for underscore
-                    if max_length > 0:
-                        sheet_name = original_sheet_name[:max_length] + f"_{counter}"
-                    else:
-                        sheet_name = f"Sheet_{counter}"
-                    counter += 1
-                
-                used_sheet_names.add(sheet_name)
-                
-                ws = wb.create_sheet(sheet_name)
-                
-                # Add full filename header if truncated
-                if len(sheet_name) < len(Path(file_path).stem):
-                    ws.append([f"File: {file_path}"])
-                    ws.append([])  # Empty row for spacing
-                
-                # Headers
-                headers = ["Rule ID", "Severity", "Line", "Message"]
-                ws.append(headers)
-                
-                # Style headers
-                header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-                header_font = Font(color="FFFFFF", bold=True)
-                
-                # Style filename header if present
-                filename_row = 1
-                if len(sheet_name) < len(Path(file_path).stem):
-                    filename_cell = ws.cell(row=filename_row, column=1)
-                    filename_cell.font = Font(bold=True, italic=True, color="666666")
-                    filename_row = 3  # Headers start at row 3 if filename is present
-                else:
-                    filename_row = 1  # Headers start at row 1 if no filename
-                
-                # Style column headers
-                for col_num, header in enumerate(headers, 1):
-                    cell = ws.cell(row=filename_row, column=col_num)
-                    cell.fill = header_fill
-                    cell.font = header_font
-                    cell.alignment = Alignment(horizontal="center")
-                
-                # Add findings
-                for finding in file_findings:
-                    row = [
-                        finding["rule_id"],
-                        finding["severity"],
-                        finding["line"],
-                        finding["message"]
-                    ]
-                    ws.append(row)
-                    
-                    # Color code by severity
-                    severity_colors = {
-                        "ACTION": "FFCCCC",    # Light red
-                        "ADVICE": "CCE5FF"     # Light blue
-                    }
-                    
-                    if finding["severity"] in severity_colors:
-                        fill = PatternFill(start_color=severity_colors[finding["severity"]], 
-                                         end_color=severity_colors[finding["severity"]], 
-                                         fill_type="solid")
-                        for col_num in range(1, len(headers) + 1):
-                            ws.cell(row=ws.max_row, column=col_num).fill = fill
-                
-                # Auto-adjust column widths
-                for column in ws.columns:
-                    max_length = 0
-                    column_letter = get_column_letter(column[0].column)
-                    for cell in column:
-                        try:
-                            if len(str(cell.value)) > max_length:
-                                max_length = len(str(cell.value))
-                        except:
-                            pass
-                    adjusted_width = min(max_length + 2, 150)  # Cap at 150
-                    ws.column_dimensions[column_letter].width = adjusted_width
-                
-                # Update summary sheet
-                action_count = len([f for f in file_findings if f["severity"] == "ACTION"])
-                advice_count = len([f for f in file_findings if f["severity"] == "ADVICE"])
-                summary_sheet.append([file_path, len(file_findings), action_count, advice_count])
-            
-            # Save to temporary file
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
-            wb.save(temp_file.name)
-            temp_file.close()
-            
-            # Generate filename
-            timestamp = datetime.now().strftime("%Y-%m-%d")
-            filename = f"arcane-auditor-results-{timestamp}.xlsx"
-            
-            return FileResponse(
-                path=temp_file.name,
-                filename=filename,
-                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-            
-            # Convert web service findings to CLI format
+            # Convert web service findings to CLI format for compatibility
             findings = []
             for finding_data in job.result["findings"]:
                 # Create a simple Finding-like object for compatibility
@@ -657,110 +512,33 @@ async def download_excel(job_id: str):
                 
                 findings.append(WebFinding(finding_data))
             
-            # Group findings by file
-            findings_by_file = {}
-            for finding in findings:
-                file_path = finding.file_path or "Unknown"
-                # Clean file path by removing job ID prefix
-                import re
-                clean_file_path = re.sub(r'^[a-f0-9-]+_', '', file_path)
-                if clean_file_path not in findings_by_file:
-                    findings_by_file[clean_file_path] = []
-                findings_by_file[clean_file_path].append(finding)
+            # Create a mock ProjectContext with context information if available
+            class MockProjectContext:
+                def __init__(self, context_data):
+                    self.analysis_context = None
+                    if context_data:
+                        # Recreate AnalysisContext from stored data
+                        from file_processing.context_tracker import AnalysisContext
+                        self.analysis_context = AnalysisContext(
+                            analysis_type=context_data.get("analysis_type", "unknown"),
+                            files_analyzed=context_data.get("files_analyzed", []),
+                            files_present=set(context_data.get("files_present", []))
+                        )
             
-            # Create summary sheet
-            summary_sheet = wb.create_sheet("Summary")
-            summary_sheet.append(["Analysis Summary"])
-            summary_sheet.append(["Files Analyzed", len(findings_by_file)])
-            summary_sheet.append(["Rules Executed", job.result["summary"]["rules_executed"]])
-            summary_sheet.append(["Total Issues", len(findings)])
-            summary_sheet.append(["Action", len([f for f in findings if f.severity == "ACTION"])])
-            summary_sheet.append(["Advices", len([f for f in findings if f.severity == "ADVICE"])])
-            summary_sheet.append([])
-            summary_sheet.append(["File", "Issues", "Action", "Advice"])
+            # Use OutputFormatter to generate Excel with context tab
+            formatter = OutputFormatter(OutputFormat.EXCEL)
+            total_files = len(set(finding.file_path for finding in findings if finding.file_path))
+            total_rules = job.result["summary"]["rules_executed"]
+            context = MockProjectContext(job.result.get("context"))
             
-            # Style summary sheet
-            summary_sheet['A1'].font = Font(bold=True, size=14)
-            for row in range(1, 8):
-                summary_sheet[f'A{row}'].font = Font(bold=True)
-            
-            # Add file summary data
-            for file_path, file_findings in findings_by_file.items():
-                action_count = len([f for f in file_findings if f.severity == "ACTION"])
-                advice_count = len([f for f in file_findings if f.severity == "ADVICE"])
-                summary_sheet.append([file_path, len(file_findings), action_count, advice_count])
-            
-            # Create sheets for each file
-            for file_path, file_findings in findings_by_file.items():
-                # Clean sheet name (Excel has restrictions)
-                sheet_name = Path(file_path).stem[:31]  # Excel sheet name limit
-                sheet_name = "".join(c for c in sheet_name if c.isalnum() or c in (' ', '-', '_')).strip()
-                if not sheet_name:
-                    sheet_name = "Unknown"
-                
-                ws = wb.create_sheet(sheet_name)
-                
-                # Headers
-                headers = ["Rule ID", "Severity", "Line", "Message", "File Path"]
-                ws.append(headers)
-                
-                # Style headers
-                header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-                header_font = Font(color="FFFFFF", bold=True)
-                for col_num, header in enumerate(headers, 1):
-                    cell = ws.cell(row=1, column=col_num)
-                    cell.fill = header_fill
-                    cell.font = header_font
-                    cell.alignment = Alignment(horizontal="center")
-                
-                # Add findings
-                for finding in file_findings:
-                    row = [
-                        finding.rule_id,
-                        finding.severity,
-                        finding.line,
-                        finding.message,
-                        finding.file_path
-                    ]
-                    ws.append(row)
-                    
-                    # Color code by severity
-                    severity_colors = {
-                        "ACTION": "FFCCCC",    # Light red
-                        "ADVICE": "CCE5FF",     # Light blue
-                    }
-                    
-                    if finding.severity in severity_colors:
-                        fill = PatternFill(start_color=severity_colors[finding.severity], 
-                                         end_color=severity_colors[finding.severity], 
-                                         fill_type="solid")
-                        for col_num in range(1, len(headers) + 1):
-                            ws.cell(row=ws.max_row, column=col_num).fill = fill
-                
-                # Auto-adjust column widths
-                for column in ws.columns:
-                    max_length = 0
-                    column_letter = get_column_letter(column[0].column)
-                    for cell in column:
-                        try:
-                            if len(str(cell.value)) > max_length:
-                                max_length = len(str(cell.value))
-                        except:
-                            pass
-                    adjusted_width = min(max_length + 2, 50)
-                    ws.column_dimensions[column_letter].width = adjusted_width
-            
-            # Save to temporary file
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            wb.save(temp_file.name)
-            temp_file.close()
+            excel_file_path = formatter.format_results(findings, total_files, total_rules, context)
             
             # Generate filename
             timestamp = datetime.now().strftime("%Y-%m-%d")
             filename = f"arcane-auditor-results-{timestamp}.xlsx"
             
             return FileResponse(
-                path=temp_file.name,
+                path=excel_file_path,
                 filename=filename,
                 media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
