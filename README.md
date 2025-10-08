@@ -1,8 +1,12 @@
 ![Arcane Auditor Logo](assets/arcane-auditor-logo.png)
 
-**Version: 0.3.0-beta.1** | [📋 Release Notes](RELEASE_NOTES_0.3.0-beta.1.md) | [🚀 Download Latest](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases/tag/v0.3.0-beta.1)
+*A mystical code review tool for Workday Extend applications.*
 
-*A mystical code review tool for Workday Extend applications that validates PMD, Pod, and Script syntax, structure compliance, and coding best practices.*
+> ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
+
+![Version](https://img.shields.io/badge/version-0.4.0--beta.1-purple?style=for-the-badge)
+[![Release Notes](https://img.shields.io/badge/📋-Release_Notes-blue?style=for-the-badge)](release_notes/RELEASE_NOTES_0.4.0-beta.1.md)
+[![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
 
 ## 🎯 Overview
 
@@ -19,669 +23,596 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 - ✅ **Intelligent Detection**: Accurately tracks function usage, unused code, and code complexity
 - 🛡️ **Update-Safe Configuration**: Layered config system protects your customizations
 - 🎨 **Clear Messages**: Actionable violation messages with locations and fix suggestions
+- 🧠 **Context Awareness**: Understands when analysis is partial due to missing files
 
-**Rule Categories:**
+> 🧙‍♂️ **Tip:** Use the [web interface](#-arcane-auditor-web-user-interface) for the fastest start, or jump to [Quick Start](#-quick-start) to begin immediately.
 
-- **Script Quality**: Script syntax, complexity, naming conventions, unused code detection
-- **Structure Validation**: Widget configurations, required fields, component validation, hardcoded values, endpoint compliance
+## 🗂️ Table of Contents
 
-## 🛡️ Update-Safe Configuration System
+- [🚀 Quick Start](#-quick-start)
+- [🌐 Web Interface](#-arcane-auditor-web-user-interface)
+- [🧠 Context Awareness](#-context-awareness)
+- [🛡️ Configuration System](#-update-safe-configuration-system)
+- [🔧 Validation Rules](#-validation-rules)
+- [🛠️ Development](#-development)
+  - [🤝 Contributing](#contributing)
+- [📚 Documentation](#-documentation)
+- [📄 License](#-license)
 
-Arcane Auditor features a **consolidated layered configuration system** that protects your customizations during app updates:
+## 🖼️ Web Interface Screenshots
 
-- **🔒 Presets** (`config/presets/`) - Built-in configurations (updated with app)
-- **🛡️ Teams** (`config/teams/`) - Team/project settings (update-safe)
-- **🏠 Personal** (`config/personal/`) - Personal overrides (highest priority)
+### Dark Mode Interface
 
-### Available Presets
+![Arcane Auditor Web Interface - Dark Mode](assets/results-dark.png)
 
-- **Development** (`development.json`) - Development-friendly validation allowing console.debug, etc.
-- **Production-Ready** (`production-ready.json`) - Pre-deployment validation with strict settings
+### Light Mode Interface
 
-```bash
-# List all available configurations and safety status
-uv run main.py list-configs
+![Arcane Auditor Web Interface - Light Mode](assets/results-light.png)
 
-# Use team configuration (searches all directories)
-uv run main.py review-app myapp.zip --config development
+<details>
+<summary>📸 More Screenshots (click to expand)</summary>
 
-# Use explicit path
-uv run main.py review-app myapp.zip --config config/personal/my-config.json
-```
+**Upload View:**
+![Upload View](assets/upload-dark.png)
 
-Your customizations in `config/teams/` and `config/personal/` are **completely protected** from app updates! 🛡️
+**Issues View:**
+![Issues View](assets/issues-dark.png)
+
+**Configuration View:**
+![Configuration View](assets/config-dark.png)
+
+**Details View:**
+![Details View](assets/details-dark.png)
+
+</details>
+
+*The mystical web interface provides an intuitive way to upload and analyze your Workday Extend applications with real-time results and downloadable reports.*
 
 ## 🚀 Quick Start
 
-### Prerequisites
+> ⚙️ **Requirements:** Python 3.8+, UV package manager, Git
 
-Before installing Arcane Auditor, you'll need:
+### 🧙‍♂️ Quick Start (Web UI)
 
-#### 1. **Python 3.8+**
+**Getting Started in 30 Seconds:**
 
-- **Windows**: Download from [python.org](https://www.python.org/downloads/) or install via [Microsoft Store](https://www.microsoft.com/store/productId/9NRWMJP3717K)
-- **macOS**: `brew install python` or download from [python.org](https://www.python.org/downloads/)
-- **NOTE**: If using UV (see below), you don't need to install Python. It will be downloaded and run in the project folder for you.
+1. **Download** the latest release from [GitHub Releases](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
+2. **Extract** the archive to your desired location
+3. **Run** the web interface:
+   ```bash
+   uv run web/server.py --port 8080
+   ```
+4. **Open** [http://localhost:8080](http://localhost:8080) in your browser
+5. **Upload** your ZIP file or individual PMD/Pod/Script files
+6. **Review** the analysis results and download Excel reports
 
-#### 2. **Git** (for cloning the repository)
+---
 
-- **Windows**: Download from [git-scm.com](https://git-scm.com/download/win)
-- **macOS**: `brew install git` or download from [git-scm.com](https://git-scm.com/download/mac)
-
-#### 3. **UV** (Modern Python package manager - **recommended**)
+### ⚔️ Quick Start (Command Line)
 
 ```bash
-# Windows (PowerShell)
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+# Analyze a complete application archive
+uv run main.py review-app myapp.zip
 
-# MacOS (Shell w/Curl)
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Analyze individual files
+uv run main.py review-app file1.pmd file2.pod file3.script
 
-# Or using pip (if you prefer)
-pip install uv
+# Use specific configuration
+uv run main.py review-app myapp.zip --config my-config.json
 ```
 
-> **💡 Why UV?** UV is 10-100x faster than pip and handles dependencies more reliably. [Learn more](https://github.com/astral-sh/uv)
+💡 **Need more setup paths?** See [Installation Options](#-installation-options)
 
-### Installation
+[⬆️ Back to Top](#-table-of-contents)
 
-#### **Option A: Download Release (Easiest)**
+<details>
+<summary>📦 Installation Options (click to expand)</summary>
+
+### Option A: Direct Download (Recommended)
+
+1. Download the latest release from [GitHub Releases](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
+2. Extract the archive to your desired location
+3. Install dependencies:
+   ```bash
+   uv sync
+   ```
+
+### Option B: Clone Repository
 
 ```bash
-# Download the latest release ZIP from GitHub
-# Visit: https://github.com/Developers-and-Dragons/ArcaneAuditor/releases
-# Download arcane-auditor-0.3.0-beta.1.zip and extract it
-
-# Or using command line (Windows PowerShell)
-Invoke-WebRequest -Uri "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.3.0-beta.1.zip" -OutFile "arcane-auditor.zip"
-Expand-Archive -Path "arcane-auditor.zip" -DestinationPath "."
-cd ArcaneAuditor-0.3.0-beta.1
-
-# Or using command line (macOS)
-curl -L -o arcane-auditor.zip "https://github.com/Developers-and-Dragons/ArcaneAuditor/archive/refs/tags/0.3.0-beta.1.zip"
-unzip arcane-auditor.zip
-cd ArcaneAuditor-0.3.0-beta.1
-
-# Install dependencies (UV handles Python version and virtual environment automatically)
+git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git
+cd ArcaneAuditor
 uv sync
-
-# Run analysis on a Workday Extend application
-uv run main.py review-app your-app.zip
 ```
 
-#### **Option B: Git Clone (Recommended For Developers)**
+### Option C: Development Setup
 
 ```bash
-# Clone the repository (SSH - if you have GitHub SSH keys)
-git clone git@github.com:Developers-and-Dragons/ArcaneAuditor.git arcane-auditor
-
-# Or using HTTPS (works for everyone)
-git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git arcane-auditor
-
-cd arcane-auditor
-
-# Install dependencies (UV handles Python version and virtual environment automatically)
-uv sync
-
-# Run analysis on a Workday Extend application
-uv run main.py review-app your-app.zip
+git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git
+cd ArcaneAuditor
+uv sync --dev
+uv run pytest  # Run tests
 ```
 
-#### **Option C: Using Traditional pip**
+</details>
+
+## 🌐 Arcane Auditor Web User Interface
+
+*For most users, this is the easiest way to run Arcane Auditor.*
+
+The web interface provides a modern, intuitive way to analyze your Workday Extend applications:
+
+### **Features:**
+
+- **📁 Drag & Drop Upload**: Easy file selection with support for ZIP archives and individual files
+- **⚙️ Configuration Selection**: Choose from predefined analysis configurations
+- **📊 Real-time Results**: Quick analysis with detailed violation reports
+- **📥 Excel Export**: Download comprehensive reports with context information
+- **🌙 Theme Support**: Dark and light mode themes
+
+### **Starting the Web Server:**
+
+**Default port (8080):**
 
 ```bash
-# Clone the repository
-git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git arcane-auditor
-cd arcane-auditor
-
-# Create virtual environment (recommended)
-python -m venv .venv
-
-# Activate virtual environment
-# Windows:
-.venv\Scripts\activate
-# macOS:
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run analysis
-python main.py review-app your-app.zip
+uv run web/server.py
 ```
 
-### Verify Installation
+**Custom port (8090):**
 
 ```bash
-# Check that everything is working
-uv run main.py --help
+uv run web/server.py --port 8090
 ```
 
-You should see mystical analysis output with validation findings! 🔮
-
-## 🆕 What's New in 0.3.0-beta.1
-
-This release brings web interface improvements, new validation rules, and enhanced user experience:
-
-### 🌐 Web Interface Overhaul
-
-- **Interactive Configuration Breakdown**: New modal system showing detailed rule information with enabled/disabled counts
-- **Enhanced User Experience**: Improved layout with file upload at top, configuration selection below
-- **Definitive Scroll Jiggle Fix**: 2-part solution eliminating all layout shifts and scroll bar jumping
-- **Enhanced Dark Mode**: Fixed hover text readability and improved contrast across all components
-- **Cross-Platform Startup Scripts**: Windows (`.bat`) and Linux/macOS (`.sh`) convenience scripts
-
-### Web Interface (Recommended)
-
-For a user-friendly mystical web interface with FastAPI backend:
-
-#### **Start Web Interface**
+**Background mode:**
 
 ```bash
-# Start the FastAPI web server
-# Make sure you're in the project directory with dependencies available
-# Adjust port as necessary - defaults to port 8080
-uv run python web/server.py --port 8081
-
-# Or if you have a virtual environment activated:
-python web/server.py --port 8081
-
-# Open your browser to: http://localhost:8081
-# API documentation available at: http://localhost:8081/docs
+uv run web/server.py --port 8080 &
 ```
 
-The web interface provides:
+> 💡 **Tip:** The web interface provides intelligent [context awareness](#-context-awareness) to help you understand when analysis is complete or partial.
 
-- **Drag & drop file upload** for ZIP files
-- **Dynamic configuration selection** with interactive cards showing all available configs (presets, teams, personal)
-- **Real-time analysis** with all validation rules
-- **Asynchronous processing** - Multiple users can upload files simultaneously
-- **Configuration persistence** - Remembers your last selected configuration
-- **Dark/light mode** toggle
-- **Results filtering** and sorting
-- **Excel export** functionality
+<details>
+<summary>🔗 API Endpoints (click to expand)</summary>
 
-> **🌐 Web Interface Benefits:** Drag-and-drop file upload, interactive results, configuration management, beautiful mystical UI, and modern FastAPI backend with automatic API documentation!
+- `GET /` - Main interface
+- `POST /upload` - File upload endpoint
+- `GET /job/{job_id}` - Job status
+- `GET /download/{job_id}/excel` - Download Excel report
+- `GET /configurations` - Available configurations
+- `GET /static/{file}` - Static assets (CSS, JS, images)
 
-#### **Convenient Startup Scripts**
+</details>
 
-For easier web service startup, use the provided scripts instead of remembering the command syntax:
+[⬆️ Back to Top](#-table-of-contents)
 
-**Windows:**
+## 🧠 Context Awareness
+
+<details>
+<summary>🧠 Context Awareness (click to expand)</summary>
+
+Arcane Auditor provides **intelligent context awareness** to help you understand when analysis is complete or partial:
+
+| Mode     | Description                | Example Command                                      |
+| -------- | -------------------------- | ---------------------------------------------------- |
+| Complete | Full set of files provided | `uv run main.py review-app myapp.zip`              |
+| Partial  | Missing AMD or SMD files  | `uv run main.py review-app mypage.pmd`             |
+
+### **Complete Analysis** ✅
+
+When you provide all relevant files (PMD, AMD, SMD), Arcane Auditor runs **all enabled validation rules** and provides comprehensive coverage.
+
+### **Partial Analysis** ⚠️
+
+When files are missing, Arcane Auditor:
+
+- **Runs available rules** on provided files
+- **Clearly indicates** which files are missing
+- **Shows which rules** couldn't be executed
+- **Provides guidance** on what to add for complete validation
+
+### **Supported Analysis Modes**
+
+**ZIP File Analysis:**
 
 ```bash
-# Simple startup (opens browser automatically)
-start-web-service.bat
-
-# Advanced startup with options
-start-web-service.bat --port 3000 --host 0.0.0.0
+# Complete application archive
+uv run main.py review-app myapp.zip
 ```
 
-**Linux/macOS:**
+**Individual File Analysis:**
 
 ```bash
-# Simple startup (opens browser automatically)
-./start-web-service.sh
+# Single PMD file
+uv run main.py review-app mypage.pmd
 
-# Advanced startup with options
-./start-web-service.sh --port 3000 --host 0.0.0.0
+# Multiple files
+uv run main.py review-app file1.pmd file2.pod file3.script
 ```
 
-See [`WEB_SERVICE_SCRIPTS.md`](WEB_SERVICE_SCRIPTS.md) for detailed usage instructions and all available options.
-
-For a complete overview of all validation rules, see [`parser/rules/RULE_BREAKDOWN.md`](parser/rules/RULE_BREAKDOWN.md).
-
-#### **API Endpoints**
-
-The FastAPI server provides the following REST API endpoints:
-
-- **`POST /api/upload`** - Upload ZIP file for analysis
-
-  - Returns: `{"job_id": "uuid", "status": "queued"}`
-  - Content-Type: `multipart/form-data`
-  - Parameters: `file` (required), `config` (optional, defaults to "development")
-- **`GET /api/job/{job_id}`** - Get analysis job status and results
-
-  - Returns: `{"job_id": "uuid", "status": "completed|running|failed", "result": {...}}`
-- **`GET /api/download/{job_id}`** - Download analysis results as Excel file
-
-  - Returns: Excel file (.xlsx) with findings and summary
-- **`GET /api/configs`** - Get available configurations
-
-  - Returns: List of available configurations with metadata
-- **`GET /api/health`** - Health check endpoint
-
-  - Returns: `{"status": "healthy"}`
-- **`GET /docs`** - Interactive API documentation (Swagger UI)
-
-## 🧙‍♂️ Arcane Auditor Web User Interface
-
-Arcane Auditor offers both **Dark** and **Light** themes — revealing code quality insights in true mystical style.
-
-<h3>🪄 Upload Your Extend Application</h3>
-<p align="center">
-  <img src="assets/upload-dark.png" width="48%">
-  <img src="assets/upload-light.png" width="48%">
-</p>
-
-<h3>⚙️ Choose Your Configuration</h3>
-<p align="center">
-  <img src="assets/config-dark.png" width="48%">
-  <img src="assets/config-light.png" width="48%">
-</p>
-
-<h3>📊 View Analysis Results</h3>
-<p align="center">
-  <img src="assets/results-dark.png" width="48%">
-  <img src="assets/results-light.png" width="48%">
-</p>
-
-<h3>🗂️ Browse Issues by File</h3>
-<p align="center">
-  <img src="assets/issues-dark.png" width="48%">
-  <img src="assets/issues-light.png" width="48%">
-</p>
-
-<h3>🔍 Inspect Detailed Rule Violations</h3>
-<p align="center">
-  <img src="assets/details-dark.png" width="48%">
-  <img src="assets/details-light.png" width="48%">
-</p>
-
-### Basic Usage
+**Mixed Analysis:**
 
 ```bash
-# Analyze a PMD application with arcane wisdom
-uv run main.py review-app myapp_abcdef.zip
-
-# Use custom magical configuration (supports layered loading)
-uv run main.py review-app myapp_abcdef.zip --config development
-
-# List available configurations
-uv run main.py list-configs
+# Some files from archive, some individual
+uv run main.py review-app myapp.zip additional-file.script
 ```
 
-## 📁 Project Structure
+### **Context Information Display**
+
+The tool provides clear context information in all output formats:
+
+**Console Output:**
 
 ```
-arcane-auditor/
-├── main.py                                         	# Main application entry point
-├── requirements.txt                                	# Python dependencies
-├── pyproject.toml                                  	# Project configuration
-├── README.md                                       	# This file
-├── LICENSE                                         	# MIT License
-├── uv.lock                                         	# UV package lock file
-├── start-web-service.bat                          	# Windows web service startup script
-├── start-web-service.sh                           	# Linux/macOS web service startup script
-├── WEB_SERVICE_SCRIPTS.md                         	# Web service scripts documentation
-│
-├── assets/                                         	# Static assets
-│   ├── arcane-auditor-logo.png                     	# Project logo
-│   ├── config-dark.png                             	# Web UI config selection (dark mode)
-│   ├── config-light.png                            	# Web UI config selection (light mode)
-│   ├── details-dark.png                            	# Web UI configuration details (dark mode)
-│   ├── details-light.png                           	# Web UI configuration details (light mode)
-│   ├── issues-dark.png                             	# Web UI issues view (dark mode)
-│   ├── issues-light.png                            	# Web UI issues view (light mode)
-│   ├── results-dark.png                            	# Web UI results view (dark mode)
-│   ├── results-light.png                           	# Web UI results view (light mode)
-│   ├── upload-dark.png                             	# Web UI upload view (dark mode)
-│   └── upload-light.png                            	# Web UI upload view (light mode)
-│
-├── config/                                         	# Consolidated configurations
-│   ├── README.md                                   	# Configuration guide
-│   ├── presets/                                    	# Built-in configurations (updated with app)
-│   │   ├── development.json                        	# Development-friendly validation
-│   │   └── production-ready.json                   	# Pre-deployment validation
-│   ├── teams/                                      	# Team/project settings (update-safe)
-│   └── personal/                                   	# Personal overrides (highest priority)
-│
-├── file_processing/                                	# File processing pipeline
-│   ├── __init__.py
-│   ├── config.py                                   	# Configuration models
-│   ├── models.py                                   	# Data models
-│   └── processor.py                                	# Main processing logic
-│
-├── output/                                         	# Output formatting
-│   ├── __init__.py
-│   └── formatter.py                                	# Results formatting utilities
-│
-├── parser/                                         	# PMD parsing and validation
-│   ├── __init__.py
-│   ├── app_parser.py                               	# Main application parser
-│   ├── config.py                                   	# Parser configuration
-│   ├── config_manager.py                           	# Configuration management
-│   ├── models.py                                   	# Parser data models
-│   ├── pmd_script_parser.py                        	# PMD Script parser
-│   ├── pmd_script_grammar.lark                     	# PMD Script grammar definition
-│   ├── pmd_preprocessor.py                         	# PMD file preprocessing
-│   ├── rules_engine.py                             	# Rules discovery and execution
-│   │
-│   └── rules/                                      	# Validation rules engine
-│       ├── __init__.py                             	# Rules package
-│       ├── base.py                                 	# Base Rule class and utilities
-│       ├── common_validations.py                   	# Shared validation functions
-│       ├── RULE_BREAKDOWN.md                       	# Complete rules documentation
-│       │
-│       ├── common/                                 	# Shared rule utilities
-│       │   ├── __init__.py
-│       │   ├── line_utils.py                       	# Line number utilities
-│       │   └── violation.py                        	# Violation dataclass
-│       │
-│       ├── script/                                 	# Script validation rules
-│       │   ├── __init__.py
-│       │   │
-│       │   ├── shared/                             	# Shared script rule components
-│       │   │   ├── __init__.py
-│       │   │   ├── rule_base.py                    	# ScriptRuleBase class
-│       │   │   ├── detector.py                     	# ScriptDetector abstract class
-│       │   │   ├── violation.py                    	# Script violation dataclass
-│       │   │   ├── ast_utils.py                    	# AST manipulation utilities
-│       │   │   └── template_literal_preprocessor.py	# Template literal preprocessing
-│       │   │
-│       │   ├── core/                               	# Basic syntax/style rules
-│       │   │   ├── __init__.py
-│       │   │   ├── var_usage.py                    	# ScriptVarUsageRule
-│       │   │   ├── var_usage_detector.py
-│       │   │   ├── script_dead_code.py        	# ScriptDeadCodeRule
-│       │   │   ├── script_dead_code_detector.py
-│       │   │   ├── variable_naming.py              	# ScriptVariableNamingRule
-│       │   │   ├── variable_naming_detector.py
-│       │   │   ├── console_log.py                  	# ScriptConsoleLogRule
-│       │   │   └── console_log_detector.py
-│       │   │
-│       │   ├── complexity/                         	# Code complexity rules
-│       │   │   ├── __init__.py
-│       │   │   ├── nesting_level.py                	# ScriptNestingLevelRule
-│       │   │   ├── nesting_level_detector.py
-│       │   │   ├── cyclomatic_complexity.py        	# ScriptComplexityRule
-│       │   │   ├── cyclomatic_complexity_detector.py
-│       │   │   ├── long_function.py                	# ScriptLongFunctionRule
-│       │   │   ├── long_function_detector.py
-│       │   │   ├── long_script_block.py            	# LongScriptBlockRule
-│       │   │   ├── long_script_block_detector.py
-│       │   │   ├── function_parameter_count.py     	# ScriptFunctionParameterCountRule
-│       │   │   └── function_parameter_count_detector.py
-│       │   │
-│       │   ├── unused_code/                        	# Dead code detection
-│       │   │   ├── __init__.py
-│       │   │   ├── unused_variables.py             	# ScriptUnusedVariableRule
-│       │   │   ├── unused_variables_detector.py
-│       │   │   ├── unused_parameters.py            	# ScriptUnusedFunctionParametersRule
-│       │   │   ├── unused_parameters_detector.py
-│       │   │   ├── unused_functions.py             	# ScriptUnusedFunctionRule
-│       │   │   ├── unused_functions_detector.py
-│       │   │   ├── unused_script_includes.py       	# ScriptUnusedScriptIncludesRule
-│       │   │   ├── unused_script_includes_detector.py
-│       │   │   ├── empty_functions.py              	# ScriptEmptyFunctionRule
-│       │   │   └── empty_function_detector.py
-│       │   │
-│       │   └── logic/                              	# Logic/flow rules
-│       │       ├── __init__.py
-│       │       ├── magic_numbers.py                	# ScriptMagicNumberRule
-│       │       ├── magic_number_detector.py
-│       │       ├── null_safety.py                  	# ScriptNullSafetyRule
-│       │       ├── null_safety_detector.py
-│       │       ├── descriptive_parameters.py       	# ScriptDescriptiveParameterRule
-│       │       ├── descriptive_parameters_detector.py
-│       │       ├── array_method_usage.py      	# ScriptArrayMethodUsageRule
-│       │       ├── array_method_usage_detector.py
-│       │       ├── verbose_boolean.py              	# ScriptVerboseBooleanCheckRule
-│       │       ├── verbose_boolean_detector.py
-│       │       ├── return_consistency.py           	# ScriptFunctionReturnConsistencyRule
-│       │       ├── return_consistency_detector.py
-│       │       ├── string_concat.py                	# ScriptStringConcatRule
-│       │       └── string_concat_detector.py
-│       │
-│       ├── structure/                              	# Structure validation rules
-│       │   ├── __init__.py
-│       │   │
-│       │   ├── shared/                             	# Shared structure rule components
-│       │   │   ├── __init__.py
-│       │   │   └── rule_base.py                    	# StructureRuleBase class
-│       │   │
-│       │   ├── widgets/                            	# Widget validation rules
-│       │   │   ├── __init__.py
-│       │   │   ├── widget_id_required.py           	# WidgetIdRequiredRule
-│       │   │   └── widget_id_lower_camel_case.py   	# WidgetIdLowerCamelCaseRule
-│       │   │
-│       │   ├── endpoints/                          	# Endpoint validation rules
-│       │   │   ├── __init__.py
-│       │   │   ├── endpoint_name_lower_camel_case.py   # EndpointNameLowerCamelCaseRule
-│       │   │   ├── endpoint_on_send_self_data.py       # EndpointOnSendSelfDataRule
-│       │   │   ├── endpoint_fail_on_status_codes.py    # EndpointFailOnStatusCodesRule
-│       │   │   └── endpoint_url_base_url_type.py       # EndpointUrlBaseUrlTypeRule
-│       │   │
-│       │   └── validation/                         	# General validation rules
-│       │       ├── __init__.py
-│       │       ├── amd_data_providers_workday.py   	# AMDDataProvidersWorkdayRule
-│       │       ├── footer_pod_required.py          	# FooterPodRequiredRule
-│       │       ├── string_boolean.py               	# StringBooleanRule
-│       │       ├── embedded_images.py              	# EmbeddedImagesRule
-│       │       ├── hardcoded_application_id.py     	# HardcodedApplicationIdRule
-│       │       ├── hardcoded_wid.py                	# HardcodedWidRule
-│       │       ├── pmd_section_ordering.py         	# PMDSectionOrderingRule
-│       │       └── pmd_security_domain.py          	# PMDSecurityDomainRule
-│       │
-│       └── custom/                                 	# 🆕 User custom rules
-│           ├── __init__.py                         	# Custom rules package
-│           ├── README.md                           	# Custom rules development guide
-│           ├── examples/                           	# Example implementations
-│           │   ├── __init__.py
-│           │   └── _example_custom_rule.py         	# Sample custom rule
-│           └── user/                               	# User's actual custom rules
-│               └── __init__.py
-│
-├── web/                                            	# Web interface
-│   ├── server.py                                   	# FastAPI web server
-│   ├── uploads/                                    	# Temporary upload directory
-│   └── frontend/                                  		# HTML/CSS/JS frontend
-│       ├── README.md                              		# Frontend documentation
-│       ├── index.html                             		# Main HTML page
-│       ├── style.css                               	# Styling with dark mode
-│       └── script.js                               	# Client-side functionality
-│
-├── tests/                                          	# Unit tests
-│   ├── __init__.py
-│   ├── test_app_parser.py                          	# Application parser tests
-│   ├── test_file_processor.py                      	# File processing tests
-│   ├── test_finding.py                             	# Finding model tests
-│   ├── test_rules_engine.py                        	# Rules engine tests
-│   ├── test_all_script_rules.py                   		# All script rules integration tests
-│   ├── test_all_structure_rules.py                 	# All structure rules integration tests
-│   ├── test_script_complexity_rule.py              	# Complexity rule tests
-│   ├── test_script_descriptive_parameters.py       	# Descriptive parameters tests
-│   ├── test_script_empty_function_rule.py          	# Empty function tests
-│   ├── test_script_dead_code.py               	# Dead code tests
-│   ├── test_script_function_parameter_count_rule.py    # Parameter count tests
-│   ├── test_script_array_method_usage_rule.py           # Array method tests
-│   ├── test_script_verbose_boolean_rule.py         	# Verbose boolean tests
-│   ├── test_unused_script_includes.py              	# Unused includes tests
-│   ├── test_embedded_images_rule.py                	# Embedded images tests
-│   ├── test_endpoint_on_send_self_data.py          	# Endpoint self data tests
-│   ├── test_footer_pod_required_rule.py            	# Footer pod tests
-│   ├── test_pmd_section_ordering.py                	# PMD section ordering tests
-│   ├── test_string_boolean_rule.py                 	# String boolean tests
-│   ├── test_widget_traversal.py                    	# Widget traversal tests
-│   ├── test_long_script_block_rule.py             	# Long script block tests
-│   ├── test_amd_data_providers_workday_rule.py     	# AMD data providers tests
-│   └── test_pmd_script_grammar.py                  	# PMD script grammar tests
-│
-└── uploads/                                        	# Temporary file uploads
+📊 Analysis Context:
+✅ Complete Analysis - All files provided
+📁 Files Analyzed: 15
+📄 Files Present: 15
+⚠️ Files Missing: 0
+🔧 Rules Executed: 45
 ```
 
-## 🔧 Validation Rules
+**Excel Reports:**
 
-### Unified Rule Architecture
+- Dedicated "Context" sheet with analysis completeness
+- Clear indication of missing files and their impact
+- Guidance on achieving complete analysis
 
-Arcane Auditor features a **unified rule architecture** that provides consistency, reusability, and maintainability:
+**Web Interface:**
 
-- **`ScriptRuleBase`**: Base class for script analysis rules with built-in PMD/POD/script iteration
-- **`StructureRuleBase`**: Base class for structure validation rules with PMD/POD analysis patterns
-- **`ScriptDetector`**: Abstract pattern for script analysis with separation of detection logic
-- **`Violation`**: Standardized dataclass for reporting code violations
-- **Shared utilities**: AST manipulation, line number calculation, and common validations
+- Context panel showing analysis status
+- Visual indicators for complete vs. partial analysis
+- Recommendations for improving analysis coverage
 
-### Rule Categories
+[⬆️ Back to Top](#-table-of-contents)
 
-#### Script Rules
+</details>
 
-**Core Rules** (`parser/rules/script/core/`)
+## 🛡️ Update-Safe Configuration System
 
-- **ScriptVarUsageRule**: Var Usage Rule - Prefer `let`/`const` over `var`
-- **ScriptDeadCodeRule**: Dead Code Rule - Detects dead code in standalone script files
-- **ScriptConsoleLogRule**: Console Log Rule - Avoid console statements in production
-- **ScriptVariableNamingRule**: Variable Naming Rule - Use lowerCamelCase convention
+<details>
+<summary>🛡️ Update-Safe Configuration System (click to expand)</summary>
 
-**Complexity Rules** (`parser/rules/script/complexity/`)
+Arcane Auditor uses a **layered configuration system** that protects your customizations during updates:
 
-- **ScriptNestingLevelRule**: Nesting Level Rule - Limit code nesting depth
-- **ScriptComplexityRule**: Cyclomatic Complexity Rule - Control function complexity
-- **ScriptLongFunctionRule**: Long Function Rule - Limit function length
-- **ScriptFunctionParameterCountRule**: Function Parameter Count Rule - Limit function parameters
+### **Configuration Layers (Priority Order):**
 
-**Unused Code Rules** (`parser/rules/script/unused_code/`)
+1. **Command Line Arguments** (highest priority)
+2. **User Configuration File** (`~/.arcane-auditor/config.json`)
+3. **Project Configuration File** (`arcane-auditor.json`)
+4. **Default Configuration** (built-in)
 
-- **ScriptUnusedVariableRule**: Unused Variables Rule - Remove unused variables
-- **ScriptUnusedFunctionParametersRule**: Unused Parameters Rule - Remove unused function parameters
-- **ScriptUnusedFunctionRule**: Unused Functions Rule - Remove unused functions
-- **ScriptUnusedScriptIncludesRule**: Unused Script Includes Rule - Remove unused script imports
-- **ScriptEmptyFunctionRule**: Empty Functions Rule - Remove empty functions
-
-**Logic Rules** (`parser/rules/script/logic/`)
-
-- **ScriptMagicNumberRule**: Magic Numbers Rule - Use named constants
-- **ScriptNullSafetyRule**: Null Safety Rule - Proper null checking
-- **ScriptDescriptiveParameterRule**: Descriptive Parameters Rule - Use descriptive parameter names
-- **ScriptArrayMethodUsageRule**: Array Method Usage Rule - Prefer array higher-order methods over manual loops
-- **ScriptVerboseBooleanCheckRule**: Verbose Boolean Rule - Simplify boolean expressions
-- **ScriptFunctionReturnConsistencyRule**: Return Consistency Rule - Consistent return patterns
-- **ScriptStringConcatRule**: String Concatenation Rule - Use template literals instead of string concatenation
-
-#### Structure Rules
-
-**Widget Rules** (`parser/rules/structure/widgets/`)
-
-- **WidgetIdRequiredRule**: Widget ID Required Rule - All widgets need IDs
-- **WidgetIdLowerCamelCaseRule**: Widget ID Lower Camel Case Rule - Widget IDs follow naming convention
-
-**Endpoint Rules** (`parser/rules/structure/endpoints/`)
-
-- **EndpointNameLowerCamelCaseRule**: Endpoint Name Lower Camel Case Rule - Endpoint names follow convention
-- **EndpointOnSendSelfDataRule**: Endpoint On Send Self Data Rule - Avoid self.data anti-pattern
-- **EndpointFailOnStatusCodesRule**: Endpoint Fail On Status Codes Rule - Proper error handling
-- **EndpointBaseUrlTypeRule**: Endpoint Base URL Type Rule - Consistent URL configuration
-
-**Validation Rules** (`parser/rules/structure/validation/`)
-
-- **FooterPodRequiredRule**: Footer Pod Required Rule - Footer must use pod structure (uses StructureRuleBase)
-- **StringBooleanRule**: String Boolean Rule - Use boolean values, not strings (uses StructureRuleBase)
-- **EmbeddedImagesRule**: Embedded Images Rule - Detect base64 encoded images and large binary content
-- **HardcodedApplicationIdRule**: Hardcoded Application ID Rule - Detect hardcoded applicationId values
-- **HardcodedWidRule**: Hardcoded WID Rule - Detect hardcoded Workday ID values
-- **PMDSectionOrderingRule**: PMD Section Ordering Rule - Consistent file structure and section ordering
-- **PMDSecurityDomainRule**: PMD Security Domain Rule - Ensure security domains are defined
-
-#### PMD Rules
-
-**Organization Rules** (`parser/rules/structure/validation/`)
-
-- **PMDSectionOrderingRule**: PMD Section Ordering Rule - Consistent file structure and section ordering
-- **PMDSecurityDomainRule**: PMD Security Domain Rule - Ensure security domains are defined
-
-#### Custom Rules
-
-**User Extensions** (`parser/rules/custom/user/`)
-
-- **Custom[Description]Rule**: User-defined validation rules
-- See `parser/rules/custom/README.md` for development guide
-
-### Rule Discovery
-
-The rules engine automatically discovers all validation rules using `pkgutil.walk_packages()`. Rules are organized by:
-
-1. **Category**: Script vs Structure vs Custom
-2. **Type**: Core, Complexity, Unused Code, Logic, Widgets, Endpoints, Validation
-3. **Naming**: Descriptive class names (e.g., `ScriptVarUsageRule`, `WidgetIdRequiredRule`)
-
-## 🛠️ Development
-
-### Adding New Rules
-
-> **⚠️ Important**: To avoid merge conflicts when updating the official codebase, **always use the Custom Rules system** for user-defined validation rules. Only modify official rules if you are a core contributor to the project.
-
-#### For Users: Custom Rules (Recommended)
-
-**Use this approach for your own validation rules:**
-
-1. Place new rules in `parser/rules/custom/user/`
-2. Use descriptive class names (e.g., `CustomScriptMyRule`)
-3. Follow patterns in `parser/rules/custom/examples/`
-4. See `parser/rules/custom/README.md` for detailed guide
-
-**Benefits:**
-
-- ✅ No merge conflicts when updating the official codebase
-- ✅ Rules persist through official updates
-- ✅ Easy to share and version control your custom rules
-- ✅ Automatic discovery by the rules engine
-
-### Testing
-
-```bash
-# Run all tests
-uv run pytest
-
-# Run specific test categories
-uv run pytest tests/test_all_script_rules.py
-uv run pytest tests/test_all_structure_rules.py
-uv run pytest tests/test_rules_engine.py
-
-# Test with your own Workday Extend application
-uv run main.py review-app myapp_abcdef.zip
-```
-
-### Configuration
-
-Create custom configurations in JSON format:
+### **Configuration File Structure:**
 
 ```json
 {
   "rules": {
-    "CustomScriptCommentQualityRule": {
+    "script": {
       "enabled": true,
-      "severity_override": "ADVICE",
-      "custom_settings": {
-        "min_comment_density": 0.15
+      "max_complexity": 10,
+      "max_function_length": 50
+    },
+    "structure": {
+      "enabled": true,
+      "check_hardcoded_values": true,
+      "require_widget_labels": true
+    }
+  },
+  "output": {
+    "format": "console",
+    "include_context": true,
+    "excel_include_context_sheet": true
+  }
+}
+```
+
+### **Creating Custom Configurations:**
+
+```bash
+# Generate default configuration
+uv run main.py generate-config > my-config.json
+
+# Use custom configuration
+uv run main.py review-app myapp.zip --config my-config.json
+```
+
+### **Configuration Inheritance:**
+
+- **User config** inherits from **default config**
+- **Project config** inherits from **user config**
+- **Command line** overrides all config files
+- **Missing settings** fall back to defaults
+
+This ensures your customizations persist through updates while allowing flexibility for different projects.
+
+[⬆️ Back to Top](#-table-of-contents)
+
+</details>
+
+## 🔧 Validation Rules
+
+### Categories
+
+- 🧠 [Script Quality Rules](#-script-quality-rules)
+- 🏗️ [Structure Validation Rules](#-structure-validation-rules)
+- ⚙️ [Custom Rule Development](#-custom-rule-development)
+
+<details>
+<summary>🔧 Script Quality Rules (click to expand)</summary>
+
+### **Script Syntax & Structure**
+
+- **Valid JavaScript Syntax**: Ensures all script code follows proper JavaScript syntax
+- **Function Declaration Validation**: Validates function declarations and their parameters
+- **Variable Declaration**: Checks for proper variable declarations and scope
+- **Control Flow Validation**: Validates if/else, loops, and other control structures
+
+### **Code Complexity & Quality**
+
+- **Cyclomatic Complexity**: Measures code complexity (default threshold: 10)
+- **Function Length**: Limits function length (default: 50 lines)
+- **Nested Depth**: Prevents excessive nesting (default: 4 levels)
+- **Code Duplication**: Detects repeated code patterns
+
+### **Naming Conventions**
+
+- **Function Naming**: Enforces camelCase for function names
+- **Variable Naming**: Ensures consistent variable naming
+- **Constant Naming**: Validates constant naming conventions
+- **Parameter Naming**: Checks parameter naming consistency
+
+### **Unused Code Detection**
+
+- **Unused Functions**: Identifies functions that are never called
+- **Unused Variables**: Finds variables that are declared but never used
+- **Dead Code**: Detects unreachable code blocks
+- **Unused Parameters**: Identifies function parameters that aren't used
+
+[⬆️ Back to Top](#-table-of-contents)
+
+</details>
+
+<details>
+<summary>🔧 Structure Validation Rules (click to expand)</summary>
+
+### **Widget Configuration**
+
+- **Required Fields**: Ensures all required widget fields are present
+- **Field Validation**: Validates field types and constraints
+- **Widget Hierarchy**: Checks proper widget nesting and relationships
+- **Component Validation**: Validates component configurations
+
+### **PMD File Structure**
+
+- **Page Definition**: Validates page structure and metadata
+- **Endpoint Configuration**: Checks endpoint definitions and parameters
+- **Presentation Layer**: Validates UI component configurations
+- **Data Binding**: Ensures proper data binding configurations
+
+### **Pod File Validation**
+
+- **Template Structure**: Validates pod template structure
+- **Widget Definitions**: Checks widget definitions and properties
+- **Endpoint Integration**: Validates endpoint connections
+- **Data Flow**: Ensures proper data flow between components
+
+### **Best Practices**
+
+- **Hardcoded Values**: Detects hardcoded values that should be configurable
+- **Security Practices**: Validates security-related configurations
+- **Performance Optimization**: Checks for performance-related issues
+- **Accessibility**: Validates accessibility compliance
+
+[⬆️ Back to Top](#-table-of-contents)
+
+</details>
+
+<details>
+<summary>🔧 Custom Rule Development (click to expand)</summary>
+
+### **Creating Custom Rules**
+
+Arcane Auditor supports custom rule development through a plugin system:
+
+```python
+# Example custom rule
+class CustomScriptRule(BaseRule):
+    def __init__(self):
+        super().__init__(
+            rule_id="custom_script_rule",
+            description="Custom script validation rule",
+            severity="ADVICE"
+        )
+  
+    def validate(self, file_content, file_path):
+        violations = []
+        # Your custom validation logic here
+        return violations
+```
+
+### **Rule Registration**
+
+```python
+# Register custom rule
+from arcane_auditor.rules import RuleRegistry
+
+RuleRegistry.register(CustomScriptRule())
+```
+
+### **Rule Configuration**
+
+Custom rules can be configured through the configuration system:
+
+```json
+{
+  "rules": {
+    "custom": {
+      "custom_script_rule": {
+        "enabled": true,
+        "threshold": 5
       }
-    },
-    "ScriptVarUsageRule": {
-      "enabled": true,
-      "severity_override": "ACTION",
-      "custom_settings": {}
-    },
-    "ScriptMagicNumberRule": {
-      "enabled": false,
-      "severity_override": null,
-      "custom_settings": {}
     }
   }
 }
 ```
 
+[⬆️ Back to Top](#-table-of-contents)
+
+</details>
+
+## 🛠️ Development
+
+<details>
+<summary>🛠️ Development Setup (click to expand)</summary>
+
+### **Prerequisites**
+
+- Python 3.8+
+- uv package manager
+- Git
+
+### **Setup Development Environment**
+
+```bash
+# Clone repository
+git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git
+cd ArcaneAuditor
+
+# Install dependencies
+uv sync --dev
+
+# Run tests
+uv run pytest
+
+# Run linting
+uv run ruff check .
+
+# Format code
+uv run ruff format .
+```
+
+### **Project Structure**
+
+**Project Structure Overview**
+
+```
+arcane_auditor/   → Core validation engine
+web/              → Web interface (FastAPI + frontend)
+tests/            → Automated test suite
+config/           → Presets, team, and personal configs
+docs/             → Detailed documentation and rule breakdowns
+```
+
+> 🧩 **New contributor?** See [Project Structure](docs/project-structure.md) for an overview of core directories and their roles.
+
+<details>
+<summary>📁 Detailed Project Structure (click to expand)</summary>
+
+```
+ArcaneAuditor/
+├── arcane_auditor/           # Main package
+│   ├── __init__.py
+│   ├── main.py              # CLI entry point
+│   ├── rules/               # Validation rules
+│   │   ├── __init__.py
+│   │   ├── base.py          # Base rule classes
+│   │   ├── script.py        # Script validation rules
+│   │   └── structure.py     # Structure validation rules
+│   ├── parser/              # File parsing
+│   │   ├── __init__.py
+│   │   ├── pmd_parser.py    # PMD file parser
+│   │   ├── pod_parser.py    # Pod file parser
+│   │   └── script_parser.py # Script file parser
+│   ├── output/              # Output formatting
+│   │   ├── __init__.py
+│   │   ├── formatter.py     # Output formatters
+│   │   └── excel.py         # Excel report generation
+│   └── config/              # Configuration management
+│       ├── __init__.py
+│       ├── loader.py        # Configuration loading
+│       └── validator.py     # Configuration validation
+├── web/                     # Web interface
+│   ├── server.py           # FastAPI server
+│   └── frontend/           # Frontend assets
+│       ├── index.html      # Main HTML
+│       ├── style.css       # Styling
+│       └── script.js       # JavaScript
+├── tests/                   # Test suite
+│   ├── __init__.py
+│   ├── test_rules_engine.py # Core rules engine tests
+│   ├── test_script_*.py     # Script validation rule tests
+│   ├── test_endpoint_*.py   # Endpoint validation tests
+│   ├── test_widget_*.py     # Widget validation tests
+│   ├── test_context_*.py    # Context awareness tests
+│   └── test_*.py            # Additional integration tests
+├── samples/                 # Sample files
+│   ├── templates/          # Template files
+│   └── archives/          # Sample archives
+├── docs/                    # Documentation
+│   ├── rules.md           # Rule documentation
+│   └── api.md             # API documentation
+├── assets/                  # Static assets
+│   ├── logo.png           # Logo
+│   └── screenshots/        # Screenshots
+├── release_notes/          # Release notes
+├── pyproject.toml          # Project configuration
+├── README.md              # This file
+└── LICENSE                # License
+```
+
+</details>
+
+### **Running Tests**
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run specific test file
+uv run pytest tests/test_rules.py
+
+# Run with coverage
+uv run pytest --cov=arcane_auditor
+```
+
+### **Contributing**
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes
+4. Add tests for new functionality
+5. Run the test suite: `uv run pytest`
+6. Commit your changes: `git commit -m "Add feature"`
+7. Push to your fork: `git push origin feature-name`
+8. Create a Pull Request
+
+### **Code Style**
+
+- Follow PEP 8 guidelines
+- Use type hints where appropriate
+- Write comprehensive docstrings
+- Include unit tests for new features
+- Use meaningful commit messages
+
+[⬆️ Back to Top](#-table-of-contents)
+
+</details>
+
+[⬆️ Back to Top](#-table-of-contents)
+
 ## 📚 Documentation
 
-### Core Documentation
-
-- **[📜 Rule Breakdown](parser/rules/RULE_BREAKDOWN.md)**: Comprehensive guide to all validation rules, with examples!
-- **[⚙️ Configuration Guide](config/README.md)**: Consolidated configuration system and rule customization
-
-### Advanced Guides
-
-- **[🔧 Custom Rules Development](parser/rules/custom/README.md)**: Create your own validation rules
+- **[Rule Documentation](docs/rules.md)** - Detailed rule descriptions and examples
+- **[API Documentation](docs/api.md)** - API reference and examples
+- **[Configuration Guide](config/README.md)** - Configuration options and examples
+- **[Release Notes](release_notes/)** - Version history and changes
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-**TL;DR:** You can use, modify, and distribute this code freely, just keep the copyright notice🔮
+---
+
+⭐ **If Arcane Auditor helps you, star the repo and share the magic!**
+
+*May the Weave guide your code to perfection!* ✨

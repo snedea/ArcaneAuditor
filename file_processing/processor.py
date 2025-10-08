@@ -204,3 +204,102 @@ class FileProcessor:
                 logger.warning("No relevant source files found in zip archive")
             
             return source_files
+    
+    def process_individual_files(self, file_paths: list[Path]) -> Dict[str, SourceFile]:
+        """
+        Process individual files (not in a ZIP).
+        
+        Args:
+            file_paths: List of file paths to process
+            
+        Returns:
+            Dictionary mapping relative paths to SourceFile objects
+            
+        Raises:
+            FileProcessingError: If file processing fails
+        """
+        source_files = {}
+        
+        for file_path in file_paths:
+            # Validate file exists
+            if not file_path.exists():
+                logger.warning(f"File not found: {file_path}, skipping")
+                continue
+            
+            if not file_path.is_file():
+                logger.warning(f"Path is not a file: {file_path}, skipping")
+                continue
+            
+            # Check if file has relevant extension
+            if file_path.suffix not in self.relevant_extensions:
+                logger.warning(f"File {file_path.name} has unsupported extension {file_path.suffix}, skipping")
+                continue
+            
+            # Read the file content safely
+            content = self._read_file_safely(file_path)
+            if content is not None:
+                try:
+                    source_file = SourceFile(
+                        path=file_path,
+                        content=content,
+                        size=len(content.encode(self.encoding))
+                    )
+                    # Use just the filename as the key for individual files
+                    source_files[file_path.name] = source_file
+                    logger.info(f"Successfully processed: {file_path.name}")
+                except ValueError as e:
+                    logger.warning(f"Invalid source file data for {file_path.name}: {e}")
+        
+        logger.info(f"Processed {len(source_files)} file(s)")
+        return source_files
+    
+    def process_directory(self, dir_path: Path) -> Dict[str, SourceFile]:
+        """
+        Process all relevant files in a directory (recursively).
+        
+        Args:
+            dir_path: Directory path to scan
+            
+        Returns:
+            Dictionary mapping relative paths to SourceFile objects
+            
+        Raises:
+            FileProcessingError: If directory processing fails
+        """
+        if not dir_path.exists():
+            raise FileNotFoundError(f"Directory not found: {dir_path}")
+        
+        if not dir_path.is_dir():
+            raise FileProcessingError(f"Path is not a directory: {dir_path}")
+        
+        source_files = {}
+        logger.info(f"Scanning directory: {dir_path}")
+        
+        # Recursively find all relevant files
+        for file_path in dir_path.rglob('*'):
+            if file_path.is_file() and file_path.suffix in self.relevant_extensions:
+                logger.debug(f"Found relevant file: {file_path.name}")
+                
+                # Read the file content safely
+                content = self._read_file_safely(file_path)
+                if content is not None:
+                    # Use relative path from the base directory
+                    relative_path_str = str(file_path.relative_to(dir_path))
+                    
+                    try:
+                        source_file = SourceFile(
+                            path=file_path,
+                            content=content,
+                            size=len(content.encode(self.encoding))
+                        )
+                        source_files[relative_path_str] = source_file
+                    except ValueError as e:
+                        logger.warning(f"Invalid source file data for {file_path.name}: {e}")
+        
+        found_count = len(source_files)
+        logger.info(f"Found {found_count} source file(s) in directory")
+        
+        if found_count == 0:
+            logger.warning("No relevant source files found in directory")
+        
+        return source_files

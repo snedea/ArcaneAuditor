@@ -2,12 +2,31 @@
 
 *Create mystical validation rules for the Arcane Auditor*
 
+This document pairs with the [Arcane Auditor Rules Grimoire](../RULE_BREAKDOWN.md), which defines the official rule set — this guide empowers you to forge your own.
+
 This directory allows you to create custom validation rules for the Arcane Auditor without modifying the official codebase. This is perfect for:
 
 - **Adding organization-specific rules**
 - **Extending functionality** without waiting for official releases
 - **Sharing custom rules** with your team or community
 - **Avoiding conflicts** when updating the main tool
+
+## 🏗️ Class Hierarchy
+
+```
+RuleBase
+ ├── ScriptRuleBase
+ │     └── CustomScriptMyRule
+ └── StructureRuleBase
+       └── CustomStructureMyRule
+```
+
+## 📊 When to Use Violation vs Finding
+
+| Output Type | Use When | Description |
+|-------------|----------|-------------|
+| **Violation** | Raw script ASTs (detectors) | Lower-level rule implementation working directly with parsed code |
+| **Finding** | Higher rule-level integration | Validation and reporting at the rule engine level |
 
 ## 🏗️ Directory Structure
 
@@ -56,7 +75,7 @@ class CustomScriptMyRule(ScriptRuleBase):
     """Custom script rule using unified architecture."""
   
     DESCRIPTION = "Description of what this rule checks"
-    SEVERITY = "WARNING"  # "ERROR", "WARNING", "ADVICE"
+    SEVERITY = "ADVICE"  # "ACTION", "ADVICE"
   
     def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
         """Main analysis method using unified architecture."""
@@ -80,7 +99,7 @@ class CustomStructureMyRule(StructureRuleBase):
     """Custom structure rule using unified architecture."""
   
     DESCRIPTION = "Description of what this rule checks"
-    SEVERITY = "WARNING"
+    SEVERITY = "ADVICE"
   
     def get_description(self) -> str:
         """Required by StructureRuleBase."""
@@ -150,7 +169,7 @@ class CustomScriptSecurityRule(ScriptRuleBase):
     """Example script rule using unified architecture."""
   
     DESCRIPTION = "Ensures scripts follow security best practices"
-    SEVERITY = "ERROR"
+    SEVERITY = "ACTION"
   
     def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
         # Use the unified architecture - base class handles iteration
@@ -180,7 +199,7 @@ class CustomStructureRule(StructureRuleBase):
     """Example structure rule using unified architecture."""
   
     DESCRIPTION = "Validates PMD structure compliance"
-    SEVERITY = "WARNING"
+    SEVERITY = "ADVICE"
   
     def get_description(self) -> str:
         """Required by StructureRuleBase."""
@@ -257,7 +276,7 @@ class CustomEndpointRule(StructureRuleBase):
     """Example endpoint rule using unified architecture."""
   
     DESCRIPTION = "Validates endpoint security configuration"
-    SEVERITY = "ERROR"
+    SEVERITY = "ACTION"
   
     def get_description(self) -> str:
         """Required by StructureRuleBase."""
@@ -465,7 +484,7 @@ class CustomScriptComplexityRule(ScriptRuleBase):
         self.max_complexity = self.config.get('max_complexity', 10)
   
     DESCRIPTION = "Validates script complexity doesn't exceed threshold"
-    SEVERITY = "WARNING"
+    SEVERITY = "ADVICE"
   
     def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
         # Use the unified architecture - base class handles iteration
@@ -490,6 +509,46 @@ class CustomScriptComplexityRule(ScriptRuleBase):
 - Include edge cases (empty files, malformed content)
 - Test both PMD embedded and standalone script analysis
 - Verify rule class names don't conflict with existing rules
+
+## 🔍 Debugging
+
+### Check Rule Discovery
+
+Your rules should appear in the discovery output:
+
+```bash
+uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
+
+# Look for:
+# Discovered rule: CustomScriptCommentRule
+```
+
+### List All Rules
+
+```bash
+uv run main.py list-rules
+
+# Your custom rule should appear in the output
+```
+
+### Test with Sample Files
+
+```bash
+# Test with provided samples
+uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
+
+# Test with specific configuration
+uv run main.py review-app samples/archives/template_bad_nkhlsq.zip --config user_configs/my-config.json
+```
+
+### Common Issues
+
+- **Rule not discovered**: Check `__init__.py` files exist in all directories
+- **Import errors**: Verify import paths are correct (use relative imports)
+- **Parse errors**: Add try-catch blocks around script parsing
+- **Generator errors**: Make sure to use `yield` instead of `return` for violations
+- **Missing script analysis**: Use the unified architecture with `ScriptRuleBase` for automatic script analysis
+- **Class name conflicts**: Ensure unique class names with `Custom` prefix
 
 ## 🚀 Getting Started
 
@@ -579,45 +638,97 @@ class CustomScriptCommentRule(ScriptRuleBase):
 - ✅ Clean violation reporting (line numbers only)
 - ✅ Proper architecture (Finding for rules, Violation for detectors)
 
-## 🔍 Debugging
+## 🧠 Context Awareness Integration
 
-### Check Rule Discovery
+### Registering Skipped Checks
 
-Your rules should appear in the discovery output:
+When your custom rule depends on files that might not be present, you can register skipped checks to inform users about partial analysis:
 
-```bash
-uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
+```python
+from file_processing.context_tracker import SkippedCheck
 
-# Look for:
-# Discovered rule: CustomScriptCommentRule
+class CustomStructureMyRule(StructureRuleBase):
+    def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        # Check if required context is available
+        if not context.amds:
+            # Register a skipped check to inform the user
+            context.register_skipped_check(
+                SkippedCheck(
+                    rule=self.__class__.__name__,
+                    reason="Requires AMD file",
+                    skipped_checks=["app_id_detection"]
+                )
+            )
+            return  # Skip analysis if context is missing
+        
+        # Proceed with analysis using available context
+        for amd_model in context.amds.values():
+            # Your analysis logic here
+            pass
 ```
 
-### List All Rules
+### Context-Aware Rule Patterns
 
-```bash
-uv run main.py list-rules
+#### Pattern 1: Graceful Degradation
 
-# Your custom rule should appear in the output
+```python
+def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
+    # Check for required context
+    if not context.smds:
+        context.register_skipped_check(
+            SkippedCheck(
+                rule=self.__class__.__name__,
+                reason="Requires SMD file",
+                skipped_checks=["security_domain_validation"]
+            )
+        )
+        # Run partial analysis with available data
+        yield from self._analyze_without_smd(pmd_model, context)
+    else:
+        # Run complete analysis
+        yield from self._analyze_with_smd(pmd_model, context)
 ```
 
-### Test with Sample Files
+#### Pattern 2: Conservative Defaults
 
-```bash
-# Test with provided samples
-uv run main.py review-app samples/archives/template_bad_nkhlsq.zip
-
-# Test with specific configuration
-uv run main.py review-app samples/archives/template_bad_nkhlsq.zip --config user_configs/my-config.json
+```python
+def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
+    # Use conservative defaults when context is missing
+    if not context.amds:
+        context.register_skipped_check(
+            SkippedCheck(
+                rule=self.__class__.__name__,
+                reason="Requires AMD file",
+                skipped_checks=["app_id_validation"]
+            )
+        )
+        # Assume safe defaults and skip validation
+        return
+    
+    # Proceed with full validation
+    app_id = context.application_id
+    # Your validation logic here
 ```
 
-### Common Issues
+### Context Information Available
 
-- **Rule not discovered**: Check `__init__.py` files exist in all directories
-- **Import errors**: Verify import paths are correct (use relative imports)
-- **Parse errors**: Add try-catch blocks around script parsing
-- **Generator errors**: Make sure to use `yield` instead of `return` for violations
-- **Missing script analysis**: Use the unified architecture with `ScriptRuleBase` for automatic script analysis
-- **Class name conflicts**: Ensure unique class names with `Custom` prefix
+The `ProjectContext` provides access to:
+
+- **`context.pmds`**: Dictionary of PMD models
+- **`context.pods`**: Dictionary of POD models  
+- **`context.amds`**: Dictionary of AMD models
+- **`context.smds`**: Dictionary of SMD models
+- **`context.scripts`**: Dictionary of SCRIPT models
+- **`context.application_id`**: Extracted application ID (if AMD present)
+- **`context.register_skipped_check()`**: Method to register skipped checks
+
+### Best Practices
+
+1. **Always check for required context** before performing analysis
+2. **Register skipped checks** when context is missing
+3. **Provide meaningful reasons** for skipped checks
+4. **Use conservative defaults** when context is unavailable
+5. **Test with partial contexts** to ensure graceful degradation
 
 ## 📚 Examples
 

@@ -70,7 +70,13 @@ class PMDSecurityDomainRule(Rule):
     def _is_error_page(self, pmd_model: PMDModel, context: ProjectContext) -> bool:
         """Check if the PMD page is an error page defined in any SMD."""
         if not context.smd:
-            return False
+            # Register that we're skipping the error page exclusion check
+            context.register_skipped_check(
+                rule_name="PMDSecurityDomainRule",
+                check_name="error_page_exclusion",
+                reason="Requires SMD file"
+            )
+            return False  # Treat as non-error page (conservative)
         
         # Get all error page IDs from the SMD file
         error_page_ids = set()

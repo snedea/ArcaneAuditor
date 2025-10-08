@@ -1,6 +1,9 @@
 from pydantic import BaseModel, Field, PrivateAttr
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, TYPE_CHECKING
 from lark import Tree
+
+if TYPE_CHECKING:
+    from file_processing.context_tracker import AnalysisContext
 
 # --- Lazy import for the Lark parser ---
 # This avoids a circular dependency if the parser ever needs the models.
@@ -410,6 +413,9 @@ class ProjectContext:
         self.smd: SMDModel = None                    # Assumes one .smd file per app
         self.parsing_errors: List[str] = []          # To track files that failed validation
         
+        # Context tracking for informing users about missing cross-file dependencies
+        self.analysis_context: Optional['AnalysisContext'] = None
+        
         # Performance optimization: Cache script fields to avoid repeated extraction
         self._cached_pmd_script_fields: Dict[str, List[tuple]] = {}
         self._cached_pod_script_fields: Dict[str, List[tuple]] = {}
@@ -427,6 +433,18 @@ class ProjectContext:
         if self.smd:
             return self.smd.applicationId
         return None
+    
+    def register_skipped_check(self, rule_name: str, check_name: str, reason: str) -> None:
+        """
+        Convenience method for rules to register when they skip a check due to missing context.
+        
+        Args:
+            rule_name: The ID/name of the rule that skipped the check
+            check_name: A descriptive name for the check that was skipped
+            reason: Human-readable reason why the check was skipped
+        """
+        if self.analysis_context:
+            self.analysis_context.register_skipped_check(rule_name, check_name, reason)
 
     def get_pmd_by_id(self, page_id: str) -> Optional[PMDModel]:
         """Retrieves a PMD model by its pageId."""

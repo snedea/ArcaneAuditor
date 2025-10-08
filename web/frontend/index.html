@@ -33,12 +33,27 @@
                     <div class="upload-content">
                         <div class="upload-icon">📁</div>
                         <h3>Upload Your Extend Application</h3>
-                        <p>Drag and drop your ZIP file here, or click to select</p>
-                        <button type="button" class="btn btn-primary" id="choose-file-btn">
-                            Choose ZIP File
-                        </button>
+                        <p>Drag and drop files here, or click to select</p>
+                        <div class="upload-buttons">
+                            <button type="button" class="btn btn-primary" id="choose-file-btn">
+                                Choose ZIP File
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="choose-files-btn">
+                                Choose Individual Files
+                            </button>
+                        </div>
                         <input type="file" id="file-input" accept=".zip" style="display: none;">
-                        <p class="upload-hint">Supported: .zip files containing Workday Extend applications</p>
+                        <input type="file" id="files-input" accept=".pmd,.pod,.amd,.smd,.script" multiple style="display: none;">
+                        <p class="upload-hint">Supported: ZIP files or individual .pmd, .pod, .amd, .smd, .script files</p>
+                        
+                        <!-- Selected Files List -->
+                        <div id="selected-files-list" class="selected-files-list" style="display: none;">
+                            <h4>Selected Files:</h4>
+                            <div id="files-list-content"></div>
+                            <button type="button" class="btn btn-primary" id="upload-files-btn" style="margin-top: 10px;">
+                                Upload & Analyze
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -78,6 +93,22 @@
                     <h3>❌ Analysis Error</h3>
                     <p id="error-message"></p>
                     <button class="btn btn-primary" onclick="resetInterface()">Try Again</button>
+                </div>
+            </section>
+
+            <!-- Context Awareness Panel -->
+            <section id="context-section" class="context-section" style="display: none;">
+                <div class="context-panel" id="context-panel">
+                    <div class="context-header" onclick="toggleContextPanel()">
+                        <span id="context-toggle" class="context-toggle">▼</span>
+                        <div class="context-title">
+                            <span id="context-icon">ℹ️</span>
+                            <h3 id="context-title-text">Analysis Context</h3>
+                        </div>
+                    </div>
+                    <div class="context-content collapsed" id="context-content">
+                        <!-- Context details will be populated by JavaScript -->
+                    </div>
                 </div>
             </section>
 

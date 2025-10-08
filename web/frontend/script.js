@@ -14,6 +14,8 @@ class ArcaneAuditorApp {
         this.selectedConfig = this.getLastSelectedConfig();
         this.availableConfigs = [];
         this.uploadedFileName = null;
+        this.selectedFiles = []; // For multiple file uploads
+        this.contextPanelExpanded = false; // Context panel starts collapsed
         
         this.initializeEventListeners();
         this.initializeTheme();
@@ -33,10 +35,10 @@ class ArcaneAuditorApp {
         
         if (theme === 'dark') {
             themeIcon.textContent = '☀️';
-            themeText.textContent = 'Go Light';
+            themeText.textContent = 'Cast Light';
         } else {
             themeIcon.textContent = '🌙';
-            themeText.textContent = 'Go Dark';
+            themeText.textContent = 'Cast Darkness';
         }
         
         // Save preference
@@ -153,9 +155,13 @@ class ArcaneAuditorApp {
     }
 
     initializeEventListeners() {
-        // File input change
+        // ZIP file input change
         const fileInput = document.getElementById('file-input');
         fileInput.addEventListener('change', (e) => this.handleFileSelect(e.target.files[0]));
+
+        // Multiple files input change
+        const filesInput = document.getElementById('files-input');
+        filesInput.addEventListener('change', (e) => this.handleMultipleFilesSelect(Array.from(e.target.files)));
 
         // Drag and drop
         const uploadArea = document.getElementById('upload-area');
@@ -174,20 +180,23 @@ class ArcaneAuditorApp {
             }
         });
         
-        // Button click handler
+        // ZIP button click handler
         const chooseFileBtn = document.getElementById('choose-file-btn');
         chooseFileBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent upload area click
+            e.stopPropagation();
             fileInput.click();
         });
         
-        // Upload area click handler (for clicking outside the button)
-        uploadArea.addEventListener('click', (e) => {
-            // Only trigger if clicking on the upload area itself, not the button
-            if (e.target === uploadArea || e.target.classList.contains('upload-content')) {
-                fileInput.click();
-            }
+        // Individual files button click handler
+        const chooseFilesBtn = document.getElementById('choose-files-btn');
+        chooseFilesBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            filesInput.click();
         });
+        
+        // Upload files button (for multiple files)
+        const uploadFilesBtn = document.getElementById('upload-files-btn');
+        uploadFilesBtn.addEventListener('click', () => this.uploadSelectedFiles());
     }
 
     handleDragOver(e) {
@@ -231,7 +240,7 @@ class ArcaneAuditorApp {
         }
 
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('files', file); // Changed to 'files' to match API
         formData.append('config', this.selectedConfig);
 
         try {
@@ -326,7 +335,18 @@ class ArcaneAuditorApp {
     showResults() {
         this.hideAllSections();
         document.getElementById('results-section').style.display = 'block';
+        
+        // Display context awareness panel if available
+        if (this.currentResult && this.currentResult.context) {
+            this.displayContext(this.currentResult.context);
+        }
+        
         this.renderResults();
+        
+        // Show magical analysis completion if in magic mode
+        if (typeof showMagicalAnalysisComplete === 'function') {
+            showMagicalAnalysisComplete(this.currentResult);
+        }
     }
 
     hideAllSections() {
@@ -334,6 +354,7 @@ class ArcaneAuditorApp {
         document.getElementById('loading-section').style.display = 'none';
         document.getElementById('error-section').style.display = 'none';
         document.getElementById('results-section').style.display = 'none';
+        document.getElementById('context-section').style.display = 'none';
     }
 
     renderResults() {
@@ -366,30 +387,20 @@ class ArcaneAuditorApp {
                     <div class="summary-number summary-number-purple">${result.summary?.rules_executed || 0}</div>
                     <div class="summary-label">Rules Executed</div>
                 </div>
-                <div class="summary-item">
-                    <div class="summary-number summary-number-orange">${result.summary?.by_severity?.action || 0}</div>
-                    <div class="summary-label">Actions</div>
+                <div class="summary-item magic-summary-card action">
+                    <div class="count">${result.summary?.by_severity?.action || 0}</div>
+                    <div class="label">
+                        <span class="icon">${this.getSeverityIcon('ACTION')}</span> Actions
+                    </div>
                 </div>
-                <div class="summary-item">
-                    <div class="summary-number summary-number-yellow">${result.summary?.by_severity?.advice || 0}</div>
-                    <div class="summary-label">Advices</div>
+                <div class="summary-item magic-summary-card advice">
+                    <div class="count">${result.summary?.by_severity?.advice || 0}</div>
+                    <div class="label">
+                        <span class="icon">${this.getSeverityIcon('ADVICE')}</span> Advices
+                    </div>
                 </div>
             </div>
             
-            ${Object.keys(severityCounts).length > 0 ? `
-                <div class="severity-section">
-                    <h5>Issues by Severity:</h5>
-                    <div class="severity-badges">
-                        ${this.getOrderedSeverityEntries(severityCounts).map(([severity, count]) => `
-                            <div class="severity-badge">
-                                ${this.getSeverityIcon(severity)}
-                                <span class="severity-count">${count}</span>
-                                <span class="severity-name">${severity.toLowerCase()}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
             
             ${Object.keys(fileTypeCounts).length > 0 ? `
                 <div class="severity-section">
@@ -653,10 +664,12 @@ class ArcaneAuditorApp {
     groupFindingsByFile(findings) {
         const grouped = findings.reduce((acc, finding) => {
             const filePath = finding.file_path || 'Unknown';
-            if (!acc[filePath]) {
-                acc[filePath] = [];
+            // Remove job ID prefix if present (format: uuid_filename.ext)
+            const cleanFilePath = filePath.replace(/^[a-f0-9-]+_/, '');
+            if (!acc[cleanFilePath]) {
+                acc[cleanFilePath] = [];
             }
-            acc[filePath].push(finding);
+            acc[cleanFilePath].push(finding);
             return acc;
         }, {});
 
@@ -740,6 +753,291 @@ class ArcaneAuditorApp {
         }
     }
 
+    handleMultipleFilesSelect(files) {
+        // Add selected files to the array
+        this.selectedFiles = files;
+        this.renderSelectedFiles();
+    }
+
+    renderSelectedFiles() {
+        const listContainer = document.getElementById('selected-files-list');
+        const listContent = document.getElementById('files-list-content');
+        
+        if (this.selectedFiles.length === 0) {
+            listContainer.style.display = 'none';
+            return;
+        }
+        
+        listContainer.style.display = 'block';
+        listContent.innerHTML = '';
+        
+        this.selectedFiles.forEach((file, index) => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.innerHTML = `
+                <span class="file-item-name">${file.name}</span>
+                <button class="file-item-remove" onclick="app.removeSelectedFile(${index})" title="Remove file">×</button>
+            `;
+            listContent.appendChild(fileItem);
+        });
+    }
+
+    removeSelectedFile(index) {
+        this.selectedFiles.splice(index, 1);
+        this.renderSelectedFiles();
+        
+        // Reset the file input
+        const filesInput = document.getElementById('files-input');
+        filesInput.value = '';
+    }
+
+    async uploadSelectedFiles() {
+        if (this.selectedFiles.length === 0) {
+            this.showError('Please select at least one file');
+            return;
+        }
+        
+        const formData = new FormData();
+        this.selectedFiles.forEach(file => {
+            formData.append('files', file);
+        });
+        formData.append('config', this.selectedConfig);
+        
+        try {
+            this.showLoading();
+            this.updateLoadingMessage('Uploading files...');
+            
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Upload failed');
+            }
+            
+            const data = await response.json();
+            this.updateLoadingMessage('Files uploaded. Analyzing...');
+            this.pollJobStatus(data.job_id);
+            
+        } catch (error) {
+            this.showError(`Upload failed: ${error.message}`);
+        }
+    }
+
+    handleDrop(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('dragover');
+        
+        const files = Array.from(e.dataTransfer.files);
+        
+        // Check if it's a single ZIP file
+        if (files.length === 1 && files[0].name.toLowerCase().endsWith('.zip')) {
+            this.handleFileSelect(files[0]);
+        } else {
+            // Multiple files or individual files
+            const validExtensions = ['.pmd', '.pod', '.amd', '.smd', '.script'];
+            const validFiles = files.filter(file => {
+                return validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+            });
+            
+            if (validFiles.length > 0) {
+                this.handleMultipleFilesSelect(validFiles);
+            } else {
+                this.showError('Please drop valid files (.zip or .pmd, .pod, .amd, .smd, .script)');
+            }
+        }
+    }
+
+    displayContext(contextData) {
+        if (!contextData) return;
+        
+        const contextSection = document.getElementById('context-section');
+        const contextContent = document.getElementById('context-content');
+        const contextIcon = document.getElementById('context-icon');
+        const contextTitleText = document.getElementById('context-title-text');
+        
+        // Determine if analysis is complete or partial
+        const isComplete = contextData.context_status === 'complete';
+        
+        // Update icon and title with magical flair
+        if (isComplete) {
+            contextIcon.textContent = '🔮';
+            contextTitleText.textContent = 'Evaluation ✦';
+        } else {
+            contextIcon.textContent = '🔮';
+            contextTitleText.textContent = 'Divination Incomplete';
+        }
+        
+        // Add status badge to the header
+        const contextHeader = document.querySelector('.context-header');
+        if (contextHeader) {
+            // Remove any existing status badge
+            const existingBadge = contextHeader.querySelector('.context-header-badge');
+            if (existingBadge) {
+                existingBadge.remove();
+            }
+            
+            // Determine badge text based on context
+            let badgeText = '';
+            if (isComplete) {
+                badgeText = '✅ Complete';
+            } else {
+                // Check if any rules were skipped
+                const hasSkippedRules = contextData.impact && 
+                    ((contextData.impact.rules_not_executed && contextData.impact.rules_not_executed.length > 0) ||
+                     (contextData.impact.rules_partially_executed && contextData.impact.rules_partially_executed.length > 0));
+                
+                if (hasSkippedRules) {
+                    badgeText = '⚠️ Partial';
+                } else {
+                    badgeText = '⚠️ Partial';
+                }
+            }
+            
+            // Add new status badge
+            const statusBadge = document.createElement('div');
+            statusBadge.className = `context-header-badge ${isComplete ? 'complete' : 'partial'}`;
+            statusBadge.textContent = badgeText;
+            contextHeader.appendChild(statusBadge);
+        }
+        
+        // Build context content HTML (no duplicate badge)
+        let html = '';
+        
+        // Files examined (magical terminology)
+        if (contextData.files_analyzed && contextData.files_analyzed.length > 0) {
+            html += `
+                <div class="context-files">
+                    <h4>✅ Files Examined (${contextData.files_analyzed.length})</h4>
+                    <ul>
+                        ${contextData.files_analyzed.map(file => {
+                            // Remove job ID prefix if present (format: uuid_filename.ext)
+                            const cleanFileName = file.replace(/^[a-f0-9-]+_/, '');
+                            const extension = cleanFileName.split('.').pop().toUpperCase();
+                            const icon = extension === 'PMD' ? '📄' : 
+                                       extension === 'SMD' ? '⚙️' : 
+                                       extension === 'AMD' ? '🏗️' : 
+                                       extension === 'POD' ? '🎨' : 
+                                       extension === 'SCRIPT' ? '📜' : '📄';
+                            return `<li>${icon} ${cleanFileName}</li>`;
+                        }).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // Missing files (renamed and restructured)
+        if (contextData.files_missing && contextData.files_missing.length > 0) {
+            // Only show AMD and SMD as "needed for full validation"
+            const requiredFiles = contextData.files_missing.filter(type => ['AMD', 'SMD'].includes(type));
+            
+            if (requiredFiles.length > 0) {
+                html += `
+                    <div class="context-missing">
+                        <h4>⚠️ Missing Artifacts</h4>
+                        <div class="context-missing-items">
+                `;
+                
+                // Show only required files
+                requiredFiles.forEach(type => {
+                    html += `<span class="context-missing-item required">${type}</span>`;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Rules not invoked (magical terminology)
+        if (contextData.impact) {
+            const hasImpact = (contextData.impact.rules_not_executed && contextData.impact.rules_not_executed.length > 0) ||
+                             (contextData.impact.rules_partially_executed && contextData.impact.rules_partially_executed.length > 0);
+            
+            if (hasImpact) {
+                html += `
+                    <div class="context-impact">
+                        <h4>🔮 Rules Not Invoked</h4>
+                        <p class="context-impact-subtitle">Some validations could not be cast due to missing components.</p>
+                        <div class="context-impact-list">
+                `;
+                
+                // Rules not executed
+                if (contextData.impact.rules_not_executed && contextData.impact.rules_not_executed.length > 0) {
+                    contextData.impact.rules_not_executed.forEach(rule => {
+                        html += `
+                            <div class="context-impact-item">
+                                <strong>🚫 ${rule.rule}</strong>
+                                <span>Skipped — missing required ${rule.reason.toLowerCase().replace('requires ', '').replace(' file', '')} file.</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                // Rules partially executed
+                if (contextData.impact.rules_partially_executed && contextData.impact.rules_partially_executed.length > 0) {
+                    contextData.impact.rules_partially_executed.forEach(rule => {
+                        html += `
+                            <div class="context-impact-item">
+                                <strong>⚠️ ${rule.rule}</strong>
+                                <span>Skipped: ${rule.skipped_checks.join(', ')} — ${rule.reason.toLowerCase()}</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Tip (magical guidance)
+        if (!isComplete) {
+            const requiredFiles = (contextData.files_missing || []).filter(type => ['AMD', 'SMD'].includes(type));
+            
+            let tipText = '';
+            if (requiredFiles.length > 0) {
+                tipText = `Add these components to complete the circle: ${requiredFiles.join(' and ')}.`;
+            } else {
+                tipText = 'Add missing components to complete the divination.';
+            }
+            
+            html += `
+                <div class="context-tip">
+                    <p>💡 <strong>Tip:</strong> ${tipText}</p>
+                </div>
+            `;
+        }
+        
+        contextContent.innerHTML = html;
+        contextSection.style.display = 'block';
+        
+        // Set initial collapsed state
+        this.contextPanelExpanded = false;
+        const contextToggle = document.getElementById('context-toggle');
+        contextToggle.classList.remove('expanded');
+    }
+
+    toggleContextPanel() {
+        const contextContent = document.getElementById('context-content');
+        const contextToggle = document.getElementById('context-toggle');
+        
+        this.contextPanelExpanded = !this.contextPanelExpanded;
+        
+        if (this.contextPanelExpanded) {
+            contextContent.classList.remove('collapsed');
+            contextToggle.classList.add('expanded');
+        } else {
+            contextContent.classList.add('collapsed');
+            contextToggle.classList.remove('expanded');
+        }
+    }
+
     resetForNewUpload() {
         this.hideAllSections();
         document.getElementById('upload-section').style.display = 'block';
@@ -747,10 +1045,17 @@ class ArcaneAuditorApp {
         this.filteredFindings = [];
         this.expandedFiles.clear();
         this.uploadedFileName = null;
+        this.selectedFiles = [];
+        this.contextPanelExpanded = true;
         
-        // Reset the file input to allow re-uploading the same file
+        // Reset file inputs
         const fileInput = document.getElementById('file-input');
         fileInput.value = '';
+        const filesInput = document.getElementById('files-input');
+        filesInput.value = '';
+        
+        // Hide selected files list
+        document.getElementById('selected-files-list').style.display = 'none';
     }
 }
 
@@ -769,6 +1074,10 @@ function downloadResults() {
 
 function toggleTheme() {
     app.toggleTheme();
+}
+
+function toggleContextPanel() {
+    app.toggleContextPanel();
 }
 
 // Configuration Breakdown Functions
@@ -891,3 +1200,232 @@ document.addEventListener('keydown', function(event) {
         hideConfigBreakdown();
     }
 });
+
+// ⚡️ ARCANE MODE: THE GRAND RITUAL EDITION ⚡️
+// Magical functionality for the living spellbook
+
+// 🌠 Particle Wisps of Energy
+function summonParticles(count = 20) {
+    for (let i = 0; i < count; i++) {
+        const spark = document.createElement('div');
+        spark.className = 'arcane-spark';
+        document.body.appendChild(spark);
+        animateSpark(spark);
+    }
+}
+
+function animateSpark(el) {
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    el.style.animationDuration = `${5 + Math.random() * 5}s`;
+    el.addEventListener('animationend', () => el.remove());
+}
+
+// 🌈 Arcane Cursor Trail
+let cursorTrailEnabled = false;
+
+function enableCursorTrail() {
+    if (cursorTrailEnabled) return;
+    cursorTrailEnabled = true;
+    
+    document.addEventListener('mousemove', createWisp);
+}
+
+function disableCursorTrail() {
+    cursorTrailEnabled = false;
+    document.removeEventListener('mousemove', createWisp);
+}
+
+function createWisp(e) {
+    const wisp = document.createElement('div');
+    wisp.className = 'wisp';
+    wisp.style.left = `${e.pageX}px`;
+    wisp.style.top = `${e.pageY}px`;
+    document.body.appendChild(wisp);
+    setTimeout(() => wisp.remove(), 1000);
+}
+
+// 🌌 Dynamic Constellation Effects
+function createConstellationLines() {
+    if (!document.body.classList.contains('magic-mode')) return;
+    
+    const canvas = document.createElement('canvas');
+    canvas.id = 'constellation-canvas';
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '1';
+    canvas.style.opacity = '0.3';
+    
+    document.body.appendChild(canvas);
+    
+    const ctx = canvas.getContext('2d');
+    const stars = [];
+    
+    // Create star positions
+    for (let i = 0; i < 50; i++) {
+        stars.push({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5,
+            brightness: Math.random()
+        });
+    }
+    
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    
+    function animateConstellation() {
+        if (!document.body.classList.contains('magic-mode')) {
+            canvas.remove();
+            return;
+        }
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Update and draw stars
+        stars.forEach(star => {
+            star.x += star.vx;
+            star.y += star.vy;
+            star.brightness += (Math.random() - 0.5) * 0.02;
+            star.brightness = Math.max(0.3, Math.min(1, star.brightness));
+            
+            // Wrap around screen
+            if (star.x < 0) star.x = canvas.width;
+            if (star.x > canvas.width) star.x = 0;
+            if (star.y < 0) star.y = canvas.height;
+            if (star.y > canvas.height) star.y = 0;
+            
+            // Draw star
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, 1, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(234, 163, 66, ${star.brightness * 0.6})`;
+            ctx.fill();
+        });
+        
+        // Draw constellation lines
+        for (let i = 0; i < stars.length; i++) {
+            for (let j = i + 1; j < stars.length; j++) {
+                const dx = stars[i].x - stars[j].x;
+                const dy = stars[i].y - stars[j].y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 150) {
+                    const opacity = (1 - distance / 150) * 0.3;
+                    ctx.beginPath();
+                    ctx.moveTo(stars[i].x, stars[i].y);
+                    ctx.lineTo(stars[j].x, stars[j].y);
+                    ctx.strokeStyle = `rgba(117, 106, 162, ${opacity})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        requestAnimationFrame(animateConstellation);
+    }
+    
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    animateConstellation();
+}
+
+function removeConstellationLines() {
+    const canvas = document.getElementById('constellation-canvas');
+    if (canvas) {
+        canvas.remove();
+    }
+}
+
+// 🪄 Magic Mode Toggle
+function toggleMagicMode() {
+    const body = document.body;
+    
+    if (body.classList.contains('magic-mode')) {
+        // Dispel Magic
+        body.classList.remove('magic-mode');
+        
+        // Clean up magical effects
+        document.querySelectorAll('.arcane-spark, .wisp').forEach(el => el.remove());
+        disableCursorTrail();
+        removeConstellationLines();
+        
+        console.log("%c🪄 The Weave settles... Arcane Mode dispelled.", "color:#756AA2; font-weight:bold");
+    } else {
+        // Invoke Magic
+        body.classList.add('magic-mode');
+        
+        // Activate magical effects
+        summonParticles();
+        enableCursorTrail();
+        createConstellationLines();
+        
+        console.log("%c✨ The Weave stirs... Arcane Mode enabled.", "color:#EAA342; font-weight:bold");
+        
+        // Show magical achievement toast
+        showArcaneToast("✨ The Grand Ritual begins... The Weave awakens!");
+    }
+}
+
+// 🔔 Arcane Achievement Toasts
+function showArcaneToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'arcane-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// 🪄 Keyboard Incantation (Konami-style combo)
+const spell = ['Alt', 'Shift', 'M']; // "Alt + Shift + M" for Magic
+let buffer = [];
+
+document.addEventListener('keydown', e => {
+    buffer.push(e.key);
+    if (buffer.length > spell.length) {
+        buffer.shift();
+    }
+    
+    if (buffer.slice(-spell.length).join('') === spell.join('')) {
+        toggleMagicMode();
+        buffer = [];
+    }
+});
+
+// Initialize Magic Mode functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Magic Mode initialization - no initial greeting for normal users
+});
+
+// Enhanced analysis completion with magical flair
+function showMagicalAnalysisComplete(result) {
+    if (document.body.classList.contains('magic-mode')) {
+        const totalFindings = result.findings.length;
+        const actionCount = result.summary?.by_severity?.action || 0;
+        const adviceCount = result.summary?.by_severity?.advice || 0;
+        
+        let message = `✨ Divination Complete — The Weave reveals ${totalFindings} portents`;
+        if (actionCount > 0) {
+            message += ` (${actionCount} urgent omens)`;
+        }
+        if (adviceCount > 0) {
+            message += ` (${adviceCount} wise counsel)`;
+        }
+        
+        showArcaneToast(message);
+        
+        // Summon extra particles for celebration
+        setTimeout(() => summonParticles(10), 500);
+    }
+}

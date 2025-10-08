@@ -12,27 +12,36 @@ app = typer.Typer(add_completion=False, help="Arcane Auditor CLI: A mystical cod
 
 @app.command()
 def review_app(
-    zip_filepath: Path = typer.Argument(..., exists=True, help="Path to the application .zip file."),
+    path: Path = typer.Argument(..., exists=True, help="Path to application ZIP, individual file(s), or directory."),
+    additional_files: list[Path] = typer.Argument(None, help="Additional files to analyze (optional)"),
     config_file: Path = typer.Option(None, "--config", "-c", help="Path to configuration file (JSON)"),
     output_format: str = typer.Option("console", "--format", "-f", help="Output format: console, json, summary, excel"),
     output_file: Path = typer.Option(None, "--output", "-o", help="Output file path (optional)"),
-    show_timing: bool = typer.Option(False, "--timing", "-t", help="Show detailed timing information")
+    show_timing: bool = typer.Option(False, "--timing", "-t", help="Show detailed timing information"),
+    fail_on_advice: bool = typer.Option(False, "--fail-on-advice", help="Exit with error code when ADVICE issues are found (CI mode)"),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Minimal output mode (CI-friendly)")
 ):
     """
-    Kicks off the analysis of a Workday Extend application archive.
+    Analyze a Workday Extend application.
+    
+    Supports multiple input modes:
+    - ZIP file: Complete application archive
+    - Individual file(s): One or more .pmd, .pod, .amd, .smd, or .script files
+    - Directory: Recursively scans for all relevant files
     """
     # Start overall timing
     overall_start_time = time.time()
     
-    typer.echo(f"Starting review for '{zip_filepath.name}'...")
+    if not quiet:
+        typer.echo(f"Starting review for '{path.name}'...")
     
     # Load configuration using the layered configuration system
     config_start_time = time.time()
     try:
         config = load_configuration(str(config_file) if config_file else None)
-        if config_file:
+        if config_file and not quiet:
             typer.echo(f"Loaded configuration: {config_file}")
-        else:
+        elif not quiet:
             typer.echo("Using default configuration with layered loading")
     except Exception as e:
         typer.secho(f"Configuration Error: {e}", fg=typer.colors.RED)
@@ -40,14 +49,33 @@ def review_app(
         raise typer.Exit(1)
     
     config_time = time.time() - config_start_time
-    if show_timing:
+    if show_timing and not quiet:
         typer.echo(f"Configuration loading: {config_time:.2f}s")
     
-    # This is the entry point to our pipeline.
-    typer.echo("Extracting and processing files...")
+    # Detect input type and process accordingly
     file_processing_start_time = time.time()
     processor = FileProcessor()
-    source_files_map = processor.process_zip_file(zip_filepath)
+    
+    try:
+        if path.suffix == '.zip':
+            # ZIP file mode
+            typer.echo("Processing ZIP archive...")
+            source_files_map = processor.process_zip_file(path)
+        elif path.is_dir():
+            # Directory mode
+            typer.echo(f"Scanning directory: {path}")
+            source_files_map = processor.process_directory(path)
+        else:
+            # Individual file(s) mode
+            files_to_process = [path]
+            if additional_files:
+                files_to_process.extend(additional_files)
+            typer.echo(f"Processing {len(files_to_process)} individual file(s)...")
+            source_files_map = processor.process_individual_files(files_to_process)
+    except Exception as e:
+        typer.secho(f"File Processing Error: {e}", fg=typer.colors.RED)
+        raise typer.Exit(1)
+    
     file_processing_time = time.time() - file_processing_start_time
     typer.echo(f"Found {len(source_files_map)} relevant files to analyze")
     if show_timing:
@@ -55,7 +83,7 @@ def review_app(
 
     if not source_files_map:
         typer.secho("No source files found to analyze.", fg=typer.colors.RED)
-        typer.echo("Make sure your ZIP contains .pmd, .pod, .script, .amd, or .smd files")
+        typer.echo("Ensure your input contains .pmd, .pod, .script, .amd, or .smd files")
         raise typer.Exit(1)
         
     # --- Next Step: Pass 'source_files_map' to the Parser ---
@@ -143,7 +171,7 @@ def review_app(
         total_files = len(context.pmds) + len(context.scripts) + (1 if context.amd else 0)
         total_rules = len(rules_engine.rules)
         
-        formatted_output = formatter.format_results(findings, total_files, total_rules)
+        formatted_output = formatter.format_results(findings, total_files, total_rules, context)
         formatting_time = time.time() - formatting_start_time
         
         if show_timing:
@@ -230,14 +258,23 @@ def review_app(
     # Set appropriate exit code based on findings (outside try block)
     if findings:
         action_count = len([f for f in findings if f.severity == "ACTION"])
+        advice_count = len([f for f in findings if f.severity == "ADVICE"])
+        
         if action_count > 0:
-            typer.echo(f"Analysis completed with {action_count} action issue(s)")
+            if not quiet:
+                typer.echo(f"Analysis completed with {action_count} action issue(s)")
             raise typer.Exit(2)  # Exit code 2 for action issues
+        elif fail_on_advice and advice_count > 0:
+            if not quiet:
+                typer.echo(f"Analysis completed with {advice_count} advice issue(s) (CI mode: failing on advice)")
+            raise typer.Exit(1)  # Exit code 1 for advices in CI mode
         else:
-            typer.echo("Analysis completed with advices")
-            raise typer.Exit(1)  # Exit code 1 for advices
+            if not quiet:
+                typer.echo("Analysis completed with advices")
+            raise typer.Exit(0)  # Exit code 0 for advices in normal mode
     else:
-        typer.echo("Analysis completed successfully - no issues found!")
+        if not quiet:
+            typer.echo("Analysis completed successfully - no issues found!")
         raise typer.Exit(0)  # Exit code 0 for no issues
 
 

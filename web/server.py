@@ -134,7 +134,7 @@ def cleanup_orphaned_files():
 
 class AnalysisJob:
     """Represents an analysis job with status tracking."""
-    def __init__(self, job_id: str, zip_path: Path, config: str = "default"):
+    def __init__(self, job_id: str, zip_path: Path = None, config: str = "default"):
         self.job_id = job_id
         self.zip_path = zip_path
         self.config = config
@@ -144,6 +144,8 @@ class AnalysisJob:
         self.start_time = None
         self.end_time = None
         self.thread = None
+        self.is_zip = True  # True for ZIP files, False for individual files
+        self.individual_files = []  # List of Path objects for individual files
     
     def to_dict(self):
         """Convert job to dictionary for JSON serialization."""
@@ -218,10 +220,15 @@ def cleanup_old_jobs():
         
         for job_id in jobs_to_remove:
             job = analysis_jobs.pop(job_id)
-            # Clean up any remaining temporary files (ZIP files are now deleted immediately after processing)
-            if job.zip_path.exists():
+            # Clean up any remaining temporary files
+            if job.is_zip and job.zip_path and job.zip_path.exists():
                 job.zip_path.unlink()
                 print(f"Cleaned up remaining ZIP file: {job.zip_path.name}")
+            elif not job.is_zip and job.individual_files:
+                for file_path in job.individual_files:
+                    if file_path.exists():
+                        file_path.unlink()
+                        print(f"Cleaned up remaining file: {file_path.name}")
 
 def run_analysis_background(job: AnalysisJob):
     """Run analysis in background thread."""
@@ -235,19 +242,32 @@ def run_analysis_background(job: AnalysisJob):
         from parser.rules_engine import RulesEngine
         from parser.config_manager import ConfigurationManager
             
-        # Process ZIP file
+        # Process files based on job type
         file_processing_start = time.time()
         processor = FileProcessor()
-        source_files_map = processor.process_zip_file(job.zip_path)
+        
+        if job.is_zip:
+            # ZIP file mode
+            source_files_map = processor.process_zip_file(job.zip_path)
+            
+            # Delete ZIP file immediately after successful processing
+            if job.zip_path and job.zip_path.exists():
+                job.zip_path.unlink()
+                print(f"Deleted processed ZIP file: {job.zip_path.name}")
+        else:
+            # Individual files mode
+            source_files_map = processor.process_individual_files(job.individual_files)
+            
+            # Delete individual files immediately after successful processing
+            for file_path in job.individual_files:
+                if file_path.exists():
+                    file_path.unlink()
+                    print(f"Deleted processed file: {file_path.name}")
+        
         file_processing_time = time.time() - file_processing_start
         
-        # Delete ZIP file immediately after successful processing
-        if job.zip_path.exists():
-            job.zip_path.unlink()
-            print(f"Deleted processed ZIP file: {job.zip_path.name}")
-        
         if not source_files_map:
-            job.error = "No PMD Script files found in the uploaded ZIP"
+            job.error = "No valid source files found"
             job.status = "failed"
             job.end_time = time.time()
             return
@@ -302,6 +322,10 @@ def run_analysis_background(job: AnalysisJob):
             }
         }
         
+        # Add context awareness information if available
+        if context.analysis_context:
+            result["context"] = context.analysis_context.to_dict()
+        
         job.result = result
         job.status = "completed"
         job.end_time = time.time()
@@ -314,16 +338,24 @@ def run_analysis_background(job: AnalysisJob):
 
 
 @app.post("/api/upload")
-async def upload_file(file: UploadFile = File(...), config: str = Form("default")):
-    """Upload a ZIP file for analysis."""
+async def upload_file(
+    files: list[UploadFile] = File(...), 
+    config: str = Form("default")
+):
+    """
+    Upload file(s) for analysis.
     
-    # Validate file type
-    if not file.filename.lower().endswith('.zip'):
-        raise HTTPException(status_code=400, detail="Only ZIP files are allowed")
+    Supports:
+    - Single ZIP file: Complete application archive
+    - Multiple individual files: .pmd, .pod, .amd, .smd, .script files
+    """
     
-    # Validate file size
-    if file.size and file.size > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB")
+    # Validate we have files
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
+    
+    # Determine if this is a ZIP upload or individual files
+    is_zip_upload = len(files) == 1 and files[0].filename.lower().endswith('.zip')
     
     # Validate configuration
     config_info = get_dynamic_config_info()
@@ -332,26 +364,63 @@ async def upload_file(file: UploadFile = File(...), config: str = Form("default"
     
     # Get the actual config path from the selected config key
     selected_config_info = config_info[config]
-    actual_config_path = selected_config_info["path"]  # This is the full path to the specific config file
+    actual_config_path = selected_config_info["path"]
     
     # Generate job ID
     job_id = str(uuid.uuid4())
     
-    # Save uploaded file
+    # Save uploaded file(s)
     uploads_dir = Path(__file__).parent / "uploads"
     uploads_dir.mkdir(exist_ok=True)
     
-    zip_path = uploads_dir / f"{job_id}.zip"
-    
     try:
-        # Stream file to disk
-        with open(zip_path, "wb") as buffer:
-            while chunk := await file.read(CHUNK_SIZE):
-                buffer.write(chunk)
+        if is_zip_upload:
+            # ZIP file mode
+            file = files[0]
+            
+            # Validate file size
+            if file.size and file.size > MAX_FILE_SIZE:
+                raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB")
+            
+            zip_path = uploads_dir / f"{job_id}.zip"
+            
+            # Stream file to disk
+            with open(zip_path, "wb") as buffer:
+                while chunk := await file.read(CHUNK_SIZE):
+                    buffer.write(chunk)
+            
+            # Create analysis job for ZIP
+            job = AnalysisJob(job_id, zip_path, actual_config_path)
+            job.is_zip = True
+            print(f"DEBUG: Created ZIP job {job_id} with config='{actual_config_path}'")
         
-        # Create analysis job with configuration
-        job = AnalysisJob(job_id, zip_path, actual_config_path)
-        print(f"DEBUG: Created job {job_id} with config='{actual_config_path}'")
+        else:
+            # Individual files mode
+            saved_files = []
+            
+            for file in files:
+                # Validate file extension
+                valid_extensions = ['.pmd', '.pod', '.amd', '.smd', '.script']
+                if not any(file.filename.lower().endswith(ext) for ext in valid_extensions):
+                    raise HTTPException(status_code=400, detail=f"Invalid file type: {file.filename}. Only {', '.join(valid_extensions)} files are allowed.")
+                
+                # Validate file size
+                if file.size and file.size > MAX_FILE_SIZE:
+                    raise HTTPException(status_code=413, detail=f"File {file.filename} too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB")
+                
+                # Save file
+                file_path = uploads_dir / f"{job_id}_{file.filename}"
+                with open(file_path, "wb") as buffer:
+                    while chunk := await file.read(CHUNK_SIZE):
+                        buffer.write(chunk)
+                
+                saved_files.append(file_path)
+            
+            # Create analysis job for individual files
+            job = AnalysisJob(job_id, None, actual_config_path)
+            job.is_zip = False
+            job.individual_files = saved_files
+            print(f"DEBUG: Created individual files job {job_id} with {len(saved_files)} files, config='{actual_config_path}'")
         
         with job_lock:
             analysis_jobs[job_id] = job
@@ -366,10 +435,17 @@ async def upload_file(file: UploadFile = File(...), config: str = Form("default"
         
         return {"job_id": job_id, "status": "queued", "config": actual_config_path}
             
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
     except Exception as e:
-        # Clean up file if upload failed
-        if zip_path.exists():
+        # Clean up files if upload failed
+        if is_zip_upload and 'zip_path' in locals() and zip_path.exists():
             zip_path.unlink()
+        elif 'saved_files' in locals():
+            for file_path in saved_files:
+                if file_path.exists():
+                    file_path.unlink()
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 @app.get("/api/configs")
@@ -416,19 +492,13 @@ async def download_excel(job_id: str):
             raise HTTPException(status_code=500, detail="No results available")
         
         try:
-            # Generate Excel file using the superior CLI method
-            from openpyxl import Workbook
-            from openpyxl.styles import Font, PatternFill, Alignment
-            from openpyxl.utils import get_column_letter
+            # Use shared OutputFormatter logic for Excel generation
+            from output.formatter import OutputFormatter, OutputFormat
             from datetime import datetime
+            import tempfile
             from pathlib import Path
             
-            wb = Workbook()
-            
-            # Remove default sheet
-            wb.remove(wb.active)
-            
-            # Convert web service findings to CLI format
+            # Convert web service findings to CLI format for compatibility
             findings = []
             for finding_data in job.result["findings"]:
                 # Create a simple Finding-like object for compatibility
@@ -442,107 +512,33 @@ async def download_excel(job_id: str):
                 
                 findings.append(WebFinding(finding_data))
             
-            # Group findings by file
-            findings_by_file = {}
-            for finding in findings:
-                file_path = finding.file_path or "Unknown"
-                if file_path not in findings_by_file:
-                    findings_by_file[file_path] = []
-                findings_by_file[file_path].append(finding)
+            # Create a mock ProjectContext with context information if available
+            class MockProjectContext:
+                def __init__(self, context_data):
+                    self.analysis_context = None
+                    if context_data:
+                        # Recreate AnalysisContext from stored data
+                        from file_processing.context_tracker import AnalysisContext
+                        self.analysis_context = AnalysisContext(
+                            analysis_type=context_data.get("analysis_type", "unknown"),
+                            files_analyzed=context_data.get("files_analyzed", []),
+                            files_present=set(context_data.get("files_present", []))
+                        )
             
-            # Create summary sheet
-            summary_sheet = wb.create_sheet("Summary")
-            summary_sheet.append(["Analysis Summary"])
-            summary_sheet.append(["Files Analyzed", len(findings_by_file)])
-            summary_sheet.append(["Rules Executed", job.result["summary"]["rules_executed"]])
-            summary_sheet.append(["Total Issues", len(findings)])
-            summary_sheet.append(["Action", len([f for f in findings if f.severity == "ACTION"])])
-            summary_sheet.append(["Advices", len([f for f in findings if f.severity == "ADVICE"])])
-            summary_sheet.append([])
-            summary_sheet.append(["File", "Issues", "Action", "Advice"])
+            # Use OutputFormatter to generate Excel with context tab
+            formatter = OutputFormatter(OutputFormat.EXCEL)
+            total_files = len(set(finding.file_path for finding in findings if finding.file_path))
+            total_rules = job.result["summary"]["rules_executed"]
+            context = MockProjectContext(job.result.get("context"))
             
-            # Style summary sheet
-            summary_sheet['A1'].font = Font(bold=True, size=14)
-            for row in range(1, 8):
-                summary_sheet[f'A{row}'].font = Font(bold=True)
-            
-            # Add file summary data
-            for file_path, file_findings in findings_by_file.items():
-                action_count = len([f for f in file_findings if f.severity == "ACTION"])
-                advice_count = len([f for f in file_findings if f.severity == "ADVICE"])
-                summary_sheet.append([file_path, len(file_findings), action_count, advice_count])
-            
-            # Create sheets for each file
-            for file_path, file_findings in findings_by_file.items():
-                # Clean sheet name (Excel has restrictions)
-                sheet_name = Path(file_path).stem[:31]  # Excel sheet name limit
-                sheet_name = "".join(c for c in sheet_name if c.isalnum() or c in (' ', '-', '_')).strip()
-                if not sheet_name:
-                    sheet_name = "Unknown"
-                
-                ws = wb.create_sheet(sheet_name)
-                
-                # Headers
-                headers = ["Rule ID", "Severity", "Line", "Message", "File Path"]
-                ws.append(headers)
-                
-                # Style headers
-                header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-                header_font = Font(color="FFFFFF", bold=True)
-                for col_num, header in enumerate(headers, 1):
-                    cell = ws.cell(row=1, column=col_num)
-                    cell.fill = header_fill
-                    cell.font = header_font
-                    cell.alignment = Alignment(horizontal="center")
-                
-                # Add findings
-                for finding in file_findings:
-                    row = [
-                        finding.rule_id,
-                        finding.severity,
-                        finding.line,
-                        finding.message,
-                        finding.file_path
-                    ]
-                    ws.append(row)
-                    
-                    # Color code by severity
-                    severity_colors = {
-                        "ACTION": "FFCCCC",    # Light red
-                        "ADVICE": "CCE5FF",     # Light blue
-                    }
-                    
-                    if finding.severity in severity_colors:
-                        fill = PatternFill(start_color=severity_colors[finding.severity], 
-                                         end_color=severity_colors[finding.severity], 
-                                         fill_type="solid")
-                        for col_num in range(1, len(headers) + 1):
-                            ws.cell(row=ws.max_row, column=col_num).fill = fill
-                
-                # Auto-adjust column widths
-                for column in ws.columns:
-                    max_length = 0
-                    column_letter = get_column_letter(column[0].column)
-                    for cell in column:
-                        try:
-                            if len(str(cell.value)) > max_length:
-                                max_length = len(str(cell.value))
-                        except:
-                            pass
-                    adjusted_width = min(max_length + 2, 50)
-                    ws.column_dimensions[column_letter].width = adjusted_width
-            
-            # Save to temporary file
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            wb.save(temp_file.name)
-            temp_file.close()
+            excel_file_path = formatter.format_results(findings, total_files, total_rules, context)
             
             # Generate filename
             timestamp = datetime.now().strftime("%Y-%m-%d")
             filename = f"arcane-auditor-results-{timestamp}.xlsx"
             
             return FileResponse(
-                path=temp_file.name,
+                path=excel_file_path,
                 filename=filename,
                 media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )

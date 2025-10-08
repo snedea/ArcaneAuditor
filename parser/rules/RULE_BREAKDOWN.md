@@ -4,6 +4,48 @@
 
 This grimoire provides a comprehensive overview of all **36 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
 
+## 📋 Table of Contents
+
+### Script Rules (22 Rules)
+- [ScriptVarUsageRule](#scriptvarusagerule)
+- [ScriptDeadCodeRule](#scriptdeadcoderule)
+- [ScriptComplexityRule](#scriptcomplexityrule)
+- [ScriptLongFunctionRule](#scriptlongfunctionrule)
+- [ScriptFunctionParameterCountRule](#scriptfunctionparametercountrule)
+- [ScriptFunctionParameterNamingRule](#scriptfunctionparameternamingrule)
+- [ScriptUnusedVariableRule](#scriptunusedvariablerule)
+- [ScriptUnusedFunctionParametersRule](#scriptunusedfunctionparametersrule)
+- [ScriptVariableNamingRule](#scriptvariablenamingrule)
+- [ScriptConsoleLogRule](#scriptconsolelogrule)
+- [ScriptNullSafetyRule](#scriptnullsafetyrule)
+- [ScriptEmptyFunctionRule](#scriptemptyfunctionrule)
+- [ScriptNestingLevelRule](#scriptnestinglevelrule)
+- [ScriptLongScriptBlockRule](#scriptlongscriptblockrule)
+- [ScriptMagicNumberRule](#scriptmagicnumberrule)
+- [ScriptStringConcatRule](#scriptstringconcatrule)
+- [ScriptArrayMethodUsageRule](#scriptarraymethodusagerule)
+- [ScriptDescriptiveParametersRule](#scriptdescriptiveparametersrule)
+- [ScriptFunctionReturnConsistencyRule](#scriptfunctionreturnconsistencyrule)
+- [ScriptVerboseBooleanRule](#scriptverbosebooleanrule)
+- [StringBooleanRule](#stringbooleanrule)
+- [UnusedScriptIncludesRule](#unusedscriptincludesrule)
+
+### Structure Rules (14 Rules)
+- [EndpointFailOnStatusCodesRule](#endpointfailonstatuscodesrule)
+- [EndpointNameLowerCamelCaseRule](#endpointnamelowercamelcaserule)
+- [EndpointBaseUrlTypeRule](#endpointbaseurltyperule)
+- [EndpointOnSendSelfDataRule](#endpointonsendselfdatarule)
+- [WidgetIdRequiredRule](#widgetidrequiredrule)
+- [WidgetIdLowerCamelCaseRule](#widgetidlowercamelcaserule)
+- [HardcodedApplicationIdRule](#hardcodedapplicationidrule)
+- [HardcodedWidRule](#hardcodedwidrule)
+- [ReadableEndpointPathsRule](#readableendpointpathsrule)
+- [PMDSectionOrderingRule](#pmdsectionorderingrule)
+- [PMDSecurityDomainRule](#pmdsecuritydomainrule)
+- [EmbeddedImagesRule](#embeddedimagesrule)
+- [FooterPodHubMicroExclusionsRule](#footerpodhubmicroexclusionsrule)
+- [AmdDataProvidersWorkdayRule](#amddataprovidersworkdayrule)
+
 ## Rule Categories
 
 The rules are organized into two main categories:
@@ -15,12 +57,14 @@ The rules are organized into two main categories:
 
 Rules use a simplified two-tier severity system:
 
-- **ACTION**: Critical issues that should be addressed immediately
-- **ADVICE**: Recommendations for code quality and best practices
+- 🔴 **ACTION**: Critical issues that should be addressed immediately
+- 🟢 **ADVICE**: Recommendations for code quality and best practices
 
 ---
 
-## Script Rules (22 Rules)
+## 🪄 Script Rules (22 Rules)
+
+*The Script Rules form the incantations that shape the logic within your enchanted scrolls. These mystical validations ensure your code flows with the elegance and power befitting a master wizard.*
 
 *These rules analyze PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files for comprehensive code quality validation.*
 
@@ -988,7 +1032,9 @@ const workerWid = app.attributes.workerWid; // ✅ Use app attribute
 
 ---
 
-## Structure Rules (14 Rules)
+## 🏗️ Structure Rules (14 Rules)
+
+*The Structure Rules bind the outer wards and conduits of your magical constructs. These architectural validations ensure your endpoints, widgets, and configurations form a harmonious and secure foundation for your mystical applications.*
 
 *These rules validate widget configurations, endpoint structures, component compliance, hardcoded values, and PMD organization in both PMD and Pod files.*
 
@@ -1312,6 +1358,49 @@ Each rule supports:
   }
 }
 ```
+
+---
+
+## 📊 Quick Reference
+
+| Rule Name | Category | Severity | Default Enabled | Key Settings |
+|-----------|----------|----------|-----------------|--------------|
+| **ScriptVarUsageRule** | Script | 🟢 ADVICE | ✅ | — |
+| **ScriptDeadCodeRule** | Script | 🟢 ADVICE | ✅ | — |
+| **ScriptComplexityRule** | Script | 🟢 ADVICE | ✅ | `max_complexity` |
+| **ScriptLongFunctionRule** | Script | 🟢 ADVICE | ✅ | `max_length` |
+| **ScriptFunctionParameterCountRule** | Script | 🟢 ADVICE | ✅ | `max_parameters` |
+| **ScriptFunctionParameterNamingRule** | Script | 🟢 ADVICE | ✅ | — |
+| **ScriptUnusedVariableRule** | Script | 🟢 ADVICE | ✅ | — |
+| **ScriptUnusedFunctionParametersRule** | Script | 🟢 ADVICE | ✅ | — |
+| **ScriptVariableNamingRule** | Script | 🟢 ADVICE | ✅ | — |
+| **ScriptConsoleLogRule** | Script | 🔴 ACTION | ✅ | — |
+| **ScriptNullSafetyRule** | Script | 🔴 ACTION | ✅ | — |
+| **ScriptEmptyFunctionRule** | Script | 🔴 ACTION | ✅ | — |
+| **ScriptNestingLevelRule** | Script | 🟢 ADVICE | ✅ | `max_nesting` |
+| **ScriptLongScriptBlockRule** | Script | 🟢 ADVICE | ✅ | `max_length` |
+| **ScriptMagicNumberRule** | Script | 🟢 ADVICE | ✅ | — |
+| **ScriptStringConcatRule** | Script | 🟢 ADVICE | ✅ | — |
+| **ScriptArrayMethodUsageRule** | Script | 🟢 ADVICE | ✅ | — |
+| **ScriptDescriptiveParametersRule** | Script | 🟢 ADVICE | ✅ | — |
+| **ScriptFunctionReturnConsistencyRule** | Script | 🟢 ADVICE | ✅ | — |
+| **ScriptVerboseBooleanRule** | Script | 🟢 ADVICE | ✅ | — |
+| **StringBooleanRule** | Script | 🟢 ADVICE | ✅ | — |
+| **UnusedScriptIncludesRule** | Script | 🟢 ADVICE | ✅ | — |
+| **EndpointFailOnStatusCodesRule** | Structure | 🔴 ACTION | ✅ | — |
+| **EndpointNameLowerCamelCaseRule** | Structure | 🟢 ADVICE | ✅ | — |
+| **EndpointBaseUrlTypeRule** | Structure | 🟢 ADVICE | ✅ | — |
+| **EndpointOnSendSelfDataRule** | Structure | 🟢 ADVICE | ✅ | — |
+| **WidgetIdRequiredRule** | Structure | 🔴 ACTION | ✅ | — |
+| **WidgetIdLowerCamelCaseRule** | Structure | 🟢 ADVICE | ✅ | — |
+| **HardcodedApplicationIdRule** | Structure | 🟢 ADVICE | ✅ | — |
+| **HardcodedWidRule** | Structure | 🟢 ADVICE | ✅ | — |
+| **ReadableEndpointPathsRule** | Structure | 🟢 ADVICE | ✅ | — |
+| **PMDSectionOrderingRule** | Structure | 🟢 ADVICE | ✅ | `required_order` |
+| **PMDSecurityDomainRule** | Structure | 🔴 ACTION | ✅ | `strict` |
+| **EmbeddedImagesRule** | Structure | 🟢 ADVICE | ✅ | — |
+| **FooterPodHubMicroExclusionsRule** | Structure | 🟢 ADVICE | ✅ | — |
+| **AmdDataProvidersWorkdayRule** | Structure | 🟢 ADVICE | ✅ | — |
 
 ---
 
