@@ -42,10 +42,27 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 ## 🖼️ Web Interface Screenshots
 
 ### Dark Mode Interface
-![Arcane Auditor Web Interface - Dark Mode](assets/web-interface-dark.png)
+![Arcane Auditor Web Interface - Dark Mode](assets/results-dark.png)
 
 ### Light Mode Interface
-![Arcane Auditor Web Interface - Light Mode](assets/web-interface-light.png)
+![Arcane Auditor Web Interface - Light Mode](assets/results-light.png)
+
+<details>
+<summary>📸 More Screenshots (click to expand)</summary>
+
+**Upload View:**
+![Upload View](assets/upload-dark.png)
+
+**Issues View:**
+![Issues View](assets/issues-dark.png)
+
+**Configuration View:**
+![Configuration View](assets/config-dark.png)
+
+**Details View:**
+![Details View](assets/details-dark.png)
+
+</details>
 
 *The mystical web interface provides an intuitive way to upload and analyze your Workday Extend applications with real-time results and downloadable reports.*
 
