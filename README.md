@@ -5,7 +5,6 @@
 > ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
 
 ![Version](https://img.shields.io/badge/version-0.4.0--beta.1-purple?style=for-the-badge)
-[![Release Notes](https://img.shields.io/badge/📋-Release_Notes-blue?style=for-the-badge)](release_notes/RELEASE_NOTES_0.4.0-beta.1.md)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
 
 ## 🎯 Overview
@@ -554,7 +553,6 @@ ArcaneAuditor/
 ├── assets/                  # Static assets
 │   ├── logo.png           # Logo
 │   └── screenshots/        # Screenshots
-├── release_notes/          # Release notes
 ├── pyproject.toml          # Project configuration
 ├── README.md              # This file
 └── LICENSE                # License
@@ -605,7 +603,6 @@ uv run pytest --cov=arcane_auditor
 - **[Rule Documentation](parser/rules/RULE_BREAKDOWN.md)** - Detailed rule descriptions and examples
 - **[Custom Rules Guide](parser/rules/custom/README.md)** - Custom rule development guide
 - **[Configuration Guide](config/README.md)** - Configuration options and examples
-- **[Release Notes](release_notes/)** - Version history and changes
 
 ## 📄 License
 
