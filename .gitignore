@@ -225,6 +225,7 @@ release_notes/
 # Personal configurations (highest priority)
 # Ignore JSON files but keep directory structure
 config/personal/*.json
+!config/personal/.gitignore
 
 # Team configurations (protected from app updates)
 config/teams/
