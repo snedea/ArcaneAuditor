@@ -64,7 +64,7 @@ web/
 ```
 
 ### `tests/` - Test Suite
-Comprehensive test coverage for all components with 50+ test files.
+Comprehensive test coverage for all components with 55+ test files.
 
 ```
 tests/
@@ -82,16 +82,25 @@ tests/
 │   ├── test_endpoint_base_url_type_rule.py
 │   ├── test_endpoint_fail_on_status_codes_rule.py
 │   ├── test_endpoint_name_lower_camel_case_rule.py
-│   └── test_endpoint_on_send_self_data.py
+│   ├── test_endpoint_on_send_self_data.py
+│   ├── test_no_is_collection_on_endpoints_rule.py
+│   ├── test_only_maximum_effort_rule.py
+│   └── test_no_pmd_session_variables_rule.py
 ├── test_widget_*.py               # Widget validation tests
 │   ├── test_widget_id_lower_camel_case_rule.py
 │   ├── test_widget_id_required_rule.py
-│   └── test_widget_traversal.py
+│   ├── test_widget_traversal.py
+│   └── test_grid_paging_with_sortable_filterable_rule.py
 ├── test_context_*.py              # Context awareness tests
 │   ├── test_context_formatting.py
 │   ├── test_context_integration.py
 │   └── test_context_tracker.py
 ├── test_structure_*.py            # Structure validation tests
+├── test_hardcoded_*.py            # Hardcoded value detection tests
+│   ├── test_hardcoded_application_id_rule.py
+│   └── test_hardcoded_wid_rule.py
+├── test_file_name_lower_camel_case_rule.py
+├── test_multiple_string_interpolators_rule.py
 ├── test_app_parser.py             # Application parser tests
 ├── test_file_processor.py         # File processing tests
 ├── test_finding.py                # Finding model tests
