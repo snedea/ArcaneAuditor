@@ -846,10 +846,10 @@ class ArcaneAuditorApp {
         
         // Update icon and title with magical flair
         if (isComplete) {
-            contextIcon.textContent = '🔮';
+            contextIcon.textContent = '✨';
             contextTitleText.textContent = 'Evaluation ✦';
         } else {
-            contextIcon.textContent = '🔮';
+            contextIcon.textContent = '🌙';
             contextTitleText.textContent = 'Divination Incomplete';
         }
         
@@ -943,7 +943,7 @@ class ArcaneAuditorApp {
             if (hasImpact) {
                 html += `
                     <div class="context-impact">
-                        <h4>🔮 Rules Not Invoked</h4>
+                        <h4>📜 Rules Not Invoked</h4>
                         <p class="context-impact-subtitle">Some validations could not be cast due to missing components.</p>
                         <div class="context-impact-list">
                 `;

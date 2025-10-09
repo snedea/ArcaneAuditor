@@ -463,7 +463,7 @@ header p {
 
 .context-missing-item.required {
     background: #dc2626;
-    color: #ffffff;
+    color: #fecaca;
     border: 2px solid #b91c1c;
     font-weight: 700;
     box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
@@ -471,7 +471,7 @@ header p {
 
 [data-theme="dark"] .context-missing-item.required {
     background: #ef4444;
-    color: #ffffff;
+    color: #fee2e2;
     border: 2px solid #f87171;
     box-shadow: 0 2px 4px rgba(239, 68, 68, 0.4);
 }
