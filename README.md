@@ -284,12 +284,24 @@ The tool provides clear context information in all output formats:
 
 Arcane Auditor uses a **layered configuration system** that protects your customizations during updates:
 
+### **Built-in Configuration Presets:**
+
+- **`development`** - Dev-friendly validation focusing on structure and standards
+  - Disables rules that flag work-in-progress code (console logs, unused code, dead code)
+  - Perfect for daily coding without noise
+  
+- **`production-ready`** - Comprehensive validation for pre-deployment
+  - All rules enabled with strict settings
+  - Catches all issues including cleanup items (console logs, unused code)
+
+> 📖 **Full details:** See [Configuration Guide](config/README.md) for presets, team configs, and personal overrides
+
 ### **Configuration Layers (Priority Order):**
 
 1. **Command Line Arguments** (highest priority)
-2. **User Configuration File** (`~/.arcane-auditor/config.json`)
-3. **Project Configuration File** (`arcane-auditor.json`)
-4. **Default Configuration** (built-in)
+2. **Personal Configuration** (`config/personal/*.json`)
+3. **Team Configuration** (`config/teams/*.json`)
+4. **Built-in Presets** (`config/presets/*.json`)
 
 ### **Configuration File Structure:**
 
