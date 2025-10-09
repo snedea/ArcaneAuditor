@@ -80,6 +80,11 @@ class FileNameLowerCamelCaseRule(Rule):
         
         # Extract just the filename (without path) and without extension
         filename_with_ext = os.path.basename(file_path)
+        
+        # Strip job ID prefix if present (format: uuid_filename.ext)
+        # Job IDs are UUIDs with dashes: 50356922-5e0c-454f-a39a-2b8ca88c379c_filename.ext
+        filename_with_ext = re.sub(r'^[a-f0-9-]+_', '', filename_with_ext)
+        
         filename, ext = os.path.splitext(filename_with_ext)
         
         # Pattern: must start with lowercase letter, followed by letters/numbers
