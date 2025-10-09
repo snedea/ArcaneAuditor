@@ -1,16 +1,21 @@
 """
-Rule to detect hardcoded applicationId values in PMD and POD files.
+Rule to detect hardcoded applicationId values in PMD, POD, and AMD files.
 
-The applicationId value from the SMD file should never be hardcoded in PMD or POD files.
+The applicationId value from the SMD file should never be hardcoded in:
+- PMD files
+- POD files  
+- AMD dataProviders values
+
 Instead, users should use the site.applicationId variable.
 
-Note: AMD files are allowed to have applicationId as they are application configuration files.
+Note: AMD files' own applicationId field is allowed as it's a configuration field.
+Only the dataProviders[*].value fields are checked for hardcoded applicationId.
 """
 import re
 from typing import Generator, List, Dict, Any, Optional
 
 from ...base import Finding
-from ....models import PMDModel, PodModel, ProjectContext
+from ....models import PMDModel, PodModel, AMDModel, ProjectContext
 from ..shared import StructureRuleBase
 
 
@@ -19,9 +24,11 @@ class HardcodedApplicationIdRule(StructureRuleBase):
     Detects hardcoded applicationId values that should be replaced with site.applicationId.
     
     This rule checks for:
-    - Hardcoded applicationId strings in JSON values
-    - Hardcoded applicationId strings in script expressions
-    - Any string literal containing the applicationId value
+    - Hardcoded applicationId strings in PMD files (JSON values and script expressions)
+    - Hardcoded applicationId strings in POD files (JSON values and script expressions)
+    - Hardcoded applicationId strings in AMD dataProviders values
+    
+    Note: AMD's own applicationId field is intentionally not checked.
     """
     
     ID = "HardcodedApplicationIdRule"
@@ -49,6 +56,14 @@ class HardcodedApplicationIdRule(StructureRuleBase):
         
         yield from self._check_pod_hardcoded_app_id(pod_model, context.application_id)
     
+    def visit_amd(self, amd_model: AMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Analyze AMD model for hardcoded applicationId values in dataProviders."""
+        if not context.application_id:
+            # Don't register skipped check here - handled at analyze level
+            return  # No applicationId to check against
+        
+        yield from self._check_amd_hardcoded_app_id(amd_model, context.application_id)
+    
     def _check_pmd_hardcoded_app_id(self, pmd_model: PMDModel, app_id: str) -> Generator[Finding, None, None]:
         """Check PMD file for hardcoded applicationId values."""
         # Use original source content for accurate line numbers
@@ -64,6 +79,24 @@ class HardcodedApplicationIdRule(StructureRuleBase):
         # Convert POD model to dictionary for recursive checking
         pod_dict = pod_model.model_dump(exclude={'file_path', 'source_content'})
         yield from self._check_string_values_for_app_id(pod_dict, app_id, pod_model.file_path, pod_model=pod_model)
+    
+    def _check_amd_hardcoded_app_id(self, amd_model: AMDModel, app_id: str) -> Generator[Finding, None, None]:
+        """Check AMD file for hardcoded applicationId values in dataProviders."""
+        if not amd_model.dataProviders:
+            return  # No dataProviders to check
+        
+        # Only check the dataProviders values
+        for data_provider in amd_model.dataProviders:
+            if isinstance(data_provider, dict) and 'value' in data_provider:
+                value = data_provider['value']
+                if isinstance(value, str) and app_id in value:
+                    # Check if it's a hardcoded app ID (not using site.applicationId)
+                    if 'site.applicationId' not in value:
+                        yield self._create_finding(
+                            message=f"Hardcoded applicationId '{app_id}' found in AMD dataProvider. Use site.applicationId instead.",
+                            file_path=amd_model.file_path,
+                            line=1  # AMD doesn't have line-level source tracking
+                        )
     
     def _check_source_content_for_app_id(self, source_content: str, app_id: str, file_path: str) -> Generator[Finding, None, None]:
         """Check source content for hardcoded applicationId values."""
