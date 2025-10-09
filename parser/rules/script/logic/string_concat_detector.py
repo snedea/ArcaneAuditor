@@ -130,6 +130,16 @@ class StringConcatDetector(ScriptDetector):
             if len(node.children) > 0 and hasattr(node.children[0], 'value'):
                 return node.children[0].value
         
+        elif node.data == 'member_expression':
+            # Preserve dot notation: obj.property
+            text_parts = []
+            for child in node.children:
+                if hasattr(child, 'value'):
+                    text_parts.append(child.value)
+                elif isinstance(child, Tree):
+                    text_parts.append(self._extract_expression_text(child))
+            return '.'.join(text_parts) if text_parts else str(node.data)
+        
         # For other node types, try to extract meaningful text
         text_parts = []
         for child in node.children:
@@ -138,4 +148,4 @@ class StringConcatDetector(ScriptDetector):
             elif isinstance(child, Tree):
                 text_parts.append(self._extract_expression_text(child))
         
-        return ' '.join(text_parts) if text_parts else str(node.data)
+        return ''.join(text_parts) if text_parts else str(node.data)
