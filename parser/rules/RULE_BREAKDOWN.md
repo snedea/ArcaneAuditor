@@ -1,8 +1,8 @@
 # Arcane Auditor Rules Grimoire 📜
 
-*Ancient wisdom distilled into 41 mystical validation rules*
+*Ancient wisdom distilled into 42 mystical validation rules*
 
-This grimoire provides a comprehensive overview of all **41 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
+This grimoire provides a comprehensive overview of all **42 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
 
 ## 📋 Table of Contents
 
@@ -30,7 +30,7 @@ This grimoire provides a comprehensive overview of all **41 validation rules** w
 - [StringBooleanRule](#stringbooleanrule)
 - [UnusedScriptIncludesRule](#unusedscriptincludesrule)
 
-### Structure Rules (19 Rules)
+### Structure Rules (20 Rules)
 - [EndpointFailOnStatusCodesRule](#endpointfailonstatuscodesrule)
 - [EndpointNameLowerCamelCaseRule](#endpointnamelowercamelcaserule)
 - [EndpointBaseUrlTypeRule](#endpointbaseurltyperule)
@@ -40,6 +40,7 @@ This grimoire provides a comprehensive overview of all **41 validation rules** w
 - [NoPMDSessionVariablesRule](#nopmdsessionvariablesrule)
 - [WidgetIdRequiredRule](#widgetidrequiredrule)
 - [WidgetIdLowerCamelCaseRule](#widgetidlowercamelcaserule)
+- [GridPagingWithSortableFilterableRule](#gridpagingwithsortablefilterablerule)
 - [HardcodedApplicationIdRule](#hardcodedapplicationidrule)
 - [HardcodedWidRule](#hardcodedwidrule)
 - [ReadableEndpointPathsRule](#readableendpointpathsrule)
@@ -56,7 +57,7 @@ This grimoire provides a comprehensive overview of all **41 validation rules** w
 The rules are organized into two main categories:
 
 - **Script Rules (22 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
-- **Structure Rules (19 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- **Structure Rules (20 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 ## Severity Levels
 
@@ -1541,6 +1542,78 @@ Multiple interpolators in one string are harder to read and maintain. Using a **
 
 ---
 
+### GridPagingWithSortableFilterableRule
+
+**Severity:** ACTION
+**Description:** Detects grids with paging and sortableAndFilterable columns which can cause performance issues
+**Applies to:** PMD and POD grid widgets
+
+**What it catches:**
+
+- Grid widgets with `autoPaging: true` OR `pagingInfo` present
+- AND any column with `sortableAndFilterable: true`
+- Checks nested grids in sections and other containers
+
+**Why it matters:**
+
+Combining paging with sortable/filterable columns can cause severe performance degradation due to how data is fetched and processed. This can lead to slow page loads and poor user experience.
+
+**Example violations:**
+
+```json
+{
+  "type": "grid",
+  "id": "workersGrid",
+  "autoPaging": true,  // Or "pagingInfo": {"pageSize": 50}
+  "columns": [
+    {
+      "columnId": "workerName",
+      "sortableAndFilterable": true  // ❌ With paging, this causes major performance issues
+    },
+    {
+      "columnId": "department",
+      "sortableAndFilterable": true  // ❌ Also flagged
+    }
+  ]
+}
+```
+
+**Fix - Option 1 (Remove paging):**
+
+```json
+{
+  "type": "grid",
+  "id": "workersGrid",
+  // ✅ Removed autoPaging/pagingInfo
+  "columns": [
+    {
+      "columnId": "workerName",
+      "sortableAndFilterable": true  // ✅ OK without paging
+    }
+  ]
+}
+```
+
+**Fix - Option 2 (Remove sortableAndFilterable):**
+
+```json
+{
+  "type": "grid",
+  "id": "workersGrid",
+  "autoPaging": true,
+  "columns": [
+    {
+      "columnId": "workerName",
+      "sortableAndFilterable": false  // ✅ Disabled sorting/filtering
+    }
+  ]
+}
+```
+
+**Recommendation:** For large datasets, use paging without sortableAndFilterable. For small datasets, use sortableAndFilterable without paging.
+
+---
+
 ### PMDSecurityDomainRule
 
 **Severity:** ACTION
@@ -1655,18 +1728,19 @@ Multiple interpolators in one string are harder to read and maintain. Using a **
 | **OnlyMaximumEffortRule** | Structure | 🔴 ACTION | ✅ | — |
 | **NoPMDSessionVariablesRule** | Structure | 🔴 ACTION | ✅ | — |
 | **MultipleStringInterpolatorsRule** | Structure | 🟢 ADVICE | ✅ | — |
+| **GridPagingWithSortableFilterableRule** | Structure | 🔴 ACTION | ✅ | — |
 
 ---
 
 ## Summary
 
-The Arcane Auditor channels mystical powers through **41 rules** across **2 categories**:
+The Arcane Auditor channels mystical powers through **42 rules** across **2 categories**:
 
 - ✅ **22 Script Rules** - Code quality for PMD and standalone scripts
-- ✅ **19 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- ✅ **20 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 **Severity Distribution:**
-- **9 ACTION Rules**: Critical issues requiring immediate attention
+- **10 ACTION Rules**: Critical issues requiring immediate attention
 - **32 ADVICE Rules**: Recommendations for code quality and best practices
 
 These rules help maintain consistent, high-quality Workday Extend applications by catching issues that compilers aren't designed to catch, but are important for maintainability, performance, and team collaboration.

@@ -64,6 +64,7 @@ class RulesConfig(BaseModel):
     # Widget Structure Rules
     WidgetIdRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all widgets have required 'id' field")
     WidgetIdLowerCamelCaseRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures widget IDs follow lowerCamelCase convention")
+    GridPagingWithSortableFilterableRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects grids with paging and sortableAndFilterable columns which can cause performance issues")
     
     # General Structure Rules
     FooterPodRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures footer widgets utilize pods")
