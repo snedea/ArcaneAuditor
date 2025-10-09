@@ -1712,9 +1712,9 @@ header p {
 }
 
 .severity-count-badge.advice {
-    background: #0284c7;
+    background: #756AA2;
     color: #ffffff;
-    border: 2px dashed #0369a1;
+    border: 2px dashed #6B5E94;
     font-weight: 700;
 }
 
@@ -1731,9 +1731,9 @@ header p {
 }
 
 [data-theme="dark"] .severity-count-badge.advice {
-    background: #0284c7;
+    background: #9F7AEA;
     color: #ffffff;
-    border: 2px dashed #0ea5e9;
+    border: 2px dashed #B794F4;
 }
 
 .file-findings {
