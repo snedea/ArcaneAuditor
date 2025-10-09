@@ -24,19 +24,19 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 - 🎨 **Clear Messages**: Actionable violation messages with locations and fix suggestions
 - 🧠 **Context Awareness**: Understands when analysis is partial due to missing files
 
-> 🧙‍♂️ **Tip:** Use the [web interface](#arcane-auditor-web-user-interface) for the fastest start, or jump to [Quick Start](#quick-start) to begin immediately.
+> 🧙‍♂️ **Tip:** Use the [web interface](#user-content-arcane-auditor-web-user-interface) for the fastest start, or jump to [Quick Start](#user-content-quick-start) to begin immediately.
 
 ## 🗂️ Table of Contents
 
-- [🚀 Quick Start](#quick-start)
-- [🌐 Web Interface](#arcane-auditor-web-user-interface)
-- [🧠 Context Awareness](#context-awareness)
-- [🛡️ Configuration System](#️update-safe-configuration-system)
-- [🔧 Validation Rules](#validation-rules)
-- [🛠️ Development](#development)
-  - [🤝 Contributing](#contributing)
-- [📚 Documentation](#documentation)
-- [📄 License](#license)
+- [🚀 Quick Start](#user-content-quick-start)
+- [🌐 Web Interface](#user-content-arcane-auditor-web-user-interface)
+- [🧠 Context Awareness](#user-content-context-awareness)
+- [🛡️ Configuration System](#user-content-update-safe-configuration-system)
+- [🔧 Validation Rules](#user-content-validation-rules)
+- [🛠️ Development](#user-content-development)
+  - [🤝 Contributing](#user-content-contributing)
+- [📚 Documentation](#user-content-documentation)
+- [📄 License](#user-content-license)
 
 ## 🖼️ Web Interface Screenshots
 
@@ -100,9 +100,9 @@ uv run main.py review-app file1.pmd file2.pod file3.script
 uv run main.py review-app myapp.zip --config my-config.json
 ```
 
-💡 **Need more setup paths?** See [Development Setup](#option-c-development-setup)
+💡 **Need more setup paths?** See [Development Setup](#user-content-option-c-development-setup)
 
-[⬆️ Back to Top](#table-of-contents)
+[⬆️ Back to Top](#user-content-table-of-contents)
 
 <details>
 <summary>📦 Installation Options (click to expand)</summary>
@@ -169,7 +169,7 @@ uv run web/server.py --port 8090
 uv run web/server.py --port 8080 &
 ```
 
-> 💡 **Tip:** The web interface provides intelligent [context awareness](#context-awareness) to help you understand when analysis is complete or partial.
+> 💡 **Tip:** The web interface provides intelligent [context awareness](#user-content-context-awareness) to help you understand when analysis is complete or partial.
 
 <details>
 <summary>🔗 API Endpoints (click to expand)</summary>
@@ -183,7 +183,7 @@ uv run web/server.py --port 8080 &
 
 </details>
 
-[⬆️ Back to Top](#table-of-contents)
+[⬆️ Back to Top](#user-content-table-of-contents)
 
 ## 🧠 Context Awareness
 
@@ -263,7 +263,7 @@ The tool provides clear context information in all output formats:
 - Visual indicators for complete vs. partial analysis
 - Recommendations for improving analysis coverage
 
-[⬆️ Back to Top](#table-of-contents)
+[⬆️ Back to Top](#user-content-table-of-contents)
 
 </details>
 
@@ -324,7 +324,7 @@ uv run main.py review-app myapp.zip --config my-config.json
 
 This ensures your customizations persist through updates while allowing flexibility for different projects.
 
-[⬆️ Back to Top](#table-of-contents)
+[⬆️ Back to Top](#user-content-table-of-contents)
 
 </details>
 
@@ -367,7 +367,7 @@ This ensures your customizations persist through updates while allowing flexibil
 - **Dead Code**: Detects unreachable code blocks
 - **Unused Parameters**: Identifies function parameters that aren't used
 
-[⬆️ Back to Top](#table-of-contents)
+[⬆️ Back to Top](#user-content-table-of-contents)
 
 </details>
 
@@ -402,7 +402,7 @@ This ensures your customizations persist through updates while allowing flexibil
 - **Performance Optimization**: Checks for performance-related issues
 - **Accessibility**: Validates accessibility compliance
 
-[⬆️ Back to Top](#table-of-contents)
+[⬆️ Back to Top](#user-content-table-of-contents)
 
 </details>
 
@@ -455,7 +455,7 @@ Custom rules can be configured through the configuration system:
 }
 ```
 
-[⬆️ Back to Top](#table-of-contents)
+[⬆️ Back to Top](#user-content-table-of-contents)
 
 </details>
 
@@ -592,11 +592,11 @@ uv run pytest --cov=arcane_auditor
 - Include unit tests for new features
 - Use meaningful commit messages
 
-[⬆️ Back to Top](#table-of-contents)
+[⬆️ Back to Top](#user-content-table-of-contents)
 
 </details>
 
-[⬆️ Back to Top](#table-of-contents)
+[⬆️ Back to Top](#user-content-table-of-contents)
 
 ## 📚 Documentation
 
