@@ -1,8 +1,8 @@
 """
-Rule to ensure endpoints use maximumEffort instead of bestEffort.
+Rule to ensure endpoints do not use bestEffort.
 
 Using bestEffort: true on endpoints can silently mask API failures, leading to data 
-inconsistency and hard-to-debug issues. Maximum effort retry policies should be used instead.
+inconsistency and hard-to-debug issues.
 
 This rule checks both inbound and outbound endpoints.
 """
@@ -15,7 +15,7 @@ from ..shared import StructureRuleBase
 
 class OnlyMaximumEffortRule(StructureRuleBase):
     """
-    Ensures endpoints use maximumEffort instead of bestEffort to prevent masked failures.
+    Ensures endpoints do not use bestEffort to prevent masked failures.
     
     This rule checks:
     - Inbound endpoints in PMD files
@@ -24,7 +24,7 @@ class OnlyMaximumEffortRule(StructureRuleBase):
     """
     
     ID = "OnlyMaximumEffortRule"
-    DESCRIPTION = "Ensures endpoints use maximumEffort instead of bestEffort to prevent masked API failures"
+    DESCRIPTION = "Ensures endpoints do not use bestEffort to prevent masked API failures"
     SEVERITY = "ACTION"
     
     def get_description(self) -> str:
@@ -66,7 +66,7 @@ class OnlyMaximumEffortRule(StructureRuleBase):
             line_number = self._get_endpoint_line_number(model, endpoint_name, endpoint_type)
             
             yield self._create_finding(
-                message=f"{endpoint_type.title()} endpoint '{endpoint_name}' has bestEffort: true which can mask API failures. Use maximumEffort retry policies instead.",
+                message=f"{endpoint_type.title()} endpoint '{endpoint_name}' has bestEffort: true which can mask API failures. It is advised to avoid using bestEffort.",
                 file_path=model.file_path,
                 line=line_number
             )

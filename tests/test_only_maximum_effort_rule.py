@@ -11,13 +11,13 @@ class TestOnlyMaximumEffortRule:
         """Test that the rule initializes correctly."""
         rule = OnlyMaximumEffortRule()
         assert rule.ID == "OnlyMaximumEffortRule"
-        assert rule.DESCRIPTION == "Ensures endpoints use maximumEffort instead of bestEffort to prevent masked API failures"
+        assert rule.DESCRIPTION == "Ensures endpoints do not use bestEffort to prevent masked API failures"
         assert rule.SEVERITY == "ACTION"
 
     def test_get_description(self):
         """Test that get_description returns the correct description."""
         rule = OnlyMaximumEffortRule()
-        assert rule.get_description() == rule.DESCRIPTION
+        assert rule.get_description() == "Ensures endpoints do not use bestEffort to prevent masked API failures"
 
     def test_inbound_endpoint_with_best_effort_true(self):
         """Test that inbound endpoints with bestEffort: true are flagged."""

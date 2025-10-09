@@ -58,7 +58,7 @@ class RulesConfig(BaseModel):
     EndpointOnSendSelfDataRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoint onSend methods use self.data appropriately")
     EndpointBaseUrlTypeRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values")
     NoIsCollectionOnEndpointsRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects isCollection: true on inbound endpoints which can cause tenant-wide performance issues")
-    OnlyMaximumEffortRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoints use maximumEffort instead of bestEffort to prevent masked API failures")
+    OnlyMaximumEffortRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoints do not use bestEffort to prevent masked API failures")
     NoPMDSessionVariablesRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects outboundVariable endpoints with variableScope: session which can cause performance degradation")
     
     # Widget Structure Rules

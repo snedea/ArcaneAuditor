@@ -1137,7 +1137,7 @@ Using `isCollection: true` on inbound endpoints can cause severe performance deg
 ### OnlyMaximumEffortRule
 
 **Severity:** ACTION
-**Description:** Ensures endpoints use maximumEffort instead of bestEffort to prevent masked API failures
+**Description:** Ensures endpoints do not use bestEffort to prevent masked API failures
 **Applies to:** PMD inbound and outbound endpoints, and Pod endpoints
 
 **What it catches:**
@@ -1176,13 +1176,13 @@ Using `bestEffort: true` on endpoints can silently ignore API failures, leading 
   "inboundEndpoints": [
     {
       "name": "GetWorkers"
-      // ✅ Remove bestEffort or use proper retry policy
+      // ✅ Remove bestEffort property
     }
   ],
   "outboundEndpoints": [
     {
-      "name": "UpdateWorker",
-      "maximumEffort": true  // ✅ Use maximumEffort instead
+      "name": "UpdateWorker"
+      // ✅ Remove bestEffort property
     }
   ]
 }
