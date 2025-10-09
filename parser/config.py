@@ -58,6 +58,7 @@ class RulesConfig(BaseModel):
     EndpointOnSendSelfDataRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoint onSend methods use self.data appropriately")
     EndpointBaseUrlTypeRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values")
     NoIsCollectionOnEndpointsRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects isCollection: true on inbound endpoints which can cause tenant-wide performance issues")
+    NoBestEffortRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects bestEffort: true on endpoints which can mask API failures")
     
     # Widget Structure Rules
     WidgetIdRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all widgets have required 'id' field")
