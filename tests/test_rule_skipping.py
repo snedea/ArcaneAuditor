@@ -61,7 +61,7 @@ class TestPMDSecurityDomainRuleSkipping:
             files_present={"PMD"}
         )
         
-        # Create PMD
+        # Create PMD and add to context
         pmd_model = PMDModel(
             pageId="regularPage",
             securityDomains=[],  # Missing security domains
@@ -69,10 +69,11 @@ class TestPMDSecurityDomainRuleSkipping:
             file_path="page.pmd",
             source_content="{}"
         )
+        context.pmds["page.pmd"] = pmd_model
         
         # Run rule
         rule = PMDSecurityDomainRule()
-        findings = list(rule.visit_pmd(pmd_model, context))
+        findings = list(rule.analyze(context))
         
         # Should still find the violation (missing security domains)
         assert len(findings) == 1
@@ -242,7 +243,7 @@ class TestRuleSkippingIntegration:
             files_present={"PMD"}
         )
         
-        # Create PMD
+        # Create PMD and add to context
         pmd_model = PMDModel(
             pageId="testPage",
             securityDomains=[],  # Missing
@@ -250,13 +251,14 @@ class TestRuleSkippingIntegration:
             file_path="page.pmd",
             source_content='{"pageId": "testPage"}'
         )
+        context.pmds["page.pmd"] = pmd_model
         
         # Run both rules
         security_rule = PMDSecurityDomainRule()
         appid_rule = HardcodedApplicationIdRule()
         
-        security_findings = list(security_rule.visit_pmd(pmd_model, context))
-        appid_findings = list(appid_rule.visit_pmd(pmd_model, context))
+        security_findings = list(security_rule.analyze(context))
+        appid_findings = list(appid_rule.analyze(context))
         
         # Security rule should find violation
         assert len(security_findings) == 1
