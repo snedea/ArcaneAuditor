@@ -1,8 +1,8 @@
 # Arcane Auditor Rules Grimoire 📜
 
-*Ancient wisdom distilled into 37 mystical validation rules*
+*Ancient wisdom distilled into 38 mystical validation rules*
 
-This grimoire provides a comprehensive overview of all **37 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
+This grimoire provides a comprehensive overview of all **38 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
 
 ## 📋 Table of Contents
 
@@ -30,11 +30,12 @@ This grimoire provides a comprehensive overview of all **37 validation rules** w
 - [StringBooleanRule](#stringbooleanrule)
 - [UnusedScriptIncludesRule](#unusedscriptincludesrule)
 
-### Structure Rules (15 Rules)
+### Structure Rules (16 Rules)
 - [EndpointFailOnStatusCodesRule](#endpointfailonstatuscodesrule)
 - [EndpointNameLowerCamelCaseRule](#endpointnamelowercamelcaserule)
 - [EndpointBaseUrlTypeRule](#endpointbaseurltyperule)
 - [EndpointOnSendSelfDataRule](#endpointonsendselfdatarule)
+- [NoIsCollectionOnEndpointsRule](#noiscollectiononendpointsrule)
 - [WidgetIdRequiredRule](#widgetidrequiredrule)
 - [WidgetIdLowerCamelCaseRule](#widgetidlowercamelcaserule)
 - [HardcodedApplicationIdRule](#hardcodedapplicationidrule)
@@ -52,7 +53,7 @@ This grimoire provides a comprehensive overview of all **37 validation rules** w
 The rules are organized into two main categories:
 
 - **Script Rules (22 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
-- **Structure Rules (15 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- **Structure Rules (16 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 ## Severity Levels
 
@@ -1079,6 +1080,56 @@ const workerWid = app.attributes.workerWid; // ✅ Use app attribute
 
 ---
 
+### NoIsCollectionOnEndpointsRule
+
+**Severity:** ACTION
+**Description:** Detects isCollection: true on inbound endpoints which can cause tenant-wide performance issues
+**Applies to:** PMD inbound endpoints and Pod endpoints
+
+**What it catches:**
+
+- Inbound endpoints with `isCollection: true`
+- POD endpoints with `isCollection: true`
+- Does NOT check outbound endpoints (different performance characteristics)
+
+**Why it matters:**
+
+Using `isCollection: true` on inbound endpoints can cause severe performance degradation affecting the entire tenant. This should be avoided to maintain application performance.
+
+**Example violations:**
+
+```json
+{
+  "inboundEndpoints": [
+    {
+      "name": "GetWorkers",
+      "isCollection": true  // ❌ Causes tenant-wide performance issues
+    }
+  ],
+  "outboundEndpoints": [
+    {
+      "name": "ProcessWorkers",
+      "isCollection": true  // ✅ OK for outbound endpoints (not checked)
+    }
+  ]
+}
+```
+
+**Fix:**
+
+```json
+{
+  "inboundEndpoints": [
+    {
+      "name": "GetWorkers"
+      // ✅ Removed isCollection or restructure to not require collections
+    }
+  ]
+}
+```
+
+---
+
 ### EndpointNameLowerCamelCaseRule
 
 **Severity:** ADVICE
@@ -1447,18 +1498,19 @@ Rename files to follow lowerCamelCase convention. For app-level files (AMD, SMD)
 | **FooterPodHubMicroExclusionsRule** | Structure | 🟢 ADVICE | ✅ | — |
 | **AmdDataProvidersWorkdayRule** | Structure | 🟢 ADVICE | ✅ | — |
 | **FileNameLowerCamelCaseRule** | Structure | 🟢 ADVICE | ✅ | — |
+| **NoIsCollectionOnEndpointsRule** | Structure | 🔴 ACTION | ✅ | — |
 
 ---
 
 ## Summary
 
-The Arcane Auditor channels mystical powers through **37 rules** across **2 categories**:
+The Arcane Auditor channels mystical powers through **38 rules** across **2 categories**:
 
 - ✅ **22 Script Rules** - Code quality for PMD and standalone scripts
-- ✅ **15 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- ✅ **16 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 **Severity Distribution:**
-- **6 ACTION Rules**: Critical issues requiring immediate attention
+- **7 ACTION Rules**: Critical issues requiring immediate attention
 - **31 ADVICE Rules**: Recommendations for code quality and best practices
 
 These rules help maintain consistent, high-quality Workday Extend applications by catching issues that compilers aren't designed to catch, but are important for maintainability, performance, and team collaboration.
