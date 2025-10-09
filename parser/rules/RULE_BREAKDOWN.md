@@ -36,7 +36,7 @@ This grimoire provides a comprehensive overview of all **40 validation rules** w
 - [EndpointBaseUrlTypeRule](#endpointbaseurltyperule)
 - [EndpointOnSendSelfDataRule](#endpointonsendselfdatarule)
 - [NoIsCollectionOnEndpointsRule](#noiscollectiononendpointsrule)
-- [NoBestEffortRule](#nobesteffortrule)
+- [OnlyMaximumEffortRule](#onlymaximumeffortrule)
 - [NoPMDSessionVariablesRule](#nopmdsessionvariablesrule)
 - [WidgetIdRequiredRule](#widgetidrequiredrule)
 - [WidgetIdLowerCamelCaseRule](#widgetidlowercamelcaserule)
@@ -1132,10 +1132,10 @@ Using `isCollection: true` on inbound endpoints can cause severe performance deg
 
 ---
 
-### NoBestEffortRule
+### OnlyMaximumEffortRule
 
 **Severity:** ACTION
-**Description:** Detects bestEffort: true on endpoints which can mask API failures
+**Description:** Ensures endpoints use maximumEffort instead of bestEffort to prevent masked API failures
 **Applies to:** PMD inbound and outbound endpoints, and Pod endpoints
 
 **What it catches:**
@@ -1607,7 +1607,7 @@ Rename files to follow lowerCamelCase convention. For app-level files (AMD, SMD)
 | **AmdDataProvidersWorkdayRule** | Structure | 🟢 ADVICE | ✅ | — |
 | **FileNameLowerCamelCaseRule** | Structure | 🟢 ADVICE | ✅ | — |
 | **NoIsCollectionOnEndpointsRule** | Structure | 🔴 ACTION | ✅ | — |
-| **NoBestEffortRule** | Structure | 🔴 ACTION | ✅ | — |
+| **OnlyMaximumEffortRule** | Structure | 🔴 ACTION | ✅ | — |
 | **NoPMDSessionVariablesRule** | Structure | 🔴 ACTION | ✅ | — |
 
 ---

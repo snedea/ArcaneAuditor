@@ -1,27 +1,27 @@
-"""Unit tests for NoBestEffortRule."""
+"""Unit tests for OnlyMaximumEffortRule."""
 
-from parser.rules.structure.endpoints.no_best_effort import NoBestEffortRule
+from parser.rules.structure.endpoints.only_maximum_effort import OnlyMaximumEffortRule
 from parser.models import PMDModel, PodModel, ProjectContext
 
 
-class TestNoBestEffortRule:
-    """Test cases for NoBestEffortRule."""
+class TestOnlyMaximumEffortRule:
+    """Test cases for OnlyMaximumEffortRule."""
 
     def test_rule_initialization(self):
         """Test that the rule initializes correctly."""
-        rule = NoBestEffortRule()
-        assert rule.ID == "NoBestEffortRule"
-        assert rule.DESCRIPTION == "Detects bestEffort: true on endpoints which can mask API failures"
+        rule = OnlyMaximumEffortRule()
+        assert rule.ID == "OnlyMaximumEffortRule"
+        assert rule.DESCRIPTION == "Ensures endpoints use maximumEffort instead of bestEffort to prevent masked API failures"
         assert rule.SEVERITY == "ACTION"
 
     def test_get_description(self):
         """Test that get_description returns the correct description."""
-        rule = NoBestEffortRule()
+        rule = OnlyMaximumEffortRule()
         assert rule.get_description() == rule.DESCRIPTION
 
     def test_inbound_endpoint_with_best_effort_true(self):
         """Test that inbound endpoints with bestEffort: true are flagged."""
-        rule = NoBestEffortRule()
+        rule = OnlyMaximumEffortRule()
         context = ProjectContext()
         
         pmd_data = {
@@ -46,7 +46,7 @@ class TestNoBestEffortRule:
 
     def test_outbound_endpoint_with_best_effort_true(self):
         """Test that outbound endpoints with bestEffort: true are also flagged."""
-        rule = NoBestEffortRule()
+        rule = OnlyMaximumEffortRule()
         context = ProjectContext()
         
         pmd_data = {
@@ -68,7 +68,7 @@ class TestNoBestEffortRule:
 
     def test_endpoint_with_best_effort_false(self):
         """Test that endpoints with bestEffort: false are not flagged."""
-        rule = NoBestEffortRule()
+        rule = OnlyMaximumEffortRule()
         context = ProjectContext()
         
         pmd_data = {
@@ -89,7 +89,7 @@ class TestNoBestEffortRule:
 
     def test_endpoint_without_best_effort(self):
         """Test that endpoints without bestEffort field are not flagged."""
-        rule = NoBestEffortRule()
+        rule = OnlyMaximumEffortRule()
         context = ProjectContext()
         
         pmd_data = {
@@ -109,7 +109,7 @@ class TestNoBestEffortRule:
 
     def test_multiple_endpoints_with_best_effort(self):
         """Test that multiple endpoints with bestEffort are all flagged."""
-        rule = NoBestEffortRule()
+        rule = OnlyMaximumEffortRule()
         context = ProjectContext()
         
         pmd_data = {
@@ -143,7 +143,7 @@ class TestNoBestEffortRule:
 
     def test_pod_endpoint_with_best_effort(self):
         """Test that POD endpoints with bestEffort are flagged."""
-        rule = NoBestEffortRule()
+        rule = OnlyMaximumEffortRule()
         context = ProjectContext()
         
         pod_data = {
@@ -167,7 +167,7 @@ class TestNoBestEffortRule:
 
     def test_empty_endpoints_no_issues(self):
         """Test that files with no endpoints don't cause issues."""
-        rule = NoBestEffortRule()
+        rule = OnlyMaximumEffortRule()
         context = ProjectContext()
         
         pmd_data = {
@@ -183,7 +183,7 @@ class TestNoBestEffortRule:
 
     def test_best_effort_string_true(self):
         """Test that bestEffort: 'true' as string is also caught."""
-        rule = NoBestEffortRule()
+        rule = OnlyMaximumEffortRule()
         context = ProjectContext()
         
         pmd_data = {
@@ -205,7 +205,7 @@ class TestNoBestEffortRule:
 
     def test_multiple_files_with_best_effort(self):
         """Test that best effort violations in multiple files are all flagged."""
-        rule = NoBestEffortRule()
+        rule = OnlyMaximumEffortRule()
         context = ProjectContext()
         
         # PMD with bestEffort

@@ -1,5 +1,5 @@
 """
-Rule to detect bestEffort: true on endpoints.
+Rule to ensure endpoints use maximumEffort instead of bestEffort.
 
 Using bestEffort: true on endpoints can silently mask API failures, leading to data 
 inconsistency and hard-to-debug issues. Maximum effort retry policies should be used instead.
@@ -13,9 +13,9 @@ from ....models import PMDModel, PodModel, ProjectContext
 from ..shared import StructureRuleBase
 
 
-class NoBestEffortRule(StructureRuleBase):
+class OnlyMaximumEffortRule(StructureRuleBase):
     """
-    Detects bestEffort: true on endpoints which can mask API failures.
+    Ensures endpoints use maximumEffort instead of bestEffort to prevent masked failures.
     
     This rule checks:
     - Inbound endpoints in PMD files
@@ -23,8 +23,8 @@ class NoBestEffortRule(StructureRuleBase):
     - Endpoints in POD files
     """
     
-    ID = "NoBestEffortRule"
-    DESCRIPTION = "Detects bestEffort: true on endpoints which can mask API failures"
+    ID = "OnlyMaximumEffortRule"
+    DESCRIPTION = "Ensures endpoints use maximumEffort instead of bestEffort to prevent masked API failures"
     SEVERITY = "ACTION"
     
     def get_description(self) -> str:
