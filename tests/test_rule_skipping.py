@@ -187,12 +187,13 @@ class TestHardcodedApplicationIdRuleSkipping:
         # Should NOT find any violations (no app ID to check against)
         assert len(findings) == 0
         
-        # Should register a skipped check
-        assert len(context.analysis_context.skipped_checks) == 1
-        skipped = context.analysis_context.skipped_checks[0]
-        assert skipped.rule_name == "HardcodedApplicationIdRule"
-        assert skipped.check_name == "app_id_detection"
-        assert "SMD file" in skipped.reason
+        # Should NOT register a skipped check (rule is added to rules_not_executed instead)
+        assert len(context.analysis_context.skipped_checks) == 0
+        
+        # Rule will be listed in rules_not_executed by the context tracker
+        rules_not_executed = context.analysis_context.rules_not_executed
+        rule_names = [r["rule"] for r in rules_not_executed]
+        assert "HardcodedApplicationIdRule" in rule_names
     
     def test_skips_check_when_smd_missing_pod(self):
         """Test that rule registers skipped check for POD when SMD is missing."""
@@ -219,12 +220,13 @@ class TestHardcodedApplicationIdRuleSkipping:
         # Should NOT find any violations (no app ID to check against)
         assert len(findings) == 0
         
-        # Should register a skipped check
-        assert len(context.analysis_context.skipped_checks) == 1
-        skipped = context.analysis_context.skipped_checks[0]
-        assert skipped.rule_name == "HardcodedApplicationIdRule"
-        assert skipped.check_name == "app_id_detection"
-        assert "SMD file" in skipped.reason
+        # Should NOT register a skipped check (rule is added to rules_not_executed instead)
+        assert len(context.analysis_context.skipped_checks) == 0
+        
+        # Rule will be listed in rules_not_executed by the context tracker
+        rules_not_executed = context.analysis_context.rules_not_executed
+        rule_names = [r["rule"] for r in rules_not_executed]
+        assert "HardcodedApplicationIdRule" in rule_names
 
 
 class TestRuleSkippingIntegration:
@@ -262,11 +264,16 @@ class TestRuleSkippingIntegration:
         # App ID rule should not find violations (no app ID)
         assert len(appid_findings) == 0
         
-        # Both rules should register skipped checks
-        assert len(context.analysis_context.skipped_checks) == 2
+        # Only PMDSecurityDomainRule should register skipped check
+        # HardcodedApplicationIdRule is now in rules_not_executed instead
+        assert len(context.analysis_context.skipped_checks) == 1
         
-        rule_names = {s.rule_name for s in context.analysis_context.skipped_checks}
-        assert "PMDSecurityDomainRule" in rule_names
+        skipped = context.analysis_context.skipped_checks[0]
+        assert skipped.rule_name == "PMDSecurityDomainRule"
+        
+        # HardcodedApplicationIdRule will be in rules_not_executed
+        rules_not_executed = context.analysis_context.rules_not_executed
+        rule_names = [r["rule"] for r in rules_not_executed]
         assert "HardcodedApplicationIdRule" in rule_names
     
     def test_no_skipped_checks_with_complete_context(self):
