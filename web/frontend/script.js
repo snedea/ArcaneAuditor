@@ -368,7 +368,6 @@ class ArcaneAuditorApp {
         const result = this.currentResult;
         
         const severityCounts = this.getSeverityCounts(result.findings);
-        const fileTypeCounts = this.getFileTypeCounts(result.findings);
 
         summary.innerHTML = `
             <h4>📈 Summary</h4>
@@ -400,22 +399,6 @@ class ArcaneAuditorApp {
                     </div>
                 </div>
             </div>
-            
-            
-            ${Object.keys(fileTypeCounts).length > 0 ? `
-                <div class="severity-section">
-                    <h5>Issues by File Type:</h5>
-                    <div class="severity-badges">
-                        ${Object.entries(fileTypeCounts).map(([fileType, count]) => `
-                            <div class="severity-badge">
-                                📄
-                                <span class="severity-count">${count}</span>
-                                <span class="severity-name">${fileType.toLowerCase()}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
         `;
     }
 
@@ -863,10 +846,10 @@ class ArcaneAuditorApp {
         
         // Update icon and title with magical flair
         if (isComplete) {
-            contextIcon.textContent = '🔮';
+            contextIcon.textContent = '✨';
             contextTitleText.textContent = 'Evaluation ✦';
         } else {
-            contextIcon.textContent = '🔮';
+            contextIcon.textContent = '🌙';
             contextTitleText.textContent = 'Divination Incomplete';
         }
         
@@ -960,7 +943,7 @@ class ArcaneAuditorApp {
             if (hasImpact) {
                 html += `
                     <div class="context-impact">
-                        <h4>🔮 Rules Not Invoked</h4>
+                        <h4>📜 Rules Not Invoked</h4>
                         <p class="context-impact-subtitle">Some validations could not be cast due to missing components.</p>
                         <div class="context-impact-list">
                 `;
@@ -1136,7 +1119,10 @@ function showConfigBreakdown() {
             
             html += `
                 <div class="rule-item enabled">
-                    <div class="rule-name">${ruleName}</div>
+                    <div class="rule-header-row">
+                        <div class="rule-name">${ruleName}</div>
+                        <span class="rule-status-badge enabled">✓ Enabled</span>
+                    </div>
                     <div class="rule-description">Severity: ${severity}</div>
                     ${settingsText ? `
                         <div class="rule-settings">
@@ -1164,7 +1150,10 @@ function showConfigBreakdown() {
         disabledRules.forEach(([ruleName, ruleConfig]) => {
             html += `
                 <div class="rule-item disabled">
-                    <div class="rule-name">${ruleName}</div>
+                    <div class="rule-header-row">
+                        <div class="rule-name">${ruleName}</div>
+                        <span class="rule-status-badge disabled">✗ Disabled</span>
+                    </div>
                     <div class="rule-description">Disabled</div>
                 </div>
             `;
