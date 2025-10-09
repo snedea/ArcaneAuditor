@@ -107,45 +107,59 @@ class StringConcatDetector(ScriptDetector):
         return False
     
     def _extract_expression_text(self, node: Tree) -> str:
-        """Extract readable text representation of an expression."""
+        """
+        Extract readable text representation of an expression from AST.
+        
+        Preserves operators (+, .) and proper expression structure.
+        """
         if not isinstance(node, Tree):
+            if hasattr(node, 'value'):
+                return str(node.value)
             return str(node)
         
+        # Handle additive expressions: a + b + c
         if node.data == 'additive_expression':
-            if len(node.children) >= 3:
-                left = self._extract_expression_text(node.children[0])
-                operator = node.children[1].value if hasattr(node.children[1], 'value') else '+'
-                right = self._extract_expression_text(node.children[2])
-                return f"{left} {operator} {right}"
+            parts = []
+            for i, child in enumerate(node.children):
+                if i > 0:
+                    parts.append(' + ')
+                parts.append(self._extract_expression_text(child) if isinstance(child, Tree) 
+                           else str(child.value) if hasattr(child, 'value') 
+                           else str(child))
+            return ''.join(parts)
         
+        # Handle simple literal values
         elif node.data == 'literal_expression':
             if len(node.children) > 0 and hasattr(node.children[0], 'value'):
                 return node.children[0].value
         
+        # Handle simple identifiers
         elif node.data == 'identifier_expression':
             if len(node.children) > 0 and hasattr(node.children[0], 'value'):
                 return node.children[0].value
         
+        # Handle POD parameters
         elif node.data == 'pod_parameter_expression':
             if len(node.children) > 0 and hasattr(node.children[0], 'value'):
                 return node.children[0].value
         
-        elif node.data == 'member_expression':
-            # Preserve dot notation: obj.property
-            text_parts = []
-            for child in node.children:
-                if hasattr(child, 'value'):
-                    text_parts.append(child.value)
-                elif isinstance(child, Tree):
-                    text_parts.append(self._extract_expression_text(child))
-            return '.'.join(text_parts) if text_parts else str(node.data)
+        # Handle member expressions: obj.property
+        elif node.data in ['member_dot_expression', 'member_expression', 'member_bracket_expression']:
+            parts = []
+            for i, child in enumerate(node.children):
+                if i > 0:
+                    parts.append('.')
+                parts.append(self._extract_expression_text(child) if isinstance(child, Tree)
+                           else str(child.value) if hasattr(child, 'value')
+                           else str(child))
+            return ''.join(parts)
         
-        # For other node types, try to extract meaningful text
-        text_parts = []
+        # Default: concatenate all child text
+        parts = []
         for child in node.children:
             if hasattr(child, 'value'):
-                text_parts.append(child.value)
+                parts.append(str(child.value))
             elif isinstance(child, Tree):
-                text_parts.append(self._extract_expression_text(child))
+                parts.append(self._extract_expression_text(child))
         
-        return ''.join(text_parts) if text_parts else str(node.data)
+        return ''.join(parts) if parts else str(node.data)
