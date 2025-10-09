@@ -1,8 +1,8 @@
 # Arcane Auditor Rules Grimoire 📜
 
-*Ancient wisdom distilled into 40 mystical validation rules*
+*Ancient wisdom distilled into 41 mystical validation rules*
 
-This grimoire provides a comprehensive overview of all **40 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
+This grimoire provides a comprehensive overview of all **41 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
 
 ## 📋 Table of Contents
 
@@ -30,7 +30,7 @@ This grimoire provides a comprehensive overview of all **40 validation rules** w
 - [StringBooleanRule](#stringbooleanrule)
 - [UnusedScriptIncludesRule](#unusedscriptincludesrule)
 
-### Structure Rules (18 Rules)
+### Structure Rules (19 Rules)
 - [EndpointFailOnStatusCodesRule](#endpointfailonstatuscodesrule)
 - [EndpointNameLowerCamelCaseRule](#endpointnamelowercamelcaserule)
 - [EndpointBaseUrlTypeRule](#endpointbaseurltyperule)
@@ -49,13 +49,14 @@ This grimoire provides a comprehensive overview of all **40 validation rules** w
 - [FooterPodHubMicroExclusionsRule](#footerpodhubmicroexclusionsrule)
 - [AmdDataProvidersWorkdayRule](#amddataprovidersworkdayrule)
 - [FileNameLowerCamelCaseRule](#filenamelowercamelcaserule)
+- [MultipleStringInterpolatorsRule](#multiplestringinterpolatorsrule)
 
 ## Rule Categories
 
 The rules are organized into two main categories:
 
 - **Script Rules (22 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
-- **Structure Rules (18 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- **Structure Rules (19 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 ## Severity Levels
 
@@ -1496,6 +1497,50 @@ Rename files to follow lowerCamelCase convention. For app-level files (AMD, SMD)
 
 ---
 
+### MultipleStringInterpolatorsRule
+
+**Severity:** ADVICE
+**Description:** Detects multiple string interpolators in a single string which should use template literals instead
+**Applies to:** PMD and POD files
+
+**What it catches:**
+
+- Strings with 2 or more `<% %>` interpolators
+- String values that mix static text with multiple dynamic values
+- Does NOT flag strings already using template literals (backticks with `${}`)
+
+**Why it matters:**
+
+Multiple interpolators in one string are harder to read and maintain. Using a **single interpolator** with a template literal inside is cleaner, more readable, and more performant.
+
+**Example violations:**
+
+```json
+{
+  "value": "My name is <% name %> and I like <% food %>"  // ❌ 2 interpolators
+}
+
+{
+  "label": "Name: <% firstName %>, Age: <% age %>, City: <% city %>"  // ❌ 3 interpolators
+}
+```
+
+**Fix:**
+
+```json
+{
+  "value": "<% `My name is ${name} and I like ${food}` %>"  // ✅ SINGLE interpolator with template literal
+}
+
+{
+  "label": "<% `Name: ${firstName}, Age: ${age}, City: ${city}` %>"  // ✅ SINGLE interpolator with template literal
+}
+```
+
+**Note:** Use ONE `<% %>` interpolator containing a template literal with backticks (\`) and `${}` for variables.
+
+---
+
 ### PMDSecurityDomainRule
 
 **Severity:** ACTION
@@ -1609,18 +1654,19 @@ Rename files to follow lowerCamelCase convention. For app-level files (AMD, SMD)
 | **NoIsCollectionOnEndpointsRule** | Structure | 🔴 ACTION | ✅ | — |
 | **OnlyMaximumEffortRule** | Structure | 🔴 ACTION | ✅ | — |
 | **NoPMDSessionVariablesRule** | Structure | 🔴 ACTION | ✅ | — |
+| **MultipleStringInterpolatorsRule** | Structure | 🟢 ADVICE | ✅ | — |
 
 ---
 
 ## Summary
 
-The Arcane Auditor channels mystical powers through **40 rules** across **2 categories**:
+The Arcane Auditor channels mystical powers through **41 rules** across **2 categories**:
 
 - ✅ **22 Script Rules** - Code quality for PMD and standalone scripts
-- ✅ **18 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- ✅ **19 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 **Severity Distribution:**
 - **9 ACTION Rules**: Critical issues requiring immediate attention
-- **31 ADVICE Rules**: Recommendations for code quality and best practices
+- **32 ADVICE Rules**: Recommendations for code quality and best practices
 
 These rules help maintain consistent, high-quality Workday Extend applications by catching issues that compilers aren't designed to catch, but are important for maintainability, performance, and team collaboration.
