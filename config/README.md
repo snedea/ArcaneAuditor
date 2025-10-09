@@ -1,3 +1,4 @@
+<a id="configuration-guide"></a>
 # Arcane Auditor Configuration Guide 📜
 
 [⬅️ Back to Main README](../README.md) | [🧠 Rules Overview](../parser/rules/RULE_BREAKDOWN.md)
@@ -30,18 +31,19 @@ config/
 
 Built-in configurations that come with the application:
 
-- **development.json** - Development-friendly validation with relaxed settings
+- **development.json** - Development-friendly validation that focuses on structure and standards
 
-  - Console log detection disabled (allows debugging output)
-  - Complexity rules relaxed (allows longer functions during prototyping)
-  - Critical safety rules enabled (null safety, empty functions, etc.)
-  - **Use case**: Daily development, debugging, prototyping
-- **production-ready.json** - Pre-deployment validation with strict settings
+  - **Disabled**: Rules that flag normal development patterns (console logs, unused code, dead code)
+  - **Enabled**: Structure rules (naming, IDs, security), code quality (complexity, nesting)
+  - Allows work-in-progress code without noise
+  - **Use case**: Daily development, active coding, prototyping
+  
+- **production-ready.json** - Comprehensive pre-deployment validation
 
-  - All rules enabled with strict settings
-  - Console log detection enabled (ensures no debug output)
-  - Strict complexity limits (enforces clean, maintainable code)
-  - **Use case**: Pre-deployment validation, CI/CD pipelines, production code reviews
+  - **All rules enabled** with strict settings
+  - Catches console logs, unused code, dead code (cleanup required)
+  - Strict enforcement of all structure and quality rules
+  - **Use case**: Pre-deployment validation, CI/CD pipelines, code reviews before release
 
 ### 👥 Team Configurations (config/teams/)
 
@@ -146,6 +148,6 @@ Your team and personal configurations will never be overwritten — your prefere
 - [Rule Documentation](../parser/rules/RULE_BREAKDOWN.md) - Detailed rule descriptions
 - [Custom Rules Guide](../parser/rules/custom/README.md) - Creating custom validation rules
 - [Project Structure](../docs/project-structure.md) - Project architecture overview
-- [See also: Update-Safe Configuration System](../README.md#-update-safe-configuration-system) - Cross-reference to main README
+- [See also: Update-Safe Configuration System](../README.md#configuration-system) - Cross-reference to main README
 
-[⬆️ Back to Top](#-arcane-auditor-configuration-guide-)
+[⬆️ Back to Top](#configuration-guide)

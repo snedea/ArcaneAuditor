@@ -170,7 +170,7 @@ class TestContextFormattingJSON:
         
         # Should have impact information
         assert "impact" in result["context"]
-        assert len(result["context"]["impact"]["rules_not_executed"]) == 1
+        assert len(result["context"]["impact"]["rules_not_executed"]) == 2  # AMDDataProvidersWorkdayRule and HardcodedApplicationIdRule
         assert len(result["context"]["impact"]["rules_partially_executed"]) == 1
         
         # Check partially executed rule details

@@ -57,10 +57,14 @@ class RulesConfig(BaseModel):
     EndpointNameLowerCamelCaseRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoint names follow lowerCamelCase convention")
     EndpointOnSendSelfDataRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoint onSend methods use self.data appropriately")
     EndpointBaseUrlTypeRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values")
+    NoIsCollectionOnEndpointsRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects isCollection: true on inbound endpoints which can cause tenant-wide performance issues")
+    OnlyMaximumEffortRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoints do not use bestEffort to prevent masked API failures")
+    NoPMDSessionVariablesRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects outboundVariable endpoints with variableScope: session which can cause performance degradation")
     
     # Widget Structure Rules
     WidgetIdRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all widgets have required 'id' field")
     WidgetIdLowerCamelCaseRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures widget IDs follow lowerCamelCase convention")
+    GridPagingWithSortableFilterableRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects grids with paging and sortableAndFilterable columns which can cause performance issues")
     
     # General Structure Rules
     FooterPodRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures footer widgets utilize pods")
@@ -70,6 +74,8 @@ class RulesConfig(BaseModel):
     HardcodedApplicationIdRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects hardcoded applicationId values that should be replaced with site.applicationId")
     HardcodedWidRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects hardcoded WID values that should be configured in app attributes")
     PMDSecurityDomainRule: RuleConfig = Field(default_factory=RuleConfig, description="Validates that PMD files have a securityDomains section and that it is not empty")
+    FileNameLowerCamelCaseRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all file names follow lowerCamelCase naming convention")
+    MultipleStringInterpolatorsRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects multiple string interpolators in a single string which should use template literals instead")
 
 
 class FileProcessingConfig(BaseModel):

@@ -114,7 +114,7 @@ class OutputFormatter:
             output.append("")  # Empty line between files
         
         # Footer with helpful message
-        output.append("💡 **Tip:** Use `--config` to customize rules or `--help` for more options.")
+        output.append("💡 **Tip:** Use `--config` to load custom config files or `--help` for more options.")
         
         return "\n".join(output)
     
@@ -298,12 +298,12 @@ class OutputFormatter:
         context_sheet.append([])
         
         # Files Present
-        context_sheet.append(["File Types Present", ", ".join(sorted(analysis_context.files_present))])
+        context_sheet.append(["File Types Included", ", ".join(sorted(analysis_context.files_present))])
         context_sheet[f'A{context_sheet.max_row}'].font = Font(bold=True)
         
         # Files Missing
         if analysis_context.files_missing:
-            context_sheet.append(["File Types Missing", ", ".join(sorted(analysis_context.files_missing))])
+            context_sheet.append(["File Types Not Included", ", ".join(sorted(analysis_context.files_missing))])
             context_sheet[f'A{context_sheet.max_row}'].font = Font(bold=True)
             # Highlight missing files in yellow
             missing_fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
@@ -398,7 +398,7 @@ class OutputFormatter:
         summary_sheet.append(["Action", len([f for f in findings if f.severity == "ACTION"])])
         summary_sheet.append(["Advice", len([f for f in findings if f.severity == "ADVICE"])])
         summary_sheet.append([])
-        summary_sheet.append(["File", "Issues", "Action", "Advice"])
+        summary_sheet.append(["File", "# Issues", "# Actions", "# Advices"])
         
         # Style summary sheet
         summary_sheet['A1'].font = Font(bold=True, size=14)
@@ -450,6 +450,10 @@ class OutputFormatter:
                                      fill_type="solid")
                     for col_num in range(1, len(headers) + 1):
                         ws.cell(row=ws.max_row, column=col_num).fill = fill
+                
+                # Enable word wrap on the Message column (column 4)
+                message_cell = ws.cell(row=ws.max_row, column=4)
+                message_cell.alignment = Alignment(wrap_text=True, vertical="top")
             
             # Auto-adjust column widths
             for column in ws.columns:
@@ -461,7 +465,13 @@ class OutputFormatter:
                             max_length = len(str(cell.value))
                     except:
                         pass
-                adjusted_width = min(max_length + 2, 150)  # Cap at 150
+                
+                # Special handling for Message column (column D/4) - cap at 80 for better wrapping
+                if column_letter == 'D':
+                    adjusted_width = min(max_length + 2, 80)  # Cap Message column at 80
+                else:
+                    adjusted_width = min(max_length + 2, 150)  # Other columns cap at 150
+                
                 ws.column_dimensions[column_letter].width = adjusted_width
             
             # Update summary sheet

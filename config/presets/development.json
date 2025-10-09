@@ -28,7 +28,7 @@
       "custom_settings": {}
     },
     "ScriptConsoleLogRule": {
-      "enabled": true,
+      "enabled": false,
       "severity_override": null,
       "custom_settings": {}
     },
@@ -38,7 +38,7 @@
       "custom_settings": {}
     },
     "ScriptDeadCodeRule": {
-      "enabled": true,
+      "enabled": false,
       "severity_override": null,
       "custom_settings": {}
     },
@@ -96,22 +96,22 @@
       "custom_settings": {}
     },
     "ScriptUnusedFunctionRule": {
-      "enabled": true,
+      "enabled": false,
       "severity_override": null,
       "custom_settings": {}
     },
     "ScriptUnusedFunctionParametersRule": {
-      "enabled": true,
+      "enabled": false,
       "severity_override": null,
       "custom_settings": {}
     },
     "ScriptUnusedVariableRule": {
-      "enabled": true,
+      "enabled": false,
       "severity_override": null,
       "custom_settings": {}
     },
     "ScriptUnusedScriptIncludesRule": {
-      "enabled": true,
+      "enabled": false,
       "severity_override": null,
       "custom_settings": {}
     },
@@ -185,6 +185,36 @@
       }
     },
     "AMDDataProvidersWorkdayRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "FileNameLowerCamelCaseRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "NoIsCollectionOnEndpointsRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "OnlyMaximumEffortRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "NoPMDSessionVariablesRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "MultipleStringInterpolatorsRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "GridPagingWithSortableFilterableRule": {
       "enabled": true,
       "severity_override": null,
       "custom_settings": {}

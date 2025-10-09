@@ -200,7 +200,7 @@ class TestAnalysisContext:
         assert result["context_status"] == "partial"
         assert "AMD" in result["files_missing"]
         assert "SMD" in result["files_missing"]
-        assert len(result["impact"]["rules_not_executed"]) == 1
+        assert len(result["impact"]["rules_not_executed"]) == 2  # AMDDataProvidersWorkdayRule and HardcodedApplicationIdRule
         assert len(result["impact"]["rules_partially_executed"]) == 1
         assert result["impact"]["rules_partially_executed"][0]["rule"] == "TestRule"
     

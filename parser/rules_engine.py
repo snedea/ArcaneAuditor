@@ -116,7 +116,6 @@ class RulesEngine:
                     except Exception as e:
                         print(f"Error running rule {rule.__class__.__name__}: {e}")
         
-        print(f"Analysis complete. Found {len(all_findings)} issue(s).")
         return all_findings
     
     def _run_rule_safe(self, rule: Rule, context: ProjectContext) -> List[Finding]:

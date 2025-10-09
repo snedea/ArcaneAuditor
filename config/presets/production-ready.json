@@ -188,6 +188,36 @@
       "enabled": true,
       "severity_override": "ACTION",
       "custom_settings": {}
+    },
+    "FileNameLowerCamelCaseRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "NoIsCollectionOnEndpointsRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "OnlyMaximumEffortRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "NoPMDSessionVariablesRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "MultipleStringInterpolatorsRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
+    "GridPagingWithSortableFilterableRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
     }
   },
   "file_processing": {
