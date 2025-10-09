@@ -7,6 +7,7 @@
 ![Version](https://img.shields.io/badge/version-0.4.0--beta.1-purple?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
 
+<a id="overview"></a>
 ## 🎯 Overview
 
 Arcane Auditor channels ancient wisdom through **many comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
@@ -24,20 +25,22 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 - 🎨 **Clear Messages**: Actionable violation messages with locations and fix suggestions
 - 🧠 **Context Awareness**: Understands when analysis is partial due to missing files
 
-> 🧙‍♂️ **Tip:** Use the [web interface](#user-content-arcane-auditor-web-user-interface) for the fastest start, or jump to [Quick Start](#user-content-quick-start) to begin immediately.
+> 🧙‍♂️ **Tip:** Use the [web interface](#web-interface) for the fastest start, or jump to [Quick Start](#quick-start) to begin immediately.
 
+<a id="table-of-contents"></a>
 ## 🗂️ Table of Contents
 
-- [🚀 Quick Start](#user-content-quick-start)
-- [🌐 Web Interface](#user-content-arcane-auditor-web-user-interface)
-- [🧠 Context Awareness](#user-content-context-awareness)
-- [🛡️ Configuration System](#user-content-update-safe-configuration-system)
-- [🔧 Validation Rules](#user-content-validation-rules)
-- [🛠️ Development](#user-content-development)
-  - [🤝 Contributing](#user-content-contributing)
-- [📚 Documentation](#user-content-documentation)
-- [📄 License](#user-content-license)
+- [🚀 Quick Start](#quick-start)
+- [🌐 Web Interface](#web-interface)
+- [🧠 Context Awareness](#context-awareness)
+- [🛡️ Configuration System](#configuration-system)
+- [🔧 Validation Rules](#validation-rules)
+- [🛠️ Development](#development)
+  - [🤝 Contributing](#contributing)
+- [📚 Documentation](#documentation)
+- [📄 License](#license)
 
+<a id="web-interface-screenshots"></a>
 ## 🖼️ Web Interface Screenshots
 
 ### Dark Mode Interface
@@ -67,6 +70,7 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 
 *The mystical web interface provides an intuitive way to upload and analyze your Workday Extend applications with real-time results and downloadable reports.*
 
+<a id="quick-start"></a>
 ## 🚀 Quick Start
 
 > ⚙️ **Requirements:** Python 3.8+, UV package manager, Git
@@ -100,13 +104,14 @@ uv run main.py review-app file1.pmd file2.pod file3.script
 uv run main.py review-app myapp.zip --config my-config.json
 ```
 
-💡 **Need more setup paths?** See [Development Setup](#user-content-option-c-development-setup)
+💡 **Need more setup paths?** See [Development Setup](#option-c-development-setup)
 
-[⬆️ Back to Top](#user-content-table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 <details>
 <summary>📦 Installation Options (click to expand)</summary>
 
+<a id="option-a-direct-download"></a>
 ### Option A: Direct Download (Recommended)
 
 1. Download the latest release from [GitHub Releases](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
@@ -116,6 +121,7 @@ uv run main.py review-app myapp.zip --config my-config.json
    uv sync
    ```
 
+<a id="option-b-clone-repository"></a>
 ### Option B: Clone Repository
 
 ```bash
@@ -124,6 +130,7 @@ cd ArcaneAuditor
 uv sync
 ```
 
+<a id="option-c-development-setup"></a>
 ### Option C: Development Setup
 
 ```bash
@@ -135,6 +142,7 @@ uv run pytest  # Run tests
 
 </details>
 
+<a id="web-interface"></a>
 ## 🌐 Arcane Auditor Web User Interface
 
 *For most users, this is the easiest way to run Arcane Auditor.*
@@ -169,7 +177,7 @@ uv run web/server.py --port 8090
 uv run web/server.py --port 8080 &
 ```
 
-> 💡 **Tip:** The web interface provides intelligent [context awareness](#user-content-context-awareness) to help you understand when analysis is complete or partial.
+> 💡 **Tip:** The web interface provides intelligent [context awareness](#context-awareness) to help you understand when analysis is complete or partial.
 
 <details>
 <summary>🔗 API Endpoints (click to expand)</summary>
@@ -183,8 +191,9 @@ uv run web/server.py --port 8080 &
 
 </details>
 
-[⬆️ Back to Top](#user-content-table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
+<a id="context-awareness"></a>
 ## 🧠 Context Awareness
 
 <details>
@@ -263,10 +272,11 @@ The tool provides clear context information in all output formats:
 - Visual indicators for complete vs. partial analysis
 - Recommendations for improving analysis coverage
 
-[⬆️ Back to Top](#user-content-table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 </details>
 
+<a id="configuration-system"></a>
 ## 🛡️ Update-Safe Configuration System
 
 <details>
@@ -324,10 +334,11 @@ uv run main.py review-app myapp.zip --config my-config.json
 
 This ensures your customizations persist through updates while allowing flexibility for different projects.
 
-[⬆️ Back to Top](#user-content-table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 </details>
 
+<a id="validation-rules"></a>
 ## 🔧 Validation Rules
 
 ### Categories
@@ -367,7 +378,7 @@ This ensures your customizations persist through updates while allowing flexibil
 - **Dead Code**: Detects unreachable code blocks
 - **Unused Parameters**: Identifies function parameters that aren't used
 
-[⬆️ Back to Top](#user-content-table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 </details>
 
@@ -402,7 +413,7 @@ This ensures your customizations persist through updates while allowing flexibil
 - **Performance Optimization**: Checks for performance-related issues
 - **Accessibility**: Validates accessibility compliance
 
-[⬆️ Back to Top](#user-content-table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 </details>
 
@@ -455,10 +466,11 @@ Custom rules can be configured through the configuration system:
 }
 ```
 
-[⬆️ Back to Top](#user-content-table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 </details>
 
+<a id="development"></a>
 ## 🛠️ Development
 
 <details>
@@ -573,6 +585,7 @@ uv run pytest tests/test_rules.py
 uv run pytest --cov=arcane_auditor
 ```
 
+<a id="contributing"></a>
 ### **Contributing**
 
 1. Fork the repository
@@ -592,18 +605,20 @@ uv run pytest --cov=arcane_auditor
 - Include unit tests for new features
 - Use meaningful commit messages
 
-[⬆️ Back to Top](#user-content-table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
 </details>
 
-[⬆️ Back to Top](#user-content-table-of-contents)
+[⬆️ Back to Top](#table-of-contents)
 
+<a id="documentation"></a>
 ## 📚 Documentation
 
 - **[Rule Documentation](parser/rules/RULE_BREAKDOWN.md)** - Detailed rule descriptions and examples
 - **[Custom Rules Guide](parser/rules/custom/README.md)** - Custom rule development guide
 - **[Configuration Guide](config/README.md)** - Configuration options and examples
 
+<a id="license"></a>
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
