@@ -114,7 +114,7 @@ class OutputFormatter:
             output.append("")  # Empty line between files
         
         # Footer with helpful message
-        output.append("💡 **Tip:** Use `--config` to customize rules or `--help` for more options.")
+        output.append("💡 **Tip:** Use `--config` to load custom config files or `--help` for more options.")
         
         return "\n".join(output)
     
@@ -298,12 +298,12 @@ class OutputFormatter:
         context_sheet.append([])
         
         # Files Present
-        context_sheet.append(["File Types Present", ", ".join(sorted(analysis_context.files_present))])
+        context_sheet.append(["File Types Included", ", ".join(sorted(analysis_context.files_present))])
         context_sheet[f'A{context_sheet.max_row}'].font = Font(bold=True)
         
         # Files Missing
         if analysis_context.files_missing:
-            context_sheet.append(["File Types Missing", ", ".join(sorted(analysis_context.files_missing))])
+            context_sheet.append(["File Types Not Included", ", ".join(sorted(analysis_context.files_missing))])
             context_sheet[f'A{context_sheet.max_row}'].font = Font(bold=True)
             # Highlight missing files in yellow
             missing_fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
