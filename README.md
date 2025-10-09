@@ -7,8 +7,7 @@
 ![Version](https://img.shields.io/badge/version-0.5.0--beta.1-purple?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
 
-`<a id="overview"></a>`
-
+<a id="overview"></a>
 ## 🎯 Overview
 
 Arcane Auditor channels ancient wisdom through **many comprehensive validation rules** to reveal hidden quality violations that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
@@ -28,8 +27,7 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 
 > 🧙‍♂️ **Tip:** Use the [web interface](#web-interface) for the fastest start, or jump to [Quick Start](#quick-start) to begin immediately.
 
-`<a id="table-of-contents"></a>`
-
+<a id="table-of-contents"></a>
 ## 🗂️ Table of Contents
 
 - [🚀 Quick Start](#quick-start)
@@ -42,8 +40,7 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 - [📚 Documentation](#documentation)
 - [📄 License](#license)
 
-`<a id="web-interface-screenshots"></a>`
-
+<a id="web-interface-screenshots"></a>
 ## 🖼️ Web Interface Screenshots
 
 ### Dark Mode Interface
@@ -73,7 +70,7 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 
 *The mystical web interface provides an intuitive way to upload and analyze your Workday Extend applications with real-time results and downloadable reports.*
 
-`<a id="quick-start"></a>`
+<a id="quick-start"></a>
 
 ## 🚀 Quick Start
 
@@ -115,7 +112,7 @@ uv run main.py review-app myapp.zip --config my-config.json
 <details>
 <summary>📦 Installation Options (click to expand)</summary>
 
-`<a id="option-a-direct-download"></a>`
+<a id="option-a-direct-download"></a>
 
 ### Option A: Direct Download (Recommended)
 
@@ -126,7 +123,7 @@ uv run main.py review-app myapp.zip --config my-config.json
    uv sync
    ```
 
-`<a id="option-b-clone-repository"></a>`
+<a id="option-b-clone-repository"></a>
 
 ### Option B: Clone Repository
 
@@ -136,7 +133,7 @@ cd ArcaneAuditor
 uv sync
 ```
 
-`<a id="option-c-development-setup"></a>`
+<a id="option-c-development-setup"></a>
 
 ### Option C: Development Setup
 
@@ -149,7 +146,7 @@ uv run pytest  # Run tests
 
 </details>
 
-`<a id="web-interface"></a>`
+<a id="web-interface"></a>
 
 ## 🌐 Arcane Auditor Web User Interface
 
@@ -201,7 +198,7 @@ uv run web/server.py --port 8080 &
 
 [⬆️ Back to Top](#table-of-contents)
 
-`<a id="context-awareness"></a>`
+<a id="context-awareness"></a>
 
 ## 🧠 Context Awareness
 
@@ -285,7 +282,7 @@ The tool provides clear context information in all output formats:
 
 </details>
 
-`<a id="configuration-system"></a>`
+<a id="configuration-system"></a>
 
 ## 🛡️ Update-Safe Configuration System
 
@@ -361,7 +358,7 @@ This ensures your customizations persist through updates while allowing flexibil
 
 </details>
 
-`<a id="validation-rules"></a>`
+<a id="validation-rules"></a>
 
 ## 🔧 Validation Rules
 
@@ -494,7 +491,7 @@ Custom rules can be configured through the configuration system:
 
 </details>
 
-`<a id="development"></a>`
+<a id="development"></a>
 
 ## 🛠️ Development
 
@@ -601,7 +598,7 @@ uv run pytest
 uv run pytest tests/test_app_parser.py
 ```
 
-`<a id="contributing"></a>`
+<a id="contributing"></a>
 
 ### **Contributing**
 
@@ -627,8 +624,7 @@ uv run pytest tests/test_app_parser.py
 </details>
 
 [⬆️ Back to Top](#table-of-contents)
-
-`<a id="documentation"></a>`
+<a id="documentation"></a>
 
 ## 📚 Documentation
 
@@ -636,7 +632,7 @@ uv run pytest tests/test_app_parser.py
 - **[Custom Rules Guide](parser/rules/custom/README.md)** - Custom rule development guide
 - **[Configuration Guide](config/README.md)** - Configuration options and examples
 
-`<a id="license"></a>`
+<a id="license"></a>
 
 ## 📄 License
 
