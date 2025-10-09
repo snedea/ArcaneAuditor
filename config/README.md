@@ -1,3 +1,4 @@
+<a id="configuration-guide"></a>
 # Arcane Auditor Configuration Guide 📜
 
 [⬅️ Back to Main README](../README.md) | [🧠 Rules Overview](../parser/rules/RULE_BREAKDOWN.md)
@@ -146,6 +147,6 @@ Your team and personal configurations will never be overwritten — your prefere
 - [Rule Documentation](../parser/rules/RULE_BREAKDOWN.md) - Detailed rule descriptions
 - [Custom Rules Guide](../parser/rules/custom/README.md) - Creating custom validation rules
 - [Project Structure](../docs/project-structure.md) - Project architecture overview
-- [See also: Update-Safe Configuration System](../README.md#-update-safe-configuration-system) - Cross-reference to main README
+- [See also: Update-Safe Configuration System](../README.md#configuration-system) - Cross-reference to main README
 
-[⬆️ Back to Top](#-arcane-auditor-configuration-guide-)
+[⬆️ Back to Top](#configuration-guide)
