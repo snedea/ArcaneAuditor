@@ -368,31 +368,35 @@ header p {
 }
 
 .context-header-badge.complete {
-    background: #d1fae5;
-    color: #065f46;
+    background: #10b981;
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
 }
 
 [data-theme="dark"] .context-header-badge.complete {
-    background: #064e3b;
-    color: #6ee7b7;
+    background: #059669;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(5, 150, 105, 0.4);
 }
 
 .context-header-badge.partial {
-    background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%);
+    background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
     color: #ffffff;
-    box-shadow: 0 2px 4px rgba(217, 119, 6, 0.4);
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(234, 88, 12, 0.4);
     animation: soft-pulse 3s ease-in-out infinite;
 }
 
 @keyframes soft-pulse {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.8; }
+    50% { opacity: 0.9; }
 }
 
 [data-theme="dark"] .context-header-badge.partial {
-    background: linear-gradient(135deg, #B45309 0%, #D97706 100%);
-    color: #fcd34d;
-    box-shadow: 0 2px 4px rgba(180, 83, 9, 0.4);
+    background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(249, 115, 22, 0.5);
 }
 
 .context-content {
@@ -458,16 +462,18 @@ header p {
 }
 
 .context-missing-item.required {
-    background: #fef2f2;
-    color: #dc2626;
-    border-color: #fecaca;
-    font-weight: 600;
+    background: #dc2626;
+    color: #ffffff;
+    border: 2px solid #b91c1c;
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
 }
 
 [data-theme="dark"] .context-missing-item.required {
-    background: #7f1d1d;
-    color: #fca5a5;
-    border-color: #991b1b;
+    background: #ef4444;
+    color: #ffffff;
+    border: 2px solid #f87171;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.4);
 }
 
 .context-impact {
@@ -852,10 +858,12 @@ header p {
 
 .rule-item {
     padding: 12px;
+    padding-bottom: 40px; /* Extra space for badge at bottom */
     border: 1px solid var(--border-color);
     border-radius: 6px;
     background: var(--bg-primary);
     transition: all 0.2s ease;
+    position: relative; /* For absolute positioning of badge */
 }
 
 .rule-item:hover {
@@ -863,20 +871,73 @@ header p {
     box-shadow: 0 4px 12px var(--shadow);
 }
 
+/* Accessibility: Using blue/orange instead of green/red for colorblind users */
+/* Solid vs dashed borders provide additional visual differentiation */
 .rule-item.enabled {
-    border-left: 4px solid #10b981;
+    border-left: 4px solid #0284c7; /* Blue (solid border) for enabled */
+    border-style: solid;
 }
 
 .rule-item.disabled {
-    border-left: 4px solid #ef4444;
-    opacity: 0.7;
+    border-left: 4px dashed #d97706; /* Orange (dashed border) for disabled */
+    /* Removed opacity - badges now handle their own styling */
+}
+
+.rule-item.disabled .rule-description {
+    opacity: 0.7; /* Subtle dimming only on description text */
+}
+
+.rule-header-row {
+    margin-bottom: 4px;
 }
 
 .rule-name {
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 4px;
     font-size: 0.95rem;
+    padding-right: 10px; /* Prevent wrapping too close to edge */
+}
+
+.rule-status-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+.rule-status-badge.enabled {
+    background: #0284c7;
+    color: #ffffff;
+    border: 2px solid #0369a1;
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);
+}
+
+.rule-status-badge.disabled {
+    background: #ea580c;
+    color: #ffffff;
+    border: 2px solid #c2410c;
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(234, 88, 12, 0.2);
+}
+
+/* Theme-specific status badge colors */
+[data-theme="dark"] .rule-status-badge.enabled {
+    background: #0284c7;
+    color: #ffffff;
+    border: 2px solid #0ea5e9;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4);
+}
+
+[data-theme="dark"] .rule-status-badge.disabled {
+    background: #f97316;
+    color: #ffffff;
+    border: 2px solid #fb923c;
+    box-shadow: 0 2px 8px rgba(251, 146, 60, 0.5);
 }
 
 .rule-description {
@@ -946,11 +1007,11 @@ header p {
 }
 
 .summary-card.enabled {
-    border-left: 4px solid #10b981;
+    border-left: 4px solid #0284c7; /* Blue instead of green */
 }
 
 .summary-card.disabled {
-    border-left: 4px solid #ef4444;
+    border-left: 4px dashed #d97706; /* Orange dashed instead of red solid */
 }
 
 .summary-card.total {
@@ -981,22 +1042,22 @@ header p {
 /* Theme-specific rule item colors */
 [data-theme="light"] .rule-item.enabled,
 [data-theme="light"] .summary-card.enabled {
-    border-left-color: #059669;
+    border-left-color: #0369a1; /* Darker blue for light mode */
 }
 
 [data-theme="dark"] .rule-item.enabled,
 [data-theme="dark"] .summary-card.enabled {
-    border-left-color: #10b981;
+    border-left-color: #38bdf8; /* Lighter blue for dark mode */
 }
 
 [data-theme="light"] .rule-item.disabled,
 [data-theme="light"] .summary-card.disabled {
-    border-left-color: #dc2626;
+    border-left-color: #c2410c; /* Darker orange for light mode */
 }
 
 [data-theme="dark"] .rule-item.disabled,
 [data-theme="dark"] .summary-card.disabled {
-    border-left-color: #ef4444;
+    border-left-color: #fb923c; /* Lighter orange for dark mode */
 }
 
 [data-theme="light"] .summary-card.total {
@@ -1313,8 +1374,13 @@ header p {
 }
 
 [data-theme="light"] {
-    --accent-action: #d97706;
-    --accent-advice: #0284c7;
+    --accent-action: #c2410c;  /* Darker orange for better contrast */
+    --accent-advice: #0369a1;  /* Darker blue for better contrast */
+}
+
+[data-theme="dark"] {
+    --accent-action: #fb923c;  /* Lighter orange for dark mode */
+    --accent-advice: #38bdf8;  /* Lighter blue for dark mode */
 }
 
 /* Summary cards with inline icons */
@@ -1364,13 +1430,22 @@ header p {
     border-bottom: 2px solid var(--accent-advice); 
 }
 
+.summary-number,
+.summary-number-blue,
+.summary-number-purple,
+.summary-number-orange {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
 .summary-number-blue { color: #3b82f6; }
 .summary-number-purple { color: #8b5cf6; }
 .summary-number-orange { color: #f59e0b; }
 
 .summary-label {
     font-size: 0.9rem;
-    color: #64748b;
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
@@ -1558,19 +1633,48 @@ header p {
     padding: 4px 8px;
     border-radius: 12px;
     font-size: 0.8rem;
-    font-weight: 500;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .severity-count-badge.action {
-    background: #fee2e2;
-    color: #dc2626;
-    border: 1px solid #fecaca;
+    background: #ea580c;
+    color: #ffffff;
+    border: 2px solid #c2410c;
+    border-style: solid;
+    font-weight: 700;
+}
+
+.severity-count-badge.action::before {
+    content: "■";
+    font-size: 0.9em;
 }
 
 .severity-count-badge.advice {
-    background: #dbeafe;
-    color: #1d4ed8;
-    border: 1px solid #bfdbfe;
+    background: #0284c7;
+    color: #ffffff;
+    border: 2px dashed #0369a1;
+    font-weight: 700;
+}
+
+.severity-count-badge.advice::before {
+    content: "◆";
+    font-size: 0.9em;
+}
+
+/* Theme-specific severity badge colors */
+[data-theme="dark"] .severity-count-badge.action {
+    background: #f97316;
+    color: #ffffff;
+    border: 2px solid #fb923c;
+}
+
+[data-theme="dark"] .severity-count-badge.advice {
+    background: #0284c7;
+    color: #ffffff;
+    border: 2px dashed #0ea5e9;
 }
 
 .file-findings {
