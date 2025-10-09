@@ -1,8 +1,8 @@
 # Arcane Auditor Rules Grimoire 📜
 
-*Ancient wisdom distilled into 39 mystical validation rules*
+*Ancient wisdom distilled into 40 mystical validation rules*
 
-This grimoire provides a comprehensive overview of all **39 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
+This grimoire provides a comprehensive overview of all **40 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
 
 ## 📋 Table of Contents
 
@@ -30,13 +30,14 @@ This grimoire provides a comprehensive overview of all **39 validation rules** w
 - [StringBooleanRule](#stringbooleanrule)
 - [UnusedScriptIncludesRule](#unusedscriptincludesrule)
 
-### Structure Rules (17 Rules)
+### Structure Rules (18 Rules)
 - [EndpointFailOnStatusCodesRule](#endpointfailonstatuscodesrule)
 - [EndpointNameLowerCamelCaseRule](#endpointnamelowercamelcaserule)
 - [EndpointBaseUrlTypeRule](#endpointbaseurltyperule)
 - [EndpointOnSendSelfDataRule](#endpointonsendselfdatarule)
 - [NoIsCollectionOnEndpointsRule](#noiscollectiononendpointsrule)
 - [NoBestEffortRule](#nobesteffortrule)
+- [NoPMDSessionVariablesRule](#nopmdsessionvariablesrule)
 - [WidgetIdRequiredRule](#widgetidrequiredrule)
 - [WidgetIdLowerCamelCaseRule](#widgetidlowercamelcaserule)
 - [HardcodedApplicationIdRule](#hardcodedapplicationidrule)
@@ -54,7 +55,7 @@ This grimoire provides a comprehensive overview of all **39 validation rules** w
 The rules are organized into two main categories:
 
 - **Script Rules (22 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
-- **Structure Rules (17 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- **Structure Rules (18 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 ## Severity Levels
 
@@ -1187,6 +1188,56 @@ Using `bestEffort: true` on endpoints can silently ignore API failures, leading 
 
 ---
 
+### NoPMDSessionVariablesRule
+
+**Severity:** ACTION
+**Description:** Detects outboundVariable endpoints with variableScope: session which can cause performance degradation
+**Applies to:** PMD outbound endpoints only
+
+**What it catches:**
+
+- Outbound endpoints with `type: "outboundVariable"` AND `variableScope: "session"`
+- Does NOT check inbound endpoints (only outbound)
+- Does NOT check POD files (PODs don't use this pattern)
+
+**Why it matters:**
+
+PMD session variables persist for the entire user session, consuming memory and potentially causing performance issues as sessions accumulate data. Page or task scope should be used instead.
+
+**Example violations:**
+
+```json
+{
+  "outboundEndpoints": [
+    {
+      "name": "saveUserPreference",
+      "type": "outboundVariable",
+      "variableScope": "session"  // ❌ Lasts entire session - performance issue
+    }
+  ]
+}
+```
+
+**Fix:**
+
+```json
+{
+  "outboundEndpoints": [
+    {
+      "name": "saveUserPreference",
+      "type": "outboundVariable",
+      "variableScope": "page"  // ✅ Use page scope
+    }
+  ]
+}
+```
+
+**Alternative scopes:**
+- `"page"` - For page-level data (recommended for most cases)
+- `"task"` - For task-level data
+
+---
+
 ### EndpointNameLowerCamelCaseRule
 
 **Severity:** ADVICE
@@ -1557,18 +1608,19 @@ Rename files to follow lowerCamelCase convention. For app-level files (AMD, SMD)
 | **FileNameLowerCamelCaseRule** | Structure | 🟢 ADVICE | ✅ | — |
 | **NoIsCollectionOnEndpointsRule** | Structure | 🔴 ACTION | ✅ | — |
 | **NoBestEffortRule** | Structure | 🔴 ACTION | ✅ | — |
+| **NoPMDSessionVariablesRule** | Structure | 🔴 ACTION | ✅ | — |
 
 ---
 
 ## Summary
 
-The Arcane Auditor channels mystical powers through **39 rules** across **2 categories**:
+The Arcane Auditor channels mystical powers through **40 rules** across **2 categories**:
 
 - ✅ **22 Script Rules** - Code quality for PMD and standalone scripts
-- ✅ **17 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- ✅ **18 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 **Severity Distribution:**
-- **8 ACTION Rules**: Critical issues requiring immediate attention
+- **9 ACTION Rules**: Critical issues requiring immediate attention
 - **31 ADVICE Rules**: Recommendations for code quality and best practices
 
 These rules help maintain consistent, high-quality Workday Extend applications by catching issues that compilers aren't designed to catch, but are important for maintainability, performance, and team collaboration.
