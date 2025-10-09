@@ -7,6 +7,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 ## 📋 Table of Contents
 
 ### Script Rules (22 Rules)
+
 - [ScriptVarUsageRule](#scriptvarusagerule)
 - [ScriptDeadCodeRule](#scriptdeadcoderule)
 - [ScriptComplexityRule](#scriptcomplexityrule)
@@ -31,6 +32,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 - [UnusedScriptIncludesRule](#unusedscriptincludesrule)
 
 ### Structure Rules (20 Rules)
+
 - [EndpointFailOnStatusCodesRule](#endpointfailonstatuscodesrule)
 - [EndpointNameLowerCamelCaseRule](#endpointnamelowercamelcaserule)
 - [EndpointBaseUrlTypeRule](#endpointbaseurltyperule)
@@ -959,7 +961,7 @@ const appId = site.applicationId; // ✅ Use site.applicationId
 ```json
 {
   "type": "image", 
-  "src": "/images/logo.png" // ✅ External image file
+  "src": "http://example.com/images/logo.png" // ✅ External image file
 }
 ```
 
@@ -985,7 +987,7 @@ const workerWid = "d9e41a8c446c11de98360015c5e6daf6"; // ❌ Hardcoded WID
 **Fix:**
 
 ```javascript
-const workerWid = app.attributes.workerWid; // ✅ Use app attribute
+const workerWid = appAttr.workerWid; // ✅ Use app attribute
 ```
 
 ---
@@ -1235,6 +1237,7 @@ PMD session variables persist for the entire user session, consuming memory and 
 ```
 
 **Alternative scopes:**
+
 - `"page"` - For page-level data (recommended for most cases)
 - `"task"` - For task-level data
 
@@ -1463,7 +1466,7 @@ Each rule supports:
 **What it catches:**
 
 - Files using PascalCase (e.g., `MyPage.pmd`)
-- Files using snake_case (e.g., `my_page.pmd`)  
+- Files using snake_case (e.g., `my_page.pmd`)
 - Files using UPPERCASE (e.g., `MYPAGE.pmd`)
 - Files starting with numbers (e.g., `2myPage.pmd`)
 
@@ -1564,14 +1567,14 @@ Combining paging with sortable/filterable columns can cause severe performance d
 {
   "type": "grid",
   "id": "workersGrid",
-  "autoPaging": true,  // Or "pagingInfo": {"pageSize": 50}
+  "autoPaging": true,  // Or "pagingInfo": {}
   "columns": [
     {
-      "columnId": "workerName",
+      "columnId": "workerNameColumnId",
       "sortableAndFilterable": true  // ❌ With paging, this causes major performance issues
     },
     {
-      "columnId": "department",
+      "columnId": "departmentColumnId",
       "sortableAndFilterable": true  // ❌ Also flagged
     }
   ]
@@ -1646,7 +1649,7 @@ Combining paging with sortable/filterable columns can cause severe performance d
 // ✅ Proper security domains
 {
   "id": "myPage", 
-  "securityDomains": ["workday-common"],
+  "securityDomains": ["ViewAdminPages"],
   "presentation": {
     "body": { ... }
   }
@@ -1685,50 +1688,50 @@ Combining paging with sortable/filterable columns can cause severe performance d
 
 ## 📊 Quick Reference
 
-| Rule Name | Category | Severity | Default Enabled | Key Settings |
-|-----------|----------|----------|-----------------|--------------|
-| **ScriptVarUsageRule** | Script | 🟢 ADVICE | ✅ | — |
-| **ScriptDeadCodeRule** | Script | 🟢 ADVICE | ✅ | — |
-| **ScriptComplexityRule** | Script | 🟢 ADVICE | ✅ | `max_complexity` |
-| **ScriptLongFunctionRule** | Script | 🟢 ADVICE | ✅ | `max_length` |
-| **ScriptFunctionParameterCountRule** | Script | 🟢 ADVICE | ✅ | `max_parameters` |
-| **ScriptFunctionParameterNamingRule** | Script | 🟢 ADVICE | ✅ | — |
-| **ScriptUnusedVariableRule** | Script | 🟢 ADVICE | ✅ | — |
-| **ScriptUnusedFunctionParametersRule** | Script | 🟢 ADVICE | ✅ | — |
-| **ScriptVariableNamingRule** | Script | 🟢 ADVICE | ✅ | — |
-| **ScriptConsoleLogRule** | Script | 🔴 ACTION | ✅ | — |
-| **ScriptNullSafetyRule** | Script | 🔴 ACTION | ✅ | — |
-| **ScriptEmptyFunctionRule** | Script | 🔴 ACTION | ✅ | — |
-| **ScriptNestingLevelRule** | Script | 🟢 ADVICE | ✅ | `max_nesting` |
-| **ScriptLongScriptBlockRule** | Script | 🟢 ADVICE | ✅ | `max_length` |
-| **ScriptMagicNumberRule** | Script | 🟢 ADVICE | ✅ | — |
-| **ScriptStringConcatRule** | Script | 🟢 ADVICE | ✅ | — |
-| **ScriptArrayMethodUsageRule** | Script | 🟢 ADVICE | ✅ | — |
-| **ScriptDescriptiveParametersRule** | Script | 🟢 ADVICE | ✅ | — |
-| **ScriptFunctionReturnConsistencyRule** | Script | 🟢 ADVICE | ✅ | — |
-| **ScriptVerboseBooleanRule** | Script | 🟢 ADVICE | ✅ | — |
-| **StringBooleanRule** | Script | 🟢 ADVICE | ✅ | — |
-| **UnusedScriptIncludesRule** | Script | 🟢 ADVICE | ✅ | — |
-| **EndpointFailOnStatusCodesRule** | Structure | 🔴 ACTION | ✅ | — |
-| **EndpointNameLowerCamelCaseRule** | Structure | 🟢 ADVICE | ✅ | — |
-| **EndpointBaseUrlTypeRule** | Structure | 🟢 ADVICE | ✅ | — |
-| **EndpointOnSendSelfDataRule** | Structure | 🟢 ADVICE | ✅ | — |
-| **WidgetIdRequiredRule** | Structure | 🔴 ACTION | ✅ | — |
-| **WidgetIdLowerCamelCaseRule** | Structure | 🟢 ADVICE | ✅ | — |
-| **HardcodedApplicationIdRule** | Structure | 🟢 ADVICE | ✅ | — |
-| **HardcodedWidRule** | Structure | 🟢 ADVICE | ✅ | — |
-| **ReadableEndpointPathsRule** | Structure | 🟢 ADVICE | ✅ | — |
-| **PMDSectionOrderingRule** | Structure | 🟢 ADVICE | ✅ | `required_order` |
-| **PMDSecurityDomainRule** | Structure | 🔴 ACTION | ✅ | `strict` |
-| **EmbeddedImagesRule** | Structure | 🟢 ADVICE | ✅ | — |
-| **FooterPodHubMicroExclusionsRule** | Structure | 🟢 ADVICE | ✅ | — |
-| **AmdDataProvidersWorkdayRule** | Structure | 🟢 ADVICE | ✅ | — |
-| **FileNameLowerCamelCaseRule** | Structure | 🟢 ADVICE | ✅ | — |
-| **NoIsCollectionOnEndpointsRule** | Structure | 🔴 ACTION | ✅ | — |
-| **OnlyMaximumEffortRule** | Structure | 🔴 ACTION | ✅ | — |
-| **NoPMDSessionVariablesRule** | Structure | 🔴 ACTION | ✅ | — |
-| **MultipleStringInterpolatorsRule** | Structure | 🟢 ADVICE | ✅ | — |
-| **GridPagingWithSortableFilterableRule** | Structure | 🔴 ACTION | ✅ | — |
+| Rule Name                                      | Category  | Severity  | Default Enabled | Key Settings       |
+| ---------------------------------------------- | --------- | --------- | --------------- | ------------------ |
+| **ScriptVarUsageRule**                   | Script    | 🟢 ADVICE | ✅              | —                 |
+| **ScriptDeadCodeRule**                   | Script    | 🟢 ADVICE | ✅              | —                 |
+| **ScriptComplexityRule**                 | Script    | 🟢 ADVICE | ✅              | `max_complexity` |
+| **ScriptLongFunctionRule**               | Script    | 🟢 ADVICE | ✅              | `max_length`     |
+| **ScriptFunctionParameterCountRule**     | Script    | 🟢 ADVICE | ✅              | `max_parameters` |
+| **ScriptFunctionParameterNamingRule**    | Script    | 🟢 ADVICE | ✅              | —                 |
+| **ScriptUnusedVariableRule**             | Script    | 🟢 ADVICE | ✅              | —                 |
+| **ScriptUnusedFunctionParametersRule**   | Script    | 🟢 ADVICE | ✅              | —                 |
+| **ScriptVariableNamingRule**             | Script    | 🟢 ADVICE | ✅              | —                 |
+| **ScriptConsoleLogRule**                 | Script    | 🔴 ACTION | ✅              | —                 |
+| **ScriptNullSafetyRule**                 | Script    | 🔴 ACTION | ✅              | —                 |
+| **ScriptEmptyFunctionRule**              | Script    | 🔴 ACTION | ✅              | —                 |
+| **ScriptNestingLevelRule**               | Script    | 🟢 ADVICE | ✅              | `max_nesting`    |
+| **ScriptLongScriptBlockRule**            | Script    | 🟢 ADVICE | ✅              | `max_length`     |
+| **ScriptMagicNumberRule**                | Script    | 🟢 ADVICE | ✅              | —                 |
+| **ScriptStringConcatRule**               | Script    | 🟢 ADVICE | ✅              | —                 |
+| **ScriptArrayMethodUsageRule**           | Script    | 🟢 ADVICE | ✅              | —                 |
+| **ScriptDescriptiveParametersRule**      | Script    | 🟢 ADVICE | ✅              | —                 |
+| **ScriptFunctionReturnConsistencyRule**  | Script    | 🟢 ADVICE | ✅              | —                 |
+| **ScriptVerboseBooleanRule**             | Script    | 🟢 ADVICE | ✅              | —                 |
+| **StringBooleanRule**                    | Script    | 🟢 ADVICE | ✅              | —                 |
+| **UnusedScriptIncludesRule**             | Script    | 🟢 ADVICE | ✅              | —                 |
+| **EndpointFailOnStatusCodesRule**        | Structure | 🔴 ACTION | ✅              | —                 |
+| **EndpointNameLowerCamelCaseRule**       | Structure | 🟢 ADVICE | ✅              | —                 |
+| **EndpointBaseUrlTypeRule**              | Structure | 🟢 ADVICE | ✅              | —                 |
+| **EndpointOnSendSelfDataRule**           | Structure | 🟢 ADVICE | ✅              | —                 |
+| **WidgetIdRequiredRule**                 | Structure | 🔴 ACTION | ✅              | —                 |
+| **WidgetIdLowerCamelCaseRule**           | Structure | 🟢 ADVICE | ✅              | —                 |
+| **HardcodedApplicationIdRule**           | Structure | 🟢 ADVICE | ✅              | —                 |
+| **HardcodedWidRule**                     | Structure | 🟢 ADVICE | ✅              | —                 |
+| **ReadableEndpointPathsRule**            | Structure | 🟢 ADVICE | ✅              | —                 |
+| **PMDSectionOrderingRule**               | Structure | 🟢 ADVICE | ✅              | `required_order` |
+| **PMDSecurityDomainRule**                | Structure | 🔴 ACTION | ✅              | `strict`         |
+| **EmbeddedImagesRule**                   | Structure | 🟢 ADVICE | ✅              | —                 |
+| **FooterPodHubMicroExclusionsRule**      | Structure | 🟢 ADVICE | ✅              | —                 |
+| **AmdDataProvidersWorkdayRule**          | Structure | 🟢 ADVICE | ✅              | —                 |
+| **FileNameLowerCamelCaseRule**           | Structure | 🟢 ADVICE | ✅              | —                 |
+| **NoIsCollectionOnEndpointsRule**        | Structure | 🔴 ACTION | ✅              | —                 |
+| **OnlyMaximumEffortRule**                | Structure | 🔴 ACTION | ✅              | —                 |
+| **NoPMDSessionVariablesRule**            | Structure | 🔴 ACTION | ✅              | —                 |
+| **MultipleStringInterpolatorsRule**      | Structure | 🟢 ADVICE | ✅              | —                 |
+| **GridPagingWithSortableFilterableRule** | Structure | 🔴 ACTION | ✅              | —                 |
 
 ---
 
@@ -1740,6 +1743,7 @@ The Arcane Auditor channels mystical powers through **42 rules** across **2 cate
 - ✅ **20 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 **Severity Distribution:**
+
 - **10 ACTION Rules**: Critical issues requiring immediate attention
 - **32 ADVICE Rules**: Recommendations for code quality and best practices
 
