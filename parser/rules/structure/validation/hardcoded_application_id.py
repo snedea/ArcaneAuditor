@@ -35,12 +35,8 @@ class HardcodedApplicationIdRule(StructureRuleBase):
     def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze PMD model for hardcoded applicationId values."""
         if not context.application_id:
-            # Register that we're skipping the app ID detection
-            context.register_skipped_check(
-                rule_name=self.ID,
-                check_name="app_id_detection",
-                reason="Requires SMD file for applicationId"
-            )
+            # Don't register skipped check here - we handle it at the analyze level
+            # to avoid marking the rule as "partially executed" when it can't run at all
             return  # No applicationId to check against
         
         yield from self._check_pmd_hardcoded_app_id(pmd_model, context.application_id)
@@ -48,12 +44,7 @@ class HardcodedApplicationIdRule(StructureRuleBase):
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze POD model for hardcoded applicationId values."""
         if not context.application_id:
-            # Register that we're skipping the app ID detection
-            context.register_skipped_check(
-                rule_name=self.ID,
-                check_name="app_id_detection",
-                reason="Requires SMD file for applicationId"
-            )
+            # Don't register skipped check here - handled at analyze level
             return  # No applicationId to check against
         
         yield from self._check_pod_hardcoded_app_id(pod_model, context.application_id)

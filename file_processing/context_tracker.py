@@ -87,6 +87,13 @@ class AnalysisContext:
             })
             # Add other AMD-only rules here as they're created
         
+        # SMD-specific rules
+        if "SMD" not in self.files_present:
+            not_executed.append({
+                "rule": "HardcodedApplicationIdRule",
+                "reason": "Requires SMD file"
+            })
+        
         return not_executed
     
     @property
