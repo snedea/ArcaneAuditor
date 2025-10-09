@@ -22,9 +22,9 @@
 }
 
 [data-theme="dark"] {
-    /* Dark theme colors */
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
+    /* Dark theme colors - lightened for less fatigue */
+    --bg-primary: #1a2433;
+    --bg-secondary: #253447;
     --bg-tertiary: #334155;
     --text-primary: #f1f5f9;
     --text-secondary: #cbd5e1;
@@ -315,6 +315,12 @@ header p {
     transition: all 0.3s ease;
 }
 
+/* Light theme: Add subtle shadows for hierarchy */
+[data-theme="light"] .context-panel {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    border: 2px solid #e5e7eb;
+}
+
 .context-header {
     display: flex;
     align-items: center;
@@ -323,6 +329,11 @@ header p {
     background: var(--bg-tertiary);
     transition: background 0.2s ease;
     gap: 12px;
+}
+
+/* Light theme: Add subtle gradient to header */
+[data-theme="light"] .context-header {
+    background: linear-gradient(135deg, #f6f8fa 0%, #eceff3 100%);
 }
 
 .context-header:hover {
@@ -415,12 +426,30 @@ header p {
 /* New UX-focused styling */
 .context-files {
     margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+/* Dark theme: Add subtle glow between sections */
+[data-theme="dark"] .context-files,
+[data-theme="dark"] .context-missing {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .context-files h4 {
     color: var(--text-primary);
     margin-bottom: 10px;
     font-size: 1.1rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 8px;
+}
+
+/* Dark theme: Add subtle separator for section headers */
+[data-theme="dark"] .context-files h4,
+[data-theme="dark"] .context-missing h4,
+[data-theme="dark"] .context-impact h4 {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .context-files ul {
@@ -437,14 +466,23 @@ header p {
     gap: 8px;
 }
 
+/* Dark theme: Improve file list contrast for WCAG compliance */
+[data-theme="dark"] .context-files li {
+    color: #e0e6ef;
+}
+
 .context-missing {
     margin-bottom: 20px;
+    padding-bottom: 20px;
 }
 
 .context-missing h4 {
     color: var(--text-primary);
     margin-bottom: 10px;
     font-size: 1.1rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 8px;
 }
 
 .context-missing-items {
@@ -469,6 +507,13 @@ header p {
     box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
 }
 
+/* Light theme: Desaturate red chips for less strain */
+[data-theme="light"] .context-missing-item.required {
+    background: #e85a5a;
+    border-color: #d14545;
+    color: #fff5f5;
+}
+
 [data-theme="dark"] .context-missing-item.required {
     background: #ef4444;
     color: #fee2e2;
@@ -485,10 +530,19 @@ header p {
     border-left: 4px solid #ef4444;
 }
 
+/* Light theme: Darken panel and add accent shadow */
+[data-theme="light"] .context-impact {
+    background: #e7ecf3;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+}
+
 .context-impact h4 {
     color: var(--text-primary);
     margin-bottom: 8px;
     font-size: 1.1rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 8px;
 }
 
 .context-impact-subtitle {
@@ -511,6 +565,11 @@ header p {
     border: 1px solid var(--border-color);
     margin-left: 12px;
     font-size: 0.9rem;
+}
+
+/* Light theme: Add subtle shadow for depth */
+[data-theme="light"] .context-impact-item {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .context-impact-item strong {
