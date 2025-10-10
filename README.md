@@ -479,7 +479,7 @@ Arcane Auditor uses a **layered configuration system** that protects your custom
       "severity_override": null,
       "custom_settings": {}
     },
-    "LongScriptBlockRule": {
+    "ScriptLongBlockRule": {
       "enabled": true,
       "severity_override": "ADVICE",
       "custom_settings": {
@@ -559,7 +559,7 @@ python main.py review-app myapp.zip --config my-config.json
 ```json
 {
   "rules": {
-    "LongScriptBlockRule": {
+    "ScriptLongBlockRule": {
       "enabled": true,
       "severity_override": "ACTION",
       "custom_settings": {

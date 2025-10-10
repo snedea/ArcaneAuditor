@@ -2,21 +2,21 @@
 """Unit tests for PMD/POD long script block rule."""
 
 import pytest
-from parser.rules.script.complexity.long_script_block import LongScriptBlockRule
+from parser.rules.script.complexity.long_script_block import ScriptLongBlockRule
 from parser.rules.base import Finding
 from parser.models import PMDModel, PodModel, ProjectContext
 
 
-class TestLongScriptBlockRule:
+class TestScriptLongBlockRule:
     """Test cases for PMD/POD long script block rule."""
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.rule = LongScriptBlockRule()
+        self.rule = ScriptLongBlockRule()
 
     def test_rule_metadata(self):
         """Test rule metadata."""
-        assert self.rule.ID == "LongScriptBlockRule"
+        assert self.rule.ID == "ScriptLongBlockRule"
         assert self.rule.DESCRIPTION == "Ensures non-function script blocks in PMD/POD files don't exceed maximum line count (max 30 lines). Excludes function definitions which are handled by ScriptLongFunctionRule."
         assert self.rule.SEVERITY == "ADVICE"
 

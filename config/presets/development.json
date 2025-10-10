@@ -15,7 +15,7 @@
       "severity_override": null,
       "custom_settings": {}
     },
-    "LongScriptBlockRule": {
+    "ScriptLongBlockRule": {
       "enabled": true,
       "severity_override": null,
       "custom_settings": {

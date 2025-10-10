@@ -22,7 +22,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 - [ScriptEmptyFunctionRule](#scriptemptyfunctionrule)
 - [ScriptOnSendSelfDataRule](#scriptonsendselfdatarule)
 - [ScriptNestingLevelRule](#scriptnestinglevelrule)
-- [ScriptLongScriptBlockRule](#scriptlongscriptblockrule)
+- [ScriptLongBlockRule](#scriptlongblockrule)
 - [ScriptMagicNumberRule](#scriptmagicnumberrule)
 - [ScriptStringConcatRule](#scriptstringconcatrule)
 - [ScriptArrayMethodUsageRule](#scriptarraymethodusagerule)
@@ -330,7 +330,7 @@ function formatOutput(data) {
 }
 ```
 
-### LongScriptBlockRule
+### ScriptLongBlockRule
 
 **Severity:** ADVICE
 **Description:** Ensures non-function script blocks in PMD/POD files don't exceed maximum line count (max 30 lines). Excludes function definitions which are handled by ScriptLongFunctionRule.
@@ -379,7 +379,7 @@ The threshold can be customized in config files:
 ```json
 {
   "rules": {
-    "LongScriptBlockRule": {
+    "ScriptLongBlockRule": {
       "enabled": true,
       "custom_settings": {
         "max_lines": 30

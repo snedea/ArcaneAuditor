@@ -6,10 +6,10 @@ from ...base import Finding
 from .long_script_block_detector import LongScriptBlockDetector
 
 
-class LongScriptBlockRule(ScriptRuleBase):
+class ScriptLongBlockRule(ScriptRuleBase):
     """Rule to check for script blocks that exceed maximum line count."""
 
-    ID = "LongScriptBlockRule"
+    ID = "ScriptLongBlockRule"
     DESCRIPTION = "Ensures non-function script blocks in PMD/POD files don't exceed maximum line count (max 30 lines). Excludes function definitions which are handled by ScriptLongFunctionRule."
     SEVERITY = "ADVICE"
     DETECTOR = LongScriptBlockDetector
