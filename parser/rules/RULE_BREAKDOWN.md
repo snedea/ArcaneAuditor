@@ -2,11 +2,11 @@
 
 *Ancient wisdom distilled into 42 mystical validation rules*
 
-This grimoire provides a comprehensive overview of all **42 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
+This grimoire provides a comprehensive overview of all **42 validation rules** wielded by the Arcane Auditor (23 Script Rules + 19 Structure Rules). These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
 
 ## 📋 Table of Contents
 
-### Script Rules (22 Rules)
+### Script Rules (23 Rules)
 
 - [ScriptVarUsageRule](#scriptvarusagerule)
 - [ScriptDeadCodeRule](#scriptdeadcoderule)
@@ -20,6 +20,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 - [ScriptConsoleLogRule](#scriptconsolelogrule)
 - [ScriptNullSafetyRule](#scriptnullsafetyrule)
 - [ScriptEmptyFunctionRule](#scriptemptyfunctionrule)
+- [ScriptOnSendSelfDataRule](#scriptonsendselfdatarule)
 - [ScriptNestingLevelRule](#scriptnestinglevelrule)
 - [ScriptLongScriptBlockRule](#scriptlongscriptblockrule)
 - [ScriptMagicNumberRule](#scriptmagicnumberrule)
@@ -31,12 +32,11 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 - [StringBooleanRule](#stringbooleanrule)
 - [UnusedScriptIncludesRule](#unusedscriptincludesrule)
 
-### Structure Rules (20 Rules)
+### Structure Rules (19 Rules)
 
 - [EndpointFailOnStatusCodesRule](#endpointfailonstatuscodesrule)
 - [EndpointNameLowerCamelCaseRule](#endpointnamelowercamelcaserule)
 - [EndpointBaseUrlTypeRule](#endpointbaseurltyperule)
-- [EndpointOnSendSelfDataRule](#endpointonsendselfdatarule)
 - [NoIsCollectionOnEndpointsRule](#noiscollectiononendpointsrule)
 - [OnlyMaximumEffortRule](#onlymaximumeffortrule)
 - [NoPMDSessionVariablesRule](#nopmdsessionvariablesrule)
@@ -58,8 +58,8 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 
 The rules are organized into two main categories:
 
-- **Script Rules (22 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
-- **Structure Rules (20 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- **Script Rules (23 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
+- **Structure Rules (19 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 ## Severity Levels
 
@@ -821,6 +821,54 @@ const handler = function() { }; // ❌ Empty function
 
 ---
 
+### ScriptOnSendSelfDataRule
+
+**Severity:** ADVICE
+**Description:** Detects anti-pattern 'self.data = {:}' in outbound endpoint onSend scripts
+**Applies to:** PMD outbound endpoint onSend scripts
+
+**What This Rule Does:**
+This rule uses AST parsing to detect the anti-pattern `self.data = {:}` (assigning an empty object to self.data) in outbound endpoint onSend scripts. This pattern should be avoided as it can cause issues with data handling. Comments are automatically ignored by the parser.
+
+**Intent:** Prevent problematic data initialization patterns in outbound endpoint scripts.
+
+**What it catches:**
+
+- Usage of `self.data = {:}` in outbound endpoint onSend scripts
+- Anti-pattern assignments that should use alternative approaches
+
+**Example violations:**
+
+```
+{
+  "outboundEndpoints": [{
+    "name": "sendData",
+    "onSend": "<%
+      self.data = {:}; // ❌ Anti-pattern - avoid this
+      return self.data;
+    %>"
+  }]
+}
+```
+
+**Fix:**
+
+```
+{
+  "outboundEndpoints": [{
+    "name": "sendData",
+    "onSend": "<%
+      // ✅ Use alternative data initialization approach
+      return { /* your data here */ };
+    %>"
+  }]
+}
+```
+
+**Note:** This rule only applies to **outbound** endpoints. Inbound endpoints are not checked. Comments containing the pattern are automatically ignored by the AST parser.
+
+---
+
 ### ScriptUnusedFunctionRule
 
 **Severity:** ADVICE
@@ -1342,37 +1390,7 @@ PMD session variables persist for the entire user session, consuming memory and 
 
 ---
 
-### EndpointOnSendSelfDataRule
-
-**Severity:** ADVICE
-**Description:** Ensures outbound endpoints don't use the anti-pattern 'self.data = {:}' in onSend scripts
-**Applies to:** PMD outbound endpoint definitions only
-
-**What it catches:**
-
-- Usage of the anti-pattern `self.data = {:}` in outbound endpoint onSend scripts
-- Outbound endpoints that use outdated or problematic data initialization patterns
-
-**Example violations:**
-
-```json
-{
-  "outboundEndpoints": [{
-    "name": "sendData",
-    "onSend": "<%
-      self.data = {:}; // ❌ Anti-pattern that should be avoided in outbound endpoints
-      return self.data;
-    %>"
-  }]
-}
-```
-
-**Fix:**
-
-```json
-{
-  "outboundEndpoints": [{
-    "name": "sendData",
+### PMDSectionOrderingRule
     "onSend": "<%
       let postData = {'name': workerName.value}; // ✅ Use a more descriptive local variable
       return postData;
@@ -1936,10 +1954,10 @@ Combining paging with sortable/filterable columns can cause severe performance d
 | **ScriptVerboseBooleanRule**             | Script    | 🟢 ADVICE | ✅              | —                 |
 | **StringBooleanRule**                    | Script    | 🟢 ADVICE | ✅              | —                 |
 | **UnusedScriptIncludesRule**             | Script    | 🟢 ADVICE | ✅              | —                 |
+| **ScriptOnSendSelfDataRule**             | Script    | 🟢 ADVICE | ✅              | —                 |
 | **EndpointFailOnStatusCodesRule**        | Structure | 🔴 ACTION | ✅              | —                 |
 | **EndpointNameLowerCamelCaseRule**       | Structure | 🟢 ADVICE | ✅              | —                 |
 | **EndpointBaseUrlTypeRule**              | Structure | 🟢 ADVICE | ✅              | —                 |
-| **EndpointOnSendSelfDataRule**           | Structure | 🟢 ADVICE | ✅              | —                 |
 | **WidgetIdRequiredRule**                 | Structure | 🔴 ACTION | ✅              | —                 |
 | **WidgetIdLowerCamelCaseRule**           | Structure | 🟢 ADVICE | ✅              | —                 |
 | **HardcodedApplicationIdRule**           | Structure | 🟢 ADVICE | ✅              | —                 |
@@ -1963,8 +1981,8 @@ Combining paging with sortable/filterable columns can cause severe performance d
 
 The Arcane Auditor channels mystical powers through **42 rules** across **2 categories**:
 
-- ✅ **22 Script Rules** - Code quality for PMD and standalone scripts
-- ✅ **20 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- ✅ **23 Script Rules** - Code quality for PMD and standalone scripts
+- ✅ **19 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 **Severity Distribution:**
 

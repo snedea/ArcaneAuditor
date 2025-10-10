@@ -5,7 +5,6 @@ import pytest
 from parser.rules.structure.widgets.widget_id_required import WidgetIdRequiredRule
 from parser.rules.structure.widgets.widget_id_lower_camel_case import WidgetIdLowerCamelCaseRule
 from parser.rules.structure.endpoints.endpoint_name_lower_camel_case import EndpointNameLowerCamelCaseRule
-from parser.rules.structure.endpoints.endpoint_on_send_self_data import EndpointOnSendSelfDataRule
 from parser.rules.structure.endpoints.endpoint_fail_on_status_codes import EndpointFailOnStatusCodesRule
 from parser.rules.structure.endpoints.endpoint_url_base_url_type import EndpointBaseUrlTypeRule
 from parser.rules.structure.validation.footer_pod_required import FooterPodRequiredRule
@@ -41,7 +40,6 @@ class TestAllStructureRulesIntegration:
             WidgetIdRequiredRule(),
             WidgetIdLowerCamelCaseRule(),
             EndpointNameLowerCamelCaseRule(),
-            EndpointOnSendSelfDataRule(),
             EndpointFailOnStatusCodesRule(),
             EndpointBaseUrlTypeRule(),
             FooterPodRequiredRule(),
@@ -65,7 +63,6 @@ class TestAllStructureRulesIntegration:
             WidgetIdRequiredRule(),
             WidgetIdLowerCamelCaseRule(),
             EndpointNameLowerCamelCaseRule(),
-            EndpointOnSendSelfDataRule(),
             EndpointFailOnStatusCodesRule(),
             EndpointBaseUrlTypeRule(),
             FooterPodRequiredRule(),
