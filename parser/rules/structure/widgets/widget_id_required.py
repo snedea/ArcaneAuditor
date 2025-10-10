@@ -109,13 +109,28 @@ class WidgetIdRequiredRule(StructureRuleBase):
             
             lines = pmd_model.source_content.split('\n')
             
+            # If path contains specific markers, use them to narrow the search
+            search_context = None
+            if widget_path and 'cellTemplate' in widget_path:
+                search_context = 'cellTemplate'
+            elif widget_path and 'columns' in widget_path:
+                search_context = 'columns'
+            
             # Look for the section first
             section_line = PMDLineUtils.find_section_line_number(pmd_model, section)
             if section_line > 1:
-                # Look for the widget type in the section area
                 search_start = max(0, section_line - 1)
-                search_end = min(len(lines), section_line + 50)  # Search 50 lines after section
+                search_end = min(len(lines), len(lines))  # Search entire remaining file
                 
+                # If we have search context, find that context first
+                if search_context:
+                    context_line = self._find_context_line(lines, search_context, search_start, search_end)
+                    if context_line >= 0:
+                        # Search for widget type starting from the context
+                        search_start = context_line
+                        search_end = min(len(lines), context_line + 20)
+                
+                # Look for the widget type in the search area
                 widget_count = 0
                 for i in range(search_start, search_end):
                     line = lines[i]
@@ -185,17 +200,37 @@ class WidgetIdRequiredRule(StructureRuleBase):
             # Fallback: estimate based on widget index
             return 5 + widget_index * 2
     
+    def _find_context_line(self, lines: list, context: str, start: int, end: int) -> int:
+        """
+        Find the line number where a specific context (like cellTemplate) appears.
+        
+        Args:
+            lines: List of source code lines
+            context: Context to search for (e.g., 'cellTemplate')
+            start: Start line index
+            end: End line index
+            
+        Returns:
+            Line index where context is found, or -1 if not found
+        """
+        for i in range(start, end):
+            if f'"{context}"' in lines[i]:
+                return i
+        return -1
+    
     def _find_widget_opening_brace(self, lines: list, type_line_index: int) -> int:
         """Find the opening brace of a widget block by looking backwards from the type line."""
         try:
-            # Look backwards from the type line to find the opening brace
-            for i in range(type_line_index - 1, max(0, type_line_index - 10), -1):
+            # Look backwards from the type line to find the NEAREST opening brace
+            # We limit to 5 lines to avoid finding parent container braces
+            for i in range(type_line_index - 1, max(0, type_line_index - 5), -1):
                 line = lines[i].strip()
                 # Look for an opening brace at the start of a line (indicating widget start)
                 if line == '{':
                     return i
                 # Also check for opening brace with content on the same line
-                elif line.startswith('{'):
+                # This handles cases like: "cellTemplate": {
+                elif line.endswith('{') or line.endswith('{,'):
                     return i
             
             # If we can't find the opening brace, return the type line itself
