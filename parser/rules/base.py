@@ -465,7 +465,7 @@ class Rule(ABC):
             'layout', 'panelList', 'grid', 'fieldSet'
         }
         
-        def _traverse_container(container_data: Any, container_path: str, container_name: str = ""):
+        def _traverse_container(container_data: Any, container_path: str, container_name: str = "", already_yielded: bool = False):
             """Recursively traverse a container that may hold widgets."""
             if isinstance(container_data, list):
                 # Direct list of widgets
@@ -474,11 +474,11 @@ class Rule(ABC):
                         item_path = f"{container_path}.{i}" if container_path else str(i)
                         yield (item, item_path, i)
                         
-                        # Recursively check for nested containers
-                        yield from _traverse_container(item, item_path)
+                        # Recursively check for nested containers (mark as already yielded)
+                        yield from _traverse_container(item, item_path, "", already_yielded=True)
             elif isinstance(container_data, dict):
-                # If this dict has a 'type' field, it's a widget - yield it first
-                if 'type' in container_data:
+                # If this dict has a 'type' field and hasn't been yielded yet, it's a top-level widget - yield it
+                if 'type' in container_data and not already_yielded:
                     yield (container_data, container_path, 0)
                 
                 # Check if this is a widget with nested containers
@@ -489,7 +489,7 @@ class Rule(ABC):
                     if field_name in container_data:
                         field_data = container_data[field_name]
                         field_path = f"{container_path}.{field_name}" if container_path else field_name
-                        yield from _traverse_container(field_data, field_path, field_name)
+                        yield from _traverse_container(field_data, field_path, field_name, already_yielded=False)
                 
                 # For layout types, also check for any array fields that might contain widgets
                 if widget_type in LAYOUT_TYPES:
@@ -498,7 +498,7 @@ class Rule(ABC):
                             # Check if this list contains widget-like objects
                             if value and isinstance(value[0], dict) and 'type' in value[0]:
                                 field_path = f"{container_path}.{key}" if container_path else key
-                                yield from _traverse_container(value, field_path, key)
+                                yield from _traverse_container(value, field_path, key, already_yielded=False)
         
         # Start traversal from the presentation data
         yield from _traverse_container(presentation_data, base_path)
