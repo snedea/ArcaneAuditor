@@ -486,49 +486,6 @@ class OutputFormatter:
         if context and context.analysis_context:
             self._add_context_sheet_excel(wb, context.analysis_context)
         
-        # Create "Rule Findings" sheet with all findings (accessible styling)
-        if findings:
-            findings_sheet = wb.create_sheet("Rule Findings")
-            
-            # Headers
-            headers = ["Rule ID", "Severity", "Line", "Message", "File"]
-            findings_sheet.append(headers)
-            
-            # Style headers
-            from openpyxl.styles import Font, PatternFill, Alignment
-            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-            header_font = Font(color="FFFFFF", bold=True)
-            for col_num, header in enumerate(headers, 1):
-                cell = findings_sheet.cell(row=1, column=col_num)
-                cell.fill = header_fill
-                cell.font = header_font
-                cell.alignment = Alignment(horizontal="center")
-            
-            # Sort findings by severity (ACTION first) then by rule_id
-            sorted_findings = sorted(findings, key=lambda f: (
-                0 if f.severity == "ACTION" else 1,  # ACTION before ADVICE
-                f.rule_id
-            ))
-            
-            # Add findings
-            for finding in sorted_findings:
-                # Clean file path
-                clean_file_path = re.sub(r'^[a-f0-9-]+_', '', finding.file_path or "Unknown")
-                row = [
-                    finding.rule_id,
-                    finding.severity,
-                    finding.line,
-                    finding.message,
-                    clean_file_path
-                ]
-                findings_sheet.append(row)
-            
-            # Apply accessible styling
-            self._apply_accessible_styling(findings_sheet, sorted_findings)
-            
-            # Adjust File column width
-            findings_sheet.column_dimensions["E"].width = 40
-        
         # Group findings by file
         findings_by_file = self._group_findings_by_file(findings)
         
@@ -548,7 +505,7 @@ class OutputFormatter:
         for row in range(1, 8):
             summary_sheet[f'A{row}'].font = Font(bold=True)
         
-        # Create sheets for each file
+        # Create sheets for each file with accessible styling
         for file_path, file_findings in findings_by_file.items():
             # Clean sheet name (Excel has restrictions)
             sheet_name = Path(file_path).stem[:31]  # Excel sheet name limit
@@ -571,8 +528,14 @@ class OutputFormatter:
                 cell.font = header_font
                 cell.alignment = Alignment(horizontal="center")
             
+            # Sort findings by severity (ACTION first) then by rule_id
+            sorted_file_findings = sorted(file_findings, key=lambda f: (
+                0 if f.severity == "ACTION" else 1,  # ACTION before ADVICE
+                f.rule_id
+            ))
+            
             # Add findings
-            for finding in file_findings:
+            for finding in sorted_file_findings:
                 row = [
                     finding.rule_id,
                     finding.severity,
@@ -580,42 +543,9 @@ class OutputFormatter:
                     finding.message
                 ]
                 ws.append(row)
-                
-                # Color code by severity
-                severity_colors = {
-                    "ACTION": "FFCCCC",    # Light red
-                    "ADVICE": "CCE5FF"     # Light blue
-                }
-                
-                if finding.severity in severity_colors:
-                    fill = PatternFill(start_color=severity_colors[finding.severity], 
-                                     end_color=severity_colors[finding.severity], 
-                                     fill_type="solid")
-                    for col_num in range(1, len(headers) + 1):
-                        ws.cell(row=ws.max_row, column=col_num).fill = fill
-                
-                # Enable word wrap on the Message column (column 4)
-                message_cell = ws.cell(row=ws.max_row, column=4)
-                message_cell.alignment = Alignment(wrap_text=True, vertical="top")
             
-            # Auto-adjust column widths
-            for column in ws.columns:
-                max_length = 0
-                column_letter = get_column_letter(column[0].column)
-                for cell in column:
-                    try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
-                    except:
-                        pass
-                
-                # Special handling for Message column (column D/4) - cap at 80 for better wrapping
-                if column_letter == 'D':
-                    adjusted_width = min(max_length + 2, 80)  # Cap Message column at 80
-                else:
-                    adjusted_width = min(max_length + 2, 150)  # Other columns cap at 150
-                
-                ws.column_dimensions[column_letter].width = adjusted_width
+            # Apply accessible styling to this sheet
+            self._apply_accessible_styling(ws, sorted_file_findings)
             
             # Update summary sheet
             action_count = len([f for f in file_findings if f.severity == "ACTION"])
