@@ -7,7 +7,7 @@
 ![Version](https://img.shields.io/badge/version-0.5.0--beta.1-purple?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
 
-<a id="overview"></a>
+<a id="overview" />
 
 ## 🎯 Overview
 
@@ -30,7 +30,7 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 
 > 🧙‍♂️ **Getting Started:** First, check the [Prerequisites](#prerequisites) to ensure you have everything installed, then follow the [Quick Start](#quick-start) guide to begin analyzing your code!
 
-<a id="table-of-contents"></a>
+<a id="table-of-contents" />
 
 ## 🗂️ Table of Contents
 
@@ -46,7 +46,7 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 - [📚 Documentation](#documentation)
 - [📄 License](#license)
 
-<a id="web-interface-screenshots"></a>
+<a id="web-interface-screenshots" />
 
 ## 🖼️ Web Interface Screenshots
 
@@ -77,7 +77,7 @@ Arcane Auditor channels ancient wisdom through **many comprehensive validation r
 
 *The mystical web interface provides an intuitive way to upload and analyze your Workday Extend applications with real-time results and downloadable reports.*
 
-<a id="prerequisites"></a>
+<a id="prerequisites" />
 
 ## 📋 Prerequisites
 
@@ -115,7 +115,7 @@ If you cannot use UV or strongly prefer pip:
 
 ---
 
-`<a id="quick-start"></a>`
+<a id="quick-start" />
 
 ## 🚀 Quick Start
 
@@ -195,11 +195,11 @@ python main.py review-app myapp.zip
 
 ---
 
-`<a id="installation-options"></a>`
+<a id="installation-options" />
 
 ## 📦 Installation Options
 
-`<a id="option-a-direct-download"></a>`
+<a id="option-a-direct-download" />
 
 ### Option A: Direct Download (Recommended for Users)
 
@@ -214,9 +214,9 @@ python main.py review-app myapp.zip
    ```
 5. You're ready! See [Quick Start](#quick-start) for usage examples
 
-`<a id="option-b-clone-repository"></a>`
+<a id="option-b-clone-repository" />
 
-### Option B: Clone Repository (Recommended for Developers)
+### Option B: Clone Repository (Recommended for Contributors)
 
 **Best for:** Contributing to Arcane Auditor or staying on the latest development version
 
@@ -235,7 +235,7 @@ uv sync --dev
 uv run pytest
 ```
 
-`<a id="option-c-pip-installation"></a>`
+<a id="option-c-pip-installation" />
 
 ### Option C: Traditional pip Installation
 
@@ -262,7 +262,7 @@ python web/server.py --port 8080
 
 [⬆️ Back to Top](#table-of-contents)
 
-`<a id="web-interface"></a>`
+<a id="web-interface" />
 
 ## 🌐 Arcane Auditor Web User Interface
 
@@ -340,7 +340,7 @@ chmod +x start-web-service.sh
 
 [⬆️ Back to Top](#table-of-contents)
 
-`<a id="context-awareness"></a>`
+<a id="context-awareness" />
 
 ## 🧠 Context Awareness
 
@@ -428,7 +428,7 @@ The tool provides clear context information in all output formats:
 
 </details>
 
-<a id="configuration-system"></a>
+<a id="configuration-system" />
 
 ## 🛡️ Update-Safe Configuration System
 
@@ -587,7 +587,7 @@ This ensures your customizations persist through updates while allowing flexibil
 
 </details>
 
-<a id="validation-rules"></a>
+<a id="validation-rules" />
 
 ## 🔧 Validation Rules
 
@@ -740,7 +740,7 @@ Enable or configure your custom rules in your configuration file:
 
 </details>
 
-<a id="development"></a>
+<a id="development" />
 
 ## 🛠️ Development
 
@@ -864,7 +864,7 @@ pytest
 pytest tests/test_app_parser.py
 ```
 
-<a id="contributing"></a>
+<a id="contributing" />
 
 ### **Contributing**
 
@@ -893,7 +893,7 @@ pytest tests/test_app_parser.py
 
 [⬆️ Back to Top](#table-of-contents)
 
-<a id="documentation"></a>
+<a id="documentation" />
 
 ## 📚 Documentation
 
@@ -901,7 +901,7 @@ pytest tests/test_app_parser.py
 - **[Custom Rules Guide](parser/rules/custom/README.md)** - Custom rule development guide
 - **[Configuration Guide](config/README.md)** - Configuration options and examples
 
-<a id="license"></a>
+<a id="license" />
 
 ## 📄 License
 
