@@ -370,101 +370,111 @@ class OutputFormatter:
         """
         Apply WCAG-friendly, color-blind accessible styling to findings sheet.
         
-        Uses alternating row colors within severity groups, borders, emoji symbols,
-        and color palette that works for most color-vision deficiencies.
+        Uses solid colors per severity (warm orange for ACTION, cool blue for ADVICE),
+        universal symbols (⚠ for ACTION, ℹ for ADVICE), borders, and fonts that work
+        consistently across platforms without relying on color emoji support.
         """
         from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
         
         # --- WCAG-Friendly Color Palette ---
-        # Blue family (for ADVICE) - distinguishable by luminance
-        blue_light = "E8F0FE"   # very light blue, high luminance
-        blue_dark = "B3D1FF"    # slightly darker, visible difference
+        # Simple, solid colors (no alternation needed - we'll use symbols for distinction)
+        action_fill = PatternFill(start_color="FCD5B5", end_color="FCD5B5", fill_type="solid")  # warm orange
+        advice_fill = PatternFill(start_color="CFE2F3", end_color="CFE2F3", fill_type="solid")  # cool blue
+        other_fill = PatternFill(start_color="F7F7F7", end_color="F7F7F7", fill_type="solid")   # neutral gray
         
-        # Orange family (for ACTION) - better than red for colorblind users
-        orange_light = "FFF4E5" # light orange/cream
-        orange_dark = "FFD7A8"  # deeper orange, still readable with black text
-        
-        # Gray for alternate neutral fallback (if severity missing)
-        gray_light = "F7F7F7"
-        gray_dark = "E0E0E0"
-        
-        # Define fills for (severity, alternation) combinations
-        fills = {
-            ("ADVICE", False): PatternFill(start_color=blue_light, end_color=blue_light, fill_type="solid"),
-            ("ADVICE", True):  PatternFill(start_color=blue_dark, end_color=blue_dark, fill_type="solid"),
-            ("ACTION", False): PatternFill(start_color=orange_light, end_color=orange_light, fill_type="solid"),
-            ("ACTION", True):  PatternFill(start_color=orange_dark, end_color=orange_dark, fill_type="solid"),
-            ("OTHER", False):  PatternFill(start_color=gray_light, end_color=gray_light, fill_type="solid"),
-            ("OTHER", True):   PatternFill(start_color=gray_dark, end_color=gray_dark, fill_type="solid"),
-        }
-        
-        # Borders (light gray for separation)
-        thin_border = Border(
-            left=Side(style="thin", color="C0C0C0"),
-            right=Side(style="thin", color="C0C0C0"),
-            top=Side(style="thin", color="C0C0C0"),
-            bottom=Side(style="thin", color="C0C0C0")
-        )
+        # Borders - hairline bottom border for clean grid rhythm
+        hairline = Side(style="hair", color="D6D6D6")  # Very light gray
+        border = Border(bottom=hairline)
         
         # Fonts
-        bold_font = Font(bold=True)
-        mono_font = Font(name="Consolas")  # easier for reading code/paths
-        wrap = Alignment(wrap_text=True, vertical="top")
-        
-        # Track severity changes for alternation
-        previous_severity = None
-        alt = False  # alternation flag per severity group
+        symbol_font = Font(name="Segoe UI Symbol", bold=True, size=10)  # For ⚠ / ℹ symbols
+        bold_font = Font(name="Segoe UI", size=10, bold=True)
+        mono_font = Font(name="Consolas", size=10)  # easier for reading code/paths
+        normal_font = Font(name="Segoe UI", size=10)  # Default font
+        wrap = Alignment(wrap_text=True, vertical="top", indent=1)  # Small indent for breathing room
+        center = Alignment(horizontal="center", vertical="center")  # For severity column
         
         # Apply styling to data rows (skip header row)
         for row in ws.iter_rows(min_row=2, max_col=ws.max_column, max_row=ws.max_row):
             severity = (row[1].value or "OTHER").strip().upper()
             
-            # Remove emoji if present from previous formatting
-            if "🟦" in severity or "🟧" in severity or "⬜" in severity:
-                severity = severity.split()[-1]  # Get last word
+            # Remove symbols if present from previous formatting
+            if "⚠" in severity or "ℹ" in severity:
+                severity = severity.split()[-1]  # Get last word (ACTION or ADVICE)
             
-            row_idx = row[0].row
-            
-            # Reset alternation when severity changes
-            if severity != previous_severity:
-                alt = False
-                previous_severity = severity
+            # Determine row fill based on severity
+            if severity == "ACTION":
+                row_fill = action_fill
+            elif severity == "ADVICE":
+                row_fill = advice_fill
             else:
-                alt = not alt
-            
-            # Get appropriate fill
-            fill = fills.get((severity, alt), fills[("OTHER", alt)])
+                row_fill = other_fill
             
             for cell in row:
-                cell.fill = fill
-                cell.border = thin_border
-                cell.alignment = wrap
+                cell.fill = row_fill
+                cell.border = border  # Hairline bottom border for grid rhythm
                 
-                # Add distinctive visual cue: emoji + text in Severity column
+                # Add distinctive visual cue: symbol + text in Severity column
                 if cell.column == 2:  # Severity column (B)
-                    if severity == "ADVICE":
-                        cell.value = "🟦 ADVICE"  # blue square + label
-                    elif severity == "ACTION":
-                        cell.value = "🟧 ACTION"  # orange square + label
+                    if severity == "ACTION":
+                        cell.value = "⚠ ACTION"  # warning symbol
+                    elif severity == "ADVICE":
+                        cell.value = "ℹ ADVICE"  # info symbol
                     else:
-                        cell.value = f"⬜ {severity}"
+                        cell.value = severity
+                    cell.font = symbol_font
+                    cell.alignment = center
                 
                 # Bold Rule ID column
-                if cell.column == 1:  # Rule ID column (A)
+                elif cell.column == 1:  # Rule ID column (A)
                     cell.font = bold_font
+                    cell.alignment = wrap
                 # Monospace font for Message column (better for code/paths)
                 elif cell.column == 4:  # Message column (D)
                     cell.font = mono_font
+                    cell.alignment = wrap
+                # Normal font for Line column
+                elif cell.column == 3:  # Line column (C)
+                    cell.font = normal_font
+                    cell.alignment = wrap
+                # Center alignment for Fixed column (dropdown)
+                elif cell.column == 5:  # Fixed column (E)
+                    cell.font = normal_font
+                    cell.alignment = center
         
         # Adjust column dimensions for better readability
-        ws.column_dimensions["A"].width = 28  # Rule ID
-        ws.column_dimensions["B"].width = 14  # Severity (with emoji)
+        ws.column_dimensions["A"].width = 50  # Rule ID (accommodate longest rule names)
+        ws.column_dimensions["B"].width = 14  # Severity (with symbol)
         ws.column_dimensions["C"].width = 6   # Line
         ws.column_dimensions["D"].width = 120 # Message
+        ws.column_dimensions["E"].width = 12  # Fixed status dropdown
         
-        # Set row height for better spacing
+        # Auto-adjust row heights based on wrapped text in Message column
+        msg_col_width = ws.column_dimensions["D"].width or 120
+        
         for row_num in range(2, ws.max_row + 1):
-            ws.row_dimensions[row_num].height = 22
+            # Get the Message cell (column D/4)
+            msg_cell = ws.cell(row=row_num, column=4)
+            
+            if msg_cell.value:
+                text = str(msg_cell.value)
+                text_len = len(text)
+                
+                # Count explicit line breaks
+                newline_count = text.count("\n")
+                
+                # Estimate wrapped lines based on column width
+                # chars per line = width * 1.2 (accounting for character width variance)
+                est_lines = max(1, text_len // int(msg_col_width * 1.2))
+                
+                # Combine explicit breaks with wrapping estimate
+                total_lines = max(1, newline_count + est_lines)
+                
+                # Set row height: ~15 points per line, minimum 25 for breathing room
+                ws.row_dimensions[row_num].height = max(total_lines * 15, 25)
+            else:
+                # Set minimum height for empty/short rows
+                ws.row_dimensions[row_num].height = 25
     
     def _format_excel(self, findings: List[Finding], total_files: int, total_rules: int, 
                      context: Optional['ProjectContext'] = None) -> str:
@@ -515,13 +525,13 @@ class OutputFormatter:
             
             ws = wb.create_sheet(sheet_name)
             
-            # Headers
-            headers = ["Rule ID", "Severity", "Line", "Message"]
+            # Headers (added "Fixed" column for tracking)
+            headers = ["Rule ID", "Severity", "Line", "Message", "Fixed"]
             ws.append(headers)
             
-            # Style headers
-            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-            header_font = Font(color="FFFFFF", bold=True)
+            # Style headers with darker, more intentional background
+            header_fill = PatternFill(start_color="22242A", end_color="22242A", fill_type="solid")
+            header_font = Font(color="FFFFFF", bold=True, size=11)
             for col_num, header in enumerate(headers, 1):
                 cell = ws.cell(row=1, column=col_num)
                 cell.fill = header_fill
@@ -534,18 +544,53 @@ class OutputFormatter:
                 f.rule_id
             ))
             
-            # Add findings
+            # Add findings with empty "Fixed" column
             for finding in sorted_file_findings:
                 row = [
                     finding.rule_id,
                     finding.severity,
                     finding.line,
-                    finding.message
+                    finding.message,
+                    ""  # Empty Fixed column for user tracking
                 ]
                 ws.append(row)
             
             # Apply accessible styling to this sheet
             self._apply_accessible_styling(ws, sorted_file_findings)
+            
+            # Add data validation dropdown to "Fixed" column (E)
+            from openpyxl.worksheet.datavalidation import DataValidation
+            from openpyxl.formatting.rule import CellIsRule
+            from openpyxl.styles import PatternFill
+            
+            # Create dropdown with tracking options
+            dv = DataValidation(type="list", formula1='"To Do,Fixed,Won\'t Fix"', allow_blank=True)
+            dv.error = 'Please select from the dropdown'
+            dv.errorTitle = 'Invalid Entry'
+            dv.prompt = 'Select status'
+            dv.promptTitle = 'Fix Status'
+            
+            # Apply validation to all data rows in Fixed column (E)
+            ws.add_data_validation(dv)
+            dv.add(f"E2:E{ws.max_row}")
+            
+            # Add conditional formatting to color-code the Fixed column
+            # Green for "Fixed"
+            fixed_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+            fixed_rule = CellIsRule(operator='equal', formula=['"Fixed"'], fill=fixed_fill)
+            
+            # Light gray for "Won't Fix"
+            wont_fix_fill = PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid")
+            wont_fix_rule = CellIsRule(operator='equal', formula=['"Won\'t Fix"'], fill=wont_fix_fill)
+            
+            # Light yellow for "To Do"
+            todo_fill = PatternFill(start_color="FFF9C4", end_color="FFF9C4", fill_type="solid")
+            todo_rule = CellIsRule(operator='equal', formula=['"To Do"'], fill=todo_fill)
+            
+            # Apply conditional formatting to Fixed column range
+            ws.conditional_formatting.add(f"E2:E{ws.max_row}", fixed_rule)
+            ws.conditional_formatting.add(f"E2:E{ws.max_row}", wont_fix_rule)
+            ws.conditional_formatting.add(f"E2:E{ws.max_row}", todo_rule)
             
             # Update summary sheet
             action_count = len([f for f in file_findings if f.severity == "ACTION"])
