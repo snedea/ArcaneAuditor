@@ -231,4 +231,55 @@ class TestMultipleStringInterpolatorsRule:
         
         findings = list(rule.analyze(context))
         assert len(findings) == 0
+    
+    def test_multiline_string_with_multiple_interpolators(self):
+        """Test that multi-line strings with multiple interpolators are flagged."""
+        rule = MultipleStringInterpolatorsRule()
+        context = ProjectContext()
+        
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "source_content": '''{
+  "widgets": [
+    {
+      "type": "text",
+      "value": "Hello <% name %>
+                and welcome <% title %>"
+    }
+  ]
+}'''
+        }
+        pmd_model = PMDModel(**pmd_data)
+        context.pmds = {"testPage": pmd_model}
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert "template literal" in findings[0].message.lower()
+    
+    def test_multiline_string_with_three_interpolators(self):
+        """Test that multi-line strings with three interpolators are flagged."""
+        rule = MultipleStringInterpolatorsRule()
+        context = ProjectContext()
+        
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "source_content": '''{
+  "widgets": [
+    {
+      "type": "text",
+      "label": "Line 1: <% first %>
+Line 2: <% second %>
+Line 3: <% third %>"
+    }
+  ]
+}'''
+        }
+        pmd_model = PMDModel(**pmd_data)
+        context.pmds = {"testPage": pmd_model}
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert "3 interpolators" in findings[0].message
 
