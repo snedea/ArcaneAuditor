@@ -44,9 +44,16 @@ start-web-service.bat --help
 
 ## Requirements
 
-- Python 3.8+
-- `uv` package manager
+### With UV (Recommended) ⭐
+- `uv` package manager (automatically manages Python 3.12+)
 - All project dependencies installed (`uv sync`)
+
+> 💡 **Note:** The startup scripts use UV by default. UV automatically downloads and manages Python - no separate installation needed!
+
+### With pip (Alternative)
+- Python 3.12+ must be pre-installed
+- All project dependencies installed (`pip install -r requirements.txt`)
+- Modify the script to use `python web/server.py` instead of `uv run python web/server.py`
 
 ## Troubleshooting
 
