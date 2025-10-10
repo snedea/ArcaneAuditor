@@ -111,3 +111,62 @@ class StructureRuleBase(Rule, ABC):
             return text[:position].count('\n') + 1
         except Exception:
             return 1
+    
+    def extract_nearest_container_from_path(self, widget_path: str) -> str:
+        """
+        Extract the nearest meaningful container field name from a widget path.
+        
+        This generically finds the last non-numeric segment in the path, which represents
+        the container field that holds the widget (e.g., "cellTemplate", "primaryLayout", etc.).
+        
+        Examples:
+            "body.children.1.columns.0.cellTemplate" -> "cellTemplate"
+            "body.primaryLayout" -> "primaryLayout"
+            "body.children.2" -> "children"
+            "footer.children.0.items.1" -> "items"
+        
+        Args:
+            widget_path: The full widget path
+            
+        Returns:
+            The nearest container field name, or None if not found
+        """
+        if not widget_path:
+            return None
+        
+        # Split path by dots and filter out numeric indices
+        path_segments = widget_path.split('.')
+        
+        # Iterate backwards to find the last non-numeric, non-root segment
+        for segment in reversed(path_segments):
+            # Skip numeric indices
+            if segment.isdigit():
+                continue
+            # Skip root sections like 'body', 'title', 'footer'
+            if segment in ['body', 'title', 'footer', 'template']:
+                continue
+            # This is a meaningful container field
+            return segment
+        
+        return None
+    
+    def find_context_line(self, lines: list, context: str, start: int, end: int) -> int:
+        """
+        Find the line number where a specific context field appears.
+        
+        This generically searches for any field name in the JSON structure
+        (e.g., 'cellTemplate', 'primaryLayout', 'columns').
+        
+        Args:
+            lines: List of source code lines
+            context: Context field to search for
+            start: Start line index
+            end: End line index
+            
+        Returns:
+            Line index where context is found, or -1 if not found
+        """
+        for i in range(start, end):
+            if f'"{context}"' in lines[i]:
+                return i
+        return -1
