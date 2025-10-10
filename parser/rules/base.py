@@ -456,7 +456,7 @@ class Rule(ABC):
         # Known widget container field names
         WIDGET_CONTAINERS = {
             'children', 'primaryLayout', 'secondaryLayout', 'sections', 
-            'items', 'navigationTasks'
+            'items', 'navigationTasks', 'cellTemplate', 'columns'
         }
         
         # Known layout types that may contain nested structures
@@ -477,6 +477,10 @@ class Rule(ABC):
                         # Recursively check for nested containers
                         yield from _traverse_container(item, item_path)
             elif isinstance(container_data, dict):
+                # If this dict has a 'type' field, it's a widget - yield it first
+                if 'type' in container_data:
+                    yield (container_data, container_path, 0)
+                
                 # Check if this is a widget with nested containers
                 widget_type = container_data.get('type', '')
                 
