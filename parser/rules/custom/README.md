@@ -14,12 +14,19 @@ This directory allows you to create custom validation rules for the Arcane Audit
 ## 🏗️ Class Hierarchy
 
 ```
-RuleBase
- ├── ScriptRuleBase
+Rule (Abstract Base)
+ ├── ScriptRuleBase (for script analysis)
+ │     ├── Uses → ScriptDetector (for AST detection logic)
+ │     │            └── CustomScriptMyDetector
  │     └── CustomScriptMyRule
- └── StructureRuleBase
+ └── StructureRuleBase (for structure validation)
        └── CustomStructureMyRule
 ```
+
+**Architecture Pattern:**
+- **Rules** (ScriptRuleBase, StructureRuleBase): Orchestrate analysis, handle file iteration
+- **Detectors** (ScriptDetector): Analyze AST and detect patterns
+- **Separation**: Rules coordinate, Detectors detect
 
 ## 📊 When to Use Violation vs Finding
 
@@ -64,29 +71,58 @@ custom/
 
 Arcane Auditor now supports a **unified rule architecture** with specialized base classes:
 
-#### For Script Rules (Recommended)
+#### For Script Rules (Detector Pattern - Recommended)
+
+The best practice for script rules is to use the **Detector pattern** which separates AST detection logic from rule orchestration:
 
 ```python
-from typing import Generator
+from typing import Generator, List
+from lark import Tree
 from ...script.shared import ScriptRuleBase, ScriptDetector, Violation
-from ....models import ProjectContext, PMDModel, ScriptModel
+from ...base import Finding
 
+# Step 1: Create a Detector (handles AST parsing and detection logic)
+class MyScriptDetector(ScriptDetector):
+    """Detector for specific pattern in AST."""
+    
+    def detect(self, ast: Tree, field_name: str = "") -> List[Violation]:
+        """Analyze AST and return violations."""
+        violations = []
+        
+        # Traverse the AST to find patterns
+        for node in ast.find_data('some_ast_node_type'):
+            line_number = self.get_line_from_tree_node(node)
+            violations.append(Violation(
+                message=f"Found issue in {field_name}",
+                line=line_number
+            ))
+        
+        return violations
+
+# Step 2: Create a Rule (orchestrates detector usage)
 class CustomScriptMyRule(ScriptRuleBase):
-    """Custom script rule using unified architecture."""
-  
+    """Custom script rule using detector pattern."""
+    
     DESCRIPTION = "Description of what this rule checks"
     SEVERITY = "ADVICE"  # "ACTION", "ADVICE"
-  
-    def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
-        """Main analysis method using unified architecture."""
-        # The base class handles PMD/POD/script iteration automatically
-        yield from self._analyze_scripts(context)
-  
-    def _analyze_scripts(self, context: ProjectContext) -> Generator[Violation, None, None]:
-        """Analyze scripts using the unified pattern."""
-        # Your analysis logic here
-        pass
+    DETECTOR = MyScriptDetector  # Reference to your detector class
+    
+    def get_description(self) -> str:
+        return self.DESCRIPTION
+    
+    # The base class automatically:
+    # - Iterates through PMD/POD/Script files
+    # - Parses script content into AST
+    # - Calls your DETECTOR with the AST
+    # - Converts Violations to Findings
 ```
+
+**Why use the Detector pattern?**
+- ✅ Separation of concerns (AST logic vs orchestration)
+- ✅ Reusable detectors across multiple rules
+- ✅ Comments automatically ignored by parser
+- ✅ Consistent with all official script rules
+- ✅ Easier to test (test detector and rule separately)
 
 #### For Structure Rules (Recommended)
 
@@ -261,11 +297,74 @@ line_number = self.find_pattern_line_number(model, 'data:image/', case_sensitive
 line_number = self.get_line_from_text_position(text, match.start())
 ```
 
+#### Widget Path Helpers (New!)
+```python
+# Extract nearest container from widget path for context-aware line numbers
+# Works with any nested structure: cellTemplate, primaryLayout, sections, items, etc.
+container = self.extract_nearest_container_from_path("body.children.1.columns.0.cellTemplate")
+# Returns: "cellTemplate"
+
+# Find where a specific container field appears in source
+context_line = self.find_context_line(lines, "cellTemplate", start_line, end_line)
+# Returns: line index where "cellTemplate" field is found
+
+# Usage example:
+if container:
+    context_line = self.find_context_line(lines, container, search_start, search_end)
+    if context_line >= 0:
+        # Narrow search to area near the container
+        search_start = context_line
+        search_end = context_line + 20
+```
+
 **Benefits:**
 - ✅ **Consistent**: All structure rules use the same reliable methods
 - ✅ **Maintainable**: Single source of truth for line calculation logic
 - ✅ **DRY**: Eliminates code duplication across rules
 - ✅ **Reliable**: Handles edge cases and errors gracefully
+- ✅ **Generic**: Works with any container field (no hardcoded field names)
+
+#### Widget Traversal Methods
+
+**StructureRuleBase** provides methods to traverse widget structures in PMD and POD files:
+
+```python
+# Traverse all widgets in a PMD presentation structure
+for widget, path, index in self.traverse_presentation_structure(section_data, section_name):
+    # widget: The widget dictionary
+    # path: Technical path like "body.children.1.columns.0.cellTemplate"
+    # index: Array index if widget is in a list
+    
+    widget_type = widget.get('type')
+    widget_id = widget.get('id')
+    # Analyze the widget...
+
+# Find all widgets in a POD template
+widgets = self.find_pod_widgets(pod_model)
+for widget_path, widget_data in widgets:
+    # widget_path: Path to the widget
+    # widget_data: The widget dictionary
+    # Analyze the widget...
+```
+
+**Supported Container Fields:**
+The traversal automatically handles these containers: `children`, `primaryLayout`, `secondaryLayout`, `sections`, `items`, `navigationTasks`, `cellTemplate`, `columns`
+
+**Example: Checking All Widgets**
+```python
+def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
+    if not pmd_model.presentation:
+        return
+    
+    # Traverse all presentation sections
+    presentation_dict = pmd_model.presentation.__dict__
+    for section_name, section_data in presentation_dict.items():
+        if isinstance(section_data, dict):
+            for widget, path, index in self.traverse_presentation_structure(section_data, section_name):
+                # Check each widget (including nested ones in cellTemplate, columns, etc.)
+                if widget.get('type') == 'grid':
+                    yield from self._check_grid_widget(widget, pmd_model, path)
+```
 
 #### Endpoint Rules
 
@@ -351,6 +450,33 @@ except Exception as e:
 - ✅ **Memory efficient**: Only unique script content is parsed and cached
 - ✅ **Automatic**: Caching happens transparently - no manual cache management needed
 - ✅ **Backward compatible**: Falls back to direct parsing if context is not available
+
+### ScriptDetector Helper Methods
+
+**ScriptDetector** base class provides helper methods for AST analysis:
+
+```python
+class MyScriptDetector(ScriptDetector):
+    def detect(self, ast: Tree, field_name: str = "") -> List[Violation]:
+        violations = []
+        
+        # Get line number from AST node
+        line_number = self.get_line_from_tree_node(node)
+        
+        # Get function context for a node (which function contains this node)
+        function_name = self.get_function_context_for_node(node, ast)
+        
+        # Extract variable name from various node types
+        var_name = self._extract_variable_from_node(node)
+        
+        # Your detection logic...
+        return violations
+```
+
+**Available Helper Methods:**
+- `get_line_from_tree_node(node)`: Get line number from any AST node
+- `get_function_context_for_node(node, ast)`: Find which function contains a node
+- `_extract_variable_from_node(node)`: Extract variable name from identifier nodes
 
 ### Script Field Discovery
 
@@ -732,9 +858,126 @@ The `ProjectContext` provides access to:
 
 ## 📚 Examples
 
-### Complete Working Example
+### Complete Working Example - Script Rule with Detector
 
-See `examples/_example_custom_rule.py` for a complete implementation showing:
+Here's a complete real-world example using the detector pattern:
+
+```python
+# user/custom_console_detection.py
+from typing import List
+from lark import Tree
+from ...script.shared import ScriptRuleBase, ScriptDetector, Violation
+from ...base import Finding
+
+# Step 1: Create Detector (AST detection logic)
+class ConsoleUsageDetector(ScriptDetector):
+    """Detects console.log, console.error, etc. in scripts."""
+    
+    def detect(self, ast: Tree, field_name: str = "") -> List[Violation]:
+        """Find console usage in AST."""
+        violations = []
+        
+        # Find all member expressions (like console.log)
+        for member_expr in ast.find_data('member_dot_expression'):
+            if self._is_console_call(member_expr):
+                line_number = self.get_line_from_tree_node(member_expr)
+                function_context = self.get_function_context_for_node(member_expr, ast)
+                
+                message = f"Console statement found in {field_name}"
+                if function_context:
+                    message += f" (function: {function_context})"
+                
+                violations.append(Violation(
+                    message=message,
+                    line=line_number
+                ))
+        
+        return violations
+    
+    def _is_console_call(self, node: Tree) -> bool:
+        """Check if node is console.* call."""
+        if len(node.children) >= 2:
+            obj = node.children[0]
+            # Check if object is 'console'
+            if (hasattr(obj, 'data') and obj.data == 'identifier_expression' and
+                len(obj.children) > 0 and obj.children[0].value == 'console'):
+                return True
+        return False
+
+# Step 2: Create Rule (orchestration)
+class CustomScriptConsoleRule(ScriptRuleBase):
+    """Detects console usage in scripts."""
+    
+    DESCRIPTION = "Detects console.log and console.error usage"
+    SEVERITY = "ADVICE"
+    DETECTOR = ConsoleUsageDetector
+    
+    def get_description(self) -> str:
+        return self.DESCRIPTION
+    
+    # That's it! ScriptRuleBase handles:
+    # - Iterating PMD/POD/Script files
+    # - Parsing scripts into AST
+    # - Calling detector
+    # - Converting Violations to Findings
+```
+
+### Complete Working Example - Structure Rule
+
+```python
+# user/custom_widget_validation.py
+from typing import Generator
+from ...structure.shared import StructureRuleBase
+from ...base import Finding
+from ....models import PMDModel, PodModel, ProjectContext
+
+class CustomWidgetLabelRule(StructureRuleBase):
+    """Ensures all widgets have labels for accessibility."""
+    
+    DESCRIPTION = "Ensures widgets have labels for accessibility"
+    SEVERITY = "ADVICE"
+    
+    def get_description(self) -> str:
+        return self.DESCRIPTION
+    
+    def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        if not pmd_model.presentation:
+            return
+        
+        # Traverse all widgets using helper method
+        presentation_dict = pmd_model.presentation.__dict__
+        for section_name, section_data in presentation_dict.items():
+            if isinstance(section_data, dict):
+                for widget, path, index in self.traverse_presentation_structure(section_data, section_name):
+                    yield from self._check_widget_label(widget, pmd_model, path)
+    
+    def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
+        # Similar logic for POD files
+        yield
+    
+    def _check_widget_label(self, widget, pmd_model, widget_path):
+        """Check if widget has a label."""
+        if not isinstance(widget, dict):
+            return
+        
+        widget_type = widget.get('type')
+        if widget_type in ['text', 'richText'] and 'label' not in widget:
+            # Use path helpers for accurate line numbers
+            container = self.extract_nearest_container_from_path(widget_path)
+            
+            # Get line number...
+            line_number = 1  # Calculate using helper methods
+            
+            yield self._create_finding(
+                message=f"Widget of type '{widget_type}' should have a label for accessibility",
+                file_path=pmd_model.file_path,
+                line=line_number
+            )
+```
+
+### Also See
+
+See `examples/_example_custom_rule.py` for additional examples showing:
 
 - Unified rule architecture with ScriptRuleBase
 - Generator-based rule structure
