@@ -1102,11 +1102,11 @@ const workerWid = appAttr.workerWid; // ✅ Use app attribute
 
 ---
 
-## 🏗️ Structure Rules (14 Rules)
+## 🏗️ Structure Rules (20 Rules)
 
 *The Structure Rules bind the outer wards and conduits of your magical constructs. These architectural validations ensure your endpoints, widgets, and configurations form a harmonious and secure foundation for your mystical applications.*
 
-*These rules validate widget configurations, endpoint structures, component compliance, hardcoded values, and PMD organization in both PMD and Pod files.*
+*These rules validate widget configurations, endpoint structures, component compliance, hardcoded values, file naming conventions, and PMD organization in both PMD and Pod files.*
 
 ### EndpointFailOnStatusCodesRule
 
@@ -1420,8 +1420,6 @@ PMD session variables persist for the entire user session, consuming memory and 
 
 ---
 
-## PMD Rules (2 Rules)
-
 ### PMDSectionOrderingRule
 
 **Severity:** ADVICE (configurable)
@@ -1478,6 +1476,239 @@ PMD session variables persist for the entire user session, consuming memory and 
         "section_order": ["id", "securityDomains", "include", "script", "endPoints", "onSubmit", "outboundData", "onLoad", "presentation"]
     }
   }
+}
+```
+
+---
+
+### PMDSecurityDomainRule
+
+**Severity:** ACTION
+**Description:** Ensures PMD pages have at least one security domain defined (excludes microConclusion and error pages unless strict mode is enabled)
+**Applies to:** PMD file security configuration
+
+**What it catches:**
+
+- PMD pages missing `securityDomains` list
+- Empty `securityDomains` arrays
+- Enforces security best practices for Workday applications
+
+**Smart Exclusions (configurable):**
+
+- **MicroConclusion pages**: Pages with `presentation.microConclusion: true` are excluded (unless strict mode)
+- **Error pages**: Pages whose ID appears in SMD `errorPageConfigurations` are excluded (unless strict mode)
+- Only enforces security domains on pages that actually need them (unless strict mode)
+
+**Example violations:**
+
+```javascript
+// ❌ Missing security domains
+{
+  "id": "myPage",
+  "presentation": {
+    "body": { ... }
+  }
+}
+
+// ✅ Proper security domains
+{
+  "id": "myPage", 
+  "securityDomains": ["ViewAdminPages"],
+  "presentation": {
+    "body": { ... }
+  }
+}
+
+// ✅ MicroConclusion page (excluded in normal mode)
+{
+  "id": "microPage",
+  "presentation": {
+    "microConclusion": true,
+    "body": { ... }
+  }
+}
+```
+
+**Configuration:**
+
+- **`strict`** (boolean, default: false): When enabled, requires security domains for ALL PMD pages, including microConclusion and error pages
+  - `false`: Normal mode with smart exclusions (default for all presets)
+  - `true`: Strict mode requiring security domains for all pages (opt-in only)
+
+**Example configuration:**
+
+```json
+{
+  "PMDSecurityDomainRule": {
+    "enabled": true,
+    "custom_settings": {
+      "strict": true
+    }
+  }
+}
+```
+
+---
+
+### WidgetIdRequiredRule
+
+**Severity:** ACTION
+**Description:** Ensures all widgets have an 'id' field set
+**Applies to:** PMD and POD widget structures
+
+**What it catches:**
+
+- Widgets missing required `id` field
+- Widgets that cannot be uniquely identified or referenced
+- Structure validation issues that make code harder to maintain
+
+**Smart Exclusions:**
+
+Widget types that don't require IDs: `footer`, `item`, `group`, `title`, `pod`, `cardContainer`, `card`, and column objects (which use `columnId` instead)
+
+**Example violations:**
+
+```json
+{
+  "presentation": {
+    "body": {
+      "type": "richText",  // ❌ Missing id field
+      "value": "Welcome"
+    }
+  }
+}
+```
+
+**Fix:**
+
+```json
+{
+  "presentation": {
+    "body": {
+      "type": "richText",
+      "id": "welcomeMessage",  // ✅ Added id field
+      "value": "Welcome"
+    }
+  }
+}
+```
+
+---
+
+### WidgetIdLowerCamelCaseRule
+
+**Severity:** ADVICE
+**Description:** Ensures widget IDs follow lowerCamelCase naming convention
+**Applies to:** PMD and POD widget structures
+
+**What it catches:**
+
+- Widget IDs that don't follow lowerCamelCase convention
+- Inconsistent naming across widgets
+- Style guide violations
+
+**Example violations:**
+
+```json
+{
+  "type": "richText",
+  "id": "WelcomeMessage"  // ❌ Should be lowerCamelCase
+}
+```
+
+**Fix:**
+
+```json
+{
+  "type": "richText",
+  "id": "welcomeMessage"  // ✅ Proper lowerCamelCase
+}
+```
+
+---
+
+### FooterPodRequiredRule
+
+**Severity:** ADVICE
+**Description:** Ensures footer uses pod structure (direct pod or footer with pod children)
+**Applies to:** PMD file footer sections
+
+**What it catches:**
+
+- Footers that don't use pod structure
+- Inconsistent footer implementations
+- Missing pod widgets in footers
+
+**Smart Exclusions:**
+
+Pages with tabs, hub pages, and microConclusion pages are excluded from this requirement.
+
+**Example violations:**
+
+```json
+{
+  "presentation": {
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "richText",  // ❌ Should be pod
+          "id": "footerText"
+        }
+      ]
+    }
+  }
+}
+```
+
+**Fix:**
+
+```json
+{
+  "presentation": {
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "pod",  // ✅ Using pod structure
+          "id": "footerPod",
+          "podId": "MyFooterPod"
+        }
+      ]
+    }
+  }
+}
+```
+
+---
+
+### StringBooleanRule
+
+**Severity:** ADVICE
+**Description:** Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans
+**Applies to:** PMD and POD file structures
+
+**What it catches:**
+
+- Boolean values represented as strings `"true"` or `"false"`
+- Type inconsistencies that can cause unexpected behavior
+- JSON structure violations
+
+**Example violations:**
+
+```json
+{
+  "visible": "true",  // ❌ String instead of boolean
+  "enabled": "false"  // ❌ String instead of boolean
+}
+```
+
+**Fix:**
+
+```json
+{
+  "visible": true,  // ✅ Actual boolean
+  "enabled": false  // ✅ Actual boolean
 }
 ```
 
@@ -1676,75 +1907,6 @@ Combining paging with sortable/filterable columns can cause severe performance d
 ```
 
 **Recommendation:** For large datasets, use paging without sortableAndFilterable. For small datasets, use sortableAndFilterable without paging.
-
----
-
-### PMDSecurityDomainRule
-
-**Severity:** ACTION
-**Description:** Ensures PMD pages have at least one security domain defined (excludes microConclusion and error pages unless strict mode is enabled)
-**Applies to:** PMD file security configuration
-
-**What it catches:**
-
-- PMD pages missing `securityDomains` list
-- Empty `securityDomains` arrays
-- Enforces security best practices for Workday applications
-
-**Smart Exclusions (configurable):**
-
-- **MicroConclusion pages**: Pages with `presentation.microConclusion: true` are excluded (unless strict mode)
-- **Error pages**: Pages whose ID appears in SMD `errorPageConfigurations` are excluded (unless strict mode)
-- Only enforces security domains on pages that actually need them (unless strict mode)
-
-**Example violations:**
-
-```javascript
-// ❌ Missing security domains
-{
-  "id": "myPage",
-  "presentation": {
-    "body": { ... }
-  }
-}
-
-// ✅ Proper security domains
-{
-  "id": "myPage", 
-  "securityDomains": ["ViewAdminPages"],
-  "presentation": {
-    "body": { ... }
-  }
-}
-
-// ✅ MicroConclusion page (excluded in normal mode)
-{
-  "id": "microPage",
-  "presentation": {
-    "microConclusion": true,
-    "body": { ... }
-  }
-}
-```
-
-**Configuration:**
-
-- **`strict`** (boolean, default: false): When enabled, requires security domains for ALL PMD pages, including microConclusion and error pages
-  - `false`: Normal mode with smart exclusions (default for all presets)
-  - `true`: Strict mode requiring security domains for all pages (opt-in only)
-
-**Example configuration:**
-
-```json
-{
-  "PMDSecurityDomainRule": {
-    "enabled": true,
-    "custom_settings": {
-      "strict": true
-    }
-  }
-}
-```
 
 ---
 
