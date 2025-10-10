@@ -177,6 +177,203 @@ class TestWidgetIdRequiredRule:
         
         findings = list(self.rule.analyze(self.context))
         assert len(findings) == 0
+    
+    def test_instancelist_widget_without_id_not_flagged(self):
+        """Test that instanceList widgets don't require id."""
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "presentation": {
+                "body": {
+                    "type": "instanceList"
+                }
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+    
+    def test_taskreference_widget_without_id_not_flagged(self):
+        """Test that taskReference widgets don't require id."""
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "presentation": {
+                "body": {
+                    "type": "taskReference"
+                }
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+    
+    def test_edittasks_widget_without_id_not_flagged(self):
+        """Test that editTasks widgets don't require id."""
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "presentation": {
+                "body": {
+                    "type": "editTasks"
+                }
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+    
+    def test_multiselectcalendar_widget_without_id_not_flagged(self):
+        """Test that multiSelectCalendar widgets don't require id."""
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "presentation": {
+                "body": {
+                    "type": "multiSelectCalendar"
+                }
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+    
+    def test_bpextender_widget_without_id_not_flagged(self):
+        """Test that bpExtender widgets don't require id."""
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "presentation": {
+                "body": {
+                    "type": "bpExtender"
+                }
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+    
+    def test_hub_widget_without_id_not_flagged(self):
+        """Test that hub widgets don't require id."""
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "presentation": {
+                "body": {
+                    "type": "hub"
+                }
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+    
+    def test_image_endpoint_children_without_id_not_flagged(self):
+        """Test that image->endPoint entries don't require id."""
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "presentation": {
+                "body": {
+                    "type": "image",
+                    "id": "myImage",
+                    "endPoint": {
+                        "name": "getImage"
+                    }
+                }
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+    
+    def test_dropdownbutton_values_without_id_not_flagged(self):
+        """Test that dropDownButton->values entries don't require id."""
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "presentation": {
+                "body": {
+                    "type": "dropDownButton",
+                    "id": "myDropdown",
+                    "values": [
+                        {
+                            "type": "item",
+                            "label": "Option 1"
+                        }
+                    ]
+                }
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+    
+    def test_fileuploader_children_without_id_not_flagged(self):
+        """Test that fileUploader children don't require id."""
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "presentation": {
+                "body": {
+                    "type": "fileUploader",
+                    "id": "myUploader",
+                    "children": [
+                        {
+                            "type": "text",
+                            "value": "Upload here"
+                        }
+                    ]
+                }
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+    
+    def test_dynamiccolumns_without_id_but_columns_need_id(self):
+        """Test that dynamicColumns don't have id, but their columns need columnId."""
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "presentation": {
+                "body": {
+                    "type": "grid",
+                    "id": "myGrid",
+                    "dynamicColumns": {
+                        "columns": [
+                            {
+                                "columnId": "col1"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        # dynamicColumns object itself doesn't need id, columns inside use columnId
+        assert len(findings) == 0
 
 
 if __name__ == '__main__':

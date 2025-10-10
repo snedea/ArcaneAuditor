@@ -34,7 +34,7 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
         for section_name, section_data in presentation_dict.items():
             if isinstance(section_data, dict):
                 # Use generic traversal for each section
-                for widget, path, index in self.traverse_presentation_structure(section_data, section_name):
+                for widget, path, index, parent_type, container_name in self.traverse_presentation_structure(section_data, section_name):
                     if isinstance(widget, dict) and 'id' in widget:
                         # Skip widget types that are excluded from ID requirements
                         widget_type = widget.get('type', 'unknown')

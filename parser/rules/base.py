@@ -432,7 +432,7 @@ class Rule(ABC):
                 children_path = f"{current_path}.children"
                 yield from self.traverse_widgets_recursively(children, children_path)
 
-    def traverse_presentation_structure(self, presentation_data: Dict[str, Any], base_path: str = "") -> Generator[Tuple[Dict[str, Any], str, int], None, None]:
+    def traverse_presentation_structure(self, presentation_data: Dict[str, Any], base_path: str = "", parent_type: str = None) -> Generator[Tuple[Dict[str, Any], str, int, str, str], None, None]:
         """
         Generic traversal of PMD presentation structure that handles different layout types.
         
@@ -446,9 +446,10 @@ class Rule(ABC):
         Args:
             presentation_data: The presentation dictionary to traverse
             base_path: Base path for tracking widget locations
+            parent_type: Type of parent widget (for context-aware exclusions)
             
         Yields:
-            Tuples of (widget, full_path, index) for each widget found
+            Tuples of (widget, full_path, index, parent_type, container_name) for each widget found
         """
         if not isinstance(presentation_data, dict):
             return
@@ -465,21 +466,23 @@ class Rule(ABC):
             'layout', 'panelList', 'grid', 'fieldSet'
         }
         
-        def _traverse_container(container_data: Any, container_path: str, container_name: str = "", already_yielded: bool = False):
+        def _traverse_container(container_data: Any, container_path: str, container_name: str = "", already_yielded: bool = False, current_parent_type: str = None):
             """Recursively traverse a container that may hold widgets."""
             if isinstance(container_data, list):
                 # Direct list of widgets
                 for i, item in enumerate(container_data):
                     if isinstance(item, dict):
                         item_path = f"{container_path}.{i}" if container_path else str(i)
-                        yield (item, item_path, i)
+                        yield (item, item_path, i, current_parent_type, container_name)
                         
                         # Recursively check for nested containers (mark as already yielded)
-                        yield from _traverse_container(item, item_path, "", already_yielded=True)
+                        # The item becomes the new parent
+                        item_type = item.get('type')
+                        yield from _traverse_container(item, item_path, "", already_yielded=True, current_parent_type=item_type)
             elif isinstance(container_data, dict):
                 # If this dict has a 'type' field and hasn't been yielded yet, it's a top-level widget - yield it
                 if 'type' in container_data and not already_yielded:
-                    yield (container_data, container_path, 0)
+                    yield (container_data, container_path, 0, current_parent_type, container_name)
                 
                 # Check if this is a widget with nested containers
                 widget_type = container_data.get('type', '')
@@ -489,7 +492,8 @@ class Rule(ABC):
                     if field_name in container_data:
                         field_data = container_data[field_name]
                         field_path = f"{container_path}.{field_name}" if container_path else field_name
-                        yield from _traverse_container(field_data, field_path, field_name, already_yielded=False)
+                        # Pass current widget type as parent for children
+                        yield from _traverse_container(field_data, field_path, field_name, already_yielded=False, current_parent_type=widget_type)
                 
                 # For layout types, also check for any array fields that might contain widgets
                 if widget_type in LAYOUT_TYPES:
@@ -498,10 +502,10 @@ class Rule(ABC):
                             # Check if this list contains widget-like objects
                             if value and isinstance(value[0], dict) and 'type' in value[0]:
                                 field_path = f"{container_path}.{key}" if container_path else key
-                                yield from _traverse_container(value, field_path, key, already_yielded=False)
+                                yield from _traverse_container(value, field_path, key, already_yielded=False, current_parent_type=widget_type)
         
         # Start traversal from the presentation data
-        yield from _traverse_container(presentation_data, base_path)
+        yield from _traverse_container(presentation_data, base_path, "", False, parent_type)
     
     
     def _parse_script_content(self, script_content: str, context=None):

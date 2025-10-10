@@ -22,7 +22,22 @@ class WidgetIdRequiredRule(StructureRuleBase):
     
     # Widget types that do not require or support ID values
     WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {
-        'footer', 'item', 'group', 'title', 'pod', 'cardContainer', 'card'
+        'footer', 'item', 'group', 'title', 'pod', 'cardContainer', 'card',
+        'instanceList', 'taskReference', 'editTasks', 'multiSelectCalendar',
+        'bpExtender', 'hub'
+    }
+    
+    # Special containers where children don't need IDs
+    # Format: 'containerFieldName' or 'parentType.containerFieldName'
+    CONTAINERS_WITH_ID_EXEMPT_CHILDREN = {
+        'endPoint',        # image->endPoint entries
+        'values',          # dropDownButton->values entries  
+        'dynamicColumns'   # dynamicColumns structure itself
+    }
+    
+    # Parent types whose children in specific containers don't need IDs
+    PARENT_CHILD_EXEMPTIONS = {
+        'fileUploader': {'children'}  # fileUploader->children don't need IDs
     }
 
     def get_description(self) -> str:
@@ -41,8 +56,8 @@ class WidgetIdRequiredRule(StructureRuleBase):
         for section_name, section_data in presentation_dict.items():
             if isinstance(section_data, dict):
                 # Use generic traversal for each section
-                for widget, path, index in self.traverse_presentation_structure(section_data, section_name):
-                    yield from self._check_widget_id(widget, pmd_model.file_path, pmd_model, section_name, path, index)
+                for widget, path, index, parent_type, container_name in self.traverse_presentation_structure(section_data, section_name):
+                    yield from self._check_widget_id(widget, pmd_model.file_path, pmd_model, section_name, path, index, None, parent_type, container_name)
 
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyzes the template widgets within a POD model."""
@@ -67,7 +82,7 @@ class WidgetIdRequiredRule(StructureRuleBase):
             
             yield from self._check_widget_id(widget_data, pod_model.file_path, None, section, widget_path, index, pod_model)
 
-    def _check_widget_id(self, widget, file_path, pmd_model=None, section='body', widget_path="", widget_index=0, pod_model=None):
+    def _check_widget_id(self, widget, file_path, pmd_model=None, section='body', widget_path="", widget_index=0, pod_model=None, parent_type=None, container_name=None):
         """Check if a widget has an 'id' field."""
         if not isinstance(widget, dict):
             return
@@ -81,6 +96,14 @@ class WidgetIdRequiredRule(StructureRuleBase):
         # Skip column objects - they use columnId instead of id (enforced by compiler)
         # Column objects are found in "columns" arrays and have columnId field
         if 'columnId' in widget:
+            return
+        
+        # Skip widgets in special containers that don't require IDs
+        if self._is_in_id_exempt_container(widget_path, container_name):
+            return
+        
+        # Skip widgets whose parent exempts children from ID requirement
+        if self._is_parent_exempted_child(parent_type, container_name):
             return
 
         if 'id' not in widget:
@@ -101,6 +124,54 @@ class WidgetIdRequiredRule(StructureRuleBase):
                 line=line_number
             )
 
+    def _is_in_id_exempt_container(self, widget_path: str, container_name: str = None) -> bool:
+        """
+        Check if widget is in a container that exempts children from ID requirement.
+        
+        Args:
+            widget_path: Path like "body.children.1.endPoint" or "body.values.0"
+            container_name: Name of the immediate container (from traversal)
+            
+        Returns:
+            True if the widget is in an ID-exempt container
+        """
+        # Check using container_name from traversal (most reliable)
+        if container_name and container_name in self.CONTAINERS_WITH_ID_EXEMPT_CHILDREN:
+            return True
+        
+        # Fallback: check path
+        if widget_path:
+            path_segments = widget_path.split('.')
+            for container in self.CONTAINERS_WITH_ID_EXEMPT_CHILDREN:
+                if container in path_segments:
+                    return True
+        
+        return False
+    
+    def _is_parent_exempted_child(self, parent_type: str = None, container_name: str = None) -> bool:
+        """
+        Check if widget's parent exempts it from ID requirement.
+        
+        For example, fileUploader->children don't need IDs.
+        
+        Args:
+            parent_type: Type of the parent widget (from traversal)
+            container_name: Name of the container field (from traversal)
+            
+        Returns:
+            True if parent exempts this widget from ID requirement
+        """
+        if not parent_type or not container_name:
+            return False
+        
+        # Check if this parent/container combination exempts children
+        if parent_type in self.PARENT_CHILD_EXEMPTIONS:
+            exempt_containers = self.PARENT_CHILD_EXEMPTIONS[parent_type]
+            if container_name in exempt_containers:
+                return True
+        
+        return False
+    
     def _get_widget_line_number(self, pmd_model: PMDModel, widget_type: str, section: str, widget_path: str = "", widget_index: int = 0) -> int:
         """Get approximate line number for a widget based on its location."""
         try:

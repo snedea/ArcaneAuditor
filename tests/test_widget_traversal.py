@@ -33,8 +33,9 @@ class TestWidgetTraversal:
         
         # Should find exactly 1 widget (the text widget)
         assert len(widgets) == 1
-        assert widgets[0][0]['type'] == 'text'
-        assert widgets[0][0]['id'] == 'myText'
+        widget, path, index, parent_type, container_name = widgets[0]
+        assert widget['type'] == 'text'
+        assert widget['id'] == 'myText'
     
     def test_children_array_traversal(self):
         """Test traversal of widgets in children array."""
@@ -59,7 +60,7 @@ class TestWidgetTraversal:
         
         # Should find 3 widgets: section + 2 text children
         assert len(widgets) == 3
-        widget_types = [w[0]['type'] for w in widgets]
+        widget_types = [w[0]['type'] for w in widgets]  # w[0] is the widget dict
         assert 'section' in widget_types
         assert widget_types.count('text') == 2
     

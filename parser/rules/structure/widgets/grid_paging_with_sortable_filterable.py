@@ -44,7 +44,7 @@ class GridPagingWithSortableFilterableRule(StructureRuleBase):
         
         for section_name, section_data in presentation_dict.items():
             if isinstance(section_data, dict):
-                for widget, path, index in self.traverse_presentation_structure(section_data, section_name):
+                for widget, path, index, parent_type, container_name in self.traverse_presentation_structure(section_data, section_name):
                     if isinstance(widget, dict) and widget.get('type') == 'grid':
                         yield from self._check_grid_paging_and_sortable(widget, pmd_model, section_name, path)
     
