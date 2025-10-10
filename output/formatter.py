@@ -366,12 +366,112 @@ class OutputFormatter:
             adjusted_width = min(max_length + 2, 80)  # Cap at 80 for readability
             context_sheet.column_dimensions[column_letter].width = adjusted_width
     
+    def _apply_accessible_styling(self, ws, findings: List[Finding]):
+        """
+        Apply WCAG-friendly, color-blind accessible styling to findings sheet.
+        
+        Uses alternating row colors within severity groups, borders, emoji symbols,
+        and color palette that works for most color-vision deficiencies.
+        """
+        from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
+        
+        # --- WCAG-Friendly Color Palette ---
+        # Blue family (for ADVICE) - distinguishable by luminance
+        blue_light = "E8F0FE"   # very light blue, high luminance
+        blue_dark = "B3D1FF"    # slightly darker, visible difference
+        
+        # Orange family (for ACTION) - better than red for colorblind users
+        orange_light = "FFF4E5" # light orange/cream
+        orange_dark = "FFD7A8"  # deeper orange, still readable with black text
+        
+        # Gray for alternate neutral fallback (if severity missing)
+        gray_light = "F7F7F7"
+        gray_dark = "E0E0E0"
+        
+        # Define fills for (severity, alternation) combinations
+        fills = {
+            ("ADVICE", False): PatternFill(start_color=blue_light, end_color=blue_light, fill_type="solid"),
+            ("ADVICE", True):  PatternFill(start_color=blue_dark, end_color=blue_dark, fill_type="solid"),
+            ("ACTION", False): PatternFill(start_color=orange_light, end_color=orange_light, fill_type="solid"),
+            ("ACTION", True):  PatternFill(start_color=orange_dark, end_color=orange_dark, fill_type="solid"),
+            ("OTHER", False):  PatternFill(start_color=gray_light, end_color=gray_light, fill_type="solid"),
+            ("OTHER", True):   PatternFill(start_color=gray_dark, end_color=gray_dark, fill_type="solid"),
+        }
+        
+        # Borders (light gray for separation)
+        thin_border = Border(
+            left=Side(style="thin", color="C0C0C0"),
+            right=Side(style="thin", color="C0C0C0"),
+            top=Side(style="thin", color="C0C0C0"),
+            bottom=Side(style="thin", color="C0C0C0")
+        )
+        
+        # Fonts
+        bold_font = Font(bold=True)
+        mono_font = Font(name="Consolas")  # easier for reading code/paths
+        wrap = Alignment(wrap_text=True, vertical="top")
+        
+        # Track severity changes for alternation
+        previous_severity = None
+        alt = False  # alternation flag per severity group
+        
+        # Apply styling to data rows (skip header row)
+        for row in ws.iter_rows(min_row=2, max_col=ws.max_column, max_row=ws.max_row):
+            severity = (row[1].value or "OTHER").strip().upper()
+            
+            # Remove emoji if present from previous formatting
+            if "🟦" in severity or "🟧" in severity or "⬜" in severity:
+                severity = severity.split()[-1]  # Get last word
+            
+            row_idx = row[0].row
+            
+            # Reset alternation when severity changes
+            if severity != previous_severity:
+                alt = False
+                previous_severity = severity
+            else:
+                alt = not alt
+            
+            # Get appropriate fill
+            fill = fills.get((severity, alt), fills[("OTHER", alt)])
+            
+            for cell in row:
+                cell.fill = fill
+                cell.border = thin_border
+                cell.alignment = wrap
+                
+                # Add distinctive visual cue: emoji + text in Severity column
+                if cell.column == 2:  # Severity column (B)
+                    if severity == "ADVICE":
+                        cell.value = "🟦 ADVICE"  # blue square + label
+                    elif severity == "ACTION":
+                        cell.value = "🟧 ACTION"  # orange square + label
+                    else:
+                        cell.value = f"⬜ {severity}"
+                
+                # Bold Rule ID column
+                if cell.column == 1:  # Rule ID column (A)
+                    cell.font = bold_font
+                # Monospace font for Message column (better for code/paths)
+                elif cell.column == 4:  # Message column (D)
+                    cell.font = mono_font
+        
+        # Adjust column dimensions for better readability
+        ws.column_dimensions["A"].width = 28  # Rule ID
+        ws.column_dimensions["B"].width = 14  # Severity (with emoji)
+        ws.column_dimensions["C"].width = 6   # Line
+        ws.column_dimensions["D"].width = 120 # Message
+        
+        # Set row height for better spacing
+        for row_num in range(2, ws.max_row + 1):
+            ws.row_dimensions[row_num].height = 22
+    
     def _format_excel(self, findings: List[Finding], total_files: int, total_rules: int, 
                      context: Optional['ProjectContext'] = None) -> str:
-        """Format results as Excel file with separate tabs per file."""
+        """Format results as Excel file with accessible, color-blind friendly styling."""
         try:
             import openpyxl
-            from openpyxl.styles import Font, PatternFill, Alignment
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
             from openpyxl.utils import get_column_letter
         except ImportError:
             return "Error: openpyxl package required for Excel export. Install with: pip install openpyxl"
@@ -385,6 +485,49 @@ class OutputFormatter:
         # Add context awareness sheet if context available
         if context and context.analysis_context:
             self._add_context_sheet_excel(wb, context.analysis_context)
+        
+        # Create "Rule Findings" sheet with all findings (accessible styling)
+        if findings:
+            findings_sheet = wb.create_sheet("Rule Findings")
+            
+            # Headers
+            headers = ["Rule ID", "Severity", "Line", "Message", "File"]
+            findings_sheet.append(headers)
+            
+            # Style headers
+            from openpyxl.styles import Font, PatternFill, Alignment
+            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            header_font = Font(color="FFFFFF", bold=True)
+            for col_num, header in enumerate(headers, 1):
+                cell = findings_sheet.cell(row=1, column=col_num)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal="center")
+            
+            # Sort findings by severity (ACTION first) then by rule_id
+            sorted_findings = sorted(findings, key=lambda f: (
+                0 if f.severity == "ACTION" else 1,  # ACTION before ADVICE
+                f.rule_id
+            ))
+            
+            # Add findings
+            for finding in sorted_findings:
+                # Clean file path
+                clean_file_path = re.sub(r'^[a-f0-9-]+_', '', finding.file_path or "Unknown")
+                row = [
+                    finding.rule_id,
+                    finding.severity,
+                    finding.line,
+                    finding.message,
+                    clean_file_path
+                ]
+                findings_sheet.append(row)
+            
+            # Apply accessible styling
+            self._apply_accessible_styling(findings_sheet, sorted_findings)
+            
+            # Adjust File column width
+            findings_sheet.column_dimensions["E"].width = 40
         
         # Group findings by file
         findings_by_file = self._group_findings_by_file(findings)
