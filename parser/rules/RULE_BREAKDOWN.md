@@ -105,15 +105,20 @@ let myVariable = "value";    // ✅ Use 'let' for mutable values
 ### ScriptDeadCodeRule
 
 **Severity:** ADVICE
-**Description:** Detects and removes dead code from standalone script files
-**Applies to:** Standalone .script files
+**Description:** Validates export patterns in standalone script files by detecting declared variables that are never exported or used
+**Applies to:** Standalone .script files ONLY
 
 **What This Rule Does:**
-This rule addresses dead code cleanup specific to standalone script files. It identifies variables that are declared but serve no purpose - they're neither exported for external use nor called internally by other functions.
+This rule validates the export pattern specific to standalone `.script` files. Standalone script files use an export object literal at the end to expose functions and constants. This rule checks that ALL declared top-level variables (functions, strings, numbers, objects, etc.) are either:
+1. Exported in the final object literal, OR
+2. Used internally by other code in the file
+
+**Intent:** Ensure standalone script files follow proper export patterns and don't contain unused declarations that increase bundle size.
 
 **What it catches:**
 
-- Top-level variables declared but not exported and not used internally
+- Top-level variables (of any type) declared but not exported AND not used internally
+- Function-scoped variables that are declared but never used
 - Dead code that increases bundle size unnecessarily
 
 **Example violations:**
@@ -122,9 +127,10 @@ This rule addresses dead code cleanup specific to standalone script files. It id
 // In util.script
 const getCurrentTime = function() { return date:now(); };
 const unusedHelper = function() { return "unused"; };    // ❌ Dead code - not exported or used
+const API_KEY = "12345";  // ❌ Dead code - constant not exported or used
 
 {
-  "getCurrentTime": getCurrentTime  // ❌ unusedHelper is dead code
+  "getCurrentTime": getCurrentTime  // ❌ unusedHelper and API_KEY are dead code
 }
 ```
 
@@ -134,10 +140,26 @@ const unusedHelper = function() { return "unused"; };    // ❌ Dead code - not 
 // In util.script
 const getCurrentTime = function() { return date:now(); };
 const helperFunction = function() { return "helper"; };    // ✅ Will be exported
+const API_URL = "https://api.example.com";  // ✅ Will be exported
 
 {
   "getCurrentTime": getCurrentTime,
-  "helperFunction": helperFunction  // ✅ Both functions are used
+  "helperFunction": helperFunction,
+  "API_URL": API_URL  // ✅ All declarations are exported
+}
+```
+
+**Example with internal usage:**
+
+```javascript
+// In util.script
+const CACHE_TTL = 3600;  // ✅ Used internally (not exported)
+const getCurrentTime = function() { 
+  return { time: date:now(), ttl: CACHE_TTL };  // Uses CACHE_TTL
+};
+
+{
+  "getCurrentTime": getCurrentTime  // ✅ CACHE_TTL is used internally
 }
 ```
 
@@ -802,13 +824,53 @@ const handler = function() { }; // ❌ Empty function
 ### ScriptUnusedFunctionRule
 
 **Severity:** ADVICE
-**Description:** Detects functions that are declared but never called
-**Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+**Description:** Detects functions that are declared but never called in embedded script contexts
+**Applies to:** PMD embedded scripts (`<% ... %>`) and Pod endpoint/widget scripts ONLY
+
+**What This Rule Does:**
+This rule tracks function usage within embedded script contexts in PMD and Pod files. Unlike standalone `.script` files that use export patterns, embedded scripts don't have formal exports. This rule identifies function variables that are declared but never called anywhere in the script or across related script sections in the same file.
+
+**Intent:** Identify unused helper functions in embedded scripts that can be safely removed to reduce code complexity.
 
 **What it catches:**
 
-- Functions declared but never used
-- Dead code that should be removed
+- Function variables declared but never called
+- Helper functions that were intended to be used but aren't referenced
+- Dead code that should be removed from embedded scripts
+
+**Example violations:**
+
+```javascript
+// In MyPage.pmd - embedded script section
+<%
+  var processData = function(data) {  // ✅ Used below
+    return data.filter(item => item.active);
+  };
+  
+  var unusedHelper = function(val) {  // ❌ Never called - unused function
+    return val * 2;
+  };
+  
+  var results = processData(pageVariables.items);
+%>
+```
+
+**Fix:**
+
+```javascript
+// In MyPage.pmd - embedded script section
+<%
+  var processData = function(data) {  // ✅ Used
+    return data.filter(item => item.active);
+  };
+  
+  // ✅ Removed unusedHelper - it was never called
+  
+  var results = processData(pageVariables.items);
+%>
+```
+
+**Note:** This rule is separate from `ScriptDeadCodeRule`, which validates export patterns in standalone `.script` files. Use `ScriptDeadCodeRule` for `.script` files and `ScriptUnusedFunctionRule` for embedded scripts in PMD/Pod files.
 
 ---
 

@@ -394,9 +394,9 @@ This ensures your customizations persist through updates while allowing flexibil
 
 ### **Unused Code Detection**
 
-- **Unused Functions**: Identifies functions that are never called
+- **Unused Functions**: Identifies functions that are never called in embedded PMD/Pod scripts
 - **Unused Variables**: Finds variables that are declared but never used
-- **Dead Code**: Detects unreachable code blocks
+- **Dead Code**: Validates export patterns in standalone `.script` files (checks all declared variables)
 - **Unused Parameters**: Identifies function parameters that aren't used
 
 [⬆️ Back to Top](#table-of-contents)
