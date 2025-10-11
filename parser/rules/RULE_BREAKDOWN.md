@@ -1403,7 +1403,7 @@ PMD session variables persist for the entire user session, consuming memory and 
 
 ### EndpointBaseUrlTypeRule
 
-**Severity:** ACTION
+**Severity:** ADVICE
 **Description:** Ensures endpoint URLs don't include hardcoded *.workday.com or apiGatewayEndpoint values
 **Applies to:** PMD endpoint definitions and Pod seed endpoints
 
