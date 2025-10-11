@@ -191,6 +191,59 @@ python main.py review-app myapp.zip
 
 💡 **Want to contribute?** See [Development Setup](#development) for setting up a development environment.
 
+### 🤖 CI/CD Integration
+
+Arcane Auditor provides clear, distinct exit codes for easy CI/CD pipeline integration:
+
+| Exit Code | Meaning | Use Case |
+|-----------|---------|----------|
+| **0** | ✅ Success | Clean code, or ADVICE issues in normal mode |
+| **1** | ⚠️ Code Quality Issues | ACTION issues found, or ADVICE with `--fail-on-advice` |
+| **2** | ❌ Usage Error | Invalid config, bad file path, no files found, invalid format |
+| **3** | 💥 Runtime Error | Parsing failed, analysis crashed, unexpected errors |
+
+**CI Pipeline Examples:**
+
+```bash
+# Fail on ACTION issues only (recommended for most teams)
+uv run main.py review-app myapp.zip --format excel --output report.xlsx
+if [ $? -eq 1 ]; then
+    echo "Code quality issues found - review required"
+    exit 1
+elif [ $? -eq 2 ]; then
+    echo "Tool usage error - check configuration"
+    exit 2
+elif [ $? -eq 3 ]; then
+    echo "Runtime error - file may be corrupted"
+    exit 3
+fi
+
+# Strict mode: Fail on both ACTION and ADVICE (pre-deployment)
+uv run main.py review-app myapp.zip --fail-on-advice --quiet
+# Exit code 1 = any issues found, Exit code 0 = clean
+
+# Check exit code programmatically
+uv run main.py review-app myapp.zip
+EXIT_CODE=$?
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "✅ No issues"
+elif [ $EXIT_CODE -eq 1 ]; then
+    echo "⚠️ Code needs fixes"
+    # Don't retry - this is expected failure
+elif [ $EXIT_CODE -eq 2 ]; then
+    echo "❌ Tool misconfigured"
+    # Don't retry - fix config first
+elif [ $EXIT_CODE -eq 3 ]; then
+    echo "💥 Analysis failed"
+    # Could retry with different files
+fi
+```
+
+**Flags for CI:**
+- `--fail-on-advice` - Fail on ADVICE issues (stricter validation)
+- `--quiet` - Minimal output for cleaner CI logs
+- `--format excel --output report.xlsx` - Generate reports for review
+
 [⬆️ Back to Top](#table-of-contents)
 
 ---

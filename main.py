@@ -28,6 +28,12 @@ def review_app(
     - ZIP file: Complete application archive
     - Individual file(s): One or more .pmd, .pod, .amd, .smd, or .script files
     - Directory: Recursively scans for all relevant files
+    
+    Exit Codes (CI-friendly):
+    - 0: Success - Clean code or ADVICE issues (unless --fail-on-advice)
+    - 1: Code Quality Issues - ACTION issues found, or ADVICE with --fail-on-advice
+    - 2: Usage Error - Invalid config, bad file path, no files found, invalid format
+    - 3: Runtime Error - Parsing failed, analysis crashed, unexpected errors
     """
     # Start overall timing
     overall_start_time = time.time()
@@ -46,7 +52,7 @@ def review_app(
     except Exception as e:
         typer.secho(f"Configuration Error: {e}", fg=typer.colors.RED)
         typer.echo("Try using --config with a valid configuration file, or run without --config for defaults")
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Exit code 2 for usage errors
     
     config_time = time.time() - config_start_time
     if show_timing and not quiet:
@@ -74,7 +80,7 @@ def review_app(
             source_files_map = processor.process_individual_files(files_to_process)
     except Exception as e:
         typer.secho(f"File Processing Error: {e}", fg=typer.colors.RED)
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Exit code 2 for usage errors
     
     file_processing_time = time.time() - file_processing_start_time
     typer.echo(f"Found {len(source_files_map)} relevant files to analyze")
@@ -84,7 +90,7 @@ def review_app(
     if not source_files_map:
         typer.secho("No source files found to analyze.", fg=typer.colors.RED)
         typer.echo("Ensure your input contains .pmd, .pod, .script, .amd, or .smd files")
-        raise typer.Exit(1)
+        raise typer.Exit(2)  # Exit code 2 for usage errors
         
     # --- Next Step: Pass 'source_files_map' to the Parser ---
     # For example:
@@ -122,7 +128,7 @@ def review_app(
     except Exception as e:
         typer.secho(f"Parsing Error: {e}", fg=typer.colors.RED)
         typer.echo("Check that your files are valid Workday Extend format")
-        raise typer.Exit(1)
+        raise typer.Exit(3)  # Exit code 3 for runtime errors
 
     # --- Run Rules Analysis ---
     typer.echo("Initializing rules engine...")
@@ -164,7 +170,7 @@ def review_app(
         except ValueError:
             typer.secho(f"Invalid output format: {output_format}", fg=typer.colors.RED)
             typer.echo("Valid formats: console, json, summary, excel")
-            raise typer.Exit(1)
+            raise typer.Exit(2)  # Exit code 2 for usage errors
         
         formatting_start_time = time.time()
         formatter = OutputFormatter(format_type)
@@ -261,17 +267,20 @@ def review_app(
         advice_count = len([f for f in findings if f.severity == "ADVICE"])
         
         if action_count > 0:
+            # ACTION issues always fail (code quality issues)
             if not quiet:
-                typer.echo(f"Analysis completed with {action_count} action issue(s)")
-            raise typer.Exit(2)  # Exit code 2 for action issues
+                typer.echo(f"Analysis completed with {action_count} ACTION issue(s)")
+            raise typer.Exit(1)  # Exit code 1 for code quality issues
         elif fail_on_advice and advice_count > 0:
+            # ADVICE issues fail only in CI mode (--fail-on-advice flag)
             if not quiet:
-                typer.echo(f"Analysis completed with {advice_count} advice issue(s) (CI mode: failing on advice)")
-            raise typer.Exit(1)  # Exit code 1 for advices in CI mode
+                typer.echo(f"Analysis completed with {advice_count} ADVICE issue(s) (CI mode: failing on advice)")
+            raise typer.Exit(1)  # Exit code 1 for code quality issues
         else:
+            # ADVICE issues in normal mode don't fail
             if not quiet:
-                typer.echo("Analysis completed with advices")
-            raise typer.Exit(0)  # Exit code 0 for advices in normal mode
+                typer.echo(f"Analysis completed with {advice_count} ADVICE issue(s)")
+            raise typer.Exit(0)  # Exit code 0 for advice in normal mode
     else:
         if not quiet:
             typer.echo("Analysis completed successfully - no issues found!")
