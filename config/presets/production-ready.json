@@ -147,29 +147,29 @@
     },
     "FooterPodRequiredRule": {
       "enabled": true,
-      "severity_override": "ADVICE",
+      "severity_override": null,
       "custom_settings": {}
     },
     "StringBooleanRule": {
       "enabled": true,
-      "severity_override": "ADVICE",
+      "severity_override": null,
       "custom_settings": {}
     },
     "PMDSectionOrderingRule": {
       "enabled": true,
-      "severity_override": "ACTION",
+      "severity_override": null,
       "custom_settings": {
         "section_order": ["id", "securityDomains", "include", "script", "endPoints", "onSubmit", "outboundData", "onLoad", "presentation"]
       }
     },
     "HardcodedApplicationIdRule": {
       "enabled": true,
-      "severity_override": "ACTION",
+      "severity_override": null,
       "custom_settings": {}
     },
     "HardcodedWidRule": {
       "enabled": true,
-      "severity_override": "ACTION",
+      "severity_override": null,
       "custom_settings": {}
     },
     "EmbeddedImagesRule": {
@@ -179,14 +179,14 @@
     },
     "PMDSecurityDomainRule": {
       "enabled": true,
-      "severity_override": "ACTION",
+      "severity_override": null,
       "custom_settings": {
         "strict": false
       }
     },
     "AMDDataProvidersWorkdayRule": {
       "enabled": true,
-      "severity_override": "ACTION",
+      "severity_override": null,
       "custom_settings": {}
     },
     "FileNameLowerCamelCaseRule": {
