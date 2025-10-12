@@ -18,7 +18,7 @@ class TestScriptDescriptiveParameterRule:
     
     def test_rule_metadata(self):
         """Test rule metadata is correctly defined."""
-        assert self.rule.DESCRIPTION == "Ensures function parameters use descriptive names when functions take function parameters (except 'i', 'j', 'k' for indices)"
+        assert self.rule.DESCRIPTION == "Ensures function parameters use descriptive names when functions take function parameters (except 'a', 'b' for sort)"
         assert self.rule.SEVERITY == "ADVICE"
     
     def test_functional_methods_detection(self):
@@ -29,8 +29,8 @@ class TestScriptDescriptiveParameterRule:
         assert self.rule.FUNCTIONAL_METHODS == expected_methods
     
     def test_allowed_single_letters(self):
-        """Test that traditional index variables are allowed."""
-        expected_letters = {'i', 'j', 'k'}
+        """Test that no single letters are allowed by default (except a,b for sort which is handled separately)."""
+        expected_letters = set()  # Empty set - only a,b for sort are allowed
         assert self.rule.ALLOWED_SINGLE_LETTERS == expected_letters
     
     def test_single_letter_violations_in_pmd(self):
@@ -84,15 +84,15 @@ class TestScriptDescriptiveParameterRule:
         # Should have no violations
         assert len(findings) == 0
     
-    def test_allowed_index_variables(self):
-        """Test that 'i', 'j', 'k' are allowed even in functional contexts."""
+    def test_single_letter_index_variables_are_violations(self):
+        """Test that 'i', 'j', 'k' are now violations in array method contexts."""
         script_content = """<%
-            // These should be allowed (traditional index variables)
+            // These should now be flagged since rule only checks array methods, not traditional loops
             const items = [1, 2, 3];
-            items.forEach((item, i) => console.log(i, item));
-            matrix.map((row, j) => row.map((cell, k) => cell * k));
+            items.map(i => i * 2);
+            matrix.map(j => j.map(k => k * 2));
             
-            // This should still be flagged
+            // This should also be flagged
             items.map(x => x * 2);
         %>"""
         
@@ -106,10 +106,13 @@ class TestScriptDescriptiveParameterRule:
         
         findings = list(self.rule.analyze(self.context))
         
-        # Should only flag 'x', not 'i', 'j', 'k'
-        assert len(findings) == 1
-        assert "'x'" in findings[0].message
-        assert "map()" in findings[0].message
+        # Should flag 'i', 'j', 'k', and 'x' - all single-letter params in array methods
+        assert len(findings) == 4
+        violation_params = [f.message for f in findings]
+        assert any("'i'" in msg for msg in violation_params)
+        assert any("'j'" in msg for msg in violation_params)
+        assert any("'k'" in msg for msg in violation_params)
+        assert any("'x'" in msg for msg in violation_params)
     
     def test_nested_functional_methods(self):
         """Test detection in nested functional method calls."""
@@ -219,17 +222,15 @@ const processUsers = function(userList) {
     def test_configuration_options(self):
         """Test that configuration options work correctly."""
         config = {
-            'allowed_single_letters': ['i', 'j', 'k', 'x'],  # Allow 'x'
+            'allowed_single_letters': ['x'],  # Allow 'x' via configuration
         }
         
         rule = ScriptDescriptiveParameterRule(config=config)
         
         # Test that the configuration was applied correctly
         assert 'x' in rule.ALLOWED_SINGLE_LETTERS
-        assert 'i' in rule.ALLOWED_SINGLE_LETTERS
-        assert 'j' in rule.ALLOWED_SINGLE_LETTERS
-        assert 'k' in rule.ALLOWED_SINGLE_LETTERS
         assert 'y' not in rule.ALLOWED_SINGLE_LETTERS
+        assert 'i' not in rule.ALLOWED_SINGLE_LETTERS  # No longer in default set
         
         # Test that the detector was created with the correct configuration
         detector = rule.DETECTOR("test.pmd", 1, rule.FUNCTIONAL_METHODS, rule.ALLOWED_SINGLE_LETTERS)
@@ -329,13 +330,13 @@ const processUsers = function(userList) {
             items.map(item => item.name);
             tasks.some(task => task.completed);
             
-            // Traditional index variables
-            items.forEach((item, i) => console.log(i));
-            matrix.map((row, j) => row[j]);
-            
             // Multi-character variables starting with single letters
             items.map(item => item.value);
             users.filter(user => user.active);
+            
+            // Descriptive multi-parameter functions
+            items.forEach((item, index) => console.log(index));
+            matrix.map((row, rowIndex) => row[rowIndex]);
         %>"""
 
         pmd_model = PMDModel(
@@ -348,7 +349,7 @@ const processUsers = function(userList) {
 
         findings = list(self.rule.analyze(self.context))
 
-        # Should have no violations
+        # Should have no violations (all parameters are descriptive)
         assert len(findings) == 0
 
     def test_custom_functions_with_function_parameters(self):
@@ -370,9 +371,8 @@ const processUsers = function(userList) {
 
         findings = list(self.rule.analyze(self.context))
 
-        # Should flag single-letter parameters in custom functions that take function parameters
-        # Note: 'i' is in the allowed list, so it won't be flagged
-        assert len(findings) >= 2  # At least x and d should be flagged
+        # Should flag all single-letter parameters in custom functions that take function parameters
+        assert len(findings) >= 3  # x, d, and a should all be flagged
         
         # Check that violations are for single-letter parameters
         violation_params = []
@@ -385,7 +385,6 @@ const processUsers = function(userList) {
         
         assert 'x' in violation_params
         assert 'd' in violation_params
-        # 'a' should also be flagged since it's not in the allowed list
         assert 'a' in violation_params
 
     def test_nested_arrow_functions(self):

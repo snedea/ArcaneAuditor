@@ -9,13 +9,13 @@ from .descriptive_parameters_detector import DescriptiveParameterDetector
 class ScriptDescriptiveParameterRule(ScriptRuleBase):
     """Validates that function parameters use descriptive names when functions take function parameters."""
 
-    DESCRIPTION = "Ensures function parameters use descriptive names when functions take function parameters (except 'i', 'j', 'k' for indices)"
+    DESCRIPTION = "Ensures function parameters use descriptive names when functions take function parameters (except 'a', 'b' for sort)"
     SEVERITY = "ADVICE"
     DETECTOR = DescriptiveParameterDetector
 
     # Expose constants for testing
     FUNCTIONAL_METHODS = {'map', 'filter', 'find', 'forEach', 'reduce', 'sort'}
-    ALLOWED_SINGLE_LETTERS = {'i', 'j', 'k'}
+    ALLOWED_SINGLE_LETTERS = set()  # Empty set - only 'a','b' are allowed for sort (handled separately)
 
     def __init__(self, config=None):
         """Initialize the rule with optional configuration."""

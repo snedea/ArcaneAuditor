@@ -18,8 +18,8 @@ class DescriptiveParameterDetector(ScriptDetector):
             'map', 'filter', 'find', 'forEach', 'reduce', 'sort'
         }
         
-        # Allowed single-letter parameter names (traditional index variables)
-        self.allowed_letters = allowed_letters or {'i', 'j', 'k'}
+        # No single-letter parameters allowed (except 'a','b' for sort which is handled separately)
+        self.allowed_letters = allowed_letters if allowed_letters is not None else set()
 
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
         """Detect non-descriptive parameter names in functions that take function parameters."""
