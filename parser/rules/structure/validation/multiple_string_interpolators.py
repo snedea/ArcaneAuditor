@@ -1,4 +1,4 @@
-"""
+f"""
 Rule to detect multiple string interpolators in a single string value.
 
 Multiple interpolators (<% %>) in a single string are harder to read and maintain.
@@ -6,7 +6,7 @@ Using a single template literal with embedded expressions is cleaner and more pe
 
 Example:
   Bad:  "My name is <% name %> and I like <% food %>"
-  Good: "<% `My name is ${name} and I like ${food}` %>"
+  Good: "<% `My name is {{{{name}}}} and I like {{{{food}}}}` %>"
 """
 import re
 from typing import Generator
@@ -78,8 +78,8 @@ class MultipleStringInterpolatorsRule(StructureRuleBase):
             interpolators = re.findall(interpolator_pattern, string_value)
             
             if len(interpolators) >= 2:
-                # Check if it's already a template literal (has backticks)
-                if '`' in string_value and '${' in string_value:
+                # Check if it's already a template literal (has backticks with {{}} syntax)
+                if '`' in string_value and '{{' in string_value:
                     continue  # Already using template literal
                 
                 # Calculate line number
@@ -97,5 +97,5 @@ class MultipleStringInterpolatorsRule(StructureRuleBase):
     def _create_template_literal_suggestion(self, original_string: str, interpolators: list) -> str:
         """Create a suggestion showing template literal usage."""
         # Simple example - show the concept
-        return "<% `Use template literal with ${{variable}}` %>"
+        return "<% `Use template literal with {{{{variable}}}}` %>"
 

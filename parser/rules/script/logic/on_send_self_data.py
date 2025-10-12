@@ -8,9 +8,9 @@ from .on_send_self_data_detector import OnSendSelfDataDetector
 
 
 class ScriptOnSendSelfDataRule(ScriptRuleBase):
-    """Detects the anti-pattern 'self.data = {:}' in outbound endpoint onSend scripts."""
+    """Detects the anti-pattern of using self.data as temporary storage in outbound endpoint onSend scripts."""
 
-    DESCRIPTION = "Detects anti-pattern 'self.data = {:}' in outbound endpoint onSend scripts"
+    DESCRIPTION = "Detects anti-pattern of using self.data as temporary storage in outbound endpoint onSend scripts"
     SEVERITY = "ADVICE"
     DETECTOR = OnSendSelfDataDetector
 
@@ -43,7 +43,7 @@ class ScriptOnSendSelfDataRule(ScriptRuleBase):
             # Add endpoint name to the finding messages
             for finding in findings:
                 # Update the message to include endpoint name
-                finding.message = f"Outbound endpoint '{endpoint_name}' uses anti-pattern 'self.data = {{:}}' in onSend script. This pattern should be avoided."
+                finding.message = f"Outbound endpoint '{endpoint_name}' onSend script uses 'self.data' as temporary storage. Use a local variable instead (let postData = {{...}}) for clarity and proper scoping."
                 yield finding
     
     def _get_on_send_line_offset(self, pmd_model: PMDModel, endpoint_name: str) -> int:

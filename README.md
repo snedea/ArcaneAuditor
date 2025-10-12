@@ -4,7 +4,7 @@
 
 > ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
 
-![Version](https://img.shields.io/badge/version-0.5.0--beta.1-purple?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-0.6.0--beta.1-purple?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
 
 <a id="overview" />
@@ -190,6 +190,59 @@ python main.py review-app myapp.zip
 ```
 
 💡 **Want to contribute?** See [Development Setup](#development) for setting up a development environment.
+
+### 🤖 CI/CD Integration
+
+Arcane Auditor provides clear, distinct exit codes for easy CI/CD pipeline integration:
+
+| Exit Code | Meaning | Use Case |
+|-----------|---------|----------|
+| **0** | ✅ Success | Clean code, or ADVICE issues in normal mode |
+| **1** | ⚠️ Code Quality Issues | ACTION issues found, or ADVICE with `--fail-on-advice` |
+| **2** | ❌ Usage Error | Invalid config, bad file path, no files found, invalid format |
+| **3** | 💥 Runtime Error | Parsing failed, analysis crashed, unexpected errors |
+
+**CI Pipeline Examples:**
+
+```bash
+# Fail on ACTION issues only (recommended for most teams)
+uv run main.py review-app myapp.zip --format excel --output report.xlsx
+if [ $? -eq 1 ]; then
+    echo "Code quality issues found - review required"
+    exit 1
+elif [ $? -eq 2 ]; then
+    echo "Tool usage error - check configuration"
+    exit 2
+elif [ $? -eq 3 ]; then
+    echo "Runtime error - file may be corrupted"
+    exit 3
+fi
+
+# Strict mode: Fail on both ACTION and ADVICE (pre-deployment)
+uv run main.py review-app myapp.zip --fail-on-advice --quiet
+# Exit code 1 = any issues found, Exit code 0 = clean
+
+# Check exit code programmatically
+uv run main.py review-app myapp.zip
+EXIT_CODE=$?
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "✅ No issues"
+elif [ $EXIT_CODE -eq 1 ]; then
+    echo "⚠️ Code needs fixes"
+    # Don't retry - this is expected failure
+elif [ $EXIT_CODE -eq 2 ]; then
+    echo "❌ Tool misconfigured"
+    # Don't retry - fix config first
+elif [ $EXIT_CODE -eq 3 ]; then
+    echo "💥 Analysis failed"
+    # Could retry with different files
+fi
+```
+
+**Flags for CI:**
+- `--fail-on-advice` - Fail on ADVICE issues (stricter validation)
+- `--quiet` - Minimal output for cleaner CI logs
+- `--format excel --output report.xlsx` - Generate reports for review
 
 [⬆️ Back to Top](#table-of-contents)
 
@@ -479,7 +532,7 @@ Arcane Auditor uses a **layered configuration system** that protects your custom
       "severity_override": null,
       "custom_settings": {}
     },
-    "LongScriptBlockRule": {
+    "ScriptLongBlockRule": {
       "enabled": true,
       "severity_override": "ADVICE",
       "custom_settings": {
@@ -559,7 +612,7 @@ python main.py review-app myapp.zip --config my-config.json
 ```json
 {
   "rules": {
-    "LongScriptBlockRule": {
+    "ScriptLongBlockRule": {
       "enabled": true,
       "severity_override": "ACTION",
       "custom_settings": {
@@ -602,7 +655,7 @@ This ensures your customizations persist through updates while allowing flexibil
 
 ### **Script Syntax & Structure**
 
-- **Valid JavaScript Syntax**: Ensures all script code follows proper JavaScript syntax
+- **Valid PMD Script Syntax**: Ensures all script code follows proper PMD Script syntax
 - **Function Declaration Validation**: Validates function declarations and their parameters
 - **Variable Declaration**: Checks for proper variable declarations and scope
 - **Control Flow Validation**: Validates if/else, loops, and other control structures
@@ -758,19 +811,17 @@ Enable or configure your custom rules in your configuration file:
 git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git
 cd ArcaneAuditor
 
-# Install dependencies (including development dependencies)
-uv sync --dev
+# Install dependencies
+uv sync
 
 # Run tests to verify installation
 uv run pytest
 ```
 
-**What's included with `--dev`:**
+**What's included:**
 
-- All production dependencies
+- All production dependencies, including Python
 - Testing frameworks (pytest)
-- Code quality tools
-- Development utilities
 
 ### **Project Structure**
 

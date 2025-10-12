@@ -69,6 +69,15 @@ class ReturnConsistencyVisitor:
         
         # This is a real function definition - analyze it for return consistency
         function_body = get_function_body(node)
+        
+        # If get_function_body doesn't work, try finding the body directly
+        # (handles anonymous functions where body is at different index)
+        if not function_body and hasattr(node, 'children'):
+            for child in node.children:
+                if hasattr(child, 'data') and child.data in ['source_elements', 'block_statement']:
+                    function_body = child
+                    break
+        
         if function_body:
             analysis = self.visit(function_body)
             
@@ -236,6 +245,17 @@ class ReturnConsistencyDetector(ScriptDetector):
                         message=message,
                         line=self.get_line_number_from_token(node)
                     ))
+                # Check for functions with no return statements that appear to compute values
+                elif not analysis.has_return and self._function_appears_to_compute_value(node):
+                    if function_name:
+                        message = f"Function '{function_name}' appears to compute a value but has no return statement"
+                    else:
+                        message = "Function appears to compute a value but has no return statement"
+                    
+                    violations.append(Violation(
+                        message=message,
+                        line=self.get_line_number_from_token(node)
+                    ))
             
             # Add any violations from the analysis
             violations.extend(analysis.violations)
@@ -244,4 +264,46 @@ class ReturnConsistencyDetector(ScriptDetector):
         if hasattr(node, 'children'):
             for child in node.children:
                 self._check_functions_with_visitor(child, violations, full_ast)
+    
+    def _function_appears_to_compute_value(self, function_node: Any) -> bool:
+        """
+        Heuristic to determine if a function appears to compute a value.
+        Returns True if the function has variable declarations or assignments
+        that suggest it's computing something but not returning it.
+        """
+        function_body = get_function_body(function_node)
+        
+        # If get_function_body doesn't work, try finding the body directly
+        # (handles anonymous functions where body is at different index)
+        if not function_body and hasattr(function_node, 'children'):
+            for child in function_node.children:
+                if hasattr(child, 'data') and child.data in ['source_elements', 'block_statement']:
+                    function_body = child
+                    break
+        
+        if not function_body:
+            return False
+        
+        # Check if function body has variable declarations
+        has_variable_declarations = self._has_variable_declarations(function_body)
+        
+        # If there are variable declarations, the function likely computes something
+        return has_variable_declarations
+    
+    def _has_variable_declarations(self, node: Any) -> bool:
+        """Recursively check if a node contains variable declarations."""
+        if not hasattr(node, 'data'):
+            return False
+        
+        # Check if this node is a variable declaration
+        if node.data == 'variable_declaration':
+            return True
+        
+        # Recursively check children
+        if hasattr(node, 'children'):
+            for child in node.children:
+                if self._has_variable_declarations(child):
+                    return True
+        
+        return False
     

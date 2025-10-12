@@ -2,75 +2,75 @@
 
 *Ancient wisdom distilled into 42 mystical validation rules*
 
-This grimoire provides a comprehensive overview of all **42 validation rules** wielded by the Arcane Auditor (23 Script Rules + 19 Structure Rules). These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers cannot detect but are essential for master code wizards to identify.
+This grimoire provides a comprehensive overview of all **42 validation rules** wielded by the Arcane Auditor. These enchantments help reveal hidden code quality issues, style violations, and structural problems that compilers don't detect but are essential for master code wizards to identify.
 
 ## 📋 Table of Contents
 
-### Script Rules (23 Rules)
+### Script Rules
 
-- [ScriptVarUsageRule](#scriptvarusagerule)
-- [ScriptDeadCodeRule](#scriptdeadcoderule)
+- [ScriptArrayMethodUsageRule](#scriptarraymethodusagerule)
 - [ScriptComplexityRule](#scriptcomplexityrule)
-- [ScriptLongFunctionRule](#scriptlongfunctionrule)
+- [ScriptConsoleLogRule](#scriptconsolelogrule)
+- [ScriptDeadCodeRule](#scriptdeadcoderule)
+- [ScriptDescriptiveParameterRule](#scriptdescriptiveparameterrule)
+- [ScriptEmptyFunctionRule](#scriptemptyfunctionrule)
 - [ScriptFunctionParameterCountRule](#scriptfunctionparametercountrule)
 - [ScriptFunctionParameterNamingRule](#scriptfunctionparameternamingrule)
-- [ScriptUnusedVariableRule](#scriptunusedvariablerule)
-- [ScriptUnusedFunctionParametersRule](#scriptunusedfunctionparametersrule)
-- [ScriptVariableNamingRule](#scriptvariablenamingrule)
-- [ScriptConsoleLogRule](#scriptconsolelogrule)
-- [ScriptNullSafetyRule](#scriptnullsafetyrule)
-- [ScriptEmptyFunctionRule](#scriptemptyfunctionrule)
-- [ScriptOnSendSelfDataRule](#scriptonsendselfdatarule)
-- [ScriptNestingLevelRule](#scriptnestinglevelrule)
-- [ScriptLongScriptBlockRule](#scriptlongscriptblockrule)
-- [ScriptMagicNumberRule](#scriptmagicnumberrule)
-- [ScriptStringConcatRule](#scriptstringconcatrule)
-- [ScriptArrayMethodUsageRule](#scriptarraymethodusagerule)
-- [ScriptDescriptiveParametersRule](#scriptdescriptiveparametersrule)
 - [ScriptFunctionReturnConsistencyRule](#scriptfunctionreturnconsistencyrule)
-- [ScriptVerboseBooleanRule](#scriptverbosebooleanrule)
-- [StringBooleanRule](#stringbooleanrule)
-- [UnusedScriptIncludesRule](#unusedscriptincludesrule)
+- [ScriptLongBlockRule](#scriptlongblockrule)
+- [ScriptLongFunctionRule](#scriptlongfunctionrule)
+- [ScriptMagicNumberRule](#scriptmagicnumberrule)
+- [ScriptNestingLevelRule](#scriptnestinglevelrule)
+- [ScriptNullSafetyRule](#scriptnullsafetyrule)
+- [ScriptOnSendSelfDataRule](#scriptonsendselfdatarule)
+- [ScriptStringConcatRule](#scriptstringconcatrule)
+- [ScriptUnusedFunctionParametersRule](#scriptunusedfunctionparametersrule)
+- [ScriptUnusedFunctionRule](#scriptunusedfunctionrule)
+- [ScriptUnusedScriptIncludesRule](#scriptunusedscriptincludesrule)
+- [ScriptUnusedVariableRule](#scriptunusedvariablerule)
+- [ScriptVarUsageRule](#scriptvarusagerule)
+- [ScriptVariableNamingRule](#scriptvariablenamingrule)
+- [ScriptVerboseBooleanCheckRule](#scriptverbosebooleancheckrule)
 
-### Structure Rules (19 Rules)
+### Structure Rules
 
+- [AMDDataProvidersWorkdayRule](#amddataprovidersworkdayrule)
+- [EmbeddedImagesRule](#embeddedimagesrule)
+- [EndpointBaseUrlTypeRule](#endpointbaseurltyperule)
 - [EndpointFailOnStatusCodesRule](#endpointfailonstatuscodesrule)
 - [EndpointNameLowerCamelCaseRule](#endpointnamelowercamelcaserule)
-- [EndpointBaseUrlTypeRule](#endpointbaseurltyperule)
-- [NoIsCollectionOnEndpointsRule](#noiscollectiononendpointsrule)
-- [OnlyMaximumEffortRule](#onlymaximumeffortrule)
-- [NoPMDSessionVariablesRule](#nopmdsessionvariablesrule)
-- [WidgetIdRequiredRule](#widgetidrequiredrule)
-- [WidgetIdLowerCamelCaseRule](#widgetidlowercamelcaserule)
+- [FileNameLowerCamelCaseRule](#filenamelowercamelcaserule)
+- [FooterPodRequiredRule](#footerpodrequiredrule)
 - [GridPagingWithSortableFilterableRule](#gridpagingwithsortablefilterablerule)
 - [HardcodedApplicationIdRule](#hardcodedapplicationidrule)
 - [HardcodedWidRule](#hardcodedwidrule)
-- [ReadableEndpointPathsRule](#readableendpointpathsrule)
+- [MultipleStringInterpolatorsRule](#multiplestringinterpolatorsrule)
+- [NoIsCollectionOnEndpointsRule](#noiscollectiononendpointsrule)
+- [NoPMDSessionVariablesRule](#nopmdsessionvariablesrule)
+- [OnlyMaximumEffortRule](#onlymaximumeffortrule)
 - [PMDSectionOrderingRule](#pmdsectionorderingrule)
 - [PMDSecurityDomainRule](#pmdsecuritydomainrule)
-- [EmbeddedImagesRule](#embeddedimagesrule)
-- [FooterPodHubMicroExclusionsRule](#footerpodhubmicroexclusionsrule)
-- [AmdDataProvidersWorkdayRule](#amddataprovidersworkdayrule)
-- [FileNameLowerCamelCaseRule](#filenamelowercamelcaserule)
-- [MultipleStringInterpolatorsRule](#multiplestringinterpolatorsrule)
+- [StringBooleanRule](#stringbooleanrule)
+- [WidgetIdLowerCamelCaseRule](#widgetidlowercamelcaserule)
+- [WidgetIdRequiredRule](#widgetidrequiredrule)
 
 ## Rule Categories
 
 The rules are organized into two main categories:
 
-- **Script Rules (23 Rules)**: Code quality and best practices for PMD, Pod, and standalone script files
-- **Structure Rules (19 Rules)**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- **Script Rules**: Code quality and best practices for PMD, Pod, and standalone script files
+- **Structure Rules**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 ## Severity Levels
 
 Rules use a simplified two-tier severity system:
 
-- 🔴 **ACTION**: Critical issues that should be addressed immediately
+- 🔴 **ACTION**: Issues that should be addressed immediately
 - 🟢 **ADVICE**: Recommendations for code quality and best practices
 
 ---
 
-## 🪄 Script Rules (22 Rules)
+## 🪄 Script Rules
 
 *The Script Rules form the incantations that shape the logic within your enchanted scrolls. These mystical validations ensure your code flows with the elegance and power befitting a master wizard.*
 
@@ -81,6 +81,10 @@ Rules use a simplified two-tier severity system:
 **Severity:** ADVICE
 **Description:** Ensures scripts use 'let' or 'const' instead of 'var' (best practice)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+
+**Why This Matters:**
+
+The `var` keyword has function scope, which can cause unexpected behavior and bugs when the same name is reused in nested blocks. Using `let` (block scope) and `const` (immutable) makes your code more predictable and prevents accidental variable shadowing issues.
 
 **What it catches:**
 
@@ -108,6 +112,10 @@ let myVariable = "value";    // ✅ Use 'let' for mutable values
 **Description:** Validates export patterns in standalone script files by detecting declared variables that are never exported or used
 **Applies to:** Standalone .script files ONLY
 
+**Why This Matters:**
+
+Dead code in standalone script files increases your application's bundle size and memory footprint, making pages load slower. Every unused function or constant is still parsed and loaded, wasting resources. Removing dead code keeps your application lean and makes it easier for other developers to understand what's actually being used.
+
 **What This Rule Does:**
 This rule validates the export pattern specific to standalone `.script` files. Standalone script files use an export object literal at the end to expose functions and constants. This rule checks that ALL declared top-level variables (functions, strings, numbers, objects, etc.) are either:
 1. Exported in the final object literal, OR
@@ -127,7 +135,7 @@ This rule validates the export pattern specific to standalone `.script` files. S
 // In util.script
 const getCurrentTime = function() { return date:now(); };
 const unusedHelper = function() { return "unused"; };    // ❌ Dead code - not exported or used
-const API_KEY = "12345";  // ❌ Dead code - constant not exported or used
+const API_URL = "https://api.example.com";  // ❌ Dead code - constant not exported or used
 
 {
   "getCurrentTime": getCurrentTime  // ❌ unusedHelper and API_KEY are dead code
@@ -155,7 +163,7 @@ const API_URL = "https://api.example.com";  // ✅ Will be exported
 // In util.script
 const CACHE_TTL = 3600;  // ✅ Used internally (not exported)
 const getCurrentTime = function() { 
-  return { time: date:now(), ttl: CACHE_TTL };  // Uses CACHE_TTL
+  return { "time": date:now(), "ttl": CACHE_TTL };  // Uses CACHE_TTL
 };
 
 {
@@ -163,25 +171,15 @@ const getCurrentTime = function() {
 }
 ```
 
-**Configuration Options:**
-
-If you want to keep unused helper functions, simply disable the entire rule:
-
-```json
-{
-  "ScriptDeadCodeRule": {
-    "enabled": false     // Disable dead code detection entirely
-  }
-}
-```
-
----
-
 ### ScriptNestingLevelRule
 
 **Severity:** ADVICE
 **Description:** Ensures scripts don't have excessive nesting levels (max 4 levels)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+
+**Why This Matters:**
+
+Deep nesting (more than 4 levels of if/for/while statements) makes code exponentially harder to read, test, and debug. Each nesting level adds cognitive load, making it difficult to track which conditions are active and increasing the likelihood of logic errors. Flattening nested code through early returns or extracted functions dramatically improves maintainability.
 
 **What it catches:**
 
@@ -192,8 +190,8 @@ If you want to keep unused helper functions, simply disable the entire rule:
 
 ```javascript
 function processData(data) {
-    if (!empty data) {                    // Level 1
-        if (data.isValid) {        // Level 2
+    if (!empty data) { // Level 1
+        if (data.isValid) { // Level 2
             if (data.hasContent) { // Level 3
                 if (data.content.length > 0) { // Level 4
                     if (data.content[0].isActive) { // Level 5 ❌ Too deep!
@@ -210,14 +208,10 @@ function processData(data) {
 
 ```javascript
 function processData(data) {
-    if (empty data || !data.isValid || !data.hasContent) {
+    if (empty data.content || !data.isValid || !data.hasContent) {
         return null;
     }
-  
-    if (empty data.content) {
-        return null;
-    }
-  
+
     return data.content[0].isActive ? data.content[0] : null;
 }
 ```
@@ -230,9 +224,13 @@ function processData(data) {
 **Description:** Ensures scripts don't have excessive cyclomatic complexity (max 10)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
+**Why This Matters:**
+
+Cyclomatic complexity measures the number of independent paths through your code (every if, else, loop, etc. adds to it). High complexity (>10) means your function has too many decision points, making it exponentially harder to test all scenarios and increasing the chance of bugs. Breaking complex functions into smaller, focused ones makes testing easier and reduces defects.
+
 **What it catches:**
 
-- Functions with too many decision points (if/else, switch, loops, ternary operators)
+- Functions with too many decision points (if/else, loops, ternary operators, etc.)
 - Complex functions that are hard to test and maintain
 - Functions that likely need to be broken down
 
@@ -240,7 +238,7 @@ function processData(data) {
 
 ```javascript
 function processOrder(order) {
-    if (order.type == 'premium') {        // +1
+    if (order.type == 'premium') {         // +1
         if (order.amount > 1000) {         // +1
             if (order.customer.vip) {      // +1
                 // ... complex logic
@@ -251,7 +249,7 @@ function processOrder(order) {
             // ... logic
         }
     } else if (order.type == 'standard') { // +1
-        for (var i = 0; i < order.items.length; i++) {    // +1
+        for (var i = 0; i < order.items.length; i++) {      // +1
             if (order.items[i].category == 'electronics') { // +1
                 // ... logic
             }
@@ -293,6 +291,10 @@ function processStandardOrder(order) {
 **Description:** Ensures scripts don't have excessively long functions (max 50 lines)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
+**Why This Matters:**
+
+Functions longer than 50 lines typically violate the single responsibility principle - they're doing too many things. Long functions are harder to understand, test, and reuse, and they often hide bugs in the complexity. Breaking them into smaller, focused functions with clear names makes code self-documenting and easier to maintain.
+
 **What it catches:**
 
 - Functions that exceed 50 lines of code
@@ -330,15 +332,21 @@ function formatOutput(data) {
 }
 ```
 
-### LongScriptBlockRule
+---
+
+### ScriptLongBlockRule
 
 **Severity:** ADVICE
 **Description:** Ensures non-function script blocks in PMD/POD files don't exceed maximum line count (max 30 lines). Excludes function definitions which are handled by ScriptLongFunctionRule.
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
+**Why This Matters:**
+
+Long script blocks (often found in event handlers, such as onLoad, onChange, or onSend) indicate procedural code that should be refactored into reusable functions. This makes your PMD/Pod files harder to read and the logic harder to test or reuse across pages. Moving logic into functions improves code organization and makes your intent clearer.
+
 **What it catches:**
 
-- Script blocks (onLoad, onChange, onSend, etc.) that exceed 30 statements
+- Script blocks (in any field including event handlers, such as onLoad, onChange, onSend, etc.) that exceed 30 statements
 - Long procedural code that should be refactored into functions
 - Script blocks that violate single responsibility principle
 
@@ -347,10 +355,11 @@ function formatOutput(data) {
 ```javascript
 // In onLoad field
 <%
-    pageVariables.data1 = processData1();
-    pageVariables.data2 = processData2();
+    const worker = getWorkerFromEndpoint();
+    worker.value = worker.name;
+    workerOrg.value = worker.org;
     // ... 35+ statements ...
-    pageVariables.data35 = processData35();
+    pageVariables.referenceData = getReferenceData();
 %>
 ```
 
@@ -359,15 +368,15 @@ function formatOutput(data) {
 ```javascript
 // Break into smaller functions
 <%
-    initializePageData();
+    const worker = getWorkerFromEndpoint(); 
+    initializeWorkerPageData(worker);
     setupEventHandlers();
-    configureWidgets();
 %>
 
 // Define functions elsewhere
-function initializePageData() {
-    pageVariables.data1 = processData1();
-    pageVariables.data2 = processData2();
+function initializeWorkerPageData(worker) {
+    worker.value = worker.name;
+    workerOrg.value = worker.org;
     // ... smaller, focused logic
 }
 ```
@@ -379,7 +388,7 @@ The threshold can be customized in config files:
 ```json
 {
   "rules": {
-    "LongScriptBlockRule": {
+    "ScriptLongBlockRule": {
       "enabled": true,
       "custom_settings": {
         "max_lines": 30
@@ -397,10 +406,13 @@ The threshold can be customized in config files:
 **Description:** Ensures functions don't have too many parameters (max 4)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
+**Why This Matters:**
+
+Functions with more than 4 parameters can lead to bugs when arguments are passed in the wrong order. Refactoring to use parameter objects or breaking into smaller functions makes your code clearer and less error-prone.
+
 **What it catches:**
 
 - Functions with more than 4 parameters
-- Functions that are hard to call and maintain
 - Functions that likely need parameter objects or refactoring
 
 **Example violations:**
@@ -428,11 +440,14 @@ function createUser(personalInfo, contactInfo, workInfo) { // ✅ 3 logical grou
 **Description:** Ensures scripts don't contain console log statements (production code)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
+**Why This Matters:**
+
+Console statements left in production code can expose sensitive data in production logs, which may be accessible to individuals who should not have access to that same data. They're debugging artifacts that should be removed before deployment. Accidentally shipping console logs can leak business logic, data structures, or user information.
+
 **What it catches:**
 
 - `console log` statements that should be removed before production
 - Debug statements left in production code
-- Logging that should use proper logging mechanisms
 
 **Example violations:**
 
@@ -453,6 +468,8 @@ function processData(data) {
 }
 ```
 
+> **🧙 Wizard's Note:** If your code uses an app attribute flag to enable/disable logging based on environments, you may think you don't need this rule. However, my recommendation would be to keep the rule in place and use it as a reminder to quickly verify any logging in place and ensure that those statements are implemented using your attribute flags. If a log entry slips in that didn't use it, this means your code may unintentionally write to production logs, leading to the kind of PII leakage that the rule is intended to help avoid!
+
 ---
 
 ### ScriptVariableNamingRule
@@ -460,6 +477,10 @@ function processData(data) {
 **Severity:** ADVICE
 **Description:** Ensures variables follow lowerCamelCase naming convention
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+
+**Why This Matters:**
+
+Consistent naming conventions make code easier to read and reduce cognitive load when switching between files or team members' code. LowerCamelCase is the standard for variables. Consistency enables faster comprehension and fewer mistakes.
 
 **What it catches:**
 
@@ -489,6 +510,10 @@ const userEmail = "email";    // ✅ lowerCamelCase
 **Severity:** ADVICE
 **Description:** Ensures function parameters follow lowerCamelCase naming convention
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+
+**Why This Matters:**
+
+Parameter names are the first thing developers see when calling your functions. Inconsistent naming (like snake_case parameters when everything else uses camelCase) forces mental translation and slows comprehension. Following the same convention for parameters as variables creates a seamless reading experience and makes function signatures immediately understandable.
 
 **What it catches:**
 
@@ -550,6 +575,10 @@ var isNewDateAfterReferenceDate = function (widget, newDate, referenceDate, mess
 **Description:** Recommends using array higher-order methods (map, filter, forEach) instead of manual loops
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
+**Why This Matters:**
+
+Array methods like map, filter, and forEach are more concise, less error-prone (no off-by-one errors), and communicate intent better than manual for-loops. They're also harder to get wrong since you don't manage the loop index yourself. Modern array methods make code more readable and reduce bugs related to loop boundaries or index manipulation.
+
 **What it catches:**
 
 - Traditional for loops that could be replaced with array higher-order methods
@@ -581,6 +610,10 @@ const results = items
 **Severity:** ADVICE
 **Description:** Ensures scripts don't contain magic numbers (use named constants)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+
+**Why This Matters:**
+
+Magic numbers (like `if (price > 1000)` or `return value * 0.15`) hide meaning and make code harder to maintain. When the number appears in multiple places, updating it requires finding every occurrence, risking missed updates. Named constants (`const premiumThreshold = 1000`) make the purpose clear and provide a single source of truth for values that might need to change.
 
 **What it catches:**
 
@@ -621,6 +654,10 @@ function calculateDiscount(price) {
 **Description:** Ensures property access chains are protected against null reference exceptions
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
+**Why This Matters:**
+
+Accessing properties on null or undefined objects (`user.address.city` when `user.address` is null) cause runtime errors that can break your entire page. In Workday Extend, this means users see errors instead of their work. Using null coalescing, empty checks, or optional chaining (`user.address.city ?? ''`) provide graceful degradation or defaults when data is missing.
+
 **What it catches:**
 
 - Unsafe property access that could throw null reference exceptions
@@ -631,28 +668,33 @@ function calculateDiscount(price) {
 
 ```javascript
 const skill = workerData.skills[0].name;  // ❌ Unsafe - skills could be null/undefined
-const isProgrammer = workerData.skills[0] == 'Programming' ?? false; // ❌ Won't work as expected
 ```
 
 **Fix:**
 
 ```javascript
-const skills = workerData.skills ?? [];      // ✅ Null coalescing fallback
-const isProgrammer = skills.length > 0 && skills[0] == 'Programming'; // ✅ Safe comparison
+const skills = workerData.skills[0].name ?? '';      // ✅ Null coalescing fallback
 ```
+
+> **🧙‍♂️ Wizard's Note:** As you might imagine, this is a very complex rule to implement. There are a number of ways that something can be protected that may happen elsewhere in the page, making the finding invalid.
+> We've done our best to implement a smart rule here and will continue to refine it as we go. Currently, the logic checks general chain length (more than 3 properties in the access chain) and it IS smart enough to evaluate exclude in endpoints and render in widgets. Strategies that we have no yet covered are render in parent widgets, such as fieldSets or sections as well as page-level applicationExceptions, which are also a valid way to check ahead of time. 
 
 ---
 
 ### ScriptDescriptiveParameterRule
 
 **Severity:** ADVICE
-**Description:** Ensures functional method parameters use descriptive names instead of single letters (except 'i', 'j', 'k' for indices)
+**Description:** Ensures array method parameters use descriptive names instead of single letters (except 'a','b' for sorting methods, which is a globally excepted rule across programming languages)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+
+**Why This Matters:**
+
+Single-letter parameters in array methods (`x => x.active`) hide information about is being processed, making code harder to scan and understand at a glance. Descriptive names (`user => user.active`) self-document the code and prevent confusion in nested method chains where multiple single-letter variables could refer to different things.
 
 **What it catches:**
 
-- Single-letter parameters in functional methods that make code hard to read
-- Nested functional methods with confusing parameter names
+- Single-letter parameters in array methods that make code hard to read
+- Nested array methods with confusing parameter names
 - Non-descriptive variable names in map, filter, find, forEach, reduce, sort
 
 **Example violations:**
@@ -661,14 +703,6 @@ const isProgrammer = skills.length > 0 && skills[0] == 'Programming'; // ✅ Saf
 // ❌ Confusing single-letter parameters
 const activeUsers = users.filter(x => x.active);
 const userNames = users.map(u => u.name);
-
-// ❌ Nested functional methods with same parameter name
-const result = departments
-    .map(x => x.teams)
-    .filter(x => x.active);  // Which 'x' is which?
-
-// ❌ Non-descriptive reduce parameters
-const total = numbers.reduce((a, b) => {a + b});
 ```
 
 **Fix:**
@@ -678,7 +712,7 @@ const total = numbers.reduce((a, b) => {a + b});
 const activeUsers = users.filter(user => user.active);
 const userNames = users.map(user => user.name);
 
-// ✅ Clear nested functional methods
+// ✅ Clear chained array methods
 const result = departments
     .map(dept => dept.teams)
     .filter(team => team.active);
@@ -689,9 +723,8 @@ const total = numbers.reduce((acc, num) => {acc + num});
 
 **Special Cases:**
 
-- **Index variables:** `i`, `j`, `k` are allowed (universally accepted)
+- **Sort methods:** `a`, `b` are allowed for comparison parameters
 - **Reduce methods:** Suggests `acc` for accumulator, contextual names for items
-- **Sort methods:** Suggests `a`, `b` for comparison parameters
 - **Context-aware:** Suggests `user` for `users.map()`, `team` for `teams.filter()`, etc.
 
 **Configuration:**
@@ -702,10 +735,9 @@ const total = numbers.reduce((acc, num) => {acc + num});
     "enabled": true,
     "severity_override": "ACTION",
     "custom_settings": {
-      "allowed_single_letters": ["i", "j", "k"],
-      "additional_functional_methods": []
+      "allowed_single_letters": []
     }
-    }
+  }
 }
 ```
 
@@ -716,6 +748,10 @@ const total = numbers.reduce((acc, num) => {acc + num});
 **Severity:** ADVICE
 **Description:** Ensures functions have consistent return patterns
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+
+**Why This Matters:**
+
+Functions with inconsistent returns (some code paths return a value, others return nothing) cause subtle bugs where callers receive `null` unexpectedly. This leads to null reference errors downstream or incorrect conditional logic. Ensuring all code paths explicitly return (even if it explicity `null`) makes function behavior predictable and prevents runtime errors.
 
 **What it catches:**
 
@@ -752,6 +788,10 @@ function processUser(user) {
 **Description:** Recommends using PMD template syntax instead of string concatenation
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
+**Why This Matters:**
+
+String concatenation with `+` is verbose, error-prone (easy to forget spaces), and harder to read than template syntax. Workday Extend's template syntax (`{{variable}}`) is specifically designed for building strings with dynamic values, handles escaping automatically, and makes the intent clearer. Using the right tool prevents formatting bugs and improves readability.
+
 **What it catches:**
 
 - String concatenation using + operator
@@ -776,6 +816,10 @@ const message = `Hello {{userName}}, welcome to {{appName}}`; // ✅ PMD templat
 **Severity:** ADVICE
 **Description:** Recommends using concise boolean expressions
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+
+**Why This Matters:**
+
+Verbose boolean checks like `if (isActive == true)` or `return (condition) ? true : false` add unnecessary noise and make code harder to scan. The value is already boolean, so the comparison is redundant. Concise expressions (`if (isActive)` or `return condition`) are clearer, more idiomatic, and reduce visual clutter.
 
 **What it catches:**
 
@@ -804,6 +848,10 @@ if (!user.active) { }             // ✅ Concise negation
 **Description:** Detects empty function bodies
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
+**Why This Matters:**
+
+Empty functions are usually placeholder code that was never implemented or handlers that were meant to do something but don't. They add confusion (developers wonder if they're intentional), increase code size unnecessarily (which have hard limits!), and can mask missing functionality. Either implement them or remove them to keep your codebase clean and intentional.
+
 **What it catches:**
 
 - Functions with empty bodies
@@ -824,27 +872,56 @@ const handler = function() { }; // ❌ Empty function
 ### ScriptOnSendSelfDataRule
 
 **Severity:** ADVICE
-**Description:** Detects anti-pattern 'self.data = {:}' in outbound endpoint onSend scripts
+**Description:** Detects anti-pattern of using self.data as temporary storage in outbound endpoint onSend scripts
 **Applies to:** PMD outbound endpoint onSend scripts
 
-**What This Rule Does:**
-This rule uses AST parsing to detect the anti-pattern `self.data = {:}` (assigning an empty object to self.data) in outbound endpoint onSend scripts. This pattern should be avoided as it can cause issues with data handling. Comments are automatically ignored by the parser.
+**Why This Matters:**
 
-**Intent:** Prevent problematic data initialization patterns in outbound endpoint scripts.
+Using `self.data` as temporary storage in onSend scripts is an anti-pattern that obscures intent and pollutes the `self` reference with unnecessary properties. When developers write patterns like `self.data = {:}` followed by building up that object and returning it, they're using the endpoint's `self` reference as a temporary variable holder instead of using proper local variables.
+
+**This makes code harder to understand** because readers must determine whether `self.data` contains important endpoint state or is just temporary storage. It also makes testing and debugging more difficult since the `self` object is being mutated unnecessarily.
+
+**What This Rule Does:**
+This rule detects when `self.data` is **assigned a new object** (empty or populated) in outbound endpoint onSend scripts. This pattern indicates the developer is using `self.data` as temporary storage. Property assignments to existing data like `self.data.foo = 'bar'` are allowed (for cases where data comes from valueOutBinding).
+
+**Intent:** Encourage clear, maintainable code by using local variables instead of polluting the `self` reference with temporary storage.
 
 **What it catches:**
 
-- Usage of `self.data = {:}` in outbound endpoint onSend scripts
-- Anti-pattern assignments that should use alternative approaches
+- `self.data = {:}` - Using self.data as temporary storage (empty object)
+- `self.data = {'foo': 'bar'}` - Using self.data as temporary storage (populated object)
+- Any assignment that creates a new `self.data` object
+
+**What it allows:**
+
+- `self.data.foo = 'bar'` - Property assignment to existing data (✅ OK - assumes self.data created from valueOutBinding)
+- `self.data.nested.value = 123` - Nested property assignment (✅ OK)
+- Creating local variables: `let postData = {:}` (✅ Recommended)
 
 **Example violations:**
 
-```
+```javascript
+// ❌ Anti-pattern - Using self.data as temporary storage
 {
   "outboundEndpoints": [{
     "name": "sendData",
     "onSend": "<%
-      self.data = {:}; // ❌ Anti-pattern - avoid this
+      self.data = {:};  // Pollutes self reference
+      self.data.foo = 'bar';
+      self.data.baz = computeValue();
+      return self.data;  // Returns temporary storage
+    %>"
+  }]
+}
+```
+
+```javascript
+// ❌ Anti-pattern - Using self.data as temporary storage with initial values
+{
+  "outboundEndpoints": [{
+    "name": "sendData",
+    "onSend": "<%
+      self.data = {'name': 'John', 'age': 30};  // Unnecessary use of self reference
       return self.data;
     %>"
   }]
@@ -853,68 +930,102 @@ This rule uses AST parsing to detect the anti-pattern `self.data = {:}` (assigni
 
 **Fix:**
 
-```
+```javascript
+// ✅ Good - Use local variable for clarity
 {
   "outboundEndpoints": [{
     "name": "sendData",
     "onSend": "<%
-      // ✅ Use alternative data initialization approach
-      return { /* your data here */ };
+      let postData = {:};  // Clear intent: local temporary variable
+      postData.name = 'John';
+      postData.age = 30;
+      postData.computed = computeValue();
+      return postData;  // Return the local variable
     %>"
   }]
 }
 ```
 
-**Note:** This rule only applies to **outbound** endpoints. Inbound endpoints are not checked. Comments containing the pattern are automatically ignored by the AST parser.
+```javascript
+// ✅ Good - Property assignment when data exists from valueOutBinding
+{
+  "outboundEndpoints": [{
+    "name": "sendData",
+    "onSend": "<%
+      // Assumes self.data already has values from valueOutBinding
+      self.data.additionalField = 'computed value';  // Adding to existing data
+      return self.data;
+    %>"
+  }]
+}
+```
+
+```javascript
+// ✅ Good - Direct return when data is simple
+{
+  "outboundEndpoints": [{
+    "name": "sendData",
+    "onSend": "<%
+      return {'name': 'John', 'age': 30};  // No temporary storage needed
+    %>"
+  }]
+}
+```
+
+**Note:** This rule only applies to **outbound** endpoints. Inbound endpoints are not checked. Comments containing the pattern are automatically ignored.
 
 ---
 
 ### ScriptUnusedFunctionRule
 
 **Severity:** ADVICE
-**Description:** Detects functions that are declared but never called in embedded script contexts
+**Description:** Detects functions that are declared but never called
 **Applies to:** PMD embedded scripts (`<% ... %>`) and Pod endpoint/widget scripts ONLY
 
-**What This Rule Does:**
-This rule tracks function usage within embedded script contexts in PMD and Pod files. Unlike standalone `.script` files that use export patterns, embedded scripts don't have formal exports. This rule identifies function variables that are declared but never called anywhere in the script or across related script sections in the same file.
+**Why This Matters:**
 
-**Intent:** Identify unused helper functions in embedded scripts that can be safely removed to reduce code complexity.
+Unused functions add unnecessary code that developers must read and maintain, creating mental overhead when trying to understand what the page actually does. They also increase parsing time and memory usage. Removing unused functions keeps your PMD/Pod files focused and makes the actual logic easier to follow.
+
+**What This Rule Does:**
+This rule tracks function usage within PMD and Pod files. Unlike standalone `.script` files that use export patterns, embedded scripts don't have formal exports. This rule identifies function variables that are declared but never called anywhere in the script or across related script sections in the same file.
+
+**Intent:** Identify unused functions that can be safely removed to reduce code complexity.
 
 **What it catches:**
 
 - Function variables declared but never called
-- Helper functions that were intended to be used but aren't referenced
-- Dead code that should be removed from embedded scripts
+- Functions that were intended to be used but aren't referenced
+- Dead code that should be removed
 
 **Example violations:**
 
 ```javascript
-// In MyPage.pmd - embedded script section
+// In myPage.pmd
 <%
-  var processData = function(data) {  // ✅ Used below
+  const processData = function(data) {  // ✅ Used below
     return data.filter(item => item.active);
   };
   
-  var unusedHelper = function(val) {  // ❌ Never called - unused function
+  const unusedHelper = function(val) {  // ❌ Never called - unused function
     return val * 2;
   };
   
-  var results = processData(pageVariables.items);
+  const results = processData(pageVariables.items);
 %>
 ```
 
 **Fix:**
 
 ```javascript
-// In MyPage.pmd - embedded script section
+// In myPage.pmd
 <%
-  var processData = function(data) {  // ✅ Used
+  const processData = function(data) {  // ✅ Used
     return data.filter(item => item.active);
   };
   
   // ✅ Removed unusedHelper - it was never called
   
-  var results = processData(pageVariables.items);
+  const results = processData(pageVariables.items);
 %>
 ```
 
@@ -928,6 +1039,10 @@ This rule tracks function usage within embedded script contexts in PMD and Pod f
 **Description:** Detects unused function parameters
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
 
+**Why This Matters:**
+
+Unused parameters make function signatures misleading - callers think they need to pass values that are actually ignored. This wastes developer time figuring out what to pass and creates confusion about the function's actual requirements. Removing unused parameters clarifies the API and prevents wasted effort.
+
 **What it catches:**
 
 - Function parameters that are declared but never used
@@ -936,7 +1051,7 @@ This rule tracks function usage within embedded script contexts in PMD and Pod f
 **Example violations:**
 
 ```javascript
-function processUser(user, options, callback) { // ❌ options and callback unused
+function processUser(user, preferences) { // ❌ preferences unused
     return user.name;
 }
 ```
@@ -956,6 +1071,10 @@ function processUser(user) { // ✅ Only used parameters
 **Severity:** ADVICE
 **Description:** Ensures all declared variables are used (prevents dead code)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+
+**Why This Matters:**
+
+Unused variables clutter code and create confusion - developers waste time wondering if the variable is actually used somewhere they can't see. They also suggest incomplete refactoring or abandoned features. Removing unused variables improves code clarity and reduces the mental load of understanding what's actually active in your application.
 
 **What it catches:**
 
@@ -989,6 +1108,10 @@ function processData() {
 **Description:** Detects script files that are included but never used in PMD files
 **Applies to:** PMD files with script includes
 
+**Why This Matters:**
+
+Including unused script files forces the engine to parse and load code that's never executed, directly impacting page load time. Each unnecessary include adds to your application's bundle size and slows down the initial page render. Removing unused includes makes pages load faster and removes potential developer confusion as to why the script is being included in the first place.
+
 **What it catches:**
 
 - Script files in PMD include arrays that are never called
@@ -1000,8 +1123,8 @@ function processData() {
 // In sample.pmd
 {
   "include": ["util.script", "helper.script"], // ❌ helper.script never called
-  "script": "<%
-    const time = util.getCurrentTime(); // Only util.script is used
+  "onLoad": "<%
+    pageVariables.winningNumbers = util.getFutureWinningLottoNumbers(); // Only util.script is used
   %>"
 }
 ```
@@ -1012,9 +1135,8 @@ function processData() {
 // In sample.pmd
 {
   "include": ["util.script"], // ✅ Only include used scripts
-  "script": "<%
-    const time = util.getCurrentTime();
-    const result = helper.processData(); // Or add calls to helper.script
+  "onLoad": "<%
+    pageVariables.winningNumbers = util.getFutureWinningLottoNumbers();
   %>"
 }
 ```
@@ -1027,6 +1149,10 @@ function processData() {
 **Description:** Detects hardcoded applicationId values that should be replaced with site.applicationId
 **Applies to:** PMD and Pod files
 
+**Why This Matters:**
+
+Hardcoded application IDs break when you deploy the same code to different customer environments, because each has a unique ID. Using `site.applicationId` makes your code environment-agnostic and prevents runtime failures.
+
 **What it catches:**
 
 - Hardcoded applicationId values in scripts and configurations
@@ -1035,7 +1161,7 @@ function processData() {
 **Example violations:**
 
 ```javascript
-const appId = "12345"; // ❌ Hardcoded applicationId
+const appId = "acmeCorp_speedy"; // ❌ Hardcoded applicationId
 ```
 
 **Fix:**
@@ -1052,6 +1178,10 @@ const appId = site.applicationId; // ✅ Use site.applicationId
 **Description:** Detects embedded images that should be stored as external files
 **Applies to:** PMD and Pod files
 
+**Why This Matters:**
+
+Base64-encoded images bloat your PMD/Pod file sizes dramatically (often 30% larger than the image itself) and make files harder to version control since small image changes create large text diffs. External images load faster, cache better, and keep your code files focused on logic. This significantly improves page load performance and makes code reviews manageable.
+
 **What it catches:**
 
 - Base64 encoded images embedded directly in files
@@ -1062,7 +1192,7 @@ const appId = site.applicationId; // ✅ Use site.applicationId
 ```json
 {
   "type": "image",
-  "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..." // ❌ Embedded image
+  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..." // ❌ Embedded image
 }
 ```
 
@@ -1071,7 +1201,7 @@ const appId = site.applicationId; // ✅ Use site.applicationId
 ```json
 {
   "type": "image", 
-  "src": "http://example.com/images/logo.png" // ✅ External image file
+  "url": "http://example.com/images/logo.png" // ✅ External image file
 }
 ```
 
@@ -1083,6 +1213,10 @@ const appId = site.applicationId; // ✅ Use site.applicationId
 **Description:** Detects hardcoded WID (Workday ID) values that should be configured in app attributes
 **Applies to:** PMD and Pod files
 
+**Why This Matters:**
+
+Hardcoded WIDs (Workday IDs) are environment-specific - a worker or job WID in your sandbox won't exist in production. This causes runtime errors when the code tries to look up non-existent data. But even if you're using a common WID that exists across environments, it is meaningless to a developer looking at your code (possibly including yourself!). Storing WIDs in app attributes allows different values per environment, makes your application portable across tenants and instances, and allows for you to name it in a way that makes sense!
+
 **What it catches:**
 
 - Hardcoded 32-character WID values
@@ -1091,13 +1225,14 @@ const appId = site.applicationId; // ✅ Use site.applicationId
 **Example violations:**
 
 ```javascript
-const workerWid = "d9e41a8c446c11de98360015c5e6daf6"; // ❌ Hardcoded WID
+const query = "SELECT worker FROM allIndexedWorkers WHERE country = 'd9e41a8c446c11de98360015c5e6daf6'"; // ❌ Hardcoded WID
 ```
 
 **Fix:**
 
 ```javascript
-const workerWid = appAttr.workerWid; // ✅ Use app attribute
+const usaLocation = appAttr.usaLocation; // ✅ Use app attribute
+const query = "SELECT worker FROM allIndexedWorkers WHERE country = usaLocation"
 ```
 
 ---
@@ -1108,11 +1243,14 @@ const workerWid = appAttr.workerWid; // ✅ Use app attribute
 **Description:** Ensures AMD dataProviders don't use hardcoded *.workday.com URLs
 **Applies to:** AMD application definition files
 
+**Why This Matters:**
+
+Hardcoded workday.com URLs in AMD dataProviders are not update safe. Using the `apiGatewayEndpoint` variable ensures your endpoints work across all environments without code changes. If Workday adds additional regional endpoints, for example, using the `apiGatewayEndpoint` application variable keeps your app update safe.
+
 **What it catches:**
 
 - Hardcoded *.workday.com URLs in AMD dataProviders
 - URLs that should use apiGatewayEndpoint variable instead
-- Both HTTP and HTTPS workday.com URLs
 
 **Example violations:**
 
@@ -1122,10 +1260,6 @@ const workerWid = appAttr.workerWid; // ✅ Use app attribute
     {
       "key": "workday-common",
       "value": "https://api.workday.com/common/v1/"  // ❌ Hardcoded workday.com URL
-    },
-    {
-      "key": "workday-hcm", 
-      "value": "https://services.workday.com/hcm/v1/"  // ❌ Hardcoded workday.com URL
     }
   ]
 }
@@ -1137,10 +1271,6 @@ const workerWid = appAttr.workerWid; // ✅ Use app attribute
 {
   "dataProviders": [
     {
-      "key": "workday-app",
-      "value": "<% apiGatewayEndpoint + '/apps/' + site.applicationId + '/v1/' %>"  // ✅ Use apiGatewayEndpoint
-    },
-    {
       "key": "workday-common",
       "value": "<% apiGatewayEndpoint + '/common/v1/' %>"  // ✅ Use apiGatewayEndpoint
     }
@@ -1150,7 +1280,7 @@ const workerWid = appAttr.workerWid; // ✅ Use app attribute
 
 ---
 
-## 🏗️ Structure Rules (20 Rules)
+## 🏗️ Structure Rules
 
 *The Structure Rules bind the outer wards and conduits of your magical constructs. These architectural validations ensure your endpoints, widgets, and configurations form a harmonious and secure foundation for your mystical applications.*
 
@@ -1162,17 +1292,20 @@ const workerWid = appAttr.workerWid; // ✅ Use app attribute
 **Description:** Ensures endpoints properly handle 400 and 403 error status codes
 **Applies to:** PMD endpoint definitions and Pod seed endpoints
 
+**Why This Matters:**
+
+Without proper error handling (failOnStatusCodes), your endpoints silently swallow errors like "400 Bad Request" or "403 Forbidden", causing your application to proceed as if the call succeeded when it actually failed. This leads to data inconsistencies, broken workflows, and debugging nightmares. Explicit error handling ensures failures are properly caught and handled.
+
 **What it catches:**
 
-- Missing error handling for common HTTP status codes
-- Endpoints that don't fail on some specific error responses
+- Missing error handling for 4xx status codes that Extend doesn't treat as failures by default
 
 **Example violations:**
 
 ```json
 {
   "endPoints": [{
-    "name": "GetUser",
+    "name": "getCurrentUser",
     "url": "/users/me"
     // ❌ Missing failOnStatusCodes
   }]
@@ -1184,11 +1317,11 @@ const workerWid = appAttr.workerWid; // ✅ Use app attribute
 ```json
 {
   "endPoints": [{
-    "name": "GetUser", 
+    "name": "getCurrentUser", 
     "url": "/users/me",
     "failOnStatusCodes": [
-      {"code": "400"},
-      {"code": "403"}
+      {"code": 400},
+      {"code": 403}
     ]
   }]
 }
@@ -1199,18 +1332,16 @@ const workerWid = appAttr.workerWid; // ✅ Use app attribute
 ### NoIsCollectionOnEndpointsRule
 
 **Severity:** ACTION
-**Description:** Detects isCollection: true on inbound endpoints which can cause tenant-wide performance issues
+**Description:** Detects isCollection: true on inbound endpoints which can cause performance issues
 **Applies to:** PMD inbound endpoints and Pod endpoints
 
 **What it catches:**
 
 - Inbound endpoints with `isCollection: true`
-- POD endpoints with `isCollection: true`
-- Does NOT check outbound endpoints (different performance characteristics)
 
-**Why it matters:**
+**Why This Matters:**
 
-Using `isCollection: true` on inbound endpoints can cause severe performance degradation affecting the entire tenant. This should be avoided to maintain application performance.
+Using `isCollection: true` on inbound endpoints may cause severe performance degradation when apps are in use simultaneously by different users. This can slow down or the entire Workday instance for all users, not just your application. Avoiding isCollection on inbound endpoints is critical for maintaining app performance.
 
 **Example violations:**
 
@@ -1218,14 +1349,8 @@ Using `isCollection: true` on inbound endpoints can cause severe performance deg
 {
   "inboundEndpoints": [
     {
-      "name": "GetWorkers",
-      "isCollection": true  // ❌ Causes tenant-wide performance issues
-    }
-  ],
-  "outboundEndpoints": [
-    {
-      "name": "ProcessWorkers",
-      "isCollection": true  // ✅ OK for outbound endpoints (not checked)
+      "name": "getWorkers",
+      "isCollection": true  // ❌ May cause performance issues
     }
   ]
 }
@@ -1233,16 +1358,7 @@ Using `isCollection: true` on inbound endpoints can cause severe performance deg
 
 **Fix:**
 
-```json
-{
-  "inboundEndpoints": [
-    {
-      "name": "GetWorkers"
-      // ✅ Removed isCollection or restructure to not require collections
-    }
-  ]
-}
-```
+Consider utilizing WQL or RaaS instead, which will allow for fewer API calls that return larger datasets.
 
 ---
 
@@ -1254,30 +1370,19 @@ Using `isCollection: true` on inbound endpoints can cause severe performance deg
 
 **What it catches:**
 
-- Endpoints with `bestEffort: true` on inbound endpoints
-- Endpoints with `bestEffort: true` on outbound endpoints
-- POD endpoints with `bestEffort: true`
+- Endpoints with `bestEffort: true` on inbound and outbound endpoints
+- Includes PMD and POD endpoints
 
-**Why it matters:**
+**Why This Matters:**
 
-Using `bestEffort: true` on endpoints can silently ignore API failures, leading to data inconsistency and hard-to-debug issues. Maximum effort retry policies ensure failures are properly surfaced and handled.
+Using `bestEffort: true` on endpoints silently swallows API failures, causing your code to continue executing as if the call succeeded when it actually failed. This leads to data inconsistency, partial updates, and bugs that are extremely hard to debug because you have no visibility into the failure.
 
 **Example violations:**
 
 ```json
 {
-  "inboundEndpoints": [
-    {
-      "name": "GetWorkers",
-      "bestEffort": true  // ❌ Can mask API failures
-    }
-  ],
-  "outboundEndpoints": [
-    {
-      "name": "UpdateWorker",
-      "bestEffort": true  // ❌ Can mask API failures
-    }
-  ]
+  "name": "getWorkers",
+  "bestEffort": true  // ❌ Can mask API failures
 }
 ```
 
@@ -1285,18 +1390,8 @@ Using `bestEffort: true` on endpoints can silently ignore API failures, leading 
 
 ```json
 {
-  "inboundEndpoints": [
-    {
-      "name": "GetWorkers"
-      // ✅ Remove bestEffort property
-    }
-  ],
-  "outboundEndpoints": [
-    {
-      "name": "UpdateWorker"
-      // ✅ Remove bestEffort property
-    }
-  ]
+  "name": "getWorkers"
+  // ✅ Remove bestEffort property
 }
 ```
 
@@ -1311,12 +1406,10 @@ Using `bestEffort: true` on endpoints can silently ignore API failures, leading 
 **What it catches:**
 
 - Outbound endpoints with `type: "outboundVariable"` AND `variableScope: "session"`
-- Does NOT check inbound endpoints (only outbound)
-- Does NOT check POD files (PODs don't use this pattern)
 
-**Why it matters:**
+**Why This Matters:**
 
-PMD session variables persist for the entire user session, consuming memory and potentially causing performance issues as sessions accumulate data. Page or task scope should be used instead.
+Session-scoped variables persist for the entire user session (potentially hours), continuously consuming memory even after the user leaves your page. This memory isn't released until logout, degrading performance over time and potentially causing issues for long-running sessions.
 
 **Example violations:**
 
@@ -1340,16 +1433,11 @@ PMD session variables persist for the entire user session, consuming memory and 
     {
       "name": "saveUserPreference",
       "type": "outboundVariable",
-      "variableScope": "page"  // ✅ Use page scope
+      "variableScope": "flow"  // ✅ Use a flow variable, instead
     }
   ]
 }
 ```
-
-**Alternative scopes:**
-
-- `"page"` - For page-level data (recommended for most cases)
-- `"task"` - For task-level data
 
 ---
 
@@ -1358,6 +1446,10 @@ PMD session variables persist for the entire user session, consuming memory and 
 **Severity:** ADVICE
 **Description:** Ensures endpoint names follow lowerCamelCase convention
 **Applies to:** PMD endpoint definitions and Pod seed endpoints
+
+**Why This Matters:**
+
+LowerCamelCase is the Workday Extend standard for endpoint names. Following the convention improves team collaboration and makes code more professional.
 
 **What it catches:**
 
@@ -1368,11 +1460,14 @@ PMD session variables persist for the entire user session, consuming memory and 
 
 ```json
 {
-  "endPoints": [{
-    "name": "get_user_data"  // ❌ snake_case
-  }, {
-    "name": "GetUserProfile" // ❌ PascalCase
-  }]
+  "endPoints": [
+    {
+      "name": "get_user_data"  // ❌ snake_case
+    }, 
+    {
+      "name": "GetUserProfile" // ❌ PascalCase
+    }
+  ]
 }
 ```
 
@@ -1380,22 +1475,14 @@ PMD session variables persist for the entire user session, consuming memory and 
 
 ```json
 {
-  "endPoints": [{
-    "name": "getUserData"    // ✅ lowerCamelCase
-  }, {
-    "name": "getUserProfile" // ✅ lowerCamelCase
-  }]
-}
-```
-
----
-
-### PMDSectionOrderingRule
-    "onSend": "<%
-      let postData = {'name': workerName.value}; // ✅ Use a more descriptive local variable
-      return postData;
-    %>"
-  }]
+  "endPoints": [
+    {
+      "name": "getUserData"    // ✅ lowerCamelCase
+    }, 
+    {
+      "name": "getUserProfile" // ✅ lowerCamelCase
+    }
+  ]
 }
 ```
 
@@ -1403,9 +1490,13 @@ PMD session variables persist for the entire user session, consuming memory and 
 
 ### EndpointBaseUrlTypeRule
 
-**Severity:** ACTION
-**Description:** Ensures endpoint URLs don't include hardcoded *.workday.com or apiGatewayEndpoint values
+**Severity:** ADVICE
+**Description:** Ensures endpoint URLs for Workday APIs utilize dataProviders and baseUrlType
 **Applies to:** PMD endpoint definitions and Pod seed endpoints
+
+**Why This Matters:**
+
+Workday APIs are heavily used within most Extend applications. Creating a re-usable definition in the AMD dataProviders array is recommended. When dataProviders are defined, developers can use `baseUrlType` on inbound and outbound endpoints (like 'workday-common' or 'workday-app'). This prevents the developer from explicitly including the entire URL both within and across pages. It has the added benefit of reducing the length of URLs on your endpoint definitions, making them easier to read and maintain.
 
 **What it catches:**
 
@@ -1417,10 +1508,8 @@ PMD session variables persist for the entire user session, consuming memory and 
 
 ```json
 {
-  "endPoints": [{
-    "name": "getWorker",
-    "url": "https://api.workday.com/common/v1/workers/me"  // ❌ Hardcoded workday.com
-  }]
+  "name": "getWorker",
+  "url": "https://api.workday.com/common/v1/workers/me"  // ❌ Hardcoded workday.com
 }
 ```
 
@@ -1428,11 +1517,9 @@ PMD session variables persist for the entire user session, consuming memory and 
 
 ```json
 {
-  "endPoints": [{
-    "name": "getWorker",
-    "url": "/workers/me",  // ✅ Relative URL
-    "baseUrlType": "workday-common"  // ✅ Use baseUrlType instead
-  }]
+  "name": "getWorker",
+  "url": "/workers/me",  // ✅ Relative URL
+  "baseUrlType": "workday-common"  // ✅ Use baseUrlType instead
 }
 ```
 
@@ -1440,10 +1527,14 @@ PMD session variables persist for the entire user session, consuming memory and 
 
 ### PMDSectionOrderingRule
 
-**Severity:** ADVICE (configurable)
-**Description:** Ensures PMD file root-level sections follow consistent ordering for better readability
+**Severity:** ADVICE
+**Description:** Ensures PMD file root-level sections follow consistent ordering
 **Applies to:** PMD file structure
 **Configurable:** ✅ Section order and enforcement can be customized
+
+**Why This Matters:**
+
+Consistent section ordering across PMD files makes them easier to navigate and review. When every file follows the same structure, developers can quickly find what they're looking for (endpoints, scripts, presentation) without scanning the entire file. This is especially helpful when reviewing code or onboarding new team members who need to understand unfamiliar pages.
 
 **What it catches:**
 
@@ -1467,7 +1558,7 @@ PMD session variables persist for the entire user session, consuming memory and 
 ```json
 {
   "presentation": { },     // ❌ presentation should come last
-  "id": "myApp",
+  "id": "myAppPage",
   "script": "<%  %>",
   "include": ["util.script"]
 }
@@ -1477,7 +1568,7 @@ PMD session variables persist for the entire user session, consuming memory and 
 
 ```json
 {
-  "id": "myApp",           // ✅ Proper order
+  "id": "myAppPage",         // ✅ Proper order
   "include": ["util.script"],
   "script": "<%  %>",
   "presentation": { }
@@ -1504,6 +1595,10 @@ PMD session variables persist for the entire user session, consuming memory and 
 **Severity:** ACTION
 **Description:** Ensures PMD pages have at least one security domain defined (excludes microConclusion and error pages unless strict mode is enabled)
 **Applies to:** PMD file security configuration
+
+**Why This Matters:**
+
+Security domains control who can access your PMD pages in Workday. Missing security domains means your page is accessible to all users, which could lead to a security incident.
 
 **What it catches:**
 
@@ -1574,26 +1669,25 @@ PMD session variables persist for the entire user session, consuming memory and 
 **Description:** Ensures all widgets have an 'id' field set
 **Applies to:** PMD and POD widget structures
 
+**Why This Matters:**
+
+Widget IDs are essential for referencing widgets in scripts (to get/set values, show/hide, etc.) and for debugging. Without IDs, you can't interact with widgets programmatically, making dynamic behavior impossible. IDs also help identify widgets in error messages and make code maintenance much easier when you need to find where a widget is defined or used. There are also known issues where missing IDs will result in logs not showing the data someone may expect (i.e. a panelList widget may not log its values without all IDs set).
+
 **What it catches:**
 
 - Widgets missing required `id` field
-- Widgets that cannot be uniquely identified or referenced
-- Structure validation issues that make code harder to maintain
 
 **Smart Exclusions:**
 
-Widget types that don't require IDs: `footer`, `item`, `group`, `title`, `pod`, `cardContainer`, `card`, and column objects (which use `columnId` instead)
+Widget types that don't require IDs: `footer`, `item`, `group`, `title`, `pod`, `cardContainer`, `card`, and column objects (which use `columnId` instead). There are others not listed and we will continue to refine the exclusions where we find necessary.
 
 **Example violations:**
 
 ```json
 {
-  "presentation": {
-    "body": {
-      "type": "richText",  // ❌ Missing id field
-      "value": "Welcome"
-    }
-  }
+  "type": "richText",  // ❌ Missing id field
+  "label": "Welcome",
+  "value": "Hello, user!"
 }
 ```
 
@@ -1601,13 +1695,10 @@ Widget types that don't require IDs: `footer`, `item`, `group`, `title`, `pod`, 
 
 ```json
 {
-  "presentation": {
-    "body": {
-      "type": "richText",
-      "id": "welcomeMessage",  // ✅ Added id field
-      "value": "Welcome"
-    }
-  }
+  "type": "richText",
+  "id": "welcomeMessage",  // ✅ Added id field
+  "label": "Welcome",
+  "value": "Hello, user!"
 }
 ```
 
@@ -1619,10 +1710,13 @@ Widget types that don't require IDs: `footer`, `item`, `group`, `title`, `pod`, 
 **Description:** Ensures widget IDs follow lowerCamelCase naming convention
 **Applies to:** PMD and POD widget structures
 
+**Why This Matters:**
+
+LowerCamelCase is the Workday standard, and following it means your code will be consisten across pages AND applications. Mixing conventions (snake_case, PascalCase) forces constant reference checking and slows development.
+
 **What it catches:**
 
 - Widget IDs that don't follow lowerCamelCase convention
-- Inconsistent naming across widgets
 - Style guide violations
 
 **Example violations:**
@@ -1651,11 +1745,14 @@ Widget types that don't require IDs: `footer`, `item`, `group`, `title`, `pod`, 
 **Description:** Ensures footer uses pod structure (direct pod or footer with pod children)
 **Applies to:** PMD file footer sections
 
+**Why This Matters:**
+
+Using pods for footers promotes component reuse and consistency across your application. Pods are designed to be reusable components, and structuring footers as pods makes them easier to maintain centrally and update across multiple pages. For many applications, developers include an image for the footer. Being able to change the values for this across all pages at once reduces risk when making updates, easing the maintenance for developers.
+
 **What it catches:**
 
-- Footers that don't use pod structure
-- Inconsistent footer implementations
 - Missing pod widgets in footers
+- Inconsistent footer implementations
 
 **Smart Exclusions:**
 
@@ -1689,8 +1786,7 @@ Pages with tabs, hub pages, and microConclusion pages are excluded from this req
       "children": [
         {
           "type": "pod",  // ✅ Using pod structure
-          "id": "footerPod",
-          "podId": "MyFooterPod"
+          "podId": "footer"
         }
       ]
     }
@@ -1706,11 +1802,16 @@ Pages with tabs, hub pages, and microConclusion pages are excluded from this req
 **Description:** Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans
 **Applies to:** PMD and POD file structures
 
+**Why This Matters:**
+
+Booleans should be represented as actual boolean values (true / false), not strings ("true" / "false").
+While the backend may gracefully cast string values, this “magic conversion” hides the true intent of the data.
+
+> 🧙 **Wizard's Note:** Some areas of Extend actually *require* you to use strings, instead of bools (for example: for some values in your AMD flows), so we won't check in those places and just accept this "gotcha" with Extend.
+
 **What it catches:**
 
 - Boolean values represented as strings `"true"` or `"false"`
-- Type inconsistencies that can cause unexpected behavior
-- JSON structure violations
 
 **Example violations:**
 
@@ -1732,47 +1833,15 @@ Pages with tabs, hub pages, and microConclusion pages are excluded from this req
 
 ---
 
-## Rule Configuration
-
-All rules can be configured in your configuration files:
-
-- **`configs/default.json`** - Standard configuration
-- **`configs/minimal.json`** - Minimal rule set
-- **`configs/comprehensive.json`** - All rules enabled with strict settings
-
-### Configuration Options
-
-Each rule supports:
-
-- **`enabled`** - Enable/disable the rule
-- **`severity_override`** - Override default severity (SEVERE, WARNING, INFO)
-- **`custom_settings`** - Rule-specific configuration options
-
-### Example Configuration
-
-```json
-{
-  "ScriptComplexityRule": {
-    "enabled": true,
-    "severity_override": "ACTION",
-    "custom_settings": {
-      "max_complexity": 8
-    }
-  },
-  "PMDSectionOrderingRule": {
-    "enabled": true,
-    "custom_settings": {
-      "section_order": ["id", "presentation", "script"]
-    }
-  }
-}
-```
-
 ### FileNameLowerCamelCaseRule
 
 **Severity:** ADVICE
 **Description:** Ensures all file names follow lowerCamelCase naming convention
 **Applies to:** All files (PMD, POD, AMD, SMD, Script)
+
+**Why This Matters:**
+
+LowerCamelCase is the Workday Extend standard, and following it ensures files are organized predictably, keeping your code looking professional.
 
 **What it catches:**
 
@@ -1822,11 +1891,11 @@ Rename files to follow lowerCamelCase convention. For app-level files (AMD, SMD)
 
 - Strings with 2 or more `<% %>` interpolators
 - String values that mix static text with multiple dynamic values
-- Does NOT flag strings already using template literals (backticks with `${}`)
+- Does NOT flag strings already using template literals (backticks with `{{}}`)
 
-**Why it matters:**
+**Why This Matters:**
 
-Multiple interpolators in one string are harder to read and maintain. Using a **single interpolator** with a template literal inside is cleaner, more readable, and more performant.
+Multiple interpolators (`<% name %> and <% age %>`) create multiple parse operations and are harder to read than a single template literal. Using one interpolator with a template literal (`<% \`Name: {{name}}, Age: {{age}}\` %>`) is cleaner and easier to maintain.
 
 **Example violations:**
 
@@ -1844,15 +1913,15 @@ Multiple interpolators in one string are harder to read and maintain. Using a **
 
 ```json
 {
-  "value": "<% `My name is ${name} and I like ${food}` %>"  // ✅ SINGLE interpolator with template literal
+  "value": "<% `My name is {{name}} and I like {{food}}` %>"  // ✅ SINGLE interpolator with template literal
 }
 
 {
-  "label": "<% `Name: ${firstName}, Age: ${age}, City: ${city}` %>"  // ✅ SINGLE interpolator with template literal
+  "label": "<% `Name: {{firstName}}, Age: {{age}}, City: {{city}}` %>"  // ✅ SINGLE interpolator with template literal
 }
 ```
 
-**Note:** Use ONE `<% %>` interpolator containing a template literal with backticks (\`) and `${}` for variables.
+**Note:** Use ONE `<% %>` interpolator containing a template literal with backticks (\`) and `{{}}` for variables.
 
 ---
 
@@ -1862,15 +1931,14 @@ Multiple interpolators in one string are harder to read and maintain. Using a **
 **Description:** Detects grids with paging and sortableAndFilterable columns which can cause performance issues
 **Applies to:** PMD and POD grid widgets
 
+**Why This Matters:**
+
+Combining paging with sortableAndFilterable columns forces Workday to load and process the entire dataset client-side for sorting/filtering, defeating the purpose of paging. This can cause severe performance degradation with large datasets. Either disable paging or remove sortableAndFilterable to prevent performance issues.
+
 **What it catches:**
 
 - Grid widgets with `autoPaging: true` OR `pagingInfo` present
 - AND any column with `sortableAndFilterable: true`
-- Checks nested grids in sections and other containers
-
-**Why it matters:**
-
-Combining paging with sortable/filterable columns can cause severe performance degradation due to how data is fetched and processed. This can lead to slow page loads and poor user experience.
 
 **Example violations:**
 
@@ -1924,8 +1992,6 @@ Combining paging with sortable/filterable columns can cause severe performance d
 }
 ```
 
-**Recommendation:** For large datasets, use paging without sortableAndFilterable. For small datasets, use sortableAndFilterable without paging.
-
 ---
 
 ## 📊 Quick Reference
@@ -1977,16 +2043,55 @@ Combining paging with sortable/filterable columns can cause severe performance d
 
 ---
 
+---
+
+## Rule Configuration
+
+All rules can be configured in your configuration files:
+
+- **`configs/presets/production-ready.json`** - Standard configuration
+- **`configs/presets/development.json`** - Some rules disabled for in-development stage
+
+### Configuration Options
+
+Each rule supports:
+
+- **`enabled`** - Enable/disable the rule
+- **`severity_override`** - Override default severity (ACTION, ADVICE)
+- **`custom_settings`** - Rule-specific configuration options
+
+### Example Configuration
+
+```json
+{
+  "ScriptComplexityRule": {
+    "enabled": true,
+    "severity_override": "ACTION",
+    "custom_settings": {
+      "max_complexity": 8
+    }
+  },
+  "PMDSectionOrderingRule": {
+    "enabled": true,
+    "custom_settings": {
+      "section_order": ["id", "presentation", "script"]
+    }
+  }
+}
+```
+
+---
+
 ## Summary
 
 The Arcane Auditor channels mystical powers through **42 rules** across **2 categories**:
 
-- ✅ **23 Script Rules** - Code quality for PMD and standalone scripts
-- ✅ **19 Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- ✅ **Script Rules** - Code quality for PMD and standalone scripts
+- ✅ **Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
 
 **Severity Distribution:**
 
-- **10 ACTION Rules**: Critical issues requiring immediate attention
+- **10 ACTION Rules**: Potentially critical issues requiring immediate attention
 - **32 ADVICE Rules**: Recommendations for code quality and best practices
 
 These rules help maintain consistent, high-quality Workday Extend applications by catching issues that compilers aren't designed to catch, but are important for maintainability, performance, and team collaboration.
