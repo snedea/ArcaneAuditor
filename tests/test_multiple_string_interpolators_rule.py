@@ -171,7 +171,7 @@ class TestMultipleStringInterpolatorsRule:
         assert len(findings) == 0
 
     def test_template_literal_already_used_not_flagged(self):
-        """Test that template literals (backticks) are not flagged."""
+        """Test that template literals (backticks with {{}}) are not flagged."""
         rule = MultipleStringInterpolatorsRule()
         context = ProjectContext()
         
@@ -182,7 +182,7 @@ class TestMultipleStringInterpolatorsRule:
   "widgets": [
     {
       "type": "text",
-      "value": "<% `My name is ${name} and I like ${food}` %>"
+      "value": "<% `My name is {{name}} and I like {{food}}` %>"
     }
   ]
 }'''
