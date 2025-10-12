@@ -751,7 +751,7 @@ const total = numbers.reduce((acc, num) => {acc + num});
 
 **Why This Matters:**
 
-Functions with inconsistent returns (some code paths return a value, others return nothing) cause subtle bugs where callers receive `undefined` unexpectedly. This leads to null reference errors downstream or incorrect conditional logic. Ensuring all code paths explicitly return (even if just `null` or `undefined`) makes function behavior predictable and prevents runtime errors.
+Functions with inconsistent returns (some code paths return a value, others return nothing) cause subtle bugs where callers receive `null` unexpectedly. This leads to null reference errors downstream or incorrect conditional logic. Ensuring all code paths explicitly return (even if it explicity `null`) makes function behavior predictable and prevents runtime errors.
 
 **What it catches:**
 
