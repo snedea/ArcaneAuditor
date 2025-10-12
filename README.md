@@ -4,7 +4,7 @@
 
 > ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
 
-![Version](https://img.shields.io/badge/version-0.5.0--beta.1-purple?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-0.6.0--beta.1-purple?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
 
 <a id="overview" />
@@ -655,7 +655,7 @@ This ensures your customizations persist through updates while allowing flexibil
 
 ### **Script Syntax & Structure**
 
-- **Valid JavaScript Syntax**: Ensures all script code follows proper JavaScript syntax
+- **Valid PMD Script Syntax**: Ensures all script code follows proper PMD Script syntax
 - **Function Declaration Validation**: Validates function declarations and their parameters
 - **Variable Declaration**: Checks for proper variable declarations and scope
 - **Control Flow Validation**: Validates if/else, loops, and other control structures
@@ -811,19 +811,17 @@ Enable or configure your custom rules in your configuration file:
 git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git
 cd ArcaneAuditor
 
-# Install dependencies (including development dependencies)
-uv sync --dev
+# Install dependencies
+uv sync
 
 # Run tests to verify installation
 uv run pytest
 ```
 
-**What's included with `--dev`:**
+**What's included:**
 
-- All production dependencies
+- All production dependencies, including Python
 - Testing frameworks (pytest)
-- Code quality tools
-- Development utilities
 
 ### **Project Structure**
 
