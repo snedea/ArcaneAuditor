@@ -86,8 +86,7 @@
       "enabled": true,
       "severity_override": "ACTION",
       "custom_settings": {
-        "allowed_single_letters": [],
-        "additional_functional_methods": []
+        "allowed_single_letters": []
       }
     },
     "ScriptEmptyFunctionRule": {

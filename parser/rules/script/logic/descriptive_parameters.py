@@ -21,10 +21,6 @@ class ScriptDescriptiveParameterRule(ScriptRuleBase):
         """Initialize the rule with optional configuration."""
         super().__init__()
         if config:
-            # Update functional methods if provided
-            if 'additional_functional_methods' in config:
-                self.FUNCTIONAL_METHODS = self.FUNCTIONAL_METHODS.union(config['additional_functional_methods'])
-            
             # Update allowed single letters if provided
             if 'allowed_single_letters' in config:
                 self.ALLOWED_SINGLE_LETTERS = set(config['allowed_single_letters'])

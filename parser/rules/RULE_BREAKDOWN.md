@@ -712,7 +712,7 @@ const userNames = users.map(u => u.name);
 const activeUsers = users.filter(user => user.active);
 const userNames = users.map(user => user.name);
 
-// ✅ Clear nested functional methods
+// ✅ Clear chained array methods
 const result = departments
     .map(dept => dept.teams)
     .filter(team => team.active);
@@ -735,10 +735,9 @@ const total = numbers.reduce((acc, num) => {acc + num});
     "enabled": true,
     "severity_override": "ACTION",
     "custom_settings": {
-      "allowed_single_letters": [],
-      "additional_functional_methods": []
+      "allowed_single_letters": []
     }
-    }
+  }
 }
 ```
 
