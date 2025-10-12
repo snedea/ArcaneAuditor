@@ -1,4 +1,4 @@
-"""Detector for anti-pattern 'self.data = {:}' in onSend scripts."""
+"""Detector for anti-pattern 'self.data = {...}' in onSend scripts."""
 
 from typing import Generator
 from lark import Tree
@@ -7,15 +7,15 @@ from ...common import Violation
 
 
 class OnSendSelfDataDetector(ScriptDetector):
-    """Detects the anti-pattern 'self.data = {:}' in onSend scripts."""
+    """Detects the anti-pattern of overwriting self.data with a new object in onSend scripts."""
 
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
         """
         Detect anti-pattern in the AST.
         
         Looks for assignment expressions where:
-        - Left side is member expression: self.data
-        - Right side is empty object literal: {:}
+        - Left side is member expression: self.data (not self.data.property)
+        - Right side is any object literal: {:} or {foo: 'bar'}
         
         Args:
             ast: Parsed AST node
@@ -26,17 +26,24 @@ class OnSendSelfDataDetector(ScriptDetector):
         """
         # Find all assignment expressions in the AST
         for assignment_expr in ast.find_data('assignment_expression'):
-            if self._is_self_data_empty_object_assignment(assignment_expr):
+            if self._is_self_data_object_assignment(assignment_expr):
                 line_number = self.get_line_from_tree_node(assignment_expr)
                 
                 yield Violation(
-                    message=f"onSend script uses anti-pattern 'self.data = {{:}}'. This pattern should be avoided.",
+                    message=f"onSend script uses 'self.data' as temporary storage by creating a new object. Use a local variable instead (let postData = {{...}}) for better code clarity.",
                     line=line_number
                 )
     
-    def _is_self_data_empty_object_assignment(self, assignment_node: Tree) -> bool:
+    def _is_self_data_object_assignment(self, assignment_node: Tree) -> bool:
         """
-        Check if this is an assignment of the form: self.data = {:}
+        Check if this is an assignment of the form: self.data = <object>
+        
+        This includes both empty and populated objects:
+        - self.data = {:}
+        - self.data = {foo: 'bar'}
+        
+        But NOT property assignments:
+        - self.data.foo = 'bar'  (this is OK in situations where Extend populated self.data, not the developer!)
         
         Args:
             assignment_node: AST node for assignment_expression
@@ -50,12 +57,12 @@ class OnSendSelfDataDetector(ScriptDetector):
         left_side = assignment_node.children[0]
         right_side = assignment_node.children[1]
         
-        # Check if left side is "self.data"
+        # Check if left side is "self.data" (NOT self.data.property)
         if not self._is_self_data_member_expression(left_side):
             return False
         
-        # Check if right side is {:} (empty object literal)
-        if not self._is_empty_object_literal(right_side):
+        # Check if right side is any object literal (empty or populated)
+        if not self._is_object_literal(right_side):
             return False
         
         return True
@@ -111,31 +118,22 @@ class OnSendSelfDataDetector(ScriptDetector):
         
         return False
     
-    def _is_empty_object_literal(self, node: Tree) -> bool:
+    def _is_object_literal(self, node: Tree) -> bool:
         """
-        Check if node represents {:} (empty object literal).
+        Check if node represents any object literal: {:} or {foo: 'bar'}.
         
         Args:
             node: AST node to check
             
         Returns:
-            True if this is an empty object literal
+            True if this is an object literal (empty or populated)
         """
         if not hasattr(node, 'data'):
             return False
         
         # Check for various object literal node types
+        # This matches any object literal, regardless of whether it has properties
         if node.data in ['object_literal', 'curly_literal', 'curly_literal_expression']:
-            # Check if it has no properties (empty object)
-            if not hasattr(node, 'children') or len(node.children) == 0:
-                return True
-            
-            # Check if all children are just structural tokens (like { and })
-            # Empty object should have no property assignments
-            for child in node.children:
-                if hasattr(child, 'data') and 'property' in child.data:
-                    return False
-            
             return True
         
         return False

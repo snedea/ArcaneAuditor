@@ -872,31 +872,56 @@ const handler = function() { }; // ❌ Empty function
 ### ScriptOnSendSelfDataRule
 
 **Severity:** ADVICE
-**Description:** Detects anti-pattern 'self.data = {:}' in outbound endpoint onSend scripts
+**Description:** Detects anti-pattern of using self.data as temporary storage in outbound endpoint onSend scripts
 **Applies to:** PMD outbound endpoint onSend scripts
 
 **Why This Matters:**
 
-The pattern `self.data = {:}` in onSend scripts is an anti-pattern that can cause issues with data handling in Workday Extend outbound endpoints. This pattern overwrites existing data structures and can lead to unexpected behavior or data loss. Using proper data initialization approaches ensures reliable endpoint behavior.
+Using `self.data` as temporary storage in onSend scripts is an anti-pattern that obscures intent and pollutes the `self` reference with unnecessary properties. When developers write patterns like `self.data = {:}` followed by building up that object and returning it, they're using the endpoint's `self` reference as a temporary variable holder instead of using proper local variables.
+
+**This makes code harder to understand** because readers must determine whether `self.data` contains important endpoint state or is just temporary storage. It also makes testing and debugging more difficult since the `self` object is being mutated unnecessarily.
 
 **What This Rule Does:**
-This rule uses AST parsing to detect the anti-pattern `self.data = {:}` (assigning an empty object to self.data) in outbound endpoint onSend scripts. This pattern should be avoided as it can cause issues with data handling. Comments are automatically ignored by the parser.
+This rule uses AST parsing to detect when `self.data` is **assigned a new object** (empty or populated) in outbound endpoint onSend scripts. This pattern indicates the developer is using `self.data` as temporary storage. Property assignments to existing data like `self.data.foo = 'bar'` are allowed (for cases where data comes from valueOutBinding). Comments are automatically ignored by the parser.
 
-**Intent:** Prevent problematic data initialization patterns in outbound endpoint scripts.
+**Intent:** Encourage clear, maintainable code by using local variables instead of polluting the `self` reference with temporary storage.
 
 **What it catches:**
 
-- Usage of `self.data = {:}` in outbound endpoint onSend scripts
-- Anti-pattern assignments that should use alternative approaches
+- `self.data = {:}` - Using self.data as temporary storage (empty object)
+- `self.data = {foo: 'bar'}` - Using self.data as temporary storage (populated object)
+- Any assignment that creates a new `self.data` object
+
+**What it allows:**
+
+- `self.data.foo = 'bar'` - Property assignment to existing data (✅ OK - assumes data from valueOutBinding)
+- `self.data.nested.value = 123` - Nested property assignment (✅ OK)
+- Creating local variables: `let postData = {:}` (✅ Recommended)
 
 **Example violations:**
 
-```
+```javascript
+// ❌ Anti-pattern - Using self.data as temporary storage
 {
   "outboundEndpoints": [{
     "name": "sendData",
     "onSend": "<%
-      self.data = {:}; // ❌ Anti-pattern - avoid this
+      self.data = {:};  // Pollutes self reference
+      self.data.foo = 'bar';
+      self.data.baz = computeValue();
+      return self.data;  // Returns temporary storage
+    %>"
+  }]
+}
+```
+
+```javascript
+// ❌ Anti-pattern - Using self.data as temporary storage with initial values
+{
+  "outboundEndpoints": [{
+    "name": "sendData",
+    "onSend": "<%
+      self.data = {name: 'John', age: 30};  // Unnecessary use of self reference
       return self.data;
     %>"
   }]
@@ -905,13 +930,43 @@ This rule uses AST parsing to detect the anti-pattern `self.data = {:}` (assigni
 
 **Fix:**
 
-```
+```javascript
+// ✅ Good - Use local variable for clarity
 {
   "outboundEndpoints": [{
     "name": "sendData",
     "onSend": "<%
-      // ✅ Use alternative data initialization approach
-      return { /* your data here */ };
+      let postData = {:};  // Clear intent: local temporary variable
+      postData.name = 'John';
+      postData.age = 30;
+      postData.computed = computeValue();
+      return postData;  // Return the local variable
+    %>"
+  }]
+}
+```
+
+```javascript
+// ✅ Good - Property assignment when data exists from valueOutBinding
+{
+  "outboundEndpoints": [{
+    "name": "sendData",
+    "onSend": "<%
+      // Assumes self.data already has values from valueOutBinding
+      self.data.additionalField = 'computed value';  // Adding to existing data
+      return self.data;
+    %>"
+  }]
+}
+```
+
+```javascript
+// ✅ Good - Direct return when data is simple
+{
+  "outboundEndpoints": [{
+    "name": "sendData",
+    "onSend": "<%
+      return {name: 'John', age: 30};  // No temporary storage needed
     %>"
   }]
 }

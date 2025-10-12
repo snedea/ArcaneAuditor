@@ -18,11 +18,11 @@ class TestEndpointOnSendSelfDataRule:
     
     def test_rule_metadata(self):
         """Test rule metadata is correctly defined."""
-        assert self.rule.DESCRIPTION == "Detects anti-pattern 'self.data = {:}' in outbound endpoint onSend scripts"
+        assert self.rule.DESCRIPTION == "Detects anti-pattern of using self.data as temporary storage in outbound endpoint onSend scripts"
         assert self.rule.SEVERITY == "ADVICE"
     
-    def test_outbound_endpoint_with_anti_pattern(self):
-        """Test that outbound endpoints with self.data anti-pattern are flagged."""
+    def test_outbound_endpoint_with_empty_object_anti_pattern(self):
+        """Test that outbound endpoints with self.data = {:} are flagged."""
         source_content = """{
   "id": "testPage",
   "outboundEndpoints": [{
@@ -50,8 +50,38 @@ class TestEndpointOnSendSelfDataRule:
         # Should find the anti-pattern violation
         assert len(findings) == 1
         assert "Outbound endpoint 'SendData'" in findings[0].message
-        assert "anti-pattern" in findings[0].message
-        assert "self.data = {:}" in findings[0].message
+        assert "temporary storage" in findings[0].message
+    
+    def test_outbound_endpoint_with_populated_object_anti_pattern(self):
+        """Test that outbound endpoints with self.data = {foo: 'bar'} are flagged."""
+        source_content = """{
+  "id": "testPage",
+  "outboundEndpoints": [{
+    "name": "SendData",
+    "onSend": "<%
+      self.data = {name: 'John', age: 30};
+      return self.data;
+    %>"
+  }]
+}"""
+        
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content=source_content,
+            outboundEndpoints=[{
+                "name": "SendData",
+                "onSend": "<%\n      self.data = {name: 'John', age: 30};\n      return self.data;\n    %>"
+            }]
+        )
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        
+        # Should find the anti-pattern violation
+        assert len(findings) == 1
+        assert "Outbound endpoint 'SendData'" in findings[0].message
+        assert "temporary storage" in findings[0].message
     
     def test_outbound_endpoint_without_anti_pattern(self):
         """Test that outbound endpoints without anti-pattern are not flagged."""
@@ -79,6 +109,36 @@ class TestEndpointOnSendSelfDataRule:
         findings = list(self.rule.analyze(self.context))
         
         # Should have no violations
+        assert len(findings) == 0
+    
+    def test_property_assignment_is_allowed(self):
+        """Test that self.data.foo = 'bar' property assignments are allowed."""
+        source_content = """{
+  "id": "testPage",
+  "outboundEndpoints": [{
+    "name": "SendData",
+    "onSend": "<%
+      self.data.name = 'John';
+      self.data.age = 30;
+      return self.data;
+    %>"
+  }]
+}"""
+        
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content=source_content,
+            outboundEndpoints=[{
+                "name": "SendData",
+                "onSend": "<%\n      self.data.name = 'John';\n      self.data.age = 30;\n      return self.data;\n    %>"
+            }]
+        )
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        
+        # Should have no violations - property assignment is OK
         assert len(findings) == 0
     
     def test_inbound_endpoint_with_anti_pattern_not_flagged(self):
@@ -150,7 +210,7 @@ class TestEndpointOnSendSelfDataRule:
         # Should only flag the outbound endpoint, not the inbound
         assert len(findings) == 1
         assert "Outbound endpoint 'SendData'" in findings[0].message
-        assert "anti-pattern" in findings[0].message
+        assert "temporary storage" in findings[0].message
     
     def test_no_endpoints(self):
         """Test PMD with no endpoints."""
@@ -273,7 +333,7 @@ class TestEndpointOnSendSelfDataRule:
         # Should flag the anti-pattern since it appears before the comment
         assert len(findings) == 1
         assert "Outbound endpoint 'SendData'" in findings[0].message
-        assert "anti-pattern" in findings[0].message
+        assert "temporary storage" in findings[0].message
 
 
 if __name__ == "__main__":
