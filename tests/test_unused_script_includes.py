@@ -165,6 +165,27 @@ class TestScriptUnusedScriptIncludesRule:
         
         # Should have no findings - util.actualFunction() is a valid call
         assert len(findings) == 0
+    
+    def test_commented_script_calls_ignored(self):
+        """Test that commented-out script calls don't count as usage."""
+        pmd_model = PMDModel(
+            pageId="test-page",
+            includes=PMDIncludes(scripts=["util.script"]),
+            script="""<%
+                // util.foo(); - commented out, should NOT count
+                /* util.bar(); - also commented, should NOT count */
+            %>""",
+            file_path="test.pmd",
+            source_content=""
+        )
+        self.context.pmds["test-page"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        
+        # Should flag util.script as unused - all calls are commented
+        assert len(findings) == 1
+        assert "util" in findings[0].message
+        assert "never used" in findings[0].message.lower()
 
 
 if __name__ == "__main__":
