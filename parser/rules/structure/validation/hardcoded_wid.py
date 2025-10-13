@@ -41,17 +41,17 @@ class HardcodedWidRule(StructureRuleBase):
     
     def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze PMD model for hardcoded WIDs."""
-        yield from self._check_pmd_hardcoded_wids(pmd_model)
+        yield from self._check_pmd_hardcoded_wids(pmd_model, context)
     
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze POD model for hardcoded WIDs."""
         yield from self._check_pod_hardcoded_wids(pod_model)
     
-    def _check_pmd_hardcoded_wids(self, pmd_model: PMDModel) -> Generator[Finding, None, None]:
+    def _check_pmd_hardcoded_wids(self, pmd_model: PMDModel, context: ProjectContext = None) -> Generator[Finding, None, None]:
         """Check PMD file for hardcoded WID values."""
         # Convert PMD model to dictionary for recursive checking
         pmd_dict = pmd_model.model_dump(exclude={'file_path', 'source_content'})
-        yield from self._check_string_values_for_wids(pmd_dict, pmd_model.file_path, pmd_model=pmd_model)
+        yield from self._check_string_values_for_wids(pmd_dict, pmd_model.file_path, pmd_model=pmd_model, context=context)
     
     def _check_pod_hardcoded_wids(self, pod_model: PodModel) -> Generator[Finding, None, None]:
         """Check POD file for hardcoded WID values."""
@@ -59,7 +59,7 @@ class HardcodedWidRule(StructureRuleBase):
         pod_dict = pod_model.model_dump(exclude={'file_path', 'source_content'})
         yield from self._check_string_values_for_wids(pod_dict, pod_model.file_path, pod_model=pod_model)
     
-    def _check_string_values_for_wids(self, model: Any, file_path: str, pmd_model: PMDModel = None, pod_model: PodModel = None, path: str = "") -> Generator[Finding, None, None]:
+    def _check_string_values_for_wids(self, model: Any, file_path: str, pmd_model: PMDModel = None, pod_model: PodModel = None, path: str = "", context: ProjectContext = None) -> Generator[Finding, None, None]:
         """Recursively check string values for hardcoded WIDs."""
         if isinstance(model, dict):
             # Track widget ID for better context
@@ -79,18 +79,18 @@ class HardcodedWidRule(StructureRuleBase):
                     else:
                         context_path = f"{path}.{key}" if path else key
                     
-                    yield from self._check_string_for_wids(value, file_path, context_path, pmd_model, pod_model)
+                    yield from self._check_string_for_wids(value, file_path, context_path, pmd_model, pod_model, context)
                 elif isinstance(value, (dict, list)):
                     new_path = f"{path}.{key}" if path else key
-                    yield from self._check_string_values_for_wids(value, file_path, pmd_model, pod_model, new_path)
+                    yield from self._check_string_values_for_wids(value, file_path, pmd_model, pod_model, new_path, context)
         elif isinstance(model, list):
             for i, item in enumerate(model):
                 if isinstance(item, str):
-                    yield from self._check_string_for_wids(item, file_path, f"{path}[{i}]", pmd_model, pod_model)
+                    yield from self._check_string_for_wids(item, file_path, f"{path}[{i}]", pmd_model, pod_model, context)
                 elif isinstance(item, (dict, list)):
-                    yield from self._check_string_values_for_wids(item, file_path, pmd_model, pod_model, f"{path}[{i}]")
+                    yield from self._check_string_values_for_wids(item, file_path, pmd_model, pod_model, f"{path}[{i}]", context)
     
-    def _check_string_for_wids(self, text: str, file_path: str, field_name: str, pmd_model: PMDModel = None, pod_model: PodModel = None) -> Generator[Finding, None, None]:
+    def _check_string_for_wids(self, text: str, file_path: str, field_name: str, pmd_model: PMDModel = None, pod_model: PodModel = None, context: ProjectContext = None) -> Generator[Finding, None, None]:
         """Check a single string for hardcoded WID values."""
         if not text:
             return
@@ -98,7 +98,7 @@ class HardcodedWidRule(StructureRuleBase):
         # Check if this is a script field (contains <% %>)
         if '<%' in text and '%>' in text:
             # Use AST-based detection for script fields (respects comments)
-            yield from self._check_script_for_wids_ast(text, file_path, field_name, pmd_model, pod_model)
+            yield from self._check_script_for_wids_ast(text, file_path, field_name, pmd_model, pod_model, context)
         else:
             # Use regex for plain JSON values (no comments possible)
             yield from self._check_string_for_wids_regex(text, file_path, field_name, pmd_model, pod_model)
@@ -126,54 +126,47 @@ class HardcodedWidRule(StructureRuleBase):
                 line=line_num
             )
     
-    def _check_script_for_wids_ast(self, script_content: str, file_path: str, field_name: str, pmd_model: PMDModel = None, pod_model: PodModel = None) -> Generator[Finding, None, None]:
+    def _check_script_for_wids_ast(self, script_content: str, file_path: str, field_name: str, pmd_model: PMDModel = None, pod_model: PodModel = None, context: ProjectContext = None) -> Generator[Finding, None, None]:
         """Check a script field for hardcoded WID values using AST (ignores comments)."""
-        from ....pmd_script_parser import pmd_script_parser
-        
-        try:
-            # Strip script tags
-            script_code = script_content.replace('<%', '').replace('%>', '').strip()
-            if not script_code:
-                return
-            
-            # Parse with AST
-            ast = pmd_script_parser.parse(script_code)
-            
-            # Extract all string literals from AST with context
-            wid_pattern = r'^[a-f0-9]{32}$'  # Exact match for literals
-            
-            for variable_decl in ast.find_data('variable_declaration'):
-                # Extract variable name and check its value
-                var_name = None
-                for child in variable_decl.children:
-                    if hasattr(child, 'type') and child.type == 'IDENTIFIER':
-                        var_name = child.value
-                        break
-                
-                # Check string literals in this variable declaration
-                for literal_expr in variable_decl.find_data('literal_expression'):
-                    if hasattr(literal_expr, 'children') and len(literal_expr.children) > 0:
-                        token = literal_expr.children[0]
-                        if hasattr(token, 'value'):
-                            literal_value = token.value.strip('\'"')
-                            
-                            if re.match(wid_pattern, literal_value, re.IGNORECASE):
-                                wid_value = literal_value.lower()
-                                
-                                if wid_value in self.ALLOWED_WIDS:
-                                    continue
-                                
-                                line_num = self._find_wid_line_number(wid_value, pmd_model, pod_model)
-                                context = f"in variable '{var_name}' in {field_name}" if var_name else f"in {field_name}"
-                                
-                                yield self._create_finding(
-                                    message=f"Hardcoded WID '{wid_value}' found {context}. Consider configuring WIDs in app attributes instead of hardcoding them.",
-                                    file_path=file_path,
-                                    line=line_num
-                                )
-        except Exception:
-            # If AST parsing fails, fall back to regex (but this means comments won't be filtered)
+        # Parse with AST using cached parsing (leverage context-level cache)
+        ast = self._parse_script_content(script_content, context)
+        if not ast:
+            # If parsing fails, fall back to regex (but this means comments won't be filtered)
             yield from self._check_string_for_wids_regex(script_content, file_path, field_name, pmd_model, pod_model)
+            return
+        
+        # Extract all string literals from AST with context
+        wid_pattern = r'^[a-f0-9]{32}$'  # Exact match for literals
+        
+        for variable_decl in ast.find_data('variable_declaration'):
+            # Extract variable name and check its value
+            var_name = None
+            for child in variable_decl.children:
+                if hasattr(child, 'type') and child.type == 'IDENTIFIER':
+                    var_name = child.value
+                    break
+            
+            # Check string literals in this variable declaration
+            for literal_expr in variable_decl.find_data('literal_expression'):
+                if hasattr(literal_expr, 'children') and len(literal_expr.children) > 0:
+                    token = literal_expr.children[0]
+                    if hasattr(token, 'value'):
+                        literal_value = token.value.strip('\'"')
+                        
+                        if re.match(wid_pattern, literal_value, re.IGNORECASE):
+                            wid_value = literal_value.lower()
+                            
+                            if wid_value in self.ALLOWED_WIDS:
+                                continue
+                            
+                            line_num = self._find_wid_line_number(wid_value, pmd_model, pod_model)
+                            context_desc = f"in variable '{var_name}' in {field_name}" if var_name else f"in {field_name}"
+                            
+                            yield self._create_finding(
+                                message=f"Hardcoded WID '{wid_value}' found {context_desc}. Consider configuring WIDs in app attributes instead of hardcoding them.",
+                                file_path=file_path,
+                                line=line_num
+                            )
     
     def _find_wid_line_number(self, wid_value: str, pmd_model: PMDModel = None, pod_model: PodModel = None) -> int:
         """Find the line number where a WID value appears in the source content."""
