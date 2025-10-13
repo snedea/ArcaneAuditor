@@ -48,11 +48,17 @@ class UnusedVariableDetector(ScriptDetector):
                     if scope_type == 'global' and var_name in scope_analysis['global_used_vars']:
                         continue
                     
-                    # Create violation with function name context
+                    # Create violation with context information
                     if scope_type == 'function':
                         message = f"Unused variable '{var_name}' in function '{scope_name}'"
+                    elif scope_type == 'global':
+                        message = f"Unused variable '{var_name}' in global scope"
                     else:
-                        message = f"Unused variable '{var_name}' in {scope_type} scope"
+                        # For script scope, include the field context for better clarity
+                        if field_name and field_name != 'script':
+                            message = f"Unused variable '{var_name}' in {field_name}"
+                        else:
+                            message = f"Unused variable '{var_name}' in script scope"
                     
                     violations.append(Violation(
                         message=message,
@@ -87,10 +93,11 @@ class UnusedVariableDetector(ScriptDetector):
         """Find all scopes in the script."""
         scopes = []
         
-        # Global scope
-        if is_global_scope:
-            global_scope = self._analyze_scope(ast, 'global', 'global', global_functions)
-            scopes.append(global_scope)
+        # Always analyze the top-level scope (whether it's global script or onSend/onLoad/etc.)
+        # The is_global_scope parameter just determines the scope type name
+        scope_type = 'global' if is_global_scope else 'script'
+        top_level_scope = self._analyze_scope(ast, scope_type, scope_type, global_functions)
+        scopes.append(top_level_scope)
         
         # Function scopes - look for variable statements that contain function expressions
         for node in ast.find_data('variable_statement'):
