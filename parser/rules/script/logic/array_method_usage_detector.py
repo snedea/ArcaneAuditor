@@ -70,8 +70,8 @@ class ArrayMethodUsageDetector(ScriptDetector):
         init, condition, increment = loop_components
         
         # Check if it's a counter-based loop pattern:
-        # 1. Initializes a counter variable (let i = 0) OR initializes with array.length (let i = array.length - 1)
-        # 2. Compares counter to array length (i < array.length) OR compares to literal (i >= 0 for reverse)
+        # 1. Initializes a counter variable (let i = 0) OR initializes with array.length/size() (let i = array.size() - 1)
+        # 2. Compares counter to array length/size (i < array.length OR i < array.size()) OR compares to literal (i >= 0 for reverse)
         # 3. Increments/decrements counter (i++, i--, i += n, etc.)
         return (self._is_counter_initialization(init) and
                 (self._is_array_length_condition(condition) or self._is_array_length_initialization(init)) and
@@ -106,24 +106,36 @@ class ArrayMethodUsageDetector(ScriptDetector):
         }
 
     def _is_array_length_condition(self, condition_node) -> bool:
-        """Check if condition compares counter to array length."""
+        """Check if condition compares counter to array length or size."""
         if not isinstance(condition_node, Tree):
             return False
         
-        # Use efficient AST traversal to find length access
+        # Use efficient AST traversal to find .length or .size() access
         return self._has_length_access(condition_node)
 
     def _has_length_access(self, node: Tree) -> bool:
-        """Efficiently check if a node or its children access .length property."""
+        """Efficiently check if a node or its children access .length or .size() property."""
         if not isinstance(node, Tree):
             return False
         
-        # Direct length access
+        # Direct .length access
         if (node.data == 'member_dot_expression' and 
             len(node.children) >= 2 and 
             hasattr(node.children[1], 'value') and 
             node.children[1].value == 'length'):
             return True
+        
+        # Check for .size() method call (PMD Script uses this instead of .length)
+        if node.data == 'arguments_expression':
+            # Check if this is a call to .size()
+            if len(node.children) >= 1:
+                function_node = node.children[0]
+                if (isinstance(function_node, Tree) and 
+                    function_node.data == 'member_dot_expression' and
+                    len(function_node.children) >= 2 and
+                    hasattr(function_node.children[1], 'value') and
+                    function_node.children[1].value == 'size'):
+                    return True
         
         # Check children recursively
         for child in node.children:
@@ -133,7 +145,7 @@ class ArrayMethodUsageDetector(ScriptDetector):
         return False
 
     def _is_array_length_initialization(self, init_node) -> bool:
-        """Check if initialization involves array.length (e.g., let i = array.length - 1)."""
+        """Check if initialization involves array.length or .size() (e.g., let i = array.size() - 1)."""
         if not isinstance(init_node, Tree):
             return False
         

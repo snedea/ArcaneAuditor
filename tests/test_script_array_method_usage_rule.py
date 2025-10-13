@@ -160,6 +160,46 @@ class TestScriptArrayMethodUsageRule:
         detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 0
+    
+    def test_pmd_script_size_method_detection(self):
+        """Test detection of loops using .size() method (PMD Script)."""
+        script_content = """
+        for (let i = 0; i < items.size(); i++) {
+            result.push(items[i]);
+        }
+        """
+        ast = self.rule._parse_script_content(script_content, None)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
+        assert len(violations) == 1
+        assert "manual for loop" in violations[0].message
+    
+    def test_pmd_script_size_with_multiple_loops(self):
+        """Test detection of multiple loops using .size() method."""
+        script_content = """
+        for (let i = 0; i < foo.size(); i++) {
+            
+        }
+        for (let j = 0; j < bar.size(); j++) {
+            
+        }
+        """
+        ast = self.rule._parse_script_content(script_content, None)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
+        assert len(violations) == 2
+    
+    def test_numeric_literal_loop_not_flagged(self):
+        """Test that numeric literal loops (not iterating arrays) are not flagged."""
+        script_content = """
+        for (let i = 0; i < 10; i++) {
+            console.log(i);
+        }
+        """
+        ast = self.rule._parse_script_content(script_content, None)
+        detector = ArrayMethodUsageDetector("test.pmd", 1)
+        violations = list(detector.detect(ast, "test"))
+        assert len(violations) == 0  # No .length or .size() - just numeric literal
 
 
 class TestScriptArrayMethodUsageRuleIntegration:
