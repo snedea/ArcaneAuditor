@@ -32,9 +32,9 @@ class TestScriptArrayMethodUsageRule:
         assert len(violations) == 0
 
     def test_manual_for_loop_detection(self):
-        """Test detection of manual for loops."""
+        """Test detection of manual for loops using .size() (PMD Script)."""
         script_content = """
-        for (let i = 0; i < array.length; i++) {
+        for (let i = 0; i < array.size(); i++) {
             result.push(array[i]);
         }
         """
@@ -46,9 +46,9 @@ class TestScriptArrayMethodUsageRule:
         assert "functional method" in violations[0].message
 
     def test_for_let_statement_detection(self):
-        """Test detection of for let statements."""
+        """Test detection of for let statements using .size()."""
         script_content = """
-        for (let i = 0; i < items.length; i++) {
+        for (let i = 0; i < items.size(); i++) {
             console.log(items[i]);
         }
         """
@@ -59,9 +59,9 @@ class TestScriptArrayMethodUsageRule:
         assert "manual for loop" in violations[0].message
 
     def test_for_var_statement_detection(self):
-        """Test detection of for var statements."""
+        """Test detection of for var statements using .size()."""
         script_content = """
-        for (var i = 0; i < data.length; i++) {
+        for (var i = 0; i < data.size(); i++) {
             sum += data[i];
         }
         """
@@ -84,9 +84,9 @@ class TestScriptArrayMethodUsageRule:
         assert len(violations) == 0
 
     def test_functional_method_suggestion_map(self):
-        """Test suggestion of map() for array transformation."""
+        """Test suggestion of array methods for transformation."""
         script_content = """
-        for (let i = 0; i < array.length; i++) {
+        for (let i = 0; i < array.size(); i++) {
             result.push(array[i] * 2);
         }
         """
@@ -98,9 +98,9 @@ class TestScriptArrayMethodUsageRule:
         assert "map()" in violations[0].message or "functional methods" in violations[0].message
 
     def test_functional_method_suggestion_forEach(self):
-        """Test suggestion of forEach() for side effects."""
+        """Test suggestion of array methods for side effects."""
         script_content = """
-        for (let i = 0; i < items.length; i++) {
+        for (let i = 0; i < items.size(); i++) {
             console.info(items[i]);
         }
         """
@@ -115,7 +115,7 @@ class TestScriptArrayMethodUsageRule:
         """Test line number calculation."""
         script_content = """
         var x = 1;
-        for (let i = 0; i < array.length; i++) {
+        for (let i = 0; i < array.size(); i++) {
             result.push(array[i]);
         }
         """
@@ -127,7 +127,7 @@ class TestScriptArrayMethodUsageRule:
 
     def test_pmd_wrapper_stripping(self):
         """Test that PMD wrappers are stripped correctly and rule still applies."""
-        script_content = "<% for (let i = 0; i < items.length; i++) { result.push(items[i]); } %>"
+        script_content = "<% for (let i = 0; i < items.size(); i++) { result.push(items[i]); } %>"
         ast = self.rule._parse_script_content(script_content, None)
         detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
@@ -137,10 +137,10 @@ class TestScriptArrayMethodUsageRule:
     def test_multiple_manual_loops(self):
         """Test multiple manual for loops in the same script."""
         script_content = """
-        for (let i = 0; i < array1.length; i++) {
+        for (let i = 0; i < array1.size(); i++) {
             result1.push(array1[i]);
         }
-        for (let j = 0; j < array2.length; j++) {
+        for (let j = 0; j < array2.size(); j++) {
             result2.push(array2[j]);
         }
         """
