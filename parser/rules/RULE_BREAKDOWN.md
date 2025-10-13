@@ -233,6 +233,10 @@ Cyclomatic complexity measures the number of independent paths through your code
 - Functions with too many decision points (if/else, loops, ternary operators, etc.)
 - Complex functions that are hard to test and maintain
 - Functions that likely need to be broken down
+- Each top-level function is analyzed separately
+- For pure procedural scripts (no functions), the entire script block is analyzed
+
+> **🧙‍♂️ Wizard's Note:** This rule currently evaluates **either** individual functions **or** procedural script blocks, but not both mixed together. If your script has inline function declarations, only those functions are checked; the procedural code between functions is not separately analyzed for complexity. This may be changed in a future update, but carries a high level of complexity (ironic, yes!)
 
 **Example violations:**
 
