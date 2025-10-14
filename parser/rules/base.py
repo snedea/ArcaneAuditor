@@ -532,6 +532,9 @@ class Rule(ABC):
                 return self._script_ast_cache[cache_key]
         except Exception as e:
             print(f"Failed to parse script content: {e}")
+            # Add parsing error to context if available
+            if context is not None:
+                context.parsing_errors.append(f"Script parsing failed: {str(e)}")
             return None
     
     # Pod-specific utility methods

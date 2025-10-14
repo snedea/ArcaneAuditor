@@ -67,6 +67,7 @@ class ScriptRuleBase(Rule, ABC):
         # Parse the script content with context for caching
         ast = self._parse_script_content(script_content, context)
         if not ast:
+            # Parsing failed - error should already be logged to context by _parse_script_content
             return
         
         # Use detector to find violations

@@ -60,27 +60,29 @@ class PMDModel(BaseModel):
     # Private attribute to store hash-based line mappings (hash -> list of line ranges)
     _hash_to_lines: Optional[Dict[str, List[List[int]]]] = PrivateAttr(default=None)
 
-    def _parse_script(self, script_content: Optional[str]) -> Optional[Tree]:
+    def _parse_script(self, script_content: Optional[str], context: Optional['ProjectContext'] = None) -> Optional[Tree]:
         """A helper method to parse a script string using the custom Lark parser."""
         if not script_content or not script_content.strip():
             return None
         try:
             parser = get_pmd_script_parser()
             return parser.parse(script_content)
-        except Exception:
-            # Failed to parse, return None to signal an error
+        except Exception as e:
+            # Failed to parse, log the error if context is available
+            if context is not None:
+                context.parsing_errors.append(f"{self.file_path}: Script parsing failed - {str(e)}")
             return None
 
-    def get_onLoad_ast(self) -> Optional[Tree]:
+    def get_onLoad_ast(self, context: Optional['ProjectContext'] = None) -> Optional[Tree]:
         """Parses the onLoad script string and caches the result."""
         if self._onLoad_ast is None:
-            self._onLoad_ast = self._parse_script(self.onLoad)
+            self._onLoad_ast = self._parse_script(self.onLoad, context)
         return self._onLoad_ast
 
-    def get_script_ast(self) -> Optional[Tree]:
+    def get_script_ast(self, context: Optional['ProjectContext'] = None) -> Optional[Tree]:
         """Parses the page-level script string and caches the result."""
         if self._script_ast is None:
-            self._script_ast = self._parse_script(self.script)
+            self._script_ast = self._parse_script(self.script, context)
         return self._script_ast
     
     def set_line_mappings(self, line_mappings: Dict[str, List[int]]):
