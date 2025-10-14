@@ -6,7 +6,7 @@ Using a single template literal with embedded expressions is cleaner and more pe
 
 Example:
   Bad:  "My name is <% name %> and I like <% food %>"
-  Good: "<% `My name is {{{{name}}}} and I like {{{{food}}}}` %>"
+  Good: "<% `My name is {{name}} and I like {{food}}` %>"
 """
 import re
 from typing import Generator
@@ -85,17 +85,9 @@ class MultipleStringInterpolatorsRule(StructureRuleBase):
                 # Calculate line number
                 line_num = self.get_line_from_text_position(source_content, match.start())
                 
-                # Create suggestion
-                suggestion = self._create_template_literal_suggestion(string_value, interpolators)
-                
                 yield self._create_finding(
-                    message=f"String has {len(interpolators)} interpolators. Use a SINGLE interpolator with a template literal inside: {suggestion}",
+                    message=f"String has {len(interpolators)} interpolators. Use a SINGLE interpolator with template literals inside: <% `Use template literal with {{{{variable}}}}` %>",
                     file_path=file_path,
                     line=line_num
                 )
-    
-    def _create_template_literal_suggestion(self, original_string: str, interpolators: list) -> str:
-        """Create a suggestion showing template literal usage."""
-        # Simple example - show the concept
-        return "<% `Use template literal with {{{{variable}}}}` %>"
 
