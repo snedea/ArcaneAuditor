@@ -200,6 +200,8 @@ class ArrayMethodUsageDetector(ScriptDetector):
             return "forEach()"
         elif patterns['has_accumulation']:
             return "reduce()"
+        elif patterns['has_mutation']:
+            return "map()"
         
         return "functional methods like map(), filter(), or forEach()"
 
@@ -209,7 +211,8 @@ class ArrayMethodUsageDetector(ScriptDetector):
             'has_array_push': False,
             'has_conditional': False,
             'has_side_effects': False,
-            'has_accumulation': False
+            'has_accumulation': False,
+            'has_mutation': False
         }
         
         if not isinstance(loop_body, Tree):
@@ -233,7 +236,11 @@ class ArrayMethodUsageDetector(ScriptDetector):
         elif node.data == 'if_statement':
             patterns['has_conditional'] = True
         elif node.data == 'assignment_expression':
-            patterns['has_accumulation'] = True
+            # Distinguish between accumulation and mutation
+            if self._is_accumulation_assignment(node):
+                patterns['has_accumulation'] = True
+            elif self._is_mutation_assignment(node):
+                patterns['has_mutation'] = True
         
         # Traverse children
         for child in node.children:
@@ -263,5 +270,76 @@ class ArrayMethodUsageDetector(ScriptDetector):
             return (len(member_expr.children) >= 2 and 
                     hasattr(member_expr.children[1], 'value') and 
                     member_expr.children[1].value in ['debug', 'info', 'warn', 'error'])
+        
+        return False
+    
+    def _is_accumulation_assignment(self, assignment_node: Tree) -> bool:
+        """Check if assignment is accumulation (result += array[i] or result = result + array[i])."""
+        if not isinstance(assignment_node, Tree) or len(assignment_node.children) < 2:
+            return False
+        
+        # Check for compound assignment operators (+=, -=, *=, etc.)
+        if assignment_node.data == 'assignment_operator_expression':
+            return True
+        
+        # Check for regular assignment where right side contains the left variable
+        # e.g., result = result + array[i]
+        left_var = assignment_node.children[0]
+        right_expr = assignment_node.children[1]
+        
+        if not isinstance(left_var, Tree) or not isinstance(right_expr, Tree):
+            return False
+        
+        # Check if right expression contains the left variable (accumulation pattern)
+        return self._contains_variable_reference(right_expr, left_var)
+    
+    def _is_mutation_assignment(self, assignment_node: Tree) -> bool:
+        """Check if assignment is array mutation (array[i] = value)."""
+        if not isinstance(assignment_node, Tree) or len(assignment_node.children) < 2:
+            return False
+        
+        left_side = assignment_node.children[0]
+        
+        # Check if left side is array access (array[index])
+        return self._is_array_access(left_side)
+    
+    def _contains_variable_reference(self, node: Tree, target_var: Tree) -> bool:
+        """Check if node contains a reference to the target variable."""
+        if not isinstance(node, Tree):
+            return False
+        
+        # Check if this node is the same variable
+        if node.data == target_var.data:
+            # Compare variable names if available
+            if (len(node.children) > 0 and len(target_var.children) > 0 and
+                hasattr(node.children[0], 'value') and hasattr(target_var.children[0], 'value')):
+                return node.children[0].value == target_var.children[0].value
+        
+        # Check children recursively
+        for child in node.children:
+            if isinstance(child, Tree) and self._contains_variable_reference(child, target_var):
+                return True
+        
+        return False
+    
+    def _is_array_access(self, node: Tree) -> bool:
+        """Check if node represents array access (array[index])."""
+        if not isinstance(node, Tree):
+            return False
+        
+        # Check for bracket notation: array[index] (PMD Script uses member_index_expression)
+        if node.data in ['bracket_expression', 'member_index_expression']:
+            return True
+        
+        # Check for dot notation with numeric access (less common but possible)
+        if (node.data == 'member_dot_expression' and 
+            len(node.children) >= 2 and
+            hasattr(node.children[1], 'value')):
+            # Check if it's a numeric property (array.0, array.1, etc.)
+            try:
+                int(node.children[1].value)
+                return True
+            except ValueError:
+                pass
         
         return False
