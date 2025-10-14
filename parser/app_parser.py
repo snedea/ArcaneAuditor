@@ -15,6 +15,28 @@ class ModelParser:
     def __init__(self):
         self.supported_extensions = {'.pmd', '.script', '.amd', '.pod', '.smd'}
     
+    def _filter_commented_keys(self, data):
+        """
+        Recursively remove keys starting with underscore (commented out).
+        
+        In Extend, keys starting with underscore are considered commented out
+        and should be ignored by all rules and analysis.
+        
+        Args:
+            data: The data structure to filter (dict, list, or primitive)
+            
+        Returns:
+            Filtered data structure with underscore-prefixed keys removed
+        """
+        if isinstance(data, dict):
+            return {k: self._filter_commented_keys(v) 
+                    for k, v in data.items() 
+                    if not k.startswith('_')}
+        elif isinstance(data, list):
+            return [self._filter_commented_keys(item) for item in data]
+        else:
+            return data
+    
     def parse_files(self, source_files_map: Dict[str, Any]) -> ProjectContext:
         """
         Parse source files into a ProjectContext with populated models.
@@ -132,6 +154,8 @@ class ModelParser:
             # Try to parse as JSON
             try:
                 pmd_data = json.loads(processed_content)
+                # Filter out commented-out keys (starting with underscore)
+                pmd_data = self._filter_commented_keys(pmd_data)
 
                 # Extract presentation data - handle the nested structure properly
                 presentation_data = pmd_data.get('presentation', {})
@@ -206,6 +230,8 @@ class ModelParser:
             
             try:
                 amd_data = json.loads(content)
+                # Filter out commented-out keys (starting with underscore)
+                amd_data = self._filter_commented_keys(amd_data)
                 amd_model = AMDModel(
                     routes=amd_data.get('routes', {}),
                     baseUrls=amd_data.get('baseUrls', {}),
@@ -236,6 +262,8 @@ class ModelParser:
             
             try:
                 pod_data = json.loads(processed_content)
+                # Filter out commented-out keys (starting with underscore)
+                pod_data = self._filter_commented_keys(pod_data)
                 
                 # Extract seed data
                 seed_data = pod_data.get('seed', {})
@@ -275,6 +303,8 @@ class ModelParser:
             
             # Parse JSON content
             smd_data = json.loads(content)
+            # Filter out commented-out keys (starting with underscore)
+            smd_data = self._filter_commented_keys(smd_data)
             
             # Create SMD model
             smd_model = SMDModel(
