@@ -39,7 +39,7 @@ class DescriptiveParameterDetector(ScriptDetector):
             else:
                 message = f"Parameter '{violation['param_name']}' in {violation['method_name']}() should be more descriptive. "
             
-            message += f"Consider using '{violation['suggested_name']}' instead. Single-letter parameters make functions "
+            message += f"Consider using a more descriptive name, such as '{violation['suggested_name']}' instead. Single-letter parameters make functions "
             message += f"that take function parameters harder to read and debug."
             
             yield Violation(
