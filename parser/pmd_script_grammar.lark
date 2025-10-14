@@ -254,5 +254,5 @@ MINUS_ASSIGN: "-="
 ARROW: "=>"
 
 // Ignored tokens
-%ignore /(\/\*.*?\*\/|\/\/[^\r\n]*|[\t\u000B\u000C\u0020\u00A0]+|[\r\n\u2028\u2029])+/
+%ignore /(\/\*[\s\S]*?\*\/|\/\/[^\r\n]*|[\t\u000B\u000C\u0020\u00A0]+|[\r\n\u2028\u2029])+/
 
