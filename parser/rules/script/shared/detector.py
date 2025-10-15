@@ -37,8 +37,27 @@ class ScriptDetector(ABC):
     def get_line_number_from_token(self, token: Any) -> int:
         """Get line number from token with offset - more reliable than get_line_number()."""
         # First try direct token access (most reliable for Lark tokens)
-        relative_line = getattr(token, 'line', 1) or 1
-        return relative_line + self.line_offset - 1
+        if hasattr(token, 'line') and token.line is not None:
+            # For PMD script content, add 1 to account for the <% line
+            # The line_offset is where the script field starts, but the actual content starts on the next line
+            return token.line + self.line_offset
+        elif hasattr(token, 'children'):
+            # If token doesn't have line info, search children for line numbers
+            for child in token.children:
+                if hasattr(child, 'line') and child.line is not None:
+                    # For PMD script content, add 1 to account for the <% line
+                    # The line_offset is where the script field starts, but the actual content starts on the next line
+                    return child.line + self.line_offset
+                # Recursively search deeper if needed
+                if hasattr(child, 'children'):
+                    for grandchild in child.children:
+                        if hasattr(grandchild, 'line') and grandchild.line is not None:
+                            # For PMD script content, add 1 to account for the <% line
+                            # The line_offset is where the script field starts, but the actual content starts on the next line
+                            return grandchild.line + self.line_offset
+        
+        # Default to line 1 if no line info found
+        return self.line_offset
     
     def get_line_from_tree_node(self, node: Any) -> int:
         """Get line number from a Tree node by finding the first token with line info."""
