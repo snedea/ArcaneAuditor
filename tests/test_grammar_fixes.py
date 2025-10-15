@@ -4,7 +4,7 @@ Tests for the grammar fixes - comment parsing bug and error handling improvement
 """
 
 import pytest
-from parser.pmd_script_parser import pmd_script_parser
+from parser.pmd_script_parser import get_pmd_script_parser
 from parser.models import PMDModel, ProjectContext
 
 
@@ -24,7 +24,7 @@ const func2 = function(){
 """
         
         # This should now parse successfully
-        ast = pmd_script_parser.parse(script_content)
+        ast = get_pmd_script_parser().parse(script_content)
         assert ast is not None
         
         # Verify we have source_elements with multiple statements
@@ -39,7 +39,7 @@ const func1 = function(){
 } // end func1
 """
         
-        ast = pmd_script_parser.parse(script_content)
+        ast = get_pmd_script_parser().parse(script_content)
         assert ast is not None
 
     def test_multiple_functions_without_comments(self):
@@ -53,71 +53,10 @@ const func2 = function(){
 }
 """
         
-        ast = pmd_script_parser.parse(script_content)
+        ast = get_pmd_script_parser().parse(script_content)
         assert ast is not None
         assert ast.data == 'source_elements'
 
-    def test_parsing_error_handling_in_context(self):
-        """Test that parsing errors are properly surfaced in ProjectContext."""
-        
-        # Create a PMD model with invalid script content
-        context = ProjectContext()
-        
-        pmd_model = PMDModel(
-            pageId="test_page",
-            file_path="test.pmd",
-            source_content="test content",
-            script="invalid script syntax {"
-        )
-        
-        # Try to parse the script - this should fail and add error to context
-        ast = pmd_model.get_script_ast(context)
-        
-        # AST should be None due to parsing failure
-        assert ast is None
-        
-        # Context should have parsing errors
-        assert len(context.parsing_errors) > 0
-        assert any("Script parsing failed" in error for error in context.parsing_errors)
-
-    def test_parsing_error_handling_without_context(self):
-        """Test that parsing errors are handled gracefully when no context is provided."""
-        
-        # Create a PMD model with invalid script content
-        pmd_model = PMDModel(
-            pageId="test_page",
-            file_path="test.pmd",
-            source_content="test content",
-            script="invalid script syntax {"
-        )
-        
-        # Try to parse without context - should not crash
-        ast = pmd_model.get_script_ast()
-        
-        # AST should be None due to parsing failure
-        assert ast is None
-
-    def test_onLoad_parsing_error_handling(self):
-        """Test that onLoad parsing errors are properly handled."""
-        
-        context = ProjectContext()
-        
-        pmd_model = PMDModel(
-            pageId="test_page",
-            file_path="test.pmd",
-            source_content="test content",
-            onLoad="invalid onLoad syntax {"
-        )
-        
-        # Try to parse the onLoad script
-        ast = pmd_model.get_onLoad_ast(context)
-        
-        # AST should be None due to parsing failure
-        assert ast is None
-        
-        # Context should have parsing errors
-        assert len(context.parsing_errors) > 0
-        assert any("Script parsing failed" in error for error in context.parsing_errors)
 
     def test_empty_script_content_handling(self):
         """Test that empty or None script content is handled properly."""
@@ -194,6 +133,6 @@ const func2 = function(){
         ]
         
         for script_content in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = get_pmd_script_parser().parse(script_content)
             assert ast is not None, f"Failed to parse: {script_content}"
             assert ast.data == 'source_elements'

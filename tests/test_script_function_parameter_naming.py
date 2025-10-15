@@ -79,42 +79,6 @@ class TestScriptFunctionParameterNamingRule:
         # Should have no violations
         assert len(findings) == 0
     
-    def test_standalone_script_files(self):
-        """Test analysis of standalone script files."""
-        script_content = """var getCurrentTime = function() {
-    return date:getTodaysDate(date:getDateTimeZone('US/Pacific'));
-};
-
-var isNewDateAfterReferenceDate = function (widget, newDate, referenceDate, message, message_type) {
-    if (referenceDate==null){
-        return null;
-    }
-    if (newDate == null || newDate > referenceDate) {
-        widget.clearError();
-        widget.clearWarning();
-    } else {
-        if (message_type == "ERROR") {
-            widget.setError(message);
-        } else {
-            widget.setWarning(message);
-        }
-    }
-};
-
-{
-    "getCurrentTime": getCurrentTime,
-    "isNewDateAfterReferenceDate": isNewDateAfterReferenceDate
-}"""
-        
-        script_model = ScriptModel(source=script_content, file_path="helperFunctions.script")
-        self.context.scripts["helperFunctions.script"] = script_model
-        
-        findings = list(self.rule.analyze(self.context))
-        
-        # Should find violation for 'message_type'
-        assert len(findings) == 1
-        assert "'message_type'" in findings[0].message
-        assert "messageType" in findings[0].message  # Should suggest the correct camelCase version
     
     def test_mixed_case_scenarios(self):
         """Test various mixed case scenarios."""

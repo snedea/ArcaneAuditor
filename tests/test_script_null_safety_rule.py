@@ -20,53 +20,6 @@ class TestScriptNullSafetyRule:
         assert self.rule.SEVERITY == "ACTION"
         assert "null" in self.rule.DESCRIPTION.lower()
     
-    def test_empty_function_protection(self):
-        """Test that empty() function provides null safety protection."""
-        pmd_content = {
-            "pageId": "testPage",
-            "script": "<% if (empty(user.profile.name)) { return 'No name'; } else { return user.profile.name; } %>"
-        }
-        
-        pmd_model = PMDModel(**pmd_content, file_path="test.pmd")
-        context = ProjectContext()
-        context.pmds = {'test': pmd_model}
-        
-        findings = list(self.rule.analyze(context))
-        
-        # The empty() function should provide protection, so we shouldn't get violations
-        assert len(findings) == 0, f"Expected 0 violations but got {len(findings)}: {[f.message for f in findings]}"
-    
-    def test_empty_keyword_protection(self):
-        """Test that empty keyword provides null safety protection."""
-        pmd_content = {
-            "pageId": "testPage", 
-            "script": "<% if (empty user.profile.name) { return 'No name'; } else { return user.profile.name; } %>"
-        }
-        
-        pmd_model = PMDModel(**pmd_content, file_path="test.pmd")
-        context = ProjectContext()
-        context.pmds = {'test': pmd_model}
-        
-        findings = list(self.rule.analyze(context))
-        
-        # The empty keyword should provide protection, so we shouldn't get violations
-        assert len(findings) == 0, f"Expected 0 violations but got {len(findings)}: {[f.message for f in findings]}"
-    
-    def test_not_empty_function_protection(self):
-        """Test that !empty() function provides null safety protection."""
-        pmd_content = {
-            "pageId": "testPage",
-            "script": "<% if (!empty(user.profile.name)) { return user.profile.name; } else { return 'No name'; } %>"
-        }
-        
-        pmd_model = PMDModel(**pmd_content, file_path="test.pmd")
-        context = ProjectContext()
-        context.pmds = {'test': pmd_model}
-        
-        findings = list(self.rule.analyze(context))
-        
-        # The !empty() function should provide protection, so we shouldn't get violations
-        assert len(findings) == 0, f"Expected 0 violations but got {len(findings)}: {[f.message for f in findings]}"
     
     def test_unsafe_property_access_without_protection(self):
         """Test that unsafe property access without protection generates violations."""

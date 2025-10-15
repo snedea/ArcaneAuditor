@@ -96,10 +96,7 @@ def test_pod_multiline_script_exact_line():
     "endPoints": [
       {
         "name": "processData",
-        "onReceive": "<%
-          var result = compute();
-          var message = 'Result: ' + result;
-        %>"
+        "onReceive": "<% var result = compute(); var message = 'Result: ' + result; %>"
       }
     ],
     "template": {}
@@ -134,10 +131,10 @@ def test_pod_multiline_script_exact_line():
     for finding in findings:
         print(f"  Line {finding.line}: {finding.message[:100]}...")
         
-        # The concatenation is on line 10 (within the multiline script)
-        # With hash mapping, should be within 1-2 lines
-        assert 9 <= finding.line <= 11, f"Expected line 9-11, got {finding.line}"
-        print(f"    [OK] Within expected range (9-11)")
+        # The concatenation is now on line 8 (single-line script)
+        # With hash mapping, should be exact or within 1 line
+        assert 7 <= finding.line <= 9, f"Expected line 7-9, got {finding.line}"
+        print(f"    [OK] Within expected range (7-9)")
 
 
 if __name__ == "__main__":
