@@ -403,55 +403,9 @@ class ArcaneAuditorApp {
     }
 
     renderFilters() {
-        const filters = document.getElementById('filters');
-        const result = this.currentResult;
-        
-        if (result.findings.length === 0) {
-            filters.innerHTML = '';
-            return;
-        }
-
-        const severityCounts = this.getSeverityCounts(result.findings);
-        const fileTypeCounts = this.getFileTypeCounts(result.findings);
-
-        filters.innerHTML = `
-            <div class="filter-group">
-                <label for="severity-filter">Filter by severity:</label>
-                <select id="severity-filter" onchange="app.updateSeverityFilter(this.value)">
-                    <option value="all">All (${result.findings.length})</option>
-                    ${this.getOrderedSeverityEntries(severityCounts).map(([severity, count]) => `
-                        <option value="${severity}">${severity} (${count})</option>
-                    `).join('')}
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="file-type-filter">Filter by file type:</label>
-                <select id="file-type-filter" onchange="app.updateFileTypeFilter(this.value)">
-                    <option value="all">All File Types (${result.findings.length})</option>
-                    ${Object.entries(fileTypeCounts).map(([fileType, count]) => `
-                        <option value="${fileType}">${fileType} (${count})</option>
-                    `).join('')}
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="sort-by">Sort issues by:</label>
-                <select id="sort-by" onchange="app.updateSortBy(this.value)">
-                    <option value="severity">Severity</option>
-                    <option value="line">Line Number</option>
-                    <option value="rule">Rule ID</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="sort-files-by">Sort files by:</label>
-                <select id="sort-files-by" onchange="app.updateSortFilesBy(this.value)">
-                    <option value="alphabetical">Alphabetical</option>
-                    <option value="issue-count">Issue Count</option>
-                </select>
-            </div>
-        `;
+        // Filters are now rendered inline with findings, so this method is no longer needed
+        // The filters are rendered directly in renderFindings()
+        return;
     }
 
     renderFindings() {
@@ -470,10 +424,44 @@ class ArcaneAuditorApp {
         
         findings.innerHTML = `
             <div class="findings-header">
-                <h4>🔎 Issues Found (${this.filteredFindings.length})</h4>
-                <div class="findings-actions">
+                <div class="expand-collapse-buttons">
                     <button class="btn btn-secondary" onclick="app.expandAllFiles()">Expand All</button>
                     <button class="btn btn-secondary" onclick="app.collapseAllFiles()">Collapse All</button>
+                </div>
+                <div class="filters">
+                    <div class="filter-group">
+                        <div class="micro-label">Severity</div>
+                        <select id="severity-filter" onchange="app.updateSeverityFilter(this.value)">
+                            <option value="all">All (${this.currentResult.findings.length})</option>
+                            ${this.getOrderedSeverityEntries(this.getSeverityCounts(this.currentResult.findings)).map(([severity, count]) => `
+                                <option value="${severity}">${severity} (${count})</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <div class="micro-label">File Type</div>
+                        <select id="file-type-filter" onchange="app.updateFileTypeFilter(this.value)">
+                            <option value="all">All Types (${this.currentResult.findings.length})</option>
+                            ${Object.entries(this.getFileTypeCounts(this.currentResult.findings)).map(([fileType, count]) => `
+                                <option value="${fileType}">${fileType} (${count})</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <div class="micro-label">File Order</div>
+                        <select id="sort-files-by" onchange="app.updateSortFilesBy(this.value)">
+                            <option value="alphabetical">Files</option>
+                            <option value="issue-count">Issue Count</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <div class="micro-label">Issue Order</div>
+                        <select id="sort-by" onchange="app.updateSortBy(this.value)">
+                            <option value="severity">Issues</option>
+                            <option value="line">Line Number</option>
+                            <option value="rule">Rule ID</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             
