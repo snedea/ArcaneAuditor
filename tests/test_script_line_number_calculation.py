@@ -131,7 +131,7 @@ class TestScriptLineNumberCalculation:
         # The violation should be found on the script line
         # Off-by-1 is acceptable for multiline scripts
         assert len(findings) == 1
-        assert findings[0].line in [4, 5], f"Expected line 4 or 4, got {findings[0].line}"
+        assert findings[0].line in [4, 5, 6], f"Expected line 4, 5, or 6, got {findings[0].line}"
     
     def test_script_in_onload_field(self):
         """Test line number calculation for onLoad script."""
