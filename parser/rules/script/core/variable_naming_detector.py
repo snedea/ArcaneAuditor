@@ -21,9 +21,8 @@ class VariableNamingDetector(ScriptDetector):
         for var_name, var_info in declared_vars.items():
             is_valid, suggestion = self._validate_camel_case(var_name)
             if not is_valid:
-                # Get line number from the variable info and apply offset
-                relative_line = var_info.get('line', 1) or 1
-                line_number = self.line_offset + relative_line - 1
+                # Get line number using the proper method
+                line_number = var_info.get('line_number', self.line_offset)
                 
                 # Check if this variable is inside a function
                 variable_node = var_info.get('node')
@@ -46,20 +45,71 @@ class VariableNamingDetector(ScriptDetector):
         declared_vars = {}
         
         if hasattr(node, 'data'):
+            # Handle variable_declaration nodes (direct declarations)
             if node.data == 'variable_declaration':
                 if len(node.children) > 0 and hasattr(node.children[0], 'value'):
                     var_name = node.children[0].value
-                    # Get line number from the first token in the node
-                    line_number = None
-                    if hasattr(node, 'children') and len(node.children) > 0:
-                        for child in node.children:
-                            if hasattr(child, 'line') and child.line is not None:
-                                line_number = child.line
-                                break
+                    # Get line number using the proper method
+                    line_number = self.get_line_number_from_token(node.children[0])
                     
                     declared_vars[var_name] = {
-                        'line': line_number,
-                        'type': 'declaration'
+                        'line_number': line_number,
+                        'type': 'declaration',
+                        'node': node
+                    }
+            
+            # Handle variable_statement nodes (var/let/const declarations)
+            elif node.data == 'variable_statement':
+                # Get the variable declaration list (second child)
+                if len(node.children) > 1:
+                    var_declaration_list = node.children[1]
+                    if hasattr(var_declaration_list, 'data') and var_declaration_list.data == 'variable_declaration_list':
+                        # Process each variable declaration in the list
+                        for var_declaration in var_declaration_list.children:
+                            if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
+                                if len(var_declaration.children) > 0 and hasattr(var_declaration.children[0], 'value'):
+                                    var_name = var_declaration.children[0].value
+                                    # Get line number from the keyword token (first child of variable_statement)
+                                    line_number = self.get_line_number_from_token(node.children[0])
+                                    
+                                    declared_vars[var_name] = {
+                                        'line_number': line_number,
+                                        'type': 'declaration',
+                                        'node': var_declaration
+                                    }
+            
+            # Handle for loop variable declarations
+            elif node.data in ['for_var_statement', 'for_let_statement', 'for_const_statement']:
+                # Get the variable declaration list (second child)
+                if len(node.children) > 1:
+                    var_declaration_list = node.children[1]
+                    if hasattr(var_declaration_list, 'data') and var_declaration_list.data == 'variable_declaration_list':
+                        # Process each variable declaration in the list
+                        for var_declaration in var_declaration_list.children:
+                            if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
+                                if len(var_declaration.children) > 0 and hasattr(var_declaration.children[0], 'value'):
+                                    var_name = var_declaration.children[0].value
+                                    # Get line number from the keyword token (first child)
+                                    line_number = self.get_line_number_from_token(node.children[0])
+                                    
+                                    declared_vars[var_name] = {
+                                        'line_number': line_number,
+                                        'type': 'declaration',
+                                        'node': var_declaration
+                                    }
+            
+            # Handle for-in loop variable declarations
+            elif node.data in ['for_var_in_statement', 'for_let_in_statement', 'for_const_in_statement']:
+                # Get the variable name (second child)
+                if len(node.children) > 1 and hasattr(node.children[1], 'value'):
+                    var_name = node.children[1].value
+                    # Get line number from the keyword token (first child)
+                    line_number = self.get_line_number_from_token(node.children[0])
+                    
+                    declared_vars[var_name] = {
+                        'line_number': line_number,
+                        'type': 'declaration',
+                        'node': node.children[1]
                     }
         
         # Recursively check children
