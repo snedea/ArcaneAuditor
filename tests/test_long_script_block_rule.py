@@ -283,7 +283,7 @@ class TestScriptLongBlockRule:
                 "parameters": [],
                 "endPoints": [{
                     "name": "test-endpoint",
-                    "onReceive": long_script
+                    "onSend": long_script
                 }],
                 "template": {
                     "body": {
@@ -302,7 +302,7 @@ class TestScriptLongBlockRule:
         
         finding = findings[0]
         assert finding.rule == self.rule
-        assert "onReceive" in finding.message
+        assert "onSend" in finding.message
         assert "test.pod" in finding.file_path
 
     def test_script_without_template_syntax(self):

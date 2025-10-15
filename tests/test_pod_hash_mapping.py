@@ -15,7 +15,7 @@ def test_pod_single_line_script_exact_line():
     "endPoints": [
       {
         "name": "dataGET",
-        "onReceive": "<% self.data = '/api/' + 'endpoint'; %>"
+        "onSend": "<% self.data = '/api/' + 'endpoint'; %>"
       }
     ],
     "template": {
@@ -34,18 +34,18 @@ def test_pod_single_line_script_exact_line():
     
     # Extract endpoint script
     endpoint = pod_data['seed']['endPoints'][0]
-    endpoint_script = endpoint['onReceive']
+    endpoint_script = endpoint['onSend']
     
     # Check if it's in hash mapping
     import hashlib
     script_hash = hashlib.sha256(endpoint_script.encode('utf-8')).hexdigest()
     
-    print(f"\nEndpoint onReceive script:")
+    print(f"\nEndpoint onSend script:")
     print(f"  Hash: {script_hash[:16]}...")
     print(f"  In mapping: {script_hash in hash_to_lines}")
     if script_hash in hash_to_lines:
         print(f"  Lines: {hash_to_lines[script_hash]}")
-        expected = [[8]]  # Line 8 has the onReceive
+        expected = [[8]]  # Line 8 has the onSend
         if hash_to_lines[script_hash] == expected:
             print(f"  [PERFECT] Maps to line 8!")
     
@@ -75,9 +75,9 @@ def test_pod_single_line_script_exact_line():
         
         # Verify line numbers
         lines = source.split('\n')
-        if 'dataGET' in finding.message and 'onReceive' in finding.message:
-            assert finding.line == 9, f"Expected line 9 for endpoint onReceive, got {finding.line}"
-            print(f"    [OK] Endpoint onReceive on line 9 (EXACT)")
+        if 'dataGET' in finding.message and 'onSend' in finding.message:
+            assert finding.line == 9, f"Expected line 9 for endpoint onSend, got {finding.line}"
+            print(f"    [OK] Endpoint onSend on line 9 (EXACT)")
             print(f"       Line 9: {lines[8].strip()}")
         elif 'testButton' in finding.message and 'onClick' in finding.message:
             # Off by 1 is acceptable for complex nested structures
@@ -96,7 +96,7 @@ def test_pod_multiline_script_exact_line():
     "endPoints": [
       {
         "name": "processData",
-        "onReceive": "<% var result = compute(); var message = 'Result: ' + result; %>"
+        "onSend": "<% var result = compute(); var message = 'Result: ' + result; %>"
       }
     ],
     "template": {}
