@@ -18,8 +18,30 @@ class ArcaneAuditorApp {
         this.contextPanelExpanded = false; // Context panel starts collapsed
         
         this.initializeEventListeners();
+        this.loadFilterState();
         this.initializeTheme();
         this.loadConfigurations();
+    }
+
+    // Filter and sort persistence
+    loadFilterState() {
+        try {
+            const saved = localStorage.getItem('arcaneAuditorFilters');
+            if (saved) {
+                const filters = JSON.parse(saved);
+                this.currentFilters = { ...this.currentFilters, ...filters };
+            }
+        } catch (e) {
+            console.warn('Failed to load filter state:', e);
+        }
+    }
+
+    saveFilterState() {
+        try {
+            localStorage.setItem('arcaneAuditorFilters', JSON.stringify(this.currentFilters));
+        } catch (e) {
+            console.warn('Failed to save filter state:', e);
+        }
     }
 
     initializeTheme() {
@@ -100,7 +122,16 @@ class ArcaneAuditorApp {
             }
         });
 
-        // Render each group
+        // Sort each group to put selected config first
+        Object.keys(configGroups).forEach(groupName => {
+            configGroups[groupName].sort((a, b) => {
+                if (a.id === this.selectedConfig) return -1;
+                if (b.id === this.selectedConfig) return 1;
+                return 0;
+            });
+        });
+
+        // Render each group in original order
         Object.entries(configGroups).forEach(([groupName, configs]) => {
             if (configs.length === 0) return;
 
@@ -151,7 +182,45 @@ class ArcaneAuditorApp {
     selectConfiguration(configId) {
         this.selectedConfig = configId;
         this.saveSelectedConfig(configId);
-        this.renderConfigurations();
+        // Don't re-render configurations to avoid jumping behavior
+        // Just update the visual selection state
+        this.updateConfigSelection();
+    }
+
+    updateConfigSelection() {
+        // Update visual selection without re-rendering the entire grid
+        const configElements = document.querySelectorAll('.config-option');
+        configElements.forEach(element => {
+            element.classList.remove('selected');
+            // Remove any existing config-actions
+            const existingActions = element.querySelector('.config-actions');
+            if (existingActions) {
+                existingActions.remove();
+            }
+        });
+
+        // Find and select the clicked config
+        const selectedElement = Array.from(configElements).find(element => {
+            const configName = element.querySelector('.config-name').textContent;
+            const config = this.availableConfigs.find(c => c.name === configName);
+            return config && config.id === this.selectedConfig;
+        });
+
+        if (selectedElement) {
+            selectedElement.classList.add('selected');
+            // Add config actions to selected element
+            const config = this.availableConfigs.find(c => c.id === this.selectedConfig);
+            if (config) {
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'config-actions';
+                actionsDiv.innerHTML = `
+                    <button class="btn btn-secondary config-details-btn" onclick="showConfigBreakdown()">
+                        📋 View Details
+                    </button>
+                `;
+                selectedElement.appendChild(actionsDiv);
+            }
+        }
     }
 
     initializeEventListeners() {
@@ -432,34 +501,34 @@ class ArcaneAuditorApp {
                     <div class="filter-group">
                         <div class="micro-label">Severity</div>
                         <select id="severity-filter" onchange="app.updateSeverityFilter(this.value)">
-                            <option value="all">All (${this.currentResult.findings.length})</option>
+                            <option value="all" ${this.currentFilters.severity === 'all' ? 'selected' : ''}>All (${this.currentResult.findings.length})</option>
                             ${this.getOrderedSeverityEntries(this.getSeverityCounts(this.currentResult.findings)).map(([severity, count]) => `
-                                <option value="${severity}">${severity} (${count})</option>
+                                <option value="${severity}" ${this.currentFilters.severity === severity ? 'selected' : ''}>${severity} (${count})</option>
                             `).join('')}
                         </select>
                     </div>
                     <div class="filter-group">
                         <div class="micro-label">File Type</div>
                         <select id="file-type-filter" onchange="app.updateFileTypeFilter(this.value)">
-                            <option value="all">All Types (${this.currentResult.findings.length})</option>
+                            <option value="all" ${this.currentFilters.fileType === 'all' ? 'selected' : ''}>All Types (${this.currentResult.findings.length})</option>
                             ${Object.entries(this.getFileTypeCounts(this.currentResult.findings)).map(([fileType, count]) => `
-                                <option value="${fileType}">${fileType} (${count})</option>
+                                <option value="${fileType}" ${this.currentFilters.fileType === fileType ? 'selected' : ''}>${fileType} (${count})</option>
                             `).join('')}
                         </select>
                     </div>
                     <div class="filter-group">
                         <div class="micro-label">File Order</div>
                         <select id="sort-files-by" onchange="app.updateSortFilesBy(this.value)">
-                            <option value="alphabetical">Files</option>
-                            <option value="issue-count">Issue Count</option>
+                            <option value="alphabetical" ${this.currentFilters.sortFilesBy === 'alphabetical' ? 'selected' : ''}>Files</option>
+                            <option value="issue-count" ${this.currentFilters.sortFilesBy === 'issue-count' ? 'selected' : ''}>Issue Count</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <div class="micro-label">Issue Order</div>
                         <select id="sort-by" onchange="app.updateSortBy(this.value)">
-                            <option value="severity">Issues</option>
-                            <option value="line">Line Number</option>
-                            <option value="rule">Rule ID</option>
+                            <option value="severity" ${this.currentFilters.sortBy === 'severity' ? 'selected' : ''}>Issues</option>
+                            <option value="line" ${this.currentFilters.sortBy === 'line' ? 'selected' : ''}>Line Number</option>
+                            <option value="rule" ${this.currentFilters.sortBy === 'rule' ? 'selected' : ''}>Rule ID</option>
                         </select>
                     </div>
                 </div>
@@ -479,7 +548,6 @@ class ArcaneAuditorApp {
                                     📄
                                     <div class="file-info">
                                         <span class="file-name">${fileName}</span>
-                                        <span class="file-path">${filePath}</span>
                                     </div>
                                 </div>
                                 <div class="file-header-right">
@@ -489,11 +557,17 @@ class ArcaneAuditorApp {
                                         </div>
                                     ` : ''}
                                     <div class="severity-badges">
-                                        ${this.getOrderedSeverityEntries(severityCounts).map(([severity, count]) => `
-                                            <span class="severity-count-badge ${severity.toLowerCase()}">
-                                                ${count} ${severity.toLowerCase()}
-                                            </span>
-                                        `).join('')}
+                                        ${this.getOrderedSeverityEntries(severityCounts).map(([severity, count]) => {
+                                            // Only show severity badges when severity filter is 'all' or matches this severity
+                                            if (this.currentFilters.severity === 'all' || this.currentFilters.severity === severity) {
+                                                return `
+                                                    <span class="severity-count-badge ${severity.toLowerCase()}">
+                                                        ${count} ${severity.toLowerCase()}
+                                                    </span>
+                                                `;
+                                            }
+                                            return '';
+                                        }).join('')}
                                     </div>
                                 </div>
                             </div>
@@ -523,21 +597,25 @@ class ArcaneAuditorApp {
     // Filter and sort methods
     updateSeverityFilter(severity) {
         this.currentFilters.severity = severity;
+        this.saveFilterState();
         this.applyFilters();
     }
 
     updateFileTypeFilter(fileType) {
         this.currentFilters.fileType = fileType;
+        this.saveFilterState();
         this.applyFilters();
     }
 
     updateSortBy(sortBy) {
         this.currentFilters.sortBy = sortBy;
+        this.saveFilterState();
         this.renderFindings();
     }
 
     updateSortFilesBy(sortFilesBy) {
         this.currentFilters.sortFilesBy = sortFilesBy;
+        this.saveFilterState();
         this.renderFindings();
     }
 
@@ -1027,6 +1105,9 @@ class ArcaneAuditorApp {
         
         // Hide selected files list
         document.getElementById('selected-files-list').style.display = 'none';
+        
+        // Re-render configurations to ensure selected config appears at top
+        this.renderConfigurations();
     }
 }
 
