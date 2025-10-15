@@ -970,7 +970,7 @@ class ArcaneAuditorApp {
             html += `
                 <div class="context-files">
                     <h4>✅ Files Examined (${contextData.files_analyzed.length})</h4>
-                    <ul>
+                    <div class="context-files-list">
                         ${contextData.files_analyzed.map(file => {
                             // Remove job ID prefix if present (format: uuid_filename.ext)
                             const cleanFileName = file.replace(/^[a-f0-9-]+_/, '');
@@ -980,9 +980,27 @@ class ArcaneAuditorApp {
                                        extension === 'AMD' ? '🏗️' : 
                                        extension === 'POD' ? '🎨' : 
                                        extension === 'SCRIPT' ? '📜' : '📄';
-                            return `<li>${icon} ${cleanFileName}</li>`;
+                            return `
+                                <div class="context-file-item">
+                                    <span class="file-icon">${icon}</span>
+                                    <span class="file-name">${cleanFileName}</span>
+                                </div>
+                            `;
                         }).join('')}
-                    </ul>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Configuration used
+        if (this.currentResult && this.currentResult.config_name) {
+            html += `
+                <div class="context-config">
+                    <h4>⚙️ Configuration Used</h4>
+                    <div class="context-config-item">
+                        <span class="config-icon">🔧</span>
+                        <span class="config-name">${this.currentResult.config_name}</span>
+                    </div>
                 </div>
             `;
         }

@@ -319,7 +319,8 @@ def run_analysis_background(job: AnalysisJob):
                     "action": len([f for f in findings if f.severity == "ACTION"]),
                     "advice": len([f for f in findings if f.severity == "ADVICE"])
                 }
-            }
+            },
+            "config_name": job.config  # Add config name to result
         }
         
         # Add context awareness information if available
