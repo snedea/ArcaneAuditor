@@ -412,6 +412,20 @@ class ModelParser:
                         except Exception as e:
                             error_count += 1
         
+        # Pre-compute ASTs for standalone script files
+        for script_name, script_model in context.scripts.items():
+            if script_model.source and len(script_model.source.strip()) > 0:
+                try:
+                    # Check if AST is already cached
+                    cache_key = hash(script_model.source)
+                    if context.get_cached_ast(cache_key) is None:
+                        # Use _parse_script_content to handle any preprocessing needed
+                        ast = temp_rule._parse_script_content(script_model.source, context)
+                        context.set_cached_ast(cache_key, ast)
+                        ast_count += 1
+                except Exception as e:
+                    error_count += 1
+        
         print(f"Pre-computed {ast_count} ASTs (errors: {error_count})")
     
     def _initialize_analysis_context(self, context: ProjectContext, source_files_map: Dict[str, Any]):
