@@ -29,7 +29,7 @@
     },
     "ScriptConsoleLogRule": {
       "enabled": true,
-      "severity_override": "ACTION",
+      "severity_override": null,
       "custom_settings": {}
     },
     "ScriptVarUsageRule": {
@@ -39,7 +39,7 @@
     },
     "ScriptDeadCodeRule": {
       "enabled": true,
-      "severity_override": "ACTION",
+      "severity_override": null,
       "custom_settings": {}
     },
     "ScriptVariableNamingRule": {
