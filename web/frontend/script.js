@@ -1003,10 +1003,11 @@ class ArcaneAuditorApp {
         
         // Rules not invoked (magical terminology)
         if (contextData.impact) {
-            const hasImpact = (contextData.impact.rules_not_executed && contextData.impact.rules_not_executed.length > 0) ||
-                             (contextData.impact.rules_partially_executed && contextData.impact.rules_partially_executed.length > 0);
+            const hasNotExecuted = contextData.impact.rules_not_executed && contextData.impact.rules_not_executed.length > 0;
+            const hasPartiallyExecuted = contextData.impact.rules_partially_executed && contextData.impact.rules_partially_executed.length > 0;
             
-            if (hasImpact) {
+            // Rules Not Invoked section
+            if (hasNotExecuted) {
                 html += `
                     <div class="context-impact">
                         <h4>📜 Rules Not Invoked</h4>
@@ -1014,29 +1015,38 @@ class ArcaneAuditorApp {
                         <div class="context-impact-list">
                 `;
                 
-                // Rules not executed
-                if (contextData.impact.rules_not_executed && contextData.impact.rules_not_executed.length > 0) {
-                    contextData.impact.rules_not_executed.forEach(rule => {
-                        html += `
-                            <div class="context-impact-item">
-                                <strong>🚫 ${rule.rule}</strong>
-                                <span>Skipped — missing required ${rule.reason.toLowerCase().replace('requires ', '').replace(' file', '')} file.</span>
-                            </div>
-                        `;
-                    });
-                }
+                contextData.impact.rules_not_executed.forEach(rule => {
+                    html += `
+                        <div class="context-impact-item">
+                            <strong>🚫 ${rule.rule}</strong>
+                            <span>Skipped — missing required ${rule.reason.toLowerCase().replace('requires ', '').replace(' file', '')} file.</span>
+                        </div>
+                    `;
+                });
                 
-                // Rules partially executed
-                if (contextData.impact.rules_partially_executed && contextData.impact.rules_partially_executed.length > 0) {
-                    contextData.impact.rules_partially_executed.forEach(rule => {
-                        html += `
-                            <div class="context-impact-item">
-                                <strong>⚠️ ${rule.rule}</strong>
-                                <span>Skipped: ${rule.skipped_checks.join(', ')} — ${rule.reason.toLowerCase()}</span>
-                            </div>
-                        `;
-                    });
-                }
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Rules Partially Invoked section
+            if (hasPartiallyExecuted) {
+                html += `
+                    <div class="context-impact context-impact-partial">
+                        <h4>⚠️ Rules Partially Invoked</h4>
+                        <p class="context-impact-subtitle">Some validations were partially cast due to missing components.</p>
+                        <div class="context-impact-list">
+                `;
+                
+                contextData.impact.rules_partially_executed.forEach(rule => {
+                    html += `
+                        <div class="context-impact-item">
+                            <strong>⚠️ ${rule.rule}</strong>
+                            <span>Skipped: ${rule.skipped_checks.join(', ')} — ${rule.reason.toLowerCase()}</span>
+                        </div>
+                    `;
+                });
                 
                 html += `
                         </div>
