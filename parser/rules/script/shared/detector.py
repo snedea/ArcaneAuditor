@@ -40,14 +40,14 @@ class ScriptDetector(ABC):
         if hasattr(token, 'line') and token.line is not None:
             # For PMD script content, add 1 to account for the <% line
             # The line_offset is where the script field starts, but the actual content starts on the next line
-            return token.line + self.line_offset
+            return token.line + self.line_offset - 1
         elif hasattr(token, 'children'):
             # If token doesn't have line info, search children for line numbers
             for child in token.children:
                 if hasattr(child, 'line') and child.line is not None:
                     # For PMD script content, add 1 to account for the <% line
                     # The line_offset is where the script field starts, but the actual content starts on the next line
-                    return child.line + self.line_offset
+                    return child.line + self.line_offset - 1
                 # Recursively search deeper if needed
                 if hasattr(child, 'children'):
                     for grandchild in child.children:
@@ -65,7 +65,7 @@ class ScriptDetector(ABC):
             for child in node.children:
                 # Check if child has line info directly
                 if hasattr(child, 'line') and child.line is not None:
-                    return child.line + self.line_offset - 1
+                    return child.line + self.line_offset - 1 - 1
                 # If child is a Tree, recurse into it
                 elif hasattr(child, 'children') and len(child.children) > 0:
                     for grandchild in child.children:

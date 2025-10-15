@@ -225,6 +225,11 @@ class Rule(ABC):
                         ) if file_content else 1
                     
                     last_line_found = line_offset
+                    
+                    # Add 1 to line offset for all script fields to account for the <% line
+                    # The line_offset is where the script field starts, but the actual content starts on the next line
+                    line_offset += 1
+                    
                     script_fields.append((field_path, value, display_name, line_offset))
                 elif isinstance(value, dict):
                     new_prefix = f"{prefix}.{key}" if prefix else key
