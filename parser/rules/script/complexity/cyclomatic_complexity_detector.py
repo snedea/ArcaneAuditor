@@ -32,7 +32,13 @@ class CyclomaticComplexityDetector(ScriptDetector):
             complexity = complexity_info['complexity']
             if complexity > self.max_complexity:
                 line_number = self.line_offset + complexity_info.get('line', 1) - 1
-                message = f"Function '{func_name}' in '{field_name}' has complexity of {complexity} (max recommended: {self.max_complexity}). Consider refactoring."
+                
+                # Create appropriate message based on whether it's nested
+                if complexity_info.get('is_nested', False):
+                    parent_name = complexity_info.get('parent', 'unknown')
+                    message = f"Inline function '{func_name.split('.')[-1]}' inside '{parent_name}' in '{field_name}' has complexity of {complexity} (max recommended: {self.max_complexity}). Consider refactoring."
+                else:
+                    message = f"Function '{func_name}' in '{field_name}' has complexity of {complexity} (max recommended: {self.max_complexity}). Consider refactoring."
                 
                 yield Violation(
                     message=message,
@@ -56,11 +62,12 @@ class CyclomaticComplexityDetector(ScriptDetector):
         procedural_line = None
         
         # Use iterative traversal with a stack for better performance
-        stack = [(ast, False, None)]  # (node, is_inside_function, function_name)
+        # Stack format: (node, function_stack) where function_stack is a list of function names
+        stack = [(ast, [])]  # Start with empty function stack
         visited = set()
         
         while stack:
-            node, is_inside_function, function_name = stack.pop()
+            node, function_stack = stack.pop()
             
             # Skip if already visited (circular reference protection)
             node_id = id(node)
@@ -69,24 +76,44 @@ class CyclomaticComplexityDetector(ScriptDetector):
             visited.add(node_id)
             
             if hasattr(node, 'data'):
-                # Check if this is a function declaration
-                if node.data == 'variable_statement' and not is_inside_function:
+                # Check if this is a function declaration (variable_statement with function)
+                if node.data == 'variable_statement' and len(function_stack) < 2:
                     func_info = self._extract_function_info(node)
                     if func_info:
-                        functions[func_info['name']] = {
+                        # Create unique identifier for nested function
+                        if len(function_stack) == 0:
+                            func_name = func_info['name']
+                            is_nested = False
+                            parent_name = None
+                        else:
+                            parent_name = function_stack[-1]
+                            func_name = f"{parent_name}.{func_info['name']}"
+                            is_nested = True
+                        
+                        functions[func_name] = {
                             'complexity': 1,  # Base complexity
-                            'line': func_info['line']
+                            'line': func_info['line'],
+                            'is_nested': is_nested,
+                            'parent': parent_name
                         }
-                        # Add function body to stack
+                        # Add function body to stack with this function added to the stack
                         if func_info['body']:
-                            stack.append((func_info['body'], True, func_info['name']))
+                            new_stack = function_stack + [func_info['name']]
+                            stack.append((func_info['body'], new_stack))
                         continue
                 
                 # Count complexity-increasing constructs
                 if node.data in self.complexity_nodes:
-                    if is_inside_function and function_name:
-                        # Add to function complexity
-                        functions[function_name]['complexity'] += 1
+                    if len(function_stack) > 0:
+                        # Add to the current function's complexity (the last one in the stack)
+                        current_func = function_stack[-1]
+                        if len(function_stack) == 1:
+                            # Top-level function
+                            functions[current_func]['complexity'] += 1
+                        elif len(function_stack) == 2:
+                            # Nested function - use the full name
+                            nested_func_name = f"{function_stack[0]}.{function_stack[1]}"
+                            functions[nested_func_name]['complexity'] += 1
                     else:
                         # Add to procedural complexity
                         procedural_complexity += 1
@@ -98,7 +125,7 @@ class CyclomaticComplexityDetector(ScriptDetector):
                 # Add children in reverse order for forward processing
                 for child in reversed(node.children):
                     if hasattr(child, 'data') or hasattr(child, 'children'):
-                        stack.append((child, is_inside_function, function_name))
+                        stack.append((child, function_stack))
         
         return {
             'functions': functions,
