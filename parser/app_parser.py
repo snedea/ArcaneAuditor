@@ -384,9 +384,11 @@ class ModelParser:
                             parsed_script = temp_rule._strip_pmd_wrappers(field_value)
                             if parsed_script:
                                 # Check if AST is already cached
-                                if context.get_cached_ast(parsed_script) is None:
-                                    ast = parse_with_preprocessor(parsed_script)
-                                    context.set_cached_ast(parsed_script, ast)
+                                cache_key = hash(parsed_script)
+                                if context.get_cached_ast(cache_key) is None:
+                                    # Use _parse_script_content to handle string extraction properly
+                                    ast = temp_rule._parse_script_content(field_value, context)
+                                    context.set_cached_ast(cache_key, ast)
                                     ast_count += 1
                         except Exception as e:
                             error_count += 1
@@ -401,9 +403,11 @@ class ModelParser:
                             parsed_script = temp_rule._strip_pmd_wrappers(field_value)
                             if parsed_script:
                                 # Check if AST is already cached
-                                if context.get_cached_ast(parsed_script) is None:
-                                    ast = parse_with_preprocessor(parsed_script)
-                                    context.set_cached_ast(parsed_script, ast)
+                                cache_key = hash(parsed_script)
+                                if context.get_cached_ast(cache_key) is None:
+                                    # Use _parse_script_content to handle string extraction properly
+                                    ast = temp_rule._parse_script_content(field_value, context)
+                                    context.set_cached_ast(cache_key, ast)
                                     ast_count += 1
                         except Exception as e:
                             error_count += 1

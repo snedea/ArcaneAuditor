@@ -102,27 +102,42 @@ class Rule(ABC):
         Returns:
             Parsed AST or None if parsing failed
         """
+        # Strip PMD wrappers if present
+        content = self._strip_pmd_wrappers(script_content)
+        if not content:
+            return None
+        
+        # Use context-level caching if available
         if context is not None:
-            # Check if AST is already cached
-            cached_ast = context.get_cached_ast(script_content)
-            if cached_ast is not None:
+            cache_key = hash(content)
+            cached_ast = context.get_cached_ast(cache_key)
+            if cached_ast is None:
+                try:
+                    from ..pmd_script_parser import parse_with_preprocessor
+                    parsed_ast = parse_with_preprocessor(content)
+                    context.set_cached_ast(cache_key, parsed_ast)
+                    return parsed_ast
+                except Exception as e:
+                    print(f"Failed to parse script content: {e}")
+                    context.set_cached_ast(cache_key, None)
+                    return None
+            else:
                 return cached_ast
-            
-            # Parse and cache the AST
-            try:
-                from ..pmd_script_parser import parse_with_preprocessor
-                ast = parse_with_preprocessor(script_content)
-                context.set_cached_ast(script_content, ast)
-                return ast
-            except Exception:
-                return None
         else:
-            # Fallback to direct parsing without caching
-            try:
-                from ..pmd_script_parser import parse_with_preprocessor
-                return parse_with_preprocessor(script_content)
-            except Exception:
-                return None
+            # Fallback to per-rule caching for backward compatibility
+            cache_key = hash(content)
+            if not hasattr(self, '_script_ast_cache'):
+                self._script_ast_cache = {}
+            
+            if cache_key not in self._script_ast_cache:
+                try:
+                    from ..pmd_script_parser import parse_with_preprocessor
+                    self._script_ast_cache[cache_key] = parse_with_preprocessor(content)
+                except Exception as e:
+                    print(f"Failed to parse script content: {e}")
+                    self._script_ast_cache[cache_key] = None
+            
+            return self._script_ast_cache[cache_key]
     
     def _get_readable_identifier(self, item: Dict[str, Any], fallback_index: int) -> str:
         """
@@ -515,6 +530,28 @@ class Rule(ABC):
             content = self._strip_pmd_wrappers(script_content)
             if not content:
                 return None
+            
+            # Check if this looks like a string value that contains script blocks rather than actual script
+            # This happens when JSON string values like "template is <% foo %> and <% bar %>" are passed
+            stripped_content = script_content.strip()
+            if ('<%' in stripped_content and '%>' in stripped_content and 
+                not (stripped_content.startswith('<%') and stripped_content.endswith('%>'))):
+                # This is a string value containing script blocks - extract and parse the first one
+                # We parse the first script block we find, as that's typically what rules are looking for
+                import re
+                script_match = re.search(r'<%([^%]*(?:%[^>][^%]*)*)%>', stripped_content)
+                if script_match:
+                    # Extract the first script block content (without the <% %> tags)
+                    script_content = script_match.group(1)
+                    # Parse the extracted script content directly to avoid recursion
+                    from ..pmd_script_parser import parse_with_preprocessor
+                    try:
+                        return parse_with_preprocessor(script_content)
+                    except Exception:
+                        return None
+                else:
+                    # No valid script block found
+                    return None
             
             # Use context-level caching if available
             if context is not None:
