@@ -110,8 +110,8 @@ class Rule(ABC):
             
             # Parse and cache the AST
             try:
-                from ..pmd_script_parser import pmd_script_parser
-                ast = pmd_script_parser.parse(script_content)
+                from ..pmd_script_parser import parse_with_preprocessor
+                ast = parse_with_preprocessor(script_content)
                 context.set_cached_ast(script_content, ast)
                 return ast
             except Exception:
@@ -119,8 +119,8 @@ class Rule(ABC):
         else:
             # Fallback to direct parsing without caching
             try:
-                from ..pmd_script_parser import pmd_script_parser
-                return pmd_script_parser.parse(script_content)
+                from ..pmd_script_parser import parse_with_preprocessor
+                return parse_with_preprocessor(script_content)
             except Exception:
                 return None
     
@@ -526,8 +526,8 @@ class Rule(ABC):
                     self._script_ast_cache = {}
                 
                 if cache_key not in self._script_ast_cache:
-                    from ..pmd_script_parser import pmd_script_parser
-                    self._script_ast_cache[cache_key] = pmd_script_parser.parse(content)
+                    from ..pmd_script_parser import parse_with_preprocessor
+                    self._script_ast_cache[cache_key] = parse_with_preprocessor(content)
                 
                 return self._script_ast_cache[cache_key]
         except Exception as e:

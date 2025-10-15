@@ -13,8 +13,8 @@ def get_pmd_script_parser():
     """Lazily imports and returns the PMD Script parser to avoid circular imports."""
     global _pmd_script_parser
     if _pmd_script_parser is None:
-        from .pmd_script_parser import pmd_script_parser
-        _pmd_script_parser = pmd_script_parser
+        from .pmd_script_parser import parse_with_preprocessor
+        _pmd_script_parser = parse_with_preprocessor
     return _pmd_script_parser
 
 # -----------------------------------------------------------------------------
@@ -66,7 +66,7 @@ class PMDModel(BaseModel):
             return None
         try:
             parser = get_pmd_script_parser()
-            return parser.parse(script_content)
+            return parser(script_content)
         except Exception as e:
             # Failed to parse, log the error if context is available
             if context is not None:
