@@ -453,7 +453,7 @@ class ArcaneAuditorApp {
                 </div>
                 <div class="summary-item">
                     <div class="summary-number summary-number-purple">${result.summary?.rules_executed || 0}</div>
-                    <div class="summary-label">Rules Executed</div>
+                    <div class="summary-label">Rules Enabled</div>
                 </div>
                 <div class="summary-item magic-summary-card action">
                     <div class="count">${result.summary?.by_severity?.action || 0}</div>
