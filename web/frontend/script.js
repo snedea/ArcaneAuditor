@@ -74,8 +74,8 @@ class ArcaneAuditorApp {
     }
 
     getLastSelectedConfig() {
-        // Get the last selected config from localStorage, fallback to production-ready
-        return localStorage.getItem('arcane-auditor-selected-config') || 'production-ready';
+        // Get the last selected config from localStorage, no fallback
+        return localStorage.getItem('arcane-auditor-selected-config') || null;
     }
 
     saveSelectedConfig(configId) {
@@ -88,19 +88,17 @@ class ArcaneAuditorApp {
             const response = await fetch('/api/configs');
             const data = await response.json();
             this.availableConfigs = data.configs;
+            
+            // If no config is selected, select the first available one
+            if (!this.selectedConfig && this.availableConfigs.length > 0) {
+                this.selectedConfig = this.availableConfigs[0].id;
+                this.saveSelectedConfig(this.selectedConfig);
+            }
+            
             this.renderConfigurations();
         } catch (error) {
             console.error('Failed to load configurations:', error);
-            // Fallback to production-ready configuration
-            this.availableConfigs = [{
-                id: 'production-ready',
-                name: 'Production-Ready',
-                description: 'Pre-deployment validation with strict settings',
-                rules_count: 34,
-                performance: 'Thorough',
-                type: 'Built-in'
-            }];
-            this.renderConfigurations();
+            this.showError('Failed to load configurations. Please refresh the page.');
         }
     }
 
@@ -301,6 +299,12 @@ class ArcaneAuditorApp {
     }
 
     async uploadFile(file) {
+        // Validate configuration is selected
+        if (!this.selectedConfig) {
+            this.showError('Please select a configuration before uploading files.');
+            return;
+        }
+
         // Client-side file size validation
         const maxFileSize = 100 * 1024 * 1024; // 100MB
         if (file.size > maxFileSize) {
@@ -843,6 +847,12 @@ class ArcaneAuditorApp {
     async uploadSelectedFiles() {
         if (this.selectedFiles.length === 0) {
             this.showError('Please select at least one file');
+            return;
+        }
+        
+        // Validate configuration is selected
+        if (!this.selectedConfig) {
+            this.showError('Please select a configuration before uploading files.');
             return;
         }
         
