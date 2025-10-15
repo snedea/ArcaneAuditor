@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation, PodModel, PodSeed, SMDModel
-from .pmd_preprocessor import preprocess_pmd_content
+from .pmd_preprocessor import PMDPreprocessor
 
 
 class ModelParser:
@@ -144,12 +144,15 @@ class ModelParser:
     def _parse_pmd_file(self, file_path: str, source_file: Any, context: ProjectContext):
         """Parse a .pmd file into a PMDModel."""
         try:
-            # Preprocess the content to handle multi-line script sections
+            # Preprocess the content to handle multi-line script sections and newlines in PMD script blocks
             content = source_file.content.strip()
             path_obj = Path(file_path)
             
-            # Preprocess the PMD content
-            processed_content, line_mappings, hash_to_lines = preprocess_pmd_content(content)
+            # Use the preprocessor to handle newlines in PMD script blocks and brace disambiguation
+            preprocessor = PMDPreprocessor()
+            processed_content = preprocessor.preprocess(content)
+            line_mappings = {}
+            hash_to_lines = {}
             
             # Try to parse as JSON
             try:
@@ -359,7 +362,7 @@ class ModelParser:
     def _precompute_asts(self, context: ProjectContext):
         """Pre-compute ASTs for all script fields to avoid repeated parsing."""
         from .rules.base import Rule
-        from .pmd_script_parser import pmd_script_parser
+        from .pmd_script_parser import parse_with_preprocessor
         
         # Create a concrete rule instance to use its script field extraction methods
         class TempRule(Rule):
@@ -382,7 +385,7 @@ class ModelParser:
                             if parsed_script:
                                 # Check if AST is already cached
                                 if context.get_cached_ast(parsed_script) is None:
-                                    ast = pmd_script_parser.parse(parsed_script)
+                                    ast = parse_with_preprocessor(parsed_script)
                                     context.set_cached_ast(parsed_script, ast)
                                     ast_count += 1
                         except Exception as e:
@@ -399,7 +402,7 @@ class ModelParser:
                             if parsed_script:
                                 # Check if AST is already cached
                                 if context.get_cached_ast(parsed_script) is None:
-                                    ast = pmd_script_parser.parse(parsed_script)
+                                    ast = parse_with_preprocessor(parsed_script)
                                     context.set_cached_ast(parsed_script, ast)
                                     ast_count += 1
                         except Exception as e:
