@@ -182,6 +182,32 @@ class Rule(ABC):
         # Fallback: index
         return f"[{fallback_index}]"
     
+    def _is_multiline_script_block(self, script_value: str) -> bool:
+        """
+        Determine if a script block is multi-line (content starts on line after <%).
+        
+        Single-line: <% content %> - content starts on same line as <%
+        Multi-line: <% on one line, content on next line - content starts on line after <%
+        """
+        if not script_value.startswith('<%'):
+            return False
+        
+        # Find where the actual content starts after <%
+        idx_after_open = 2  # After '<%'
+        
+        # Skip whitespace and count newlines after <%
+        while idx_after_open < len(script_value):
+            if script_value[idx_after_open] == '\n':
+                # Found a newline after <% - this is a multi-line script
+                return True
+            elif script_value[idx_after_open] in ' \t\r':
+                idx_after_open += 1
+            else:
+                # Found first non-whitespace character on same line as <%
+                return False
+        
+        return False
+
     def _extract_script_fields(self, pmd_model: PMDModel) -> List[Tuple[str, str, str, int]]:
         """Internal method to extract script fields without caching."""
         script_fields = []
@@ -225,11 +251,6 @@ class Rule(ABC):
                         ) if file_content else 1
                     
                     last_line_found = line_offset
-                    
-                    # Add 1 to line offset for all script fields to account for the <% line
-                    # The line_offset is where the script field starts, but the actual content starts on the next line
-                    line_offset += 1
-                    
                     script_fields.append((field_path, value, display_name, line_offset))
                 elif isinstance(value, dict):
                     new_prefix = f"{prefix}.{key}" if prefix else key
@@ -312,6 +333,8 @@ class Rule(ABC):
             for i in range(0, len(lines)):  # Search from beginning
                 if script_content in lines[i] or escaped_content in lines[i]:
                     if matches_found == occurrence_index:
+                        # For single-line scripts, the exact match IS on the content line
+                        # Don't adjust - return i + 1 as-is
                         return i + 1
                     matches_found += 1
             
@@ -319,7 +342,11 @@ class Rule(ABC):
             # This is reliable for sequential processing
             for i in range(start_index, len(lines)):
                 if '<%' in lines[i]:
-                    return i + 1
+                    # Check if content starts on same line or next line
+                    if self._is_multiline_script_block(script_content):
+                        return i + 2  # Content starts on next line
+                    else:
+                        return i + 1  # Content starts on same line
         
         # Strategy 2: For multi-line scripts, search for distinctive content
         # Search for unique code patterns that would appear in the file
@@ -354,7 +381,11 @@ class Rule(ABC):
                                 if '<%' in lines[j]:
                                     # Verify this is likely the right <% by checking proximity
                                     if i - j < 25:  # Should be within 25 lines
-                                        return j + 1
+                                        # Found the <%, now determine where AST line 1 starts
+                                        if self._is_multiline_script_block(script_content):
+                                            return j + 2  # Multiline: return line after <%
+                                        else:
+                                            return j + 1  # Single-line: return line with <%
                             return i + 1
                     
                     # If not found forward, search from beginning (handles out-of-order presentation fields)
@@ -364,7 +395,11 @@ class Rule(ABC):
                             for j in range(i, max(0, i - 30), -1):  # Search backward from found line
                                 if '<%' in lines[j]:
                                     if i - j < 25:
-                                        return j + 1
+                                        # Found the <%, now determine where AST line 1 starts
+                                        if self._is_multiline_script_block(script_content):
+                                            return j + 2  # Multiline: return line after <%
+                                        else:
+                                            return j + 1  # Single-line: return line with <%
                             return i + 1
         
         # Strategy 3: Search for distinctive content from within the script

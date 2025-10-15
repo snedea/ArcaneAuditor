@@ -54,7 +54,7 @@ class ScriptDetector(ABC):
                         if hasattr(grandchild, 'line') and grandchild.line is not None:
                             # For PMD script content, add 1 to account for the <% line
                             # The line_offset is where the script field starts, but the actual content starts on the next line
-                            return grandchild.line + self.line_offset
+                            return grandchild.line + self.line_offset - 1
         
         # Default to line 1 if no line info found
         return self.line_offset
