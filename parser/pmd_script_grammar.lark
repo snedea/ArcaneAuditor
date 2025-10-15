@@ -67,16 +67,11 @@ _eos: eos
 
 ?elision: ","+
 
-// Unified rule to handle all curly brace expressions: objects, empty objects, and sets
-// This structure is unambiguous and resolves the conflict with block when using Earley parser
-?curly_literal: "{" "}" -> empty_set_literal
+// Sets use #{} syntax, objects use {:} or {key: value}
+?curly_literal: "#" "{" "}" -> empty_set_literal
+    | "#" "{" single_expression ("," single_expression)* ","? "}" -> set_literal
     | "{" ":" "}" -> empty_object_literal
-    | "{" single_expression _curly_tail
-
-_curly_tail: ":" single_expression ("," property_assignment)* ","? "}"
-    | ("," single_expression)* ","? "}"
-
-?property_name_and_value_list: property_assignment ("," property_assignment)*
+    | "{" property_assignment ("," property_assignment)* ","? "}" -> object_literal
 
 ?property_assignment: property_name ":" single_expression -> property_expression_assignment
     | "get" property_name "(" ")" "{" function_body "}" -> property_getter
@@ -228,6 +223,8 @@ DOT: "."
 OPTIONAL_DOT: "?."
 LBRACE: "{"
 RBRACE: "}"
+COMMA: ","
+HASH: "#"
 PLUS_PLUS: "++"
 MINUS_MINUS: "--"
 PLUS: "+"
