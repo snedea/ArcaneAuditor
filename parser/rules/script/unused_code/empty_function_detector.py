@@ -75,14 +75,15 @@ class EmptyFunctionDetector(ScriptDetector):
             return True
         
         # Check if body has any meaningful statements
+        # Use a negative approach: only consider it empty if ALL children are empty/meaningless
         for child in function_body.children:
             if hasattr(child, 'data'):
-                # If we find any statement that's not just whitespace, it's not empty
-                if child.data in ['statement', 'expression_statement', 'return_statement', 
-                                'if_statement', 'while_statement', 'for_statement',
-                                'assignment_expression', 'call_expression', 'identifier_expression',
-                                'literal_expression', 'binary_expression', 'unary_expression',
-                                'variable_statement', 'source_elements']:
-                    return False
+                # Skip only truly empty/meaningless node types
+                if child.data in ['empty_statement', 'eos', 'WS_INLINE', 'NEWLINE']:
+                    continue
+                
+                # If we find ANY other node type, the function is not empty
+                # This is more robust than maintaining a hardcoded list of "meaningful" types
+                return False
         
         return True
