@@ -18,30 +18,8 @@ class ArcaneAuditorApp {
         this.contextPanelExpanded = false; // Context panel starts collapsed
         
         this.initializeEventListeners();
-        this.loadFilterState();
         this.initializeTheme();
         this.loadConfigurations();
-    }
-
-    // Filter and sort persistence
-    loadFilterState() {
-        try {
-            const saved = localStorage.getItem('arcaneAuditorFilters');
-            if (saved) {
-                const filters = JSON.parse(saved);
-                this.currentFilters = { ...this.currentFilters, ...filters };
-            }
-        } catch (e) {
-            console.warn('Failed to load filter state:', e);
-        }
-    }
-
-    saveFilterState() {
-        try {
-            localStorage.setItem('arcaneAuditorFilters', JSON.stringify(this.currentFilters));
-        } catch (e) {
-            console.warn('Failed to save filter state:', e);
-        }
     }
 
     initializeTheme() {
@@ -505,19 +483,13 @@ class ArcaneAuditorApp {
                     <div class="filter-group">
                         <div class="micro-label">Severity</div>
                         <select id="severity-filter" onchange="app.updateSeverityFilter(this.value)">
-                            <option value="all" ${this.currentFilters.severity === 'all' ? 'selected' : ''}>All (${this.currentResult.findings.length})</option>
-                            ${this.getOrderedSeverityEntries(this.getSeverityCounts(this.currentResult.findings)).map(([severity, count]) => `
-                                <option value="${severity}" ${this.currentFilters.severity === severity ? 'selected' : ''}>${severity} (${count})</option>
-                            `).join('')}
+                            <!-- Options will be populated dynamically by updateFilterOptions() -->
                         </select>
                     </div>
                     <div class="filter-group">
                         <div class="micro-label">File Type</div>
                         <select id="file-type-filter" onchange="app.updateFileTypeFilter(this.value)">
-                            <option value="all" ${this.currentFilters.fileType === 'all' ? 'selected' : ''}>All Types (${this.currentResult.findings.length})</option>
-                            ${Object.entries(this.getFileTypeCounts(this.currentResult.findings)).map(([fileType, count]) => `
-                                <option value="${fileType}" ${this.currentFilters.fileType === fileType ? 'selected' : ''}>${fileType} (${count})</option>
-                            `).join('')}
+                            <!-- Options will be populated dynamically by updateFilterOptions() -->
                         </select>
                     </div>
                     <div class="filter-group">
@@ -596,31 +568,157 @@ class ArcaneAuditorApp {
                 }).join('')}
             </div>
         `;
+        
+        // Update filter options after HTML is rendered
+        this.updateFilterOptions();
     }
 
     // Filter and sort methods
     updateSeverityFilter(severity) {
         this.currentFilters.severity = severity;
-        this.saveFilterState();
+        this.updateFilterOptions();
         this.applyFilters();
     }
 
     updateFileTypeFilter(fileType) {
         this.currentFilters.fileType = fileType;
-        this.saveFilterState();
+        this.updateFilterOptions();
         this.applyFilters();
     }
 
     updateSortBy(sortBy) {
         this.currentFilters.sortBy = sortBy;
-        this.saveFilterState();
         this.renderFindings();
     }
 
     updateSortFilesBy(sortFilesBy) {
         this.currentFilters.sortFilesBy = sortFilesBy;
-        this.saveFilterState();
         this.renderFindings();
+    }
+
+    updateFilterOptions() {
+        // Get all available severities and file types from current findings
+        const availableSeverities = new Set(['all']);
+        const availableFileTypes = new Set(['all']);
+        
+        this.currentResult.findings.forEach(finding => {
+            availableSeverities.add(finding.severity);
+            availableFileTypes.add(this.getFileTypeFromPath(finding.file_path));
+        });
+
+        // Update severity filter options
+        const severitySelect = document.getElementById('severity-filter');
+        if (severitySelect) {
+            const currentSeverity = this.currentFilters.severity;
+            const currentFileType = this.currentFilters.fileType;
+            
+            // If file type is selected, only show severities that exist for that file type
+            let filteredSeverities = availableSeverities;
+            if (currentFileType !== 'all') {
+                filteredSeverities = new Set(['all']);
+                this.currentResult.findings.forEach(finding => {
+                    if (this.getFileTypeFromPath(finding.file_path) === currentFileType) {
+                        filteredSeverities.add(finding.severity);
+                    }
+                });
+            }
+            
+            // Update options
+            severitySelect.innerHTML = '';
+            
+            // Sort with 'all' first, then alphabetically
+            const sortedSeverities = Array.from(filteredSeverities).sort((a, b) => {
+                if (a === 'all') return -1;
+                if (b === 'all') return 1;
+                return a.localeCompare(b);
+            });
+            
+            sortedSeverities.forEach(severity => {
+                const option = document.createElement('option');
+                option.value = severity;
+                
+                // Calculate count for this severity
+                let count = 0;
+                if (severity === 'all') {
+                    count = this.currentResult.findings.length;
+                } else {
+                    count = this.currentResult.findings.filter(finding => {
+                        const severityMatch = finding.severity === severity;
+                        const fileTypeMatch = currentFileType === 'all' || this.getFileTypeFromPath(finding.file_path) === currentFileType;
+                        return severityMatch && fileTypeMatch;
+                    }).length;
+                }
+                
+                option.textContent = severity === 'all' ? `All Severities (${count})` : `${severity} (${count})`;
+                if (severity === currentSeverity) {
+                    option.selected = true;
+                }
+                severitySelect.appendChild(option);
+            });
+            
+            // If current severity is not available, reset to 'all'
+            if (!filteredSeverities.has(currentSeverity)) {
+                this.currentFilters.severity = 'all';
+                severitySelect.value = 'all';
+            }
+        }
+
+        // Update file type filter options
+        const fileTypeSelect = document.getElementById('file-type-filter');
+        if (fileTypeSelect) {
+            const currentFileType = this.currentFilters.fileType;
+            const currentSeverity = this.currentFilters.severity;
+            
+            // If severity is selected, only show file types that have that severity
+            let filteredFileTypes = availableFileTypes;
+            if (currentSeverity !== 'all') {
+                filteredFileTypes = new Set(['all']);
+                this.currentResult.findings.forEach(finding => {
+                    if (finding.severity === currentSeverity) {
+                        filteredFileTypes.add(this.getFileTypeFromPath(finding.file_path));
+                    }
+                });
+            }
+            
+            // Update options
+            fileTypeSelect.innerHTML = '';
+            
+            // Sort with 'all' first, then alphabetically
+            const sortedFileTypes = Array.from(filteredFileTypes).sort((a, b) => {
+                if (a === 'all') return -1;
+                if (b === 'all') return 1;
+                return a.localeCompare(b);
+            });
+            
+            sortedFileTypes.forEach(fileType => {
+                const option = document.createElement('option');
+                option.value = fileType;
+                
+                // Calculate count for this file type
+                let count = 0;
+                if (fileType === 'all') {
+                    count = this.currentResult.findings.length;
+                } else {
+                    count = this.currentResult.findings.filter(finding => {
+                        const fileTypeMatch = this.getFileTypeFromPath(finding.file_path) === fileType;
+                        const severityMatch = currentSeverity === 'all' || finding.severity === currentSeverity;
+                        return fileTypeMatch && severityMatch;
+                    }).length;
+                }
+                
+                option.textContent = fileType === 'all' ? `All File Types (${count})` : `${fileType} (${count})`;
+                if (fileType === currentFileType) {
+                    option.selected = true;
+                }
+                fileTypeSelect.appendChild(option);
+            });
+            
+            // If current file type is not available, reset to 'all'
+            if (!filteredFileTypes.has(currentFileType)) {
+                this.currentFilters.fileType = 'all';
+                fileTypeSelect.value = 'all';
+            }
+        }
     }
 
     applyFilters() {
