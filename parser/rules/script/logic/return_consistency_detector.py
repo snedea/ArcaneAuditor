@@ -16,13 +16,15 @@ class ReturnAnalysis:
         all_paths_return: bool = False, 
         is_inconsistent: bool = False, 
         node_type: str = "unknown", 
-        violations: Optional[List[Violation]] = None
+        violations: Optional[List[Violation]] = None,
+        has_unreachable_code: bool = False  # Track if we found unreachable returns
     ):
         self.has_return = has_return
         self.all_paths_return = all_paths_return
         self.is_inconsistent = is_inconsistent
         self.node_type = node_type
         self.violations = violations or []
+        self.has_unreachable_code = has_unreachable_code
     
     def __repr__(self):
         violation_preview = ""
@@ -100,7 +102,8 @@ class ReturnConsistencyVisitor:
                 all_paths_return=analysis.all_paths_return,
                 is_inconsistent=analysis.is_inconsistent,
                 node_type="function_definition",
-                violations=analysis.violations
+                violations=analysis.violations,
+                has_unreachable_code=analysis.has_unreachable_code
             )
         else:
             result = ReturnAnalysis(node_type="function_definition")
@@ -198,22 +201,36 @@ class ReturnConsistencyVisitor:
         # Analyze all else blocks
         else_analyses = [self.visit(block) for block in else_info['blocks']]
         
-        # Check for inconsistencies
+        # Check for inconsistencies or unreachable code in branches
         if if_analysis.is_inconsistent or any(ea.is_inconsistent for ea in else_analyses):
             return ReturnAnalysis(is_inconsistent=True, node_type="if_else")
+        
+        # Propagate unreachable code flag from children
+        has_unreachable = if_analysis.has_unreachable_code or any(ea.has_unreachable_code for ea in else_analyses)
         
         # Calculate return characteristics
         all_else_return = any(ea.has_return for ea in else_analyses)
         all_paths_return = False
+        is_inconsistent = False
         
         if else_info['has_final_else'] and else_analyses:
             final_else = else_analyses[-1]
             all_paths_return = if_analysis.has_return and final_else.has_return
+            
+            # NEW: Check for inconsistency - if ANY branch returns but not ALL branches return
+            # This catches: if{return} else-if{return} else{NO return}
+            if if_analysis.has_return or final_else.has_return:
+                # At least one branch returns
+                if not (if_analysis.has_return and final_else.has_return):
+                    # But not ALL branches return - inconsistent!
+                    is_inconsistent = True
         
         return ReturnAnalysis(
             has_return=if_analysis.has_return or all_else_return,
             all_paths_return=all_paths_return,
-            node_type="if_else"
+            is_inconsistent=is_inconsistent,
+            node_type="if_else",
+            has_unreachable_code=has_unreachable
         )
     
     def _handle_if_only(self, if_analysis: ReturnAnalysis) -> ReturnAnalysis:
@@ -260,25 +277,27 @@ class ReturnConsistencyVisitor:
             'has_early_return_pattern': False,
             'has_final_return': False,
             'last_return_index': -1,
-            'has_if_else_all_paths_return': False
+            'has_if_else_all_paths_return': False,
+            'has_unreachable_code': False  # Track unreachable returns specifically
         }
         
         # First pass: analyze all children
         for i, child in enumerate(node.children):
             self._process_child(child, i, state)
         
-        # Second pass: check for unreachable code
-        self._check_unreachable_returns(node, state)
-        
-        # Determine if all paths return
+        # Determine if all paths return (this also sets has_unreachable_code if needed)
         all_paths_return = self._determine_all_paths_return(node, state)
+        
+        # Second pass: check for unreachable code (old logic, keep for other patterns)
+        self._check_unreachable_returns(node, state)
         
         return ReturnAnalysis(
             has_return=state['has_any_return'],
             all_paths_return=all_paths_return,
             is_inconsistent=state['has_inconsistency'],
             node_type="children",
-            violations=state['all_violations']
+            violations=state['all_violations'],
+            has_unreachable_code=state.get('has_unreachable_code', False)  # Pass through unreachable flag
         )
     
     def _process_child(self, child: Any, index: int, state: Dict):
@@ -299,7 +318,9 @@ class ReturnConsistencyVisitor:
             child_analysis.has_return and not child_analysis.is_inconsistent):
             state['has_early_return_pattern'] = True
             
-            if child_analysis.all_paths_return:
+            # IMPORTANT: Only flag as "all paths return" if this is an if-else with a FINAL else
+            # Don't flag standalone if statements or if-else-if without a final else
+            if child_analysis.all_paths_return and child_analysis.node_type == 'if_else':
                 state['has_if_else_all_paths_return'] = True
         
         if not child_analysis.all_paths_return:
@@ -321,6 +342,7 @@ class ReturnConsistencyVisitor:
         # Check if there are returns after it
         if last_if_else_index >= 0 and state['last_return_index'] > last_if_else_index:
             state['has_inconsistency'] = True
+            state['has_unreachable_code'] = True  # Mark that we found unreachable code
     
     def _determine_all_paths_return(self, node: Any, state: Dict) -> bool:
         """Determine if all paths through this node return."""
@@ -336,6 +358,29 @@ class ReturnConsistencyVisitor:
         # Early return pattern + final return = all paths return
         if state['has_early_return_pattern'] and state['has_final_return']:
             return True
+        
+        # CRITICAL: Check if we have an if-else that returns on all paths
+        # If so, check if there's ANY code after it (including returns)
+        if state['has_if_else_all_paths_return']:
+            # Find the if-else statement that returns on all paths
+            for i, child in enumerate(node.children):
+                if hasattr(child, 'data') and child.data == 'if_statement':
+                    child_analysis = self.visit(child)
+                    if child_analysis.all_paths_return:
+                        # Check if there's ANY non-empty statement after this if-else
+                        for j in range(i + 1, len(node.children)):
+                            next_child = node.children[j]
+                            # If we find a return statement after an if-else that covers all paths,
+                            # that return is unreachable
+                            if hasattr(next_child, 'data'):
+                                if next_child.data == 'return_statement':
+                                    state['has_unreachable_code'] = True
+                                    state['has_inconsistency'] = True
+                                    break
+                                elif next_child.data not in ['empty_statement', 'eos']:
+                                    # Found other non-empty code after complete if-else
+                                    break
+                        break
         
         return state['all_children_return'] and len(node.children) > 0
     
@@ -382,18 +427,29 @@ class ReturnConsistencyDetector(ScriptDetector):
         # Apply policy decisions
         function_name = self.get_function_context_for_node(node, full_ast)
         
-        if analysis.is_inconsistent:
+        # IMPORTANT: Check for unreachable code FIRST, even if is_inconsistent is True
+        # Unreachable code is a subset of inconsistent, but needs a better message
+        if analysis.has_unreachable_code:
+            violations.append(self._create_violation(
+                function_name,
+                "has unreachable return statement - the if-else block above returns on all paths, making code after it unreachable. Remove the unreachable return statement",
+                node
+            ))
+        # Only check is_inconsistent if we haven't already flagged unreachable code
+        elif analysis.is_inconsistent:
             violations.append(self._create_violation(
                 function_name,
                 "has inconsistent return pattern - some paths return values, others don't",
                 node
             ))
+        # Check if the function has control flow with mixed returns
         elif (analysis.has_return and 
               not analysis.all_paths_return and 
               has_control_flow_structures(node)):
+            # If the analysis found returns and not all paths return, flag it
             violations.append(self._create_violation(
                 function_name,
-                "has some return statements but not all code paths return - consider adding else branches",
+                "has some return statements but not all code paths return - consider adding else branches or a final return statement",
                 node
             ))
     
