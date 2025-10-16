@@ -144,22 +144,19 @@ class ReturnConsistencyVisitor:
         
         if_analysis = self.visit(if_block)
         
-        # Check for else/else-if blocks - find all statement_list and if_statement nodes after the if block
+        # Check for else/else-if blocks
+        # AST structure: [Token(if), expression, if_block, Token(else), else_block]
         has_else = False
+        has_final_else = False
         else_blocks = []
-        statement_list_count = 0
         
-        for i, child in enumerate(node.children):
-            if hasattr(child, 'data'):
-                if child.data == 'statement_list':
-                    statement_list_count += 1
-                    if statement_list_count > 1:  # All statement_list after the first are else blocks
-                        has_else = True
-                        else_blocks.append(child)
-                elif child.data == 'if_statement':
-                    # This is an else-if block
-                    has_else = True
-                    else_blocks.append(child)
+        if len(node.children) >= 5:
+            # Check if we have an else block (child[4])
+            else_block = node.children[4]
+            if hasattr(else_block, 'data') and else_block.data in ['statement_list', 'block']:
+                has_else = True
+                else_blocks.append(else_block)
+                has_final_else = True
         
         if has_else:
             # Analyze all else/else-if blocks
@@ -183,8 +180,14 @@ class ReturnConsistencyVisitor:
             
             # For if-else statements, we don't flag mixed return patterns as inconsistent
             # The parent context will determine if there are unreachable returns
-            # If all branches return, then all paths return
-            all_paths_return = if_analysis.has_return and all_else_return
+            # Only consider "all paths return" if there's a final else block that returns
+            all_paths_return = False
+            if has_final_else:
+                # Check if the final else block returns
+                final_else_analysis = else_analyses[-1] if else_analyses else None
+                if final_else_analysis and final_else_analysis.has_return:
+                    all_paths_return = if_analysis.has_return and all_else_return
+            
             result = ReturnAnalysis(
                 has_return=if_analysis.has_return or all_else_return,
                 all_paths_return=all_paths_return,
