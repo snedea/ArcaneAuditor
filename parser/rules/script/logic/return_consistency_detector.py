@@ -144,25 +144,53 @@ class ReturnConsistencyVisitor:
         
         if_analysis = self.visit(if_block)
         
-        # Check for else block (would be after the statement_list)
-        has_else = len(node.children) > 3
+        # Check for else/else-if blocks - find all statement_list and if_statement nodes after the if block
+        has_else = False
+        else_blocks = []
+        statement_list_count = 0
+        
+        for i, child in enumerate(node.children):
+            if hasattr(child, 'data'):
+                if child.data == 'statement_list':
+                    statement_list_count += 1
+                    if statement_list_count > 1:  # All statement_list after the first are else blocks
+                        has_else = True
+                        else_blocks.append(child)
+                elif child.data == 'if_statement':
+                    # This is an else-if block
+                    has_else = True
+                    else_blocks.append(child)
+        
         if has_else:
-            else_block = node.children[3]  # else block would be at index 3
-            else_analysis = self.visit(else_block)
+            # Analyze all else/else-if blocks
+            else_analyses = []
+            all_else_return = False
+            all_else_paths_return = True
             
-            # Both branches must be consistent
-            if if_analysis.is_inconsistent or else_analysis.is_inconsistent:
+            for else_block in else_blocks:
+                else_analysis = self.visit(else_block)
+                else_analyses.append(else_analysis)
+                all_else_return = all_else_return or else_analysis.has_return
+                all_else_paths_return = all_else_paths_return and else_analysis.all_paths_return
+            
+            # Check for inconsistencies in any branch
+            if if_analysis.is_inconsistent:
                 return ReturnAnalysis(is_inconsistent=True, node_type="if_else")
             
-            # Check for mixed return patterns
-            if if_analysis.has_return != else_analysis.has_return:
-                return ReturnAnalysis(is_inconsistent=True, node_type="if_else")
+            for else_analysis in else_analyses:
+                if else_analysis.is_inconsistent:
+                    return ReturnAnalysis(is_inconsistent=True, node_type="if_else")
             
-            return ReturnAnalysis(
-                has_return=if_analysis.has_return or else_analysis.has_return,
-                all_paths_return=if_analysis.all_paths_return and else_analysis.all_paths_return,
+            # For if-else statements, we don't flag mixed return patterns as inconsistent
+            # The parent context will determine if there are unreachable returns
+            # If all branches return, then all paths return
+            all_paths_return = if_analysis.has_return and all_else_return
+            result = ReturnAnalysis(
+                has_return=if_analysis.has_return or all_else_return,
+                all_paths_return=all_paths_return,
                 node_type="if_else"
             )
+            return result
         else:
             # No else block - the if statement itself doesn't guarantee all paths return
             # But it does return if the if block returns
@@ -208,6 +236,10 @@ class ReturnConsistencyVisitor:
         # Track if we have an early return pattern (if statement with return + final return)
         has_early_return_pattern = False
         has_final_return = False
+        last_return_index = -1
+        
+        # Track if we have an if-else that returns on all paths (for unreachable return detection)
+        has_if_else_all_paths_return = False
         
         for i, child in enumerate(node.children):
             child_analysis = self.visit(child)
@@ -220,27 +252,54 @@ class ReturnConsistencyVisitor:
             
             if child_analysis.has_return:
                 has_any_return = True
-                
-                # Check if this is a final return (last statement)
-                if i == len(node.children) - 1:
-                    has_final_return = True
+                last_return_index = i
             
             # Check for early return pattern: if statement with return followed by final return
             if (hasattr(child, 'data') and child.data == 'if_statement' and 
                 child_analysis.has_return and not child_analysis.is_inconsistent):
                 has_early_return_pattern = True
+                
+                # Check if this is an if-else that returns on all paths
+                if child_analysis.all_paths_return:
+                    has_if_else_all_paths_return = True
             
-            # Only set all_children_return to False if this child doesn't return AND
-            # it's not part of an early return + final return pattern
+            # Track if this child doesn't return on all paths
             if not child_analysis.all_paths_return:
-                # If this is an if statement that returns, don't mark as inconsistent yet
-                # We'll check if there's a final return after it
-                if not (hasattr(child, 'data') and child.data == 'if_statement' and child_analysis.has_return):
-                    all_children_return = False
+                all_children_return = False
+        
+        # Check if the last return statement is at the end (or near the end, ignoring empty statements)
+        if last_return_index >= 0:
+            # Check if there are only empty statements after the last return
+            has_only_empty_after_return = True
+            for i in range(last_return_index + 1, len(node.children)):
+                child = node.children[i]
+                if hasattr(child, 'data') and child.data not in ['empty_statement', 'eos']:
+                    has_only_empty_after_return = False
+                    break
+            
+            if has_only_empty_after_return:
+                has_final_return = True
         
         # If we have early return pattern + final return, all paths do return
         if has_early_return_pattern and has_final_return:
             all_children_return = True
+        
+        
+        # Check for unreachable returns: if-else returns on all paths but there are returns after it
+        if has_if_else_all_paths_return and last_return_index >= 0:
+            # Find the last if-else that returns on all paths
+            last_if_else_all_paths_index = -1
+            for i, child in enumerate(node.children):
+                if (hasattr(child, 'data') and child.data == 'if_statement'):
+                    child_analysis = self.visit(child)
+                    if child_analysis.all_paths_return:
+                        last_if_else_all_paths_index = i
+            
+            # If there are return statements after the last if-else that returns on all paths,
+            # those returns are unreachable
+            if last_if_else_all_paths_index >= 0 and last_return_index > last_if_else_all_paths_index:
+                has_inconsistency = True
+        
         
         return ReturnAnalysis(
             has_return=has_any_return,
