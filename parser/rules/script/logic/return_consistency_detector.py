@@ -36,7 +36,7 @@ class ReturnConsistencyVisitor:
         # Method dispatch map for micro-optimization
         self.visit_methods = {
             'function_expression': self.visit_function_expression,
-            'block_statement': self.visit_block_statement,
+            'statement_list': self.visit_statement_list,
             'return_statement': self.visit_return_statement,
             'if_statement': self.visit_if_statement,
             'while_statement': self.visit_while_statement,
@@ -113,8 +113,8 @@ class ReturnConsistencyVisitor:
         # For unknown nodes, analyze children
         return self.analyze_children(node)
     
-    def visit_block_statement(self, node: Any) -> ReturnAnalysis:
-        """Analyze block statements (function bodies, if blocks, etc.)."""
+    def visit_statement_list(self, node: Any) -> ReturnAnalysis:
+        """Analyze statement lists (if blocks, function bodies, etc.)."""
         return self.analyze_children(node)
     
     def visit_return_statement(self, node: Any) -> ReturnAnalysis:
@@ -126,14 +126,28 @@ class ReturnConsistencyVisitor:
         if not hasattr(node, 'children') or len(node.children) < 2:
             return ReturnAnalysis()
         
-        # Analyze if block
-        if_block = node.children[1]
+        # The if statement structure is:
+        # children[0]: condition
+        # children[1]: empty_expression (not the if block!)
+        # children[2]: statement_list (this is the actual if block!)
+        
+        # Find the actual if block - it should be a statement_list
+        if_block = None
+        for child in node.children:
+            if hasattr(child, 'data') and child.data == 'statement_list':
+                if_block = child
+                break
+        
+        if if_block is None:
+            # Fallback to analyzing all children
+            return self.analyze_children(node)
+        
         if_analysis = self.visit(if_block)
         
-        # Check for else block
-        has_else = len(node.children) > 2
+        # Check for else block (would be after the statement_list)
+        has_else = len(node.children) > 3
         if has_else:
-            else_block = node.children[2]
+            else_block = node.children[3]  # else block would be at index 3
             else_analysis = self.visit(else_block)
             
             # Both branches must be consistent
@@ -150,12 +164,11 @@ class ReturnConsistencyVisitor:
                 node_type="if_else"
             )
         else:
-            # No else block - check if this is part of a function where all paths return
-            # If the if block returns and there's code after the if statement that also returns,
-            # then all paths do return (early return + final return pattern)
+            # No else block - the if statement itself doesn't guarantee all paths return
+            # But it does return if the if block returns
             return ReturnAnalysis(
                 has_return=if_analysis.has_return,
-                all_paths_return=False,  # Will be determined by parent context
+                all_paths_return=False,  # No else means not all paths return from this if statement
                 is_inconsistent=if_analysis.is_inconsistent,
                 node_type="if_no_else"
             )
@@ -217,8 +230,13 @@ class ReturnConsistencyVisitor:
                 child_analysis.has_return and not child_analysis.is_inconsistent):
                 has_early_return_pattern = True
             
+            # Only set all_children_return to False if this child doesn't return AND
+            # it's not part of an early return + final return pattern
             if not child_analysis.all_paths_return:
-                all_children_return = False
+                # If this is an if statement that returns, don't mark as inconsistent yet
+                # We'll check if there's a final return after it
+                if not (hasattr(child, 'data') and child.data == 'if_statement' and child_analysis.has_return):
+                    all_children_return = False
         
         # If we have early return pattern + final return, all paths do return
         if has_early_return_pattern and has_final_return:
