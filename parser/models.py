@@ -149,9 +149,17 @@ class PMDModel(BaseModel):
         Returns:
             Line number (1-based) where AST line 1 begins
         """
+        # Handle edge cases
+        if not script_value:
+            return line_list[0] if line_list else 1
+        
+        if not line_list:
+            return 1
+        
+        # Handle non-script content (no <% wrapper)
         if not script_value.startswith('<%'):
             # Not a script wrapper, AST line 1 is the first line
-            return line_list[0] if line_list else 1
+            return line_list[0]
         
         # Find where the actual code starts after <%
         # Count newlines from start of string to first code
@@ -160,22 +168,30 @@ class PMDModel(BaseModel):
         
         # Skip whitespace and count newlines after <%
         while idx_after_open < len(script_value):
-            if script_value[idx_after_open] == '\n':
+            char = script_value[idx_after_open]
+            if char == '\n':
                 newline_count += 1
                 idx_after_open += 1
-            elif script_value[idx_after_open] in ' \t\r':
+            elif char in ' \t\r':
                 idx_after_open += 1
             else:
                 # Found first non-whitespace character (start of code)
                 break
+        
+        # Handle edge case: script ends immediately after <% (no code)
+        if idx_after_open >= len(script_value):
+            # Script is just "<%" or "<% " with no actual code
+            return line_list[0]
         
         # AST line 1 corresponds to the file line at index newline_count in line_list
         # (if newline_count is 0, it's on the same line as <%, which is line_list[0])
         if newline_count < len(line_list):
             return line_list[newline_count]
         else:
-            # Fallback to first line if something goes wrong
-            return line_list[0] if line_list else 1
+            # Fallback: if we have more newlines than line_list entries,
+            # the code starts after all the lines in line_list
+            # This shouldn't happen in normal cases, but handle gracefully
+            return line_list[-1] if line_list else 1
     
     def get_original_line_number(self, field_path: str, processed_line: int) -> int:
         """
@@ -270,27 +286,49 @@ class PodModel(BaseModel):
         Returns:
             Line number (1-based) where AST line 1 begins
         """
-        if not script_value.startswith('<%'):
+        # Handle edge cases
+        if not script_value:
             return line_list[0] if line_list else 1
         
-        # Count newlines from start to first code after <%
+        if not line_list:
+            return 1
+        
+        # Handle non-script content (no <% wrapper)
+        if not script_value.startswith('<%'):
+            # Not a script wrapper, AST line 1 is the first line
+            return line_list[0]
+        
+        # Find where the actual code starts after <%
+        # Count newlines from start of string to first code
         idx_after_open = 2  # After '<%'
         newline_count = 0
         
+        # Skip whitespace and count newlines after <%
         while idx_after_open < len(script_value):
-            if script_value[idx_after_open] == '\n':
+            char = script_value[idx_after_open]
+            if char == '\n':
                 newline_count += 1
                 idx_after_open += 1
-            elif script_value[idx_after_open] in ' \t\r':
+            elif char in ' \t\r':
                 idx_after_open += 1
             else:
+                # Found first non-whitespace character (start of code)
                 break
         
-        # AST line 1 corresponds to the file line at index newline_count
+        # Handle edge case: script ends immediately after <% (no code)
+        if idx_after_open >= len(script_value):
+            # Script is just "<%" or "<% " with no actual code
+            return line_list[0]
+        
+        # AST line 1 corresponds to the file line at index newline_count in line_list
+        # (if newline_count is 0, it's on the same line as <%, which is line_list[0])
         if newline_count < len(line_list):
             return line_list[newline_count]
         else:
-            return line_list[0] if line_list else 1
+            # Fallback: if we have more newlines than line_list entries,
+            # the code starts after all the lines in line_list
+            # This shouldn't happen in normal cases, but handle gracefully
+            return line_list[-1] if line_list else 1
     
     def get_template_widgets(self) -> List[Dict[str, Any]]:
         """
@@ -367,6 +405,7 @@ class AMDModel(BaseModel):
     flows: Optional[Dict[str, Any]] = Field(default_factory=dict)
     dataProviders: Optional[List[Dict[str, str]]] = Field(default_factory=list)
     file_path: str = Field(..., exclude=True)
+    source_content: str = Field(default="", exclude=True)
     
 class SMDModel(BaseModel):
     """Model representing an SMD (Site Model Definition) file."""

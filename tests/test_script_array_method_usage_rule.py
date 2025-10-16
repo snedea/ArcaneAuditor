@@ -123,7 +123,7 @@ class TestScriptArrayMethodUsageRule:
         detector = ArrayMethodUsageDetector("test.pmd", 1)
         violations = list(detector.detect(ast, "test"))
         assert len(violations) == 1
-        assert violations[0].line == 3  # for loop is on line 3
+        assert violations[0].line == 2  # for loop is on line 2
 
     def test_pmd_wrapper_stripping(self):
         """Test that PMD wrappers are stripped correctly and rule still applies."""

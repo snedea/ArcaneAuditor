@@ -22,9 +22,9 @@ class TestScriptLineNumberCalculation:
         rule = ScriptStringConcatRule()
         findings = list(rule.analyze(context))
         
-        # The script is on line 3, violation should report line 4 (3 + 1 for <% line)
+        # The script is on line 3, violation should report line 3 (correct line)
         assert len(findings) == 1
-        assert findings[0].line == 4, f"Expected line 4, got {findings[0].line}"
+        assert findings[0].line == 3, f"Expected line 3, got {findings[0].line}"
     
     def test_multiple_identical_scripts_different_lines(self):
         """Test that identical scripts in different locations get correct line numbers."""
@@ -53,9 +53,9 @@ class TestScriptLineNumberCalculation:
         rule = ScriptStringConcatRule()
         findings = list(rule.analyze(context))
         
-        # Should find the concatenation on line 15 or 15 (off-by-1 is acceptable for complex nested structures)
+        # Should find the concatenation on line 14 (correct line)
         assert len(findings) == 1
-        assert findings[0].line in [15, 16], f"Expected line 15 or 15, got {findings[0].line}"
+        assert findings[0].line in [14, 15], f"Expected line 14 or 15, got {findings[0].line}"
     
     def test_similar_url_patterns_different_endpoints(self):
         """Test that similar URL patterns in different endpoints get correct line numbers."""
@@ -83,10 +83,10 @@ class TestScriptLineNumberCalculation:
         rule = ScriptStringConcatRule()
         findings = list(rule.analyze(context))
         
-        # Should find violations on lines 7, 11, and 15 (not duplicate line 7)
+        # Should find violations on lines 6, 10, and 14 (correct lines)
         assert len(findings) == 3
         lines = sorted([f.line for f in findings])
-        assert lines == [7, 11, 15], f"Expected [7, 11, 15], got {lines}"
+        assert lines == [6, 10, 14], f"Expected [6, 10, 14], got {lines}"
     
     def test_nested_script_in_presentation(self):
         """Test line number calculation for deeply nested presentation scripts."""
@@ -112,7 +112,7 @@ class TestScriptLineNumberCalculation:
         
         # The onClick script is on line 8
         assert len(findings) == 1
-        assert findings[0].line == 9, f"Expected line 8, got {findings[0].line}"
+        assert findings[0].line == 8, f"Expected line 8, got {findings[0].line}"
     
     def test_multiline_script_reports_first_violation_line(self):
         """Test that multiline scripts report the line of the violation."""
@@ -146,9 +146,9 @@ class TestScriptLineNumberCalculation:
         rule = ScriptStringConcatRule()
         findings = list(rule.analyze(context))
         
-        # The onLoad script is on line 4
+        # The onLoad script is on line 3
         assert len(findings) == 1
-        assert findings[0].line == 4, f"Expected line 4, got {findings[0].line}"
+        assert findings[0].line == 3, f"Expected line 3, got {findings[0].line}"
     
     def test_real_world_capital_planning_example(self):
         """Test with a real-world excerpt from sample app."""
@@ -177,11 +177,11 @@ class TestScriptLineNumberCalculation:
         rule = ScriptStringConcatRule()
         findings = list(rule.analyze(context))
         
-        # Should find violations on lines 6, 11, and 15
+        # Should find violations on lines 6, 11, and 15 (correct lines)
         # NOT duplicate line 7 three times
         assert len(findings) == 3, f"Expected 3 findings, got {len(findings)}"
         lines = sorted([f.line for f in findings])
-        assert lines == [7, 12, 16], f"Expected [6, 11, 15], got {lines}"
+        assert lines == [6, 11, 15], f"Expected [6, 11, 15], got {lines}"
     
     def test_no_false_positives_from_line_offset(self):
         """Ensure line offset doesn't cause false positives on surrounding lines."""
@@ -202,9 +202,9 @@ class TestScriptLineNumberCalculation:
         rule = ScriptStringConcatRule()
         findings = list(rule.analyze(context))
         
-        # Should only find the string concatenation on line 7, not the numeric addition on line 9
+        # Should only find the string concatenation on line 6, not the numeric addition on line 9
         assert len(findings) == 1
-        assert findings[0].line == 7, f"Expected line 7, got {findings[0].line}"
+        assert findings[0].line == 6, f"Expected line 6, got {findings[0].line}"
         assert "api" in findings[0].message.lower() or "endpoint" in findings[0].message.lower()
     
     # Helper methods

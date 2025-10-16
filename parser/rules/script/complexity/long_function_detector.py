@@ -21,6 +21,7 @@ class LongFunctionDetector(ScriptDetector):
             # Get line number from function info and apply offset
             relative_line = func_info.get('line', 1) or 1
             line_number = self.line_offset + relative_line - 1
+            self._debug_line_calc(relative_line, self.line_offset, line_number, "long_function_detection")
             
             # Check if this long function is inside another function
             function_node = func_info.get('node')

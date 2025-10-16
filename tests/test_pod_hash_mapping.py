@@ -76,9 +76,9 @@ def test_pod_single_line_script_exact_line():
         # Verify line numbers
         lines = source.split('\n')
         if 'dataGET' in finding.message and 'onSend' in finding.message:
-            assert finding.line == 9, f"Expected line 9 for endpoint onSend, got {finding.line}"
-            print(f"    [OK] Endpoint onSend on line 9 (EXACT)")
-            print(f"       Line 9: {lines[8].strip()}")
+            assert finding.line == 8, f"Expected line 8 for endpoint onSend, got {finding.line}"
+            print(f"    [OK] Endpoint onSend on line 8 (EXACT)")
+            print(f"       Line 8: {lines[7].strip()}")
         elif 'testButton' in finding.message and 'onClick' in finding.message:
             # Off by 1 is acceptable for complex nested structures
             assert finding.line in [13, 14, 15], f"Expected line 13, 14, or 15 for onClick, got {finding.line}"
