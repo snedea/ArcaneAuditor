@@ -1,0 +1,100 @@
+🔮 **Arcane Auditor Analysis Results**
+==================================================
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📁 Files Analyzed (1)
+   ✓ mojimagic.script
+
+ℹ️  Context: Partial Analysis
+   Missing Context Files: AMD, PMD, POD, SMD
+
+   Rules Not Executed (2):
+   • AMDDataProvidersWorkdayRule - Requires AMD file
+   • HardcodedApplicationIdRule - Requires SMD file
+
+   Rules Partially Executed (1):
+   • PMDSecurityDomainRule - error_page_exclusion skipped (Requires SMD file)
+
+   💡 Provide AMD/SMD files for complete cross-file validation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 **Analysis Summary:**
+   📁 Files analyzed: 1
+   🔍 Rules executed: 36
+   ⚠️  Issues found: 69
+
+🚨 **Found 69 issue(s):**
+
+📄 **mojimagic.script**
+--------------------
+  🔵 **ADVICE** (69 issue(s))
+    🔧 **[ScriptVariableNamingRule:890]** in `mojimagic.script`: File section 'script' declares variable 'Name' in function 'handleVariableDeclaration' that doesn't follow lowerCamelCase convention. Consider renaming to 'name'.
+    🔧 **[ScriptNestingLevelRule:68]** in `mojimagic.script`: File section 'script' has 10 nesting levels (max recommended: 4). Consider refactoring.
+    🔧 **[ScriptArrayMethodUsageRule:1767]** in `mojimagic.script`: File section 'script' uses manual for loop in function 'createFuncCaller' that could be replaced with array higher-order method. Consider using map() instead for better readability and maintainability.
+    🔧 **[ScriptArrayMethodUsageRule:1338]** in `mojimagic.script`: File section 'script' uses manual for loop in function 'handleConditional' that could be replaced with array higher-order method. Consider using functional methods like map(), filter(), or forEach() instead for better readability and maintainability.
+    🔧 **[ScriptArrayMethodUsageRule:781]** in `mojimagic.script`: File section 'script' uses manual for loop in function 'evaluateExpression' that could be replaced with array higher-order method. Consider using functional methods like map(), filter(), or forEach() instead for better readability and maintainability.
+    🔧 **[ScriptArrayMethodUsageRule:1128]** in `mojimagic.script`: File section 'script' uses manual for loop in function 'handleLoop' that could be replaced with array higher-order method. Consider using functional methods like map(), filter(), or forEach() instead for better readability and maintainability.
+    🔧 **[ScriptArrayMethodUsageRule:378]** in `mojimagic.script`: File section 'script' uses manual for loop in function 'preProcessTokens' that could be replaced with array higher-order method. Consider using functional methods like map(), filter(), or forEach() instead for better readability and maintainability.
+    🔧 **[ScriptComplexityRule:267]** in `mojimagic.script`: Inline function 'resolveValue' inside 'createEvaluator' in 'script' has complexity of 21 (max recommended: 10). Consider refactoring.
+    🔧 **[ScriptComplexityRule:501]** in `mojimagic.script`: Inline function 'evaluateTokens' inside 'createEvaluator' in 'script' has complexity of 47 (max recommended: 10). Consider refactoring.
+    🔧 **[ScriptComplexityRule:923]** in `mojimagic.script`: Inline function 'handleAssignment' inside 'createExecutor' in 'script' has complexity of 12 (max recommended: 10). Consider refactoring.
+    🔧 **[ScriptComplexityRule:1193]** in `mojimagic.script`: Inline function 'handleConditional' inside 'createExecutor' in 'script' has complexity of 16 (max recommended: 10). Consider refactoring.
+    🔧 **[ScriptComplexityRule:1411]** in `mojimagic.script`: Inline function 'executeCodeBlock' inside 'createExecutor' in 'script' has complexity of 13 (max recommended: 10). Consider refactoring.
+    🔧 **[ScriptStringConcatRule:599]** in `mojimagic.script`: File section 'script' uses string concatenation with + operator in function 'performOperation': '"" + left + right'. Consider using PMD template strings with backticks and { } syntax instead (e.g., `Hello {name}!`).
+    🔧 **[ScriptStringConcatRule:1002]** in `mojimagic.script`: File section 'script' uses string concatenation with + operator in function 'handleAssignment': '"Assignment Error: Could not resolve index/key '" + indexOrKeyRaw + "' for bracket notation."'. Consider using PMD template strings with backticks and { } syntax instead (e.g., `Hello {name}!`).
+    🔧 **[ScriptStringConcatRule:1006]** in `mojimagic.script`: File section 'script' uses string concatenation with + operator in function 'handleAssignment': '"Assignment Error: Target '" + containerName + "' is not a List or Map for bracket notation."'. Consider using PMD template strings with backticks and { } syntax instead (e.g., `Hello {name}!`).
+    🔧 **[ScriptStringConcatRule:966]** in `mojimagic.script`: File section 'script' uses string concatenation with + operator in function 'handleAssignment': '"Assignment Error: Target '" + mapName + "' is not a Map for dot notation."'. Consider using PMD template strings with backticks and { } syntax instead (e.g., `Hello {name}!`).
+    🔧 **[ScriptStringConcatRule:1010]** in `mojimagic.script`: File section 'script' uses string concatenation with + operator in function 'handleAssignment': '"Assignment Error: Container '" + containerName + "' not found for bracket notation assignment."'. Consider using PMD template strings with backticks and { } syntax instead (e.g., `Hello {name}!`).
+    🔧 **[ScriptStringConcatRule:1030]** in `mojimagic.script`: File section 'script' uses string concatenation with + operator in function 'handleAssignment': '"Assignment Error: Variable '" + varName + "' not declared. Use '" + varSymbol + "' to declare."'. Consider using PMD template strings with backticks and { } syntax instead (e.g., `Hello {name}!`).
+    🔧 **[ScriptStringConcatRule:1268]** in `mojimagic.script`: File section 'script' uses string concatenation with + operator in function 'handleConditional': '"Missing condition separator '" + localConditionSep + "' in " + blockType'. Consider using PMD template strings with backticks and { } syntax instead (e.g., `Hello {name}!`).
+    🔧 **[ScriptStringConcatRule:1274]** in `mojimagic.script`: File section 'script' uses string concatenation with + operator in function 'handleConditional': '"Empty condition found for " + blockType'. Consider using PMD template strings with backticks and { } syntax instead (e.g., `Hello {name}!`).
+    🔧 **[ScriptStringConcatRule:791]** in `mojimagic.script`: File section 'script' uses string concatenation with + operator in function 'evaluateExpression': ''No function caller provided, cannot execute function: ' + fnName'. Consider using PMD template strings with backticks and { } syntax instead (e.g., `Hello {name}!`).
+    🔧 **[ScriptStringConcatRule:970]** in `mojimagic.script`: File section 'script' uses string concatenation with + operator in function 'handleAssignment': '"Assignment Error: Map '" + mapName + "' not found for dot notation assignment."'. Consider using PMD template strings with backticks and { } syntax instead (e.g., `Hello {name}!`).
+    🔧 **[ScriptStringConcatRule:1285]** in `mojimagic.script`: File section 'script' uses string concatenation with + operator in function 'handleConditional': '"Missing body opening '" + localOpenBodySymbol + "' for " + blockType'. Consider using PMD template strings with backticks and { } syntax instead (e.g., `Hello {name}!`).
+    🔧 **[ScriptStringConcatRule:1294]** in `mojimagic.script`: File section 'script' uses string concatenation with + operator in function 'handleConditional': '"Could not find matching body close '" + localCloseBodySymbol + "' for " + blockType'. Consider using PMD template strings with backticks and { } syntax instead (e.g., `Hello {name}!`).
+    🔧 **[ScriptVarUsageRule:890]** in `mojimagic.script`: File section 'script' uses 'var' declaration for variable 'Name' in function 'handleVariableDeclaration'. Consider using 'let' or 'const' instead.
+    🔧 **[ScriptLongFunctionRule:501]** in `mojimagic.script`: File section 'script' contains function 'evaluateTokens' in function 'createEvaluator' with 65 lines (max recommended: 50). Consider breaking it into smaller functions.
+    🔧 **[ScriptFunctionReturnConsistencyRule:53]** in `mojimagic.script`: Function 'getMojiConfigItem' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:69]** in `mojimagic.script`: Function 'updateEmojiConfig' appears to compute a value but has no return statement
+    🔧 **[ScriptFunctionReturnConsistencyRule:93]** in `mojimagic.script`: Function 'createParser' has some return statements but not all code paths return - consider adding else branches
+    🔧 **[ScriptFunctionReturnConsistencyRule:100]** in `mojimagic.script`: Function 'parseFunction' has some return statements but not all code paths return - consider adding else branches
+    🔧 **[ScriptFunctionReturnConsistencyRule:180]** in `mojimagic.script`: Function 'createEvaluator' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:193]** in `mojimagic.script`: Function 'parseArguments' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:267]** in `mojimagic.script`: Function 'resolveValue' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:399]** in `mojimagic.script`: Function 'tokenizeExpression' has some return statements but not all code paths return - consider adding else branches
+    🔧 **[ScriptFunctionReturnConsistencyRule:501]** in `mojimagic.script`: Function 'evaluateTokens' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:530]** in `mojimagic.script`: Function 'performOperation' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:538]** in `mojimagic.script`: Function 'parseNumber' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:631]** in `mojimagic.script`: Function 'isTruthy' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:660]** in `mojimagic.script`: Function 'processOperatorList' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:752]** in `mojimagic.script`: Function 'evaluateExpression' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:815]** in `mojimagic.script`: Function 'createExecutor' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:840]** in `mojimagic.script`: Function 'findMatchingCloseBodySymbol' has some return statements but not all code paths return - consider adding else branches
+    🔧 **[ScriptFunctionReturnConsistencyRule:881]** in `mojimagic.script`: Function 'handleVariableDeclaration' has some return statements but not all code paths return - consider adding else branches
+    🔧 **[ScriptFunctionReturnConsistencyRule:923]** in `mojimagic.script`: Function 'handleAssignment' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:929]** in `mojimagic.script`: Function 'findContext' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:1056]** in `mojimagic.script`: Function 'handleLoop' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:1193]** in `mojimagic.script`: Function 'handleConditional' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:1206]** in `mojimagic.script`: Function 'checkStartsWith' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:1411]** in `mojimagic.script`: Function 'executeCodeBlock' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:1434]** in `mojimagic.script`: Function 'checkStartsWith' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:1624]** in `mojimagic.script`: Function 'createStorage' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:1636]** in `mojimagic.script`: Function 'storeFunction' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:1658]** in `mojimagic.script`: Function 'getFunctionDef' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:1682]** in `mojimagic.script`: Function 'getFunction' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:1707]** in `mojimagic.script`: Function 'createFunctionSystem' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:1721]** in `mojimagic.script`: Function 'findMatchingCloseBodySymbol' has some return statements but not all code paths return - consider adding else branches
+    🔧 **[ScriptFunctionReturnConsistencyRule:1757]** in `mojimagic.script`: Function 'createFuncCaller' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:1807]** in `mojimagic.script`: Function 'processFunctionDefinition' has inconsistent return pattern - some paths return values, others don't
+    🔧 **[ScriptFunctionReturnConsistencyRule:1824]** in `mojimagic.script`: Function 'evaluateExpressionString' has some return statements but not all code paths return - consider adding else branches
+    🔧 **[ScriptDescriptiveParameterRule:1334]** in `mojimagic.script`: Parameter 'e' in map() in function 'handleConditional' should be more descriptive. Consider using a more descriptive name, such as 'item' instead. Single-letter parameters make functions that take function parameters harder to read and debug.
+    🔧 **[ScriptDescriptiveParameterRule:1124]** in `mojimagic.script`: Parameter 'e' in map() in function 'handleConditional' should be more descriptive. Consider using a more descriptive name, such as 'item' instead. Single-letter parameters make functions that take function parameters harder to read and debug.
+    🔧 **[ScriptDescriptiveParameterRule:1335]** in `mojimagic.script`: Parameter 'e' in map() in function 'handleConditional' should be more descriptive. Consider using a more descriptive name, such as 'item' instead. Single-letter parameters make functions that take function parameters harder to read and debug.
+    🔧 **[ScriptDescriptiveParameterRule:1125]** in `mojimagic.script`: Parameter 'e' in map() in function 'handleConditional' should be more descriptive. Consider using a more descriptive name, such as 'item' instead. Single-letter parameters make functions that take function parameters harder to read and debug.
+    🔧 **[ScriptMagicNumberRule:694]** in `mojimagic.script`: File section 'script' contains magic number '2' in function 'processOperatorList'. Consider using a named constant instead.
+    🔧 **[ScriptMagicNumberRule:695]** in `mojimagic.script`: File section 'script' contains magic number '2' in function 'processOperatorList'. Consider using a named constant instead.
+    🔧 **[ScriptMagicNumberRule:1582]** in `mojimagic.script`: File section 'script' contains magic number '20' in function 'executeCodeBlock'. Consider using a named constant instead.
+    🔧 **[ScriptFunctionParameterCountRule:530]** in `mojimagic.script`: Function 'performOperation' has 5 parameters (max allowed: 4). Consider refactoring to reduce complexity.
+    🔧 **[ScriptFunctionParameterCountRule:1056]** in `mojimagic.script`: Function 'handleLoop' has 5 parameters (max allowed: 4). Consider refactoring to reduce complexity.
+    🔧 **[ScriptFunctionParameterCountRule:1193]** in `mojimagic.script`: Function 'handleConditional' has 5 parameters (max allowed: 4). Consider refactoring to reduce complexity.
+
+💡 **Tip:** Use `--config` to load custom config files or `--help` for more options.

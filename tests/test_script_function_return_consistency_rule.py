@@ -21,29 +21,27 @@ class TestScriptFunctionReturnConsistencyRule:
         assert "return" in self.rule.DESCRIPTION.lower()
     
     def test_function_with_no_return_statement(self):
-        """Test that functions computing values without return statements are flagged."""
+        """Test that functions with no return statements are not flagged (void functions are valid)."""
         script_content = """<%
             const failNull = function(){
               const workerData = {'skills': []};
               const isProgrammer = workerData.skills[0] == 'Programming' ?? false;
-              // missing return!
+              // No return statement - this is a valid void function
             }
         %>"""
         
         pmd_model = PMDModel(
             pageId="test-page",
             file_path="test.pmd",
-            source_content='{"script": "' + script_content.replace('\n', '\\n').replace('"', '\\"') + '"}'
+            source_content='{"script": "' + script_content.replace('\n', '\\n').replace('"', '\\"') + '"}' 
         )
         pmd_model.script = script_content
         self.context.pmds["test-page"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
-        # Should find violation for missing return
-        assert len(findings) >= 1
-        assert any("no return" in f.message.lower() for f in findings)
-        assert any("failNull" in f.message for f in findings)
+        # Should not find violation for void functions (no return statements)
+        assert len(findings) == 0
     
     def test_function_with_consistent_returns(self):
         """Test that functions with consistent returns are not flagged."""

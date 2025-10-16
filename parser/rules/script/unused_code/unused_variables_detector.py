@@ -170,6 +170,11 @@ class UnusedVariableDetector(ScriptDetector):
             if var_name:
                 used_vars.add(var_name)
         
+        # Find variable usage in template literals
+        for node in ast.find_data('template_literal'):
+            template_vars = self._extract_variables_from_template(node)
+            used_vars.update(template_vars)
+        
         # Add global functions to used vars (they're available in all scopes)
         used_vars.update(global_functions)
         
@@ -239,3 +244,48 @@ class UnusedVariableDetector(ScriptDetector):
             if hasattr(identifier, 'value'):
                 return identifier.value
         return ""
+    
+    def _extract_variables_from_template(self, node: Any) -> Set[str]:
+        """
+        Extract variable names from template literal interpolations.
+        
+        PMD Script uses {{expression}} syntax for template interpolations.
+        This method parses the template literal content to find variable usage.
+        """
+        variables = set()
+        
+        if not hasattr(node, 'children') or not node.children:
+            return variables
+        
+        # Get the template literal content
+        template_content = ""
+        for child in node.children:
+            if hasattr(child, 'value'):
+                template_content += child.value
+            elif hasattr(child, 'type') and child.type == 'TEMPLATE_LITERAL':
+                template_content += child.value
+        
+        if not template_content:
+            return variables
+        
+        # Use regex to find {{...}} interpolation blocks
+        import re
+        interpolation_pattern = r'\{\{([^}]+)\}\}'
+        matches = re.findall(interpolation_pattern, template_content)
+        
+        for match in matches:
+            # Extract identifiers from the interpolation content
+            # Handle cases like: variable, obj.prop, namespace:func
+            interpolation_content = match.strip()
+            
+            # Split by common operators to find identifiers
+            # This is a simple approach - more sophisticated parsing would require grammar changes
+            parts = re.split(r'[+\-*/=<>!&|?:,;()\[\]{}.\s]+', interpolation_content)
+            
+            for part in parts:
+                part = part.strip()
+                # Check if it looks like a variable name (alphanumeric, underscore, no spaces)
+                if part and re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', part):
+                    variables.add(part)
+        
+        return variables

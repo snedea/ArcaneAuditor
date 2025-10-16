@@ -31,6 +31,7 @@ class ReturnConsistencyVisitor:
         self.memo_cache: Dict[int, ReturnAnalysis] = {}
         self.file_path = file_path
         self.line_offset = line_offset
+        self.function_depth = 0  # Track nesting depth of functions
         
         # Method dispatch map for micro-optimization
         self.visit_methods = {
@@ -67,6 +68,14 @@ class ReturnConsistencyVisitor:
             # This is a script expression with return statements, not a real function
             return ReturnAnalysis(node_type="script_expression")
         
+        # Increment function depth for nested functions
+        self.function_depth += 1
+        
+        # Skip analysis for inline functions (nested more than 1 level deep)
+        if self.function_depth > 1:
+            self.function_depth -= 1
+            return ReturnAnalysis(node_type="inline_function")
+        
         # This is a real function definition - analyze it for return consistency
         function_body = get_function_body(node)
         
@@ -82,15 +91,19 @@ class ReturnConsistencyVisitor:
             analysis = self.visit(function_body)
             
             # Return analysis without policy decisions - let the detector decide
-            return ReturnAnalysis(
+            result = ReturnAnalysis(
                 has_return=analysis.has_return,
                 all_paths_return=analysis.all_paths_return,
                 is_inconsistent=analysis.is_inconsistent,
                 node_type="function_definition",
                 violations=analysis.violations
             )
+        else:
+            result = ReturnAnalysis(node_type="function_definition")
         
-        return ReturnAnalysis(node_type="function_definition")
+        # Decrement function depth
+        self.function_depth -= 1
+        return result
     
     def visit_default(self, node: Any) -> ReturnAnalysis:
         """Default visitor for unknown node types."""
@@ -137,10 +150,12 @@ class ReturnConsistencyVisitor:
                 node_type="if_else"
             )
         else:
-            # No else block - if statement doesn't guarantee return
+            # No else block - check if this is part of a function where all paths return
+            # If the if block returns and there's code after the if statement that also returns,
+            # then all paths do return (early return + final return pattern)
             return ReturnAnalysis(
                 has_return=if_analysis.has_return,
-                all_paths_return=False,  # No else means not all paths return
+                all_paths_return=False,  # Will be determined by parent context
                 is_inconsistent=if_analysis.is_inconsistent,
                 node_type="if_no_else"
             )
@@ -177,7 +192,11 @@ class ReturnConsistencyVisitor:
         has_inconsistency = False
         all_violations = []
         
-        for child in node.children:
+        # Track if we have an early return pattern (if statement with return + final return)
+        has_early_return_pattern = False
+        has_final_return = False
+        
+        for i, child in enumerate(node.children):
             child_analysis = self.visit(child)
             
             # Collect violations from child
@@ -188,9 +207,22 @@ class ReturnConsistencyVisitor:
             
             if child_analysis.has_return:
                 has_any_return = True
+                
+                # Check if this is a final return (last statement)
+                if i == len(node.children) - 1:
+                    has_final_return = True
+            
+            # Check for early return pattern: if statement with return followed by final return
+            if (hasattr(child, 'data') and child.data == 'if_statement' and 
+                child_analysis.has_return and not child_analysis.is_inconsistent):
+                has_early_return_pattern = True
             
             if not child_analysis.all_paths_return:
                 all_children_return = False
+        
+        # If we have early return pattern + final return, all paths do return
+        if has_early_return_pattern and has_final_return:
+            all_children_return = True
         
         return ReturnAnalysis(
             has_return=has_any_return,
@@ -245,17 +277,11 @@ class ReturnConsistencyDetector(ScriptDetector):
                         message=message,
                         line=self.get_line_number_from_token(node)
                     ))
-                # Check for functions with no return statements that appear to compute values
-                elif not analysis.has_return and self._function_appears_to_compute_value(node):
-                    if function_name:
-                        message = f"Function '{function_name}' appears to compute a value but has no return statement"
-                    else:
-                        message = "Function appears to compute a value but has no return statement"
-                    
-                    violations.append(Violation(
-                        message=message,
-                        line=self.get_line_number_from_token(node)
-                    ))
+                # Note: We no longer flag functions with no return statements (void functions)
+                # as these are valid patterns for side-effect only functions
+            elif analysis.node_type == "inline_function":
+                # Skip analysis for inline functions - they are implementation details
+                pass
             
             # Add any violations from the analysis
             violations.extend(analysis.violations)

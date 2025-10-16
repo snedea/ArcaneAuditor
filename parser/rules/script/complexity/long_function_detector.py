@@ -86,7 +86,34 @@ class LongFunctionDetector(ScriptDetector):
     
     def _count_function_lines(self, func_body) -> int:
         """Count the number of lines in a function body."""
-        # Count the number of statements in the function body
-        if hasattr(func_body, 'children'):
-            return len(func_body.children)
-        return 1
+        if not hasattr(func_body, 'children'):
+            return 1
+        
+        # Count actual lines by finding the range of line numbers
+        min_line = None
+        max_line = None
+        
+        # Traverse all nodes in the function body to find line number range
+        def find_line_range(node):
+            nonlocal min_line, max_line
+            
+            # Check if this node has a line number
+            if hasattr(node, 'line') and node.line is not None:
+                if min_line is None or node.line < min_line:
+                    min_line = node.line
+                if max_line is None or node.line > max_line:
+                    max_line = node.line
+            
+            # Recursively check children
+            if hasattr(node, 'children'):
+                for child in node.children:
+                    find_line_range(child)
+        
+        find_line_range(func_body)
+        
+        # Calculate line count
+        if min_line is not None and max_line is not None:
+            return max_line - min_line + 1
+        
+        # Fallback: count statements if we can't determine line range
+        return len(func_body.children) if func_body.children else 1

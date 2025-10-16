@@ -1,0 +1,33 @@
+🔮 **Arcane Auditor Analysis Results**
+==================================================
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📁 Files Analyzed (1)
+   ✓ mojimagic.script
+
+ℹ️  Context: Partial Analysis
+   Missing Context Files: AMD, PMD, POD, SMD
+
+   Rules Not Executed (2):
+   • AMDDataProvidersWorkdayRule - Requires AMD file
+   • HardcodedApplicationIdRule - Requires SMD file
+
+   💡 Provide AMD/SMD files for complete cross-file validation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 **Analysis Summary:**
+   📁 Files analyzed: 1
+   🔍 Rules executed: 10
+   ⚠️  Issues found: 5
+
+🚨 **Found 5 issue(s):**
+
+📄 **mojimagic.script**
+--------------------
+  🔵 **ADVICE** (5 issue(s))
+    🔧 **[ScriptComplexityRule:267]** in `mojimagic.script`: Inline function 'resolveValue' inside 'createEvaluator' in 'script' has complexity of 21 (max recommended: 10). Consider refactoring.
+    🔧 **[ScriptComplexityRule:501]** in `mojimagic.script`: Inline function 'evaluateTokens' inside 'createEvaluator' in 'script' has complexity of 47 (max recommended: 10). Consider refactoring.
+    🔧 **[ScriptComplexityRule:923]** in `mojimagic.script`: Inline function 'handleAssignment' inside 'createExecutor' in 'script' has complexity of 12 (max recommended: 10). Consider refactoring.
+    🔧 **[ScriptComplexityRule:1193]** in `mojimagic.script`: Inline function 'handleConditional' inside 'createExecutor' in 'script' has complexity of 16 (max recommended: 10). Consider refactoring.
+    🔧 **[ScriptComplexityRule:1411]** in `mojimagic.script`: Inline function 'executeCodeBlock' inside 'createExecutor' in 'script' has complexity of 13 (max recommended: 10). Consider refactoring.
+
+💡 **Tip:** Use `--config` to load custom config files or `--help` for more options.

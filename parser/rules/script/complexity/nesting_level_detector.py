@@ -41,7 +41,19 @@ class NestingLevelDetector(ScriptDetector):
     def _analyze_ast_nesting(self, node, current_depth: int) -> Dict[str, Any]:
         """Analyze nesting levels in AST nodes."""
         max_nesting = current_depth
+        max_nesting_line = None
         function_context = None
+        
+        # Get line number from the current node
+        current_line = None
+        if hasattr(node, 'line') and node.line is not None:
+            current_line = node.line
+        elif hasattr(node, 'children') and len(node.children) > 0:
+            # Look for the first token with a line number
+            for child in node.children:
+                if hasattr(child, 'line') and child.line is not None:
+                    current_line = child.line
+                    break
         
         # Check if this is a function expression
         if hasattr(node, 'data'):
@@ -50,34 +62,28 @@ class NestingLevelDetector(ScriptDetector):
                 if len(node.children) > 0 and hasattr(node.children[0], 'type') and node.children[0].type == 'FUNCTION':
                     if len(node.children) > 1 and hasattr(node.children[1], 'value'):
                         function_context = node.children[1].value
-                # Function body adds one nesting level
-                current_depth += 1
-                max_nesting = max(max_nesting, current_depth)
+                # Function expressions don't add nesting depth - only their bodies do
+                # The nesting depth will be determined by control flow structures inside the function
             
             elif node.data in ['block', 'if_statement', 'while_statement', 'for_statement', 'for_var_statement', 'do_statement']:
                 # Control flow structures add nesting
                 current_depth += 1
-                max_nesting = max(max_nesting, current_depth)
+                if current_depth > max_nesting:
+                    max_nesting = current_depth
+                    max_nesting_line = current_line
         
         # Recursively analyze children
         if hasattr(node, 'children'):
             for child in node.children:
                 child_result = self._analyze_ast_nesting(child, current_depth)
-                max_nesting = max(max_nesting, child_result['max_nesting'])
+                if child_result['max_nesting'] > max_nesting:
+                    max_nesting = child_result['max_nesting']
+                    max_nesting_line = child_result['line']
                 if child_result['function_context'] and not function_context:
                     function_context = child_result['function_context']
-        
-        # Get line number from the first token in the node
-        line_number = None
-        if hasattr(node, 'children') and len(node.children) > 0:
-            # Look for the first token with a line number
-            for child in node.children:
-                if hasattr(child, 'line') and child.line is not None:
-                    line_number = child.line
-                    break
         
         return {
             'max_nesting': max_nesting,
             'function_context': function_context,
-            'line': line_number
+            'line': max_nesting_line
         }
