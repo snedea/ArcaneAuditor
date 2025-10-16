@@ -7,8 +7,8 @@ class ArcaneAuditorApp {
         this.currentFilters = {
             severity: 'all',
             fileType: 'all',
-            sortBy: 'severity',
-            sortFilesBy: 'alphabetical'
+            sortBy: this.getLastSortBy(),
+            sortFilesBy: this.getLastSortFilesBy()
         };
         this.expandedFiles = new Set();
         this.selectedConfig = this.getLastSelectedConfig();
@@ -59,6 +59,22 @@ class ArcaneAuditorApp {
     saveSelectedConfig(configId) {
         // Save the selected config to localStorage
         localStorage.setItem('arcane-auditor-selected-config', configId);
+    }
+
+    getLastSortBy() {
+        return localStorage.getItem('arcane-auditor-sort-by') || 'severity';
+    }
+
+    getLastSortFilesBy() {
+        return localStorage.getItem('arcane-auditor-sort-files-by') || 'alphabetical';
+    }
+
+    saveSortBy(sortBy) {
+        localStorage.setItem('arcane-auditor-sort-by', sortBy);
+    }
+
+    saveSortFilesBy(sortFilesBy) {
+        localStorage.setItem('arcane-auditor-sort-files-by', sortFilesBy);
     }
 
     async loadConfigurations() {
@@ -588,11 +604,13 @@ class ArcaneAuditorApp {
 
     updateSortBy(sortBy) {
         this.currentFilters.sortBy = sortBy;
+        this.saveSortBy(sortBy);
         this.renderFindings();
     }
 
     updateSortFilesBy(sortFilesBy) {
         this.currentFilters.sortFilesBy = sortFilesBy;
+        this.saveSortFilesBy(sortFilesBy);
         this.renderFindings();
     }
 
@@ -1220,6 +1238,137 @@ class ArcaneAuditorApp {
         } else {
             contextContent.classList.add('collapsed');
             contextToggle.classList.remove('expanded');
+        }
+    }
+
+    updateSeverityFilter(severity) {
+        this.currentFilters.severity = severity;
+        this.updateFilterOptions();
+        this.renderFindings();
+    }
+
+    updateFileTypeFilter(fileType) {
+        this.currentFilters.fileType = fileType;
+        this.updateFilterOptions();
+        this.renderFindings();
+    }
+
+    updateSortBy(sortBy) {
+        this.currentFilters.sortBy = sortBy;
+        this.saveSortBy(sortBy);
+        this.renderFindings();
+    }
+
+    updateSortFilesBy(sortFilesBy) {
+        this.currentFilters.sortFilesBy = sortFilesBy;
+        this.saveSortFilesBy(sortFilesBy);
+        this.renderFindings();
+    }
+
+    updateFilterOptions() {
+        // Get current findings to determine available options
+        const findings = this.currentResult?.findings || [];
+        
+        // Get unique severities and file types from current findings
+        const severities = new Set(['all']);
+        const fileTypes = new Set(['all']);
+        
+        findings.forEach(finding => {
+            if (finding.severity) {
+                severities.add(finding.severity);
+            }
+            if (finding.file_path) {
+                const extension = finding.file_path.split('.').pop()?.toLowerCase();
+                if (extension) {
+                    fileTypes.add(extension);
+                }
+            }
+        });
+
+        // Update severity filter options
+        const severitySelect = document.getElementById('severity-filter');
+        if (severitySelect) {
+            const currentSeverity = this.currentFilters.severity;
+            
+            // Filter severities based on current file type filter
+            let filteredSeverities = severities;
+            if (this.currentFilters.fileType !== 'all') {
+                filteredSeverities = new Set(['all']);
+                findings.forEach(finding => {
+                    const extension = finding.file_path?.split('.').pop()?.toLowerCase();
+                    if (extension === this.currentFilters.fileType && finding.severity) {
+                        filteredSeverities.add(finding.severity);
+                    }
+                });
+            }
+            
+            // Sort with 'all' first, then alphabetically
+            const sortedSeverities = Array.from(filteredSeverities).sort((a, b) => {
+                if (a === 'all') return -1;
+                if (b === 'all') return 1;
+                return a.localeCompare(b);
+            });
+            
+            severitySelect.innerHTML = sortedSeverities.map(severity => {
+                const count = findings.filter(f => 
+                    (severity === 'all' || f.severity === severity) &&
+                    (this.currentFilters.fileType === 'all' || f.file_path?.split('.').pop()?.toLowerCase() === this.currentFilters.fileType)
+                ).length;
+                const countText = count > 0 ? ` (${count})` : '';
+                return `<option value="${severity}">${severity.toUpperCase()}${countText}</option>`;
+            }).join('');
+            
+            // Reset to 'all' if current selection is no longer available
+            if (!filteredSeverities.has(currentSeverity)) {
+                this.currentFilters.severity = 'all';
+                severitySelect.value = 'all';
+            } else {
+                severitySelect.value = currentSeverity;
+            }
+        }
+
+        // Update file type filter options
+        const fileTypeSelect = document.getElementById('file-type-filter');
+        if (fileTypeSelect) {
+            const currentFileType = this.currentFilters.fileType;
+            
+            // Filter file types based on current severity filter
+            let filteredFileTypes = fileTypes;
+            if (this.currentFilters.severity !== 'all') {
+                filteredFileTypes = new Set(['all']);
+                findings.forEach(finding => {
+                    if (finding.severity === this.currentFilters.severity && finding.file_path) {
+                        const extension = finding.file_path.split('.').pop()?.toLowerCase();
+                        if (extension) {
+                            filteredFileTypes.add(extension);
+                        }
+                    }
+                });
+            }
+            
+            // Sort with 'all' first, then alphabetically
+            const sortedFileTypes = Array.from(filteredFileTypes).sort((a, b) => {
+                if (a === 'all') return -1;
+                if (b === 'all') return 1;
+                return a.localeCompare(b);
+            });
+            
+            fileTypeSelect.innerHTML = sortedFileTypes.map(fileType => {
+                const count = findings.filter(f => 
+                    (fileType === 'all' || f.file_path?.split('.').pop()?.toLowerCase() === fileType) &&
+                    (this.currentFilters.severity === 'all' || f.severity === this.currentFilters.severity)
+                ).length;
+                const countText = count > 0 ? ` (${count})` : '';
+                return `<option value="${fileType}">${fileType.toUpperCase()}${countText}</option>`;
+            }).join('');
+            
+            // Reset to 'all' if current selection is no longer available
+            if (!filteredFileTypes.has(currentFileType)) {
+                this.currentFilters.fileType = 'all';
+                fileTypeSelect.value = 'all';
+            } else {
+                fileTypeSelect.value = currentFileType;
+            }
         }
     }
 
