@@ -2,8 +2,8 @@
 
 export function getSeverityIcon(severity) {
     const icons = {
-        'ACTION': '🔴',
-        'ADVICE': '🔵',
+        'ACTION': '🚨',
+        'ADVICE': 'ℹ️',
         'ISSUES': '🟡'
     };
     return icons[severity] || '⚪';

@@ -27,8 +27,8 @@ class OutputFormatter:
     
     # Emoji mappings for different severity levels
     SEVERITY_EMOJIS = {
-        "ACTION": "🔴",
-        "ADVICE": "🔵"
+        "ACTION": "🚨",
+        "ADVICE": "ℹ️"
     }
     
     # Emoji mappings for different rule categories
