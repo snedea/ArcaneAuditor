@@ -39,8 +39,13 @@ class DescriptiveParameterDetector(ScriptDetector):
             else:
                 message = f"Parameter '{violation['param_name']}' in {violation['method_name']}() should be more descriptive. "
             
-            message += f"Consider using a more descriptive name, such as '{violation['suggested_name']}' instead. Single-letter parameters make functions "
-            message += f"that take function parameters harder to read and debug."
+            # Special messaging for sort method
+            if violation['method_name'] == 'sort':
+                message += f"For sort() methods, 'a' and 'b' are generally accepted parameter names, but other single letters like '{violation['param_name']}' are not descriptive. "
+                message += f"Consider using 'a' and 'b' for sort comparisons, or a more descriptive name like '{violation['suggested_name']}'."
+            else:
+                message += f"Consider using a more descriptive name, such as '{violation['suggested_name']}' instead. Single-letter parameters make functions "
+                message += f"that take function parameters harder to read and debug."
             
             yield Violation(
                 message=message,
@@ -646,12 +651,12 @@ class DescriptiveParameterDetector(ScriptDetector):
             else:
                 return 'index'  # Third parameter is usually index
         
-        # Special case for sort - typically uses 'a' and 'b'
+        # Special case for sort - suggest descriptive names instead of 'a'/'b'
         if method_name == 'sort':
             if param_index == 0:
-                return 'a'
+                return 'first'  # First parameter for comparison
             elif param_index == 1:
-                return 'b'
+                return 'second'  # Second parameter for comparison
             else:
                 return 'item'
         
