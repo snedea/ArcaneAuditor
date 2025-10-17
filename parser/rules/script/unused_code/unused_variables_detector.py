@@ -65,14 +65,12 @@ class UnusedVariableDetector(ScriptDetector):
                     # Create violation with context information
                     if scope_type == 'function':
                         message = f"Unused variable '{var_name}' in function '{scope_name}'"
-                    elif scope_type == 'global':
-                        message = f"Unused variable '{var_name}' in global scope"
                     else:
-                        # For script scope, include the field context for better clarity
+                        # Use field_name for better context instead of generic scope type
                         if field_name and field_name != 'script':
                             message = f"Unused variable '{var_name}' in {field_name}"
                         else:
-                            message = f"Unused variable '{var_name}' in script scope"
+                            message = f"Unused variable '{var_name}' in script"
                     
                     violations.append(Violation(
                         message=message,
