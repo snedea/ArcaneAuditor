@@ -30,6 +30,7 @@ class RulesConfig(BaseModel):
     ScriptFunctionParameterCountRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures functions don't have too many parameters (max 5 parameters)")
     ScriptLongFunctionRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures functions don't exceed maximum line count (max 50 lines)")
     ScriptNestingLevelRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't have excessive nesting levels (max 4 levels)")
+    ScriptLongBlockRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures non-function script blocks don't exceed maximum line count (max 30 lines)")
     
     # Script Code Quality Rules
     ScriptConsoleLogRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't contain console.log statements (production code)")
@@ -44,6 +45,7 @@ class RulesConfig(BaseModel):
     ScriptStringConcatRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using template literals instead of string concatenation")
     ScriptVerboseBooleanCheckRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using concise boolean expressions")
     ScriptDescriptiveParameterRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures functional method parameters use descriptive names instead of single letters")
+    ScriptOnSendSelfDataRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects anti-pattern of using self.data as temporary storage in outbound endpoint onSend scripts")
     
     # Script Unused Code Rules
     ScriptEmptyFunctionRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects empty function bodies")
@@ -67,6 +69,7 @@ class RulesConfig(BaseModel):
     GridPagingWithSortableFilterableRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects grids with paging and sortableAndFilterable columns which can cause performance issues")
     
     # General Structure Rules
+    AMDDataProvidersWorkdayRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures AMD dataProviders don't use hardcoded *.workday.com URLs")
     FooterPodRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures footer widgets utilize pods")
     StringBooleanRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures boolean values are not stored as strings")
     EmbeddedImagesRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects base64 encoded images and large binary content")
@@ -122,7 +125,33 @@ class ArcaneAuditorConfig(BaseModel):
         import json
         with open(config_path, 'r', encoding='utf-8') as f:
             config_data = json.load(f)
-        return cls(**config_data)
+        
+        # Store original config data for dynamic rule access
+        original_rules_data = config_data.get('rules', {})
+        
+        # Handle dynamic rule configurations
+        if 'rules' in config_data:
+            # Start with default RulesConfig
+            default_rules = RulesConfig()
+            
+            # Update predefined rules with JSON config
+            for rule_name, rule_config in config_data['rules'].items():
+                if hasattr(default_rules, rule_name):
+                    # Update existing rule with JSON config
+                    existing_rule = getattr(default_rules, rule_name)
+                    if 'enabled' in rule_config:
+                        existing_rule.enabled = rule_config['enabled']
+                    if 'severity_override' in rule_config:
+                        existing_rule.severity_override = rule_config.get('severity_override')
+                    if 'custom_settings' in rule_config:
+                        existing_rule.custom_settings = rule_config['custom_settings']
+            
+            config_data['rules'] = default_rules
+        
+        # Create instance and store original data
+        instance = cls(**config_data)
+        instance._original_config_data = {'rules': original_rules_data}
+        return instance
     
     def to_file(self, config_path: str) -> None:
         """Save configuration to a JSON file."""
@@ -132,22 +161,46 @@ class ArcaneAuditorConfig(BaseModel):
     
     def is_rule_enabled(self, rule_class_name: str) -> bool:
         """Check if a specific rule is enabled using class name."""
+        # First check if it's a predefined rule
         rule_config = getattr(self.rules, rule_class_name, None)
-        if rule_config is None:
-            # If rule class name not found in config, assume it's enabled
-            return True
-        return rule_config.enabled
+        if rule_config is not None:
+            return rule_config.enabled
+        
+        # If not predefined, check if it's in the original JSON config
+        if hasattr(self, '_original_config_data') and 'rules' in self._original_config_data:
+            custom_rule = self._original_config_data['rules'].get(rule_class_name)
+            if custom_rule:
+                return custom_rule.get('enabled', True)
+        
+        # If rule class name not found anywhere, assume it's enabled
+        return True
     
     def get_rule_severity(self, rule_class_name: str, default_severity: str) -> str:
         """Get the severity for a rule using class name, using override if configured."""
+        # First check if it's a predefined rule
         rule_config = getattr(self.rules, rule_class_name, None)
-        if rule_config is None or rule_config.severity_override is None:
-            return default_severity
-        return rule_config.severity_override.value
+        if rule_config is not None and rule_config.severity_override is not None:
+            return rule_config.severity_override.value
+        
+        # If not predefined, check if it's in the original JSON config
+        if hasattr(self, '_original_config_data') and 'rules' in self._original_config_data:
+            custom_rule = self._original_config_data['rules'].get(rule_class_name)
+            if custom_rule and 'severity_override' in custom_rule:
+                return custom_rule['severity_override']
+        
+        return default_severity
     
     def get_rule_settings(self, rule_class_name: str) -> Dict[str, Any]:
         """Get custom settings for a rule using class name."""
+        # First check if it's a predefined rule
         rule_config = getattr(self.rules, rule_class_name, None)
-        if rule_config is None:
-            return {}
-        return rule_config.custom_settings
+        if rule_config is not None:
+            return rule_config.custom_settings
+        
+        # If not predefined, check if it's in the original JSON config
+        if hasattr(self, '_original_config_data') and 'rules' in self._original_config_data:
+            custom_rule = self._original_config_data['rules'].get(rule_class_name)
+            if custom_rule and 'custom_settings' in custom_rule:
+                return custom_rule['custom_settings']
+        
+        return {}
