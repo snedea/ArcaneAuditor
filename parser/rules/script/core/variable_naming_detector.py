@@ -31,7 +31,12 @@ class VariableNamingDetector(ScriptDetector):
                 if variable_node:
                     function_name = self.get_function_context_for_node(variable_node, ast)
                 
-                if function_name:
+                # Check if this is an arrow function parameter
+                var_type = var_info.get('type', 'declaration')
+                
+                if var_type == 'arrow_function_parameter':
+                    message = f"File section '{field_name}' declares arrow function parameter '{var_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'."
+                elif function_name:
                     message = f"File section '{field_name}' declares variable '{var_name}' in function '{function_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'."
                 else:
                     message = f"File section '{field_name}' declares variable '{var_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'."
@@ -120,6 +125,32 @@ class VariableNamingDetector(ScriptDetector):
                         'type': 'declaration',
                         'node': node.children[1]
                     }
+            
+            # Handle arrow function parameters
+            elif node.data == 'arrow_function_expression':
+                # Arrow functions can have parameters in different formats:
+                # 1. Single parameter: IDENTIFIER => expression
+                # 2. Multiple parameters: (param1, param2) => expression
+                # 3. Single parameter with parens: (IDENTIFIER) => expression
+                # 4. No parameters: () => expression
+                #
+                # In the AST, parameters are direct IDENTIFIER children of arrow_function_expression,
+                # followed by the function body (expression or statement_list)
+                
+                # Process all direct IDENTIFIER children as parameters
+                for child in node.children:
+                    # Parameters are IDENTIFIER tokens, the body is an AST node
+                    if hasattr(child, 'value') and hasattr(child, 'type') and child.type == 'IDENTIFIER':
+                        var_name = child.value
+                        ast_line = child.line if hasattr(child, 'line') else 1
+                        line_number = self.line_offset + ast_line - 1
+                        
+                        declared_vars[var_name] = {
+                            'line_number': line_number,
+                            'ast_line': ast_line,
+                            'type': 'arrow_function_parameter',
+                            'node': child
+                        }
         
         # Recursively check children
         if hasattr(node, 'children'):
