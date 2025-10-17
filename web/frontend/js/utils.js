@@ -103,7 +103,10 @@ export function sortFileGroups(fileGroups, sortFilesBy = 'alphabetical') {
     entries.sort(([pathA, findingsA], [pathB, findingsB]) => {
         switch (sortFilesBy) {
             case 'alphabetical':
-                return pathA.localeCompare(pathB);
+                // Extract just the filename (without job ID prefix) for sorting
+                const fileNameA = (pathA.split(/[/\\]/).pop() || pathA).replace(/^[a-f0-9-]+_/, '');
+                const fileNameB = (pathB.split(/[/\\]/).pop() || pathB).replace(/^[a-f0-9-]+_/, '');
+                return fileNameA.localeCompare(fileNameB);
             case 'issue-count':
                 return findingsB.length - findingsA.length;
             default:

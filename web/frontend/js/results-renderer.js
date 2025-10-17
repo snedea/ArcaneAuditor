@@ -108,14 +108,14 @@ export class ResultsRenderer {
                     <div class="filter-group">
                         <div class="micro-label">File Order</div>
                         <select id="sort-files-by" onchange="app.updateSortFilesBy(this.value)">
-                            <option value="alphabetical" ${this.app.currentFilters.sortFilesBy === 'alphabetical' ? 'selected' : ''}>Files</option>
+                            <option value="alphabetical" ${this.app.currentFilters.sortFilesBy === 'alphabetical' ? 'selected' : ''}>File Name</option>
                             <option value="issue-count" ${this.app.currentFilters.sortFilesBy === 'issue-count' ? 'selected' : ''}>Issue Count</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <div class="micro-label">Issue Order</div>
                         <select id="sort-by" onchange="app.updateSortBy(this.value)">
-                            <option value="severity" ${this.app.currentFilters.sortBy === 'severity' ? 'selected' : ''}>Issues</option>
+                            <option value="severity" ${this.app.currentFilters.sortBy === 'severity' ? 'selected' : ''}>Severity</option>
                             <option value="line" ${this.app.currentFilters.sortBy === 'line' ? 'selected' : ''}>Line Number</option>
                             <option value="rule" ${this.app.currentFilters.sortBy === 'rule' ? 'selected' : ''}>Rule ID</option>
                         </select>
