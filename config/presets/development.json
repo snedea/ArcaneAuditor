@@ -137,7 +137,9 @@
     "WidgetIdRequiredRule": {
       "enabled": true,
       "severity_override": null,
-      "custom_settings": {}
+      "custom_settings": {
+        "excluded_widget_types": []
+      }
     },
     "WidgetIdLowerCamelCaseRule": {
       "enabled": true,

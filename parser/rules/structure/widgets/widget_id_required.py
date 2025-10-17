@@ -20,12 +20,36 @@ class WidgetIdRequiredRule(StructureRuleBase):
     DESCRIPTION = "Ensures all widgets have an 'id' field set (structure validation for PMD and POD files)"
     SEVERITY = "ACTION"
     
-    # Widget types that do not require or support ID values
-    WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {
+    # Widget types that do not require or support ID values (built-in exclusions)
+    BUILT_IN_WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {
         'footer', 'item', 'group', 'title', 'pod', 'cardContainer', 'card',
         'instanceList', 'taskReference', 'editTasks', 'multiSelectCalendar',
         'bpExtender', 'hub'
     }
+    
+    def __init__(self, config=None):
+        """Initialize the rule with optional configuration."""
+        super().__init__()
+        
+        # Start with built-in exclusions
+        self.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = self.BUILT_IN_WIDGET_TYPES_WITHOUT_ID_REQUIREMENT.copy()
+        
+        # Add custom exclusions from configuration
+        if config and 'excluded_widget_types' in config:
+            custom_exclusions = set(config['excluded_widget_types'])
+            self.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT.update(custom_exclusions)
+    
+    def apply_settings(self, settings: dict):
+        """
+        Apply custom settings to the rule instance.
+        This method is called by the rules engine to apply configuration.
+        
+        Args:
+            settings: Dictionary containing custom settings
+        """
+        if 'excluded_widget_types' in settings:
+            custom_exclusions = set(settings['excluded_widget_types'])
+            self.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT.update(custom_exclusions)
     
     # Special containers where children don't need IDs
     # Format: 'containerFieldName' or 'parentType.containerFieldName'

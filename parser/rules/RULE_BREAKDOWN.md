@@ -1672,6 +1672,7 @@ Security domains control who can access your PMD pages in Workday. Missing secur
 **Severity:** ACTION
 **Description:** Ensures all widgets have an 'id' field set
 **Applies to:** PMD and POD widget structures
+**Configurable:** ✅ Custom widget type exclusions can be configured
 
 **Why This Matters:**
 
@@ -1683,7 +1684,22 @@ Widget IDs are essential for referencing widgets in scripts (to get/set values, 
 
 **Smart Exclusions:**
 
-Widget types that don't require IDs: `footer`, `item`, `group`, `title`, `pod`, `cardContainer`, `card`, and column objects (which use `columnId` instead). There are others not listed and we will continue to refine the exclusions where we find necessary.
+Built-in widget types that don't require IDs: `footer`, `item`, `group`, `title`, `pod`, `cardContainer`, `card`, `instanceList`, `taskReference`, `editTasks`, `multiSelectCalendar`, `bpExtender`, `hub`, and column objects (which use `columnId` instead).
+
+**Custom Configuration:**
+
+You can add additional widget types to exclude from ID requirements:
+
+```json
+{
+  "WidgetIdRequiredRule": {
+    "enabled": true,
+    "custom_settings": {
+      "excluded_widget_types": ["section", "fieldSet", "customWidget"]
+    }
+  }
+}
+```
 
 **Example violations:**
 
