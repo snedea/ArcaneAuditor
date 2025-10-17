@@ -27,6 +27,20 @@ class UnusedVariableDetector(ScriptDetector):
         """
         violations = []
         
+        # Handle template expressions specially
+        if hasattr(ast, 'data') and ast.data == 'template_expression':
+            # Analyze each script block in the template expression
+            if hasattr(ast, 'children'):
+                for child in ast.children:
+                    if hasattr(child, 'data') and child.data == 'template_script_block':
+                        # This is a script block - analyze its AST
+                        if hasattr(child, 'children') and len(child.children) > 0:
+                            script_ast = child.children[0]
+                            # Recursively analyze the script block AST
+                            violations.extend(self.detect(script_ast, field_name))
+            return violations
+        
+        # Handle regular script analysis
         # Analyze the script with scope awareness
         scope_analysis = self._analyze_script_scope(ast, self.is_global_scope, self.global_functions)
         
@@ -147,13 +161,17 @@ class UnusedVariableDetector(ScriptDetector):
                         }
         else:
             # For function scope, look for variable statements within the function
+            # but exclude those that are inside nested functions
             for node in ast.find_data('variable_statement'):
-                var_name = self._get_variable_name_from_statement(node)
-                if var_name:
-                    declared_vars[var_name] = {
-                        'node': node,
-                        'is_function': False
-                    }
+                # Only include variable statements that are direct children of this function
+                # (not nested inside other function expressions)
+                if self._is_direct_child_of_function(node, ast):
+                    var_name = self._get_variable_name_from_statement(node)
+                    if var_name:
+                        declared_vars[var_name] = {
+                            'node': node,
+                            'is_function': False
+                        }
         
         # Find function declarations within this scope
         for node in ast.find_data('function_expression'):
@@ -206,6 +224,22 @@ class UnusedVariableDetector(ScriptDetector):
             if child == node:
                 return True
         
+        return False
+
+    def _is_direct_child_of_function(self, node: Any, function_ast: Any) -> bool:
+        """Check if a variable statement is a direct child of the function (not nested in other functions)."""
+        # Find the function body and check if the variable statement is directly within it
+        # Look for the function body (block_statement) within the function
+        for block_node in function_ast.find_data('block_statement'):
+            # Check if this variable statement is a direct child of the function body
+            if hasattr(block_node, 'children'):
+                for child in block_node.children:
+                    if child == node:
+                        # Found the variable statement as a direct child of the function body
+                        return True
+        
+        # If we didn't find it as a direct child of any block_statement in the function,
+        # it might be nested inside another function
         return False
 
     def _get_variable_name_from_statement(self, node: Any) -> str:

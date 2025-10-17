@@ -75,7 +75,6 @@ class ScriptDetector(ABC):
             if hasattr(self, 'file_path'):
                 print(f"   file: {self.file_path}")
     
-    @abstractmethod
     def detect(self, ast: Any) -> List[Violation]:
         """
         Analyze AST and return list of violations.
@@ -86,7 +85,57 @@ class ScriptDetector(ABC):
         Returns:
             List of Violation objects
         """
-        pass
+        violations = []
+        
+        # Handle template expressions specially
+        if hasattr(ast, 'data') and ast.data == 'template_expression':
+            violations.extend(self._detect_template_expression(ast))
+        else:
+            # Handle regular script analysis
+            violations.extend(self._detect_regular_script(ast))
+        
+        return violations
+    
+    def _detect_template_expression(self, template_ast: Any) -> List[Violation]:
+        """
+        Analyze template expression by traversing each script block.
+        
+        Args:
+            template_ast: template_expression AST node
+            
+        Returns:
+            List of Violation objects found in script blocks
+        """
+        violations = []
+        
+        if not hasattr(template_ast, 'children'):
+            return violations
+        
+        # Traverse each child of the template expression
+        for child in template_ast.children:
+            if hasattr(child, 'data') and child.data == 'template_script_block':
+                # This is a script block - analyze its AST
+                if hasattr(child, 'children') and len(child.children) > 0:
+                    script_ast = child.children[0]
+                    # Recursively analyze the script block AST
+                    violations.extend(self._detect_regular_script(script_ast))
+            # Skip template_text nodes - they don't contain script to analyze
+        
+        return violations
+    
+    def _detect_regular_script(self, ast: Any) -> List[Violation]:
+        """
+        Analyze regular script AST (to be implemented by subclasses).
+        
+        Args:
+            ast: Parsed AST node
+            
+        Returns:
+            List of Violation objects
+        """
+        # This method should be overridden by subclasses
+        # For now, return empty list to avoid breaking existing detectors
+        return []
     
     def get_line_number(self, node: Any) -> int:
         """Get line number from AST node with offset."""

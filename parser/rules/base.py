@@ -256,6 +256,12 @@ class Rule(ABC):
                     new_prefix = f"{prefix}.{key}" if prefix else key
                     new_display_prefix = f"{display_prefix}->{key}" if display_prefix else key
                     _search_dict(value, new_prefix, file_content, new_display_prefix)
+                elif hasattr(value, 'model_dump'):  # Handle Pydantic models
+                    # Convert Pydantic model to dictionary
+                    model_dict = value.model_dump()
+                    new_prefix = f"{prefix}.{key}" if prefix else key
+                    new_display_prefix = f"{display_prefix}->{key}" if display_prefix else key
+                    _search_dict(model_dict, new_prefix, file_content, new_display_prefix)
                 elif isinstance(value, list):
                     for i, item in enumerate(value):
                         if isinstance(item, dict):
@@ -283,13 +289,23 @@ class Rule(ABC):
                                 used_hashes[value_hash] = occurrence_index + 1
                                 
                                 line_offset = self._calculate_script_line_offset(
-                                    file_content, item,
+                                    file_content, item, 
                                     search_start_line=last_line_found,
                                     occurrence_index=occurrence_index
                                 ) if file_content else 1
                             
                             last_line_found = line_offset
                             script_fields.append((field_path, item, display_name, line_offset))
+                        elif hasattr(item, 'model_dump'):  # Handle Pydantic models in lists
+                            # Convert Pydantic model to dictionary
+                            model_dict = item.model_dump()
+                            new_prefix = f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}"
+                            
+                            # Create human-readable path using priority: id -> label -> type -> name -> index
+                            readable_id = self._get_readable_identifier(model_dict, i)
+                            new_display_prefix = f"{display_prefix}->{key}[{i}]->{readable_id}" if display_prefix else f"{key}[{i}]->{readable_id}"
+                            
+                            _search_dict(model_dict, new_prefix, file_content, new_display_prefix)
         
         # Get the source content from the PMD model
         source_content = getattr(pmd_model, 'source_content', '')
@@ -575,23 +591,18 @@ class Rule(ABC):
             # This happens when JSON string values like "template is <% foo %> and <% bar %>" are passed
             stripped_content = script_content.strip()
             if ('<%' in stripped_content and '%>' in stripped_content and 
-                not (stripped_content.startswith('<%') and stripped_content.endswith('%>'))):
-                # This is a string value containing script blocks - extract and parse the first one
-                # We parse the first script block we find, as that's typically what rules are looking for
-                import re
-                script_match = re.search(r'<%([^%]*(?:%[^>][^%]*)*)%>', stripped_content)
-                if script_match:
-                    # Extract the first script block content (without the <% %> tags)
-                    script_content = script_match.group(1)
-                    # Parse the extracted script content directly to avoid recursion
-                    from ..pmd_script_parser import parse_with_preprocessor
+                stripped_content.count('<%') > 1):
+                # This is a template expression with multiple script blocks - handle it specially
+                from .script.shared.template_expression_preprocessor import TemplateExpressionPreprocessor
+                preprocessor = TemplateExpressionPreprocessor()
+                if preprocessor.is_template_expression(stripped_content):
+                    # Parse as template expression
                     try:
-                        return parse_with_preprocessor(script_content)
-                    except Exception:
+                        return preprocessor.preprocess_template_expression(stripped_content)
+                    except Exception as e:
+                        print(f"Warning: Failed to parse template expression: {e}")
                         return None
-                else:
-                    # No valid script block found
-                    return None
+                
             
             # Use context-level caching if available
             if context is not None:

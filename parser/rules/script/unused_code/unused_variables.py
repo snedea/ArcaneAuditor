@@ -27,7 +27,10 @@ class ScriptUnusedVariableRule(ScriptRuleBase):
             return
         
         # Determine scope information
-        is_global_scope = (field_name == 'script')
+        # Template expressions and script fields (onSend, onLoad, etc.) should be analyzed as global scope
+        is_global_scope = (field_name == 'script' or 
+                          (ast and hasattr(ast, 'data') and ast.data == 'template_expression') or
+                          'onSend' in field_name or 'onLoad' in field_name or 'onChange' in field_name)
         global_functions = self._get_global_functions_for_file(file_path)
         
         # Use detector to find violations
