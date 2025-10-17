@@ -41,6 +41,11 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
     def _check_endpoint_fail_on_status_codes(self, endpoint, model, endpoint_type, index):
         """Check if an endpoint has proper failOnStatusCodes structure."""
         endpoint_name = endpoint.get('name')
+        
+        # Skip outbound endpoints that have variableScope (these are outboundVariables, not regular endpoints)
+        if endpoint_type == 'outbound' and 'variableScope' in endpoint:
+            return
+        
         fail_on_status_codes = endpoint.get('failOnStatusCodes', None)
         
         # Check if failOnStatusCodes exists
