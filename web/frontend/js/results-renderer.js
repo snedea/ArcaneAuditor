@@ -169,7 +169,7 @@ export class ResultsRenderer {
                                         <div class="finding ${finding.severity.toLowerCase()}">
                                             <div class="finding-header">
                                                 ${getSeverityIcon(finding.severity)}
-                                                <strong>[${finding.rule_id}:${finding.line}]</strong> ${finding.message}
+                                                <strong>[${finding.rule_id}]</strong> ${finding.message}
                                             </div>
                                             <div class="finding-details">
                                                 <span><strong>Line:</strong> ${finding.line}</span>
