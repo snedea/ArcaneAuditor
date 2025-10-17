@@ -25,7 +25,9 @@
     "ScriptNestingLevelRule": {
       "enabled": true,
       "severity_override": null,
-      "custom_settings": {}
+      "custom_settings": {
+        "max_nesting_level": 4
+      }
     },
     "ScriptConsoleLogRule": {
       "enabled": true,

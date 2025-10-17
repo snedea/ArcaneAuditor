@@ -135,7 +135,7 @@ This rule validates the export pattern specific to standalone `.script` files. S
 // In util.script
 const getCurrentTime = function() { return date:now(); };
 const unusedHelper = function() { return "unused"; };    // ❌ Dead code - not exported or used
-const API_URL = "https://api.example.com";  // ❌ Dead code - constant not exported or used
+const apiUrl = "https://api.example.com";  // ❌ Dead code - constant not exported or used
 
 {
   "getCurrentTime": getCurrentTime  // ❌ unusedHelper and API_KEY are dead code
@@ -148,12 +148,12 @@ const API_URL = "https://api.example.com";  // ❌ Dead code - constant not expo
 // In util.script
 const getCurrentTime = function() { return date:now(); };
 const helperFunction = function() { return "helper"; };    // ✅ Will be exported
-const API_URL = "https://api.example.com";  // ✅ Will be exported
+const apiUrl = "https://api.example.com";  // ✅ Will be exported
 
 {
   "getCurrentTime": getCurrentTime,
   "helperFunction": helperFunction,
-  "API_URL": API_URL  // ✅ All declarations are exported
+  "apiUrl": apiUrl  // ✅ All declarations are exported
 }
 ```
 
@@ -161,13 +161,18 @@ const API_URL = "https://api.example.com";  // ✅ Will be exported
 
 ```javascript
 // In util.script
-const CACHE_TTL = 3600;  // ✅ Used internally (not exported)
+const cacheTtl
+ = 3600;  // ✅ Used internally (not exported)
 const getCurrentTime = function() { 
-  return { "time": date:now(), "ttl": CACHE_TTL };  // Uses CACHE_TTL
+  return { "time": date:now(), "ttl": cacheTtl
+    
+   };  // Uses cacheTtl
+  
 };
 
 {
-  "getCurrentTime": getCurrentTime  // ✅ CACHE_TTL is used internally
+  "getCurrentTime": getCurrentTime  // ✅ cacheTtl
+  //  is used internally
 }
 ```
 
@@ -176,6 +181,7 @@ const getCurrentTime = function() {
 **Severity:** ADVICE
 **Description:** Ensures scripts don't have excessive nesting levels (max 4 levels)
 **Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+**Configurable:** ✅ Maximum nesting level can be customized
 
 **Why This Matters:**
 
@@ -185,6 +191,21 @@ Deep nesting (more than 4 levels of if/for/while statements) makes code exponent
 
 - Overly nested code structures (if statements, loops, functions)
 - Code that's difficult to read and maintain due to deep nesting
+
+**Configuration:**
+
+The maximum nesting level can be customized in config files:
+
+```json
+{
+  "ScriptNestingLevelRule": {
+    "enabled": true,
+    "custom_settings": {
+      "max_nesting_level": 3
+    }
+  }
+}
+```
 
 **Example violations:**
 

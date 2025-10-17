@@ -13,6 +13,16 @@ class NestingLevelDetector(ScriptDetector):
         super().__init__(file_path, line_offset)
         self.max_nesting = 4
     
+    def apply_settings(self, settings: dict):
+        """
+        Apply custom settings to the detector.
+        
+        Args:
+            settings: Dictionary containing custom settings
+        """
+        if 'max_nesting_level' in settings:
+            self.max_nesting = settings['max_nesting_level']
+    
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
         """Detect excessive nesting levels in the AST."""
         # Analyze nesting levels using AST
@@ -20,8 +30,8 @@ class NestingLevelDetector(ScriptDetector):
         max_nesting_found = nesting_info['max_nesting']
         
         if max_nesting_found > self.max_nesting:
-            # Get function context using the common base class method
-            function_context = self.get_function_context_for_node(ast, ast)
+            # Get function context from the nesting analysis
+            function_context = nesting_info.get('function_context')
             
             # Create a more descriptive message with function context
             if function_context:
@@ -58,14 +68,17 @@ class NestingLevelDetector(ScriptDetector):
         # Check if this is a function expression
         if hasattr(node, 'data'):
             if node.data == 'function_expression':
-                # Extract function name if available
-                if len(node.children) > 0 and hasattr(node.children[0], 'type') and node.children[0].type == 'FUNCTION':
-                    if len(node.children) > 1 and hasattr(node.children[1], 'value'):
-                        function_context = node.children[1].value
                 # Function expressions don't add nesting depth - only their bodies do
                 # The nesting depth will be determined by control flow structures inside the function
+                pass
+            elif node.data == 'variable_declaration':
+                # Extract function name from variable declaration (const myFunc = function() {...})
+                if len(node.children) >= 2:
+                    var_name = node.children[0]
+                    if hasattr(var_name, 'value'):
+                        function_context = var_name.value
             
-            elif node.data in ['block', 'if_statement', 'while_statement', 'for_statement', 'for_var_statement', 'do_statement']:
+            elif node.data in ['if_statement', 'while_statement', 'for_statement', 'for_var_statement', 'do_statement']:
                 # Control flow structures add nesting
                 current_depth += 1
                 if current_depth > max_nesting:

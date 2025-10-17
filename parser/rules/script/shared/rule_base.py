@@ -19,6 +19,17 @@ class ScriptRuleBase(Rule, ABC):
         """Get rule description - must be implemented by subclasses."""
         pass
     
+    def apply_settings(self, settings: dict):
+        """
+        Apply custom settings to the rule.
+        This method is called by the rules engine to apply configuration.
+        
+        Args:
+            settings: Dictionary containing custom settings
+        """
+        # Store settings for use in detector instantiation
+        self._custom_settings = settings
+    
     def analyze(self, context) -> Generator[Finding, None, None]:
         """Main analysis entry point."""
         # Analyze PMD files
@@ -72,6 +83,11 @@ class ScriptRuleBase(Rule, ABC):
         
         # Use detector to find violations
         detector = self.DETECTOR(file_path, line_offset)
+        
+        # Apply custom settings to detector if available
+        if hasattr(self, '_custom_settings') and hasattr(detector, 'apply_settings'):
+            detector.apply_settings(self._custom_settings)
+        
         violations = detector.detect(ast, field_name)
         
         # Convert violations to findings

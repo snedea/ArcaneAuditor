@@ -67,6 +67,40 @@ class TestScriptNestingLevelRule:
         findings = list(self.rule.analyze(self.context))
         
         assert len(findings) == 0
+    
+    def test_custom_nesting_level_configuration(self):
+        """Test that custom nesting level configuration works."""
+        from parser.models import PMDModel
+        
+        # Create rule with custom configuration
+        rule = ScriptNestingLevelRule()
+        rule.apply_settings({'max_nesting_level': 2})
+        
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content="",
+            script="""<%
+  const processData = function(data) {
+    if (data.level1) {
+      if (data.level2) {
+        if (data.level3) {
+          return 'should be flagged with max_nesting=2';
+        }
+      }
+    }
+    return 'default';
+  };
+%>"""
+        )
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(rule.analyze(self.context))
+        
+        # With max_nesting=2, 3 levels should be flagged
+        assert len(findings) >= 1
+        assert "nesting" in findings[0].message.lower() or "depth" in findings[0].message.lower()
+        assert "max recommended: 2" in findings[0].message
 
 
 if __name__ == '__main__':

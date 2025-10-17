@@ -11,7 +11,7 @@ Arcane Auditor unified architecture. It demonstrates:
 - Context-based AST caching for performance
 - Hash-based line number calculation (exact, no off-by-one errors)
 - Proper error handling and AST parsing
-- Configuration support through custom_settings
+- Configuration support through custom_settings and apply_settings method
 - Readable widget paths with id/label/type priority
 """
 
@@ -31,7 +31,7 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
     - Generator-based analysis (yields violations instead of returning lists)
     - Dual script analysis (PMD embedded scripts + standalone .script files)
     - Modern Violation creation with automatic field population
-    - Configurable thresholds through custom_settings
+    - Configurable thresholds through custom_settings and apply_settings method
     - Proper error handling for parsing failures
     """
     
@@ -43,9 +43,26 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
     def __init__(self, config: dict = None):
         """Initialize with optional configuration."""
         self.config = config or {}
-        # Configurable threshold - can be overridden in rule configuration
-        self.min_comment_density = self.config.get('min_comment_density', 0.1)  # 10% default
-        self.min_function_lines = self.config.get('min_function_lines', 5)  # Only check functions > 5 lines
+        # Default values - can be overridden via apply_settings()
+        self.min_comment_density = 0.1  # 10% default
+        self.min_function_lines = 5  # Only check functions > 5 lines
+        
+        # Apply initial configuration if provided
+        if config:
+            self.apply_settings(config)
+    
+    def apply_settings(self, settings: dict):
+        """
+        Apply custom settings to the rule.
+        This method is called by the rules engine to apply configuration.
+        
+        Args:
+            settings: Dictionary containing custom settings
+        """
+        if 'min_comment_density' in settings:
+            self.min_comment_density = settings['min_comment_density']
+        if 'min_function_lines' in settings:
+            self.min_function_lines = settings['min_function_lines']
     
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """
@@ -239,8 +256,26 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
     def __init__(self, config: dict = None):
         """Initialize with configuration."""
         self.config = config or {}
-        self.required_sections = self.config.get('required_sections', ['id', 'presentation'])
-        self.max_endpoints = self.config.get('max_endpoints', 10)
+        # Default values - can be overridden via apply_settings()
+        self.required_sections = ['id', 'presentation']
+        self.max_endpoints = 10
+        
+        # Apply initial configuration if provided
+        if config:
+            self.apply_settings(config)
+    
+    def apply_settings(self, settings: dict):
+        """
+        Apply custom settings to the rule.
+        This method is called by the rules engine to apply configuration.
+        
+        Args:
+            settings: Dictionary containing custom settings
+        """
+        if 'required_sections' in settings:
+            self.required_sections = settings['required_sections']
+        if 'max_endpoints' in settings:
+            self.max_endpoints = settings['max_endpoints']
     
     def get_description(self) -> str:
         """Required by StructureRuleBase."""
