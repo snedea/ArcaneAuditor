@@ -150,7 +150,26 @@ class ConfigurationManager:
         
         # Create merged configuration
         try:
-            return ArcaneAuditorConfig(**merged_data)
+            merged_config = ArcaneAuditorConfig(**merged_data)
+            
+            # Preserve original config data for dynamic rule support
+            # Merge original config data from both base and overlay
+            merged_original_data = {"rules": {}}
+            
+            # Start with base original data
+            if hasattr(base, '_original_config_data') and base._original_config_data:
+                base_original_rules = base._original_config_data.get('rules', {})
+                merged_original_data["rules"].update(base_original_rules)
+            
+            # Overlay with higher priority original data
+            if hasattr(overlay, '_original_config_data') and overlay._original_config_data:
+                overlay_original_rules = overlay._original_config_data.get('rules', {})
+                merged_original_data["rules"].update(overlay_original_rules)
+            
+            # Set the merged original config data
+            merged_config._original_config_data = merged_original_data
+            
+            return merged_config
         except Exception as e:
             print(f"Warning: Failed to create merged configuration: {e}")
             return base  # Return base configuration as fallback

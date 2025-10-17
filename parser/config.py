@@ -185,7 +185,7 @@ class ArcaneAuditorConfig(BaseModel):
         # If not predefined, check if it's in the original JSON config
         if hasattr(self, '_original_config_data') and 'rules' in self._original_config_data:
             custom_rule = self._original_config_data['rules'].get(rule_class_name)
-            if custom_rule and 'severity_override' in custom_rule:
+            if custom_rule and 'severity_override' in custom_rule and custom_rule['severity_override'] is not None:
                 return custom_rule['severity_override']
         
         return default_severity

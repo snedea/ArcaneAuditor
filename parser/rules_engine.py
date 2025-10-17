@@ -59,7 +59,7 @@ class RulesEngine:
             configured_severity = self.config.get_rule_severity(rule.__class__.__name__, original_severity)
             if configured_severity != original_severity:
                 rule.SEVERITY = configured_severity
-                print(f"🔧 Override severity for {rule.__class__.__name__}: {original_severity} → {configured_severity}")
+                print(f"[CONFIG] Override severity for {rule.__class__.__name__}: {original_severity} -> {configured_severity}")
         
         # Apply custom settings if the rule supports it
         custom_settings = self.config.get_rule_settings(rule.__class__.__name__)
