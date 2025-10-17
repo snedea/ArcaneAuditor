@@ -30,7 +30,7 @@ class TestEndpointFailOnStatusCodesRule:
             source_content="",
             inboundEndpoints=[{
                 "name": "getUser",
-                "url": "/users/me"
+                "url": "/workers/me"
             }]
         )
         self.context.pmds["testPage"] = pmd_model
@@ -50,7 +50,7 @@ class TestEndpointFailOnStatusCodesRule:
             source_content="",
             inboundEndpoints=[{
                 "name": "getUser",
-                "url": "/users/me",
+                "url": "/workers/me",
                 "failOnStatusCodes": [{"code": 400}, {"code": 403}]
             }]
         )
