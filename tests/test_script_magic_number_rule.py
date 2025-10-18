@@ -96,8 +96,8 @@ class TestScriptMagicNumberRule:
         # Should have no violations - 0, 1, -1 are allowed
         assert len(findings) == 0
     
-    def test_let_variable_declarations_not_flagged(self):
-        """Test that numbers in let declarations are not flagged."""
+    def test_let_variable_declarations_flagged(self):
+        """Test that numbers in let declarations ARE flagged."""
         script_content = """<%
             let maxRetries = 25;
             let defaultTimeout = 3;
@@ -106,18 +106,18 @@ class TestScriptMagicNumberRule:
         pmd_model = PMDModel(
             pageId="test-page",
             file_path="test.pmd",
-            source_content='{"script": "' + script_content.replace('\n', '\\n').replace('"', '\\"') + '"}'
+            source_content='{"script": "' + script_content.replace('\n', '\\n').replace('"', '\\"') + '"}' 
         )
         pmd_model.script = script_content
         self.context.pmds["test-page"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
-        # Should have no violations - numbers are in variable declarations
-        assert len(findings) == 0
+        # Should have violations - let declarations are not named constants
+        assert len(findings) == 2
     
-    def test_var_variable_declarations_not_flagged(self):
-        """Test that numbers in var declarations are not flagged."""
+    def test_var_variable_declarations_flagged(self):
+        """Test that numbers in var declarations ARE flagged."""
         script_content = """<%
             var serverPort = 8080;
             var attemptLimit = 5;
@@ -126,15 +126,15 @@ class TestScriptMagicNumberRule:
         pmd_model = PMDModel(
             pageId="test-page",
             file_path="test.pmd",
-            source_content='{"script": "' + script_content.replace('\n', '\\n').replace('"', '\\"') + '"}'
+            source_content='{"script": "' + script_content.replace('\n', '\\n').replace('"', '\\"') + '"}' 
         )
         pmd_model.script = script_content
         self.context.pmds["test-page"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
         
-        # Should have no violations - numbers are in variable declarations
-        assert len(findings) == 0
+        # Should have violations - var declarations are not named constants
+        assert len(findings) == 2
 
 
 if __name__ == '__main__':

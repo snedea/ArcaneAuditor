@@ -22,7 +22,7 @@ _eos: eos
 
 ?block: "{" statement_list? "}"
 
-?statement_list: statement+
+?statement_list: statement (_eos statement)* _eos?
 
 ?variable_statement: VAR variable_declaration_list
     | LET variable_declaration_list
