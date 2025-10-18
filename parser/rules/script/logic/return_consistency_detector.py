@@ -34,7 +34,6 @@ class ReturnConsistencyVisitor:
         self.memo_cache: Dict[int, ReturnAnalysis] = {}
         self.file_path = file_path
         self.line_offset = line_offset
-        self.function_depth = 0
         
         # Method dispatch for performance
         self.visit_methods = {
@@ -69,18 +68,14 @@ class ReturnConsistencyVisitor:
         if is_script_expression_with_returns(node):
             return ReturnAnalysis(node_type="script_expression")
         
-        self.function_depth += 1
-        
-        # Skip nested functions (implementation details)
-        if self.function_depth > 1:
-            self.function_depth -= 1
-            return ReturnAnalysis(node_type="inline_function")
-        
-        # Analyze function body
+        # Analyze function body - each function should be analyzed independently
         function_body = self._extract_function_body(node)
         
         if function_body:
-            analysis = self.visit(function_body)
+            # Create a new visitor instance for this function to avoid depth conflicts
+            nested_visitor = ReturnConsistencyVisitor(self.file_path, self.line_offset)
+            analysis = nested_visitor.visit(function_body)
+            
             result = ReturnAnalysis(
                 has_return=analysis.has_return,
                 all_paths_return=analysis.all_paths_return,
@@ -92,7 +87,6 @@ class ReturnConsistencyVisitor:
         else:
             result = ReturnAnalysis(node_type="function_definition")
         
-        self.function_depth -= 1
         return result
     
     def _extract_function_body(self, node: Any) -> Optional[Any]:
@@ -210,14 +204,19 @@ class ReturnConsistencyVisitor:
             # Check for inconsistency
             if if_analysis.all_paths_return or final_else.all_paths_return:
                 if not (if_analysis.all_paths_return and final_else.all_paths_return):
-                    is_inconsistent = True
+                    # Only inconsistent if IF returns but ELSE doesn't
+                    # If ELSE returns but IF doesn't, that's a guard clause (OK)
+                    if if_analysis.all_paths_return and not final_else.all_paths_return:
+                        is_inconsistent = True
+                    else:
+                        is_inconsistent = False
         else:
             # Handle case where there's else-if but no final else
             if else_analyses:
                 any_else_returns = any(ea.has_return for ea in else_analyses)
                 if if_analysis.has_return or any_else_returns:
                     all_paths_return = False
-                    is_inconsistent = True
+                    is_inconsistent = False
         
         return ReturnAnalysis(
             has_return=if_analysis.has_return or all_else_return,
@@ -369,6 +368,16 @@ class ReturnConsistencyVisitor:
         if state['has_early_return_pattern'] and state['has_final_return']:
             return True
         
+        # If there's a final return and control flow but no early returns, still valid
+        # This handles cases like parseFunction where if statements don't contain returns
+        # but all paths eventually lead to the final return
+        # Only apply this if there are NO early returns at all AND no inconsistent patterns
+        if (state['has_final_return'] and 
+            not state['has_early_return_pattern'] and
+            not state['has_inconsistency'] and
+            state['last_return_index'] >= 0):
+            return True
+        
         # Check for unreachable code after if-else
         if state['has_if_else_all_paths_return']:
             for i, child in enumerate(node.children):
@@ -410,15 +419,16 @@ class ReturnConsistencyDetector(ScriptDetector):
     
     def _analyze_function(self, node: Any, violations: List[Violation], full_ast: Any):
         """Analyze a single function for return consistency."""
-        visitor = ReturnConsistencyVisitor(self.file_path, self.line_offset)
-        analysis = visitor.visit(node)
-        
-        # Skip inline functions
-        if analysis.node_type != "function_definition":
+        # Extract the function body first
+        function_body = self._extract_function_body(node)
+        if not function_body:
             return
         
-        # Add violations from analysis
-        violations.extend(analysis.violations)
+        # Create a visitor that will analyze only the outer function's procedural code
+        visitor = ReturnConsistencyVisitor(self.file_path, self.line_offset)
+        
+        # Analyze only the outer function's procedural code, excluding nested functions
+        analysis = self._analyze_outer_function_only(function_body, visitor)
         
         # Apply policy decisions
         function_name = self.get_function_context_for_node(node, full_ast)
@@ -446,6 +456,73 @@ class ReturnConsistencyDetector(ScriptDetector):
                 "has inconsistent return pattern - some paths return values, others don't",
                 node
             ))
+    
+    def _analyze_outer_function_only(self, function_body: Any, visitor: 'ReturnConsistencyVisitor') -> 'ReturnAnalysis':
+        """Analyze only the outer function's procedural code, excluding nested functions."""
+        if not hasattr(function_body, 'children'):
+            return ReturnAnalysis()
+        
+        # Collect only the procedural statements, excluding nested function definitions
+        procedural_statements = []
+        
+        for child in function_body.children:
+            # Skip nested function definitions
+            if hasattr(child, 'data'):
+                if child.data in ['function_expression', 'arrow_function', 'function_declaration']:
+                    # This is a nested function - skip it for outer function analysis
+                    continue
+                elif child.data == 'variable_statement':
+                    # Check if this variable statement contains a function expression
+                    if self._contains_function_expression(child):
+                        # This is a nested function declaration - skip it
+                        continue
+            
+            # This is procedural code - include it in analysis
+            procedural_statements.append(child)
+        
+        # If no procedural statements, return empty analysis
+        if not procedural_statements:
+            return ReturnAnalysis()
+        
+        # Create a mock AST node with only the procedural statements
+        class MockAST:
+            def __init__(self, children):
+                self.children = children
+                self.data = 'source_elements'
+        
+        mock_ast = MockAST(procedural_statements)
+        
+        # Analyze only the procedural code
+        return visitor.visit(mock_ast)
+    
+    def _contains_function_expression(self, variable_statement: Any) -> bool:
+        """Check if a variable statement contains a function expression."""
+        if not hasattr(variable_statement, 'children'):
+            return False
+        
+        for child in variable_statement.children:
+            if hasattr(child, 'data') and child.data == 'variable_declaration':
+                if hasattr(child, 'children') and len(child.children) >= 2:
+                    func_expr = child.children[1]
+                    if hasattr(func_expr, 'data') and func_expr.data == 'function_expression':
+                        return True
+        
+        return False
+    
+    def _extract_function_body(self, node: Any) -> Optional[Any]:
+        """Extract function body from function node."""
+        # Try standard extraction first
+        body = get_function_body(node)
+        if body:
+            return body
+        
+        # Fallback: search for body in children
+        if hasattr(node, 'children'):
+            for child in node.children:
+                if hasattr(child, 'data') and child.data in ['source_elements', 'block_statement']:
+                    return child
+        
+        return None
     
     def _create_violation(self, function_name: Optional[str], message_suffix: str, node: Any) -> Violation:
         """Create a violation with appropriate message."""
