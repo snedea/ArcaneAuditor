@@ -83,35 +83,89 @@ class LongFunctionDetector(ScriptDetector):
         return long_functions
     
     def _count_function_lines(self, func_body) -> int:
-        """Count the number of lines in a function body."""
+        """Count the number of code lines in a function body, excluding nested function bodies."""
         if not hasattr(func_body, 'children'):
             return 1
         
-        # Count actual lines by finding the range of line numbers
-        min_line = None
-        max_line = None
+        counted_lines = set()
         
-        # Traverse all nodes in the function body to find line number range
-        def find_line_range(node):
-            nonlocal min_line, max_line
+        def collect_lines(node, inside_nested_function=False):
+            # Check if this node is a nested function definition
+            is_nested_function = False
+            if hasattr(node, 'data'):
+                if node.data in ['function_expression', 'arrow_function', 'function_declaration']:
+                    is_nested_function = True
+                    # Don't traverse into nested functions at all
+                    return
+                
+                # Also check for variable statements that contain function expressions
+                if node.data == 'variable_statement':
+                    # Check if this variable statement contains a function expression
+                    if hasattr(node, 'children'):
+                        for child in node.children:
+                            if hasattr(child, 'data') and child.data == 'variable_declaration':
+                                if hasattr(child, 'children') and len(child.children) >= 2:
+                                    func_expr = child.children[1]
+                                    if hasattr(func_expr, 'data') and func_expr.data == 'function_expression':
+                                        is_nested_function = True
+                                        # Don't traverse into this variable statement at all
+                                        return
             
-            # Check if this node has a line number
-            if hasattr(node, 'line') and node.line is not None:
-                if min_line is None or node.line < min_line:
-                    min_line = node.line
-                if max_line is None or node.line > max_line:
-                    max_line = node.line
+            # Only count lines if we're not inside a nested function
+            if not inside_nested_function:
+                if hasattr(node, 'line') and node.line is not None:
+                    # Skip newline tokens that might be associated with function declarations
+                    if hasattr(node, 'type') and node.type == 'NEWLINE':
+                        # Don't count newline tokens
+                        pass
+                    elif self._is_code_line(node):
+                        counted_lines.add(node.line)
             
             # Recursively check children
             if hasattr(node, 'children'):
                 for child in node.children:
-                    find_line_range(child)
+                    collect_lines(child, inside_nested_function or is_nested_function)
         
-        find_line_range(func_body)
+        collect_lines(func_body)
         
-        # Calculate line count
-        if min_line is not None and max_line is not None:
-            return max_line - min_line + 1
+        if counted_lines:
+            return len(counted_lines)
         
-        # Fallback: count statements if we can't determine line range
         return len(func_body.children) if func_body.children else 1
+    
+    def _is_code_line(self, node: Tree) -> bool:
+        """Check if a node represents actual code (not empty lines, comments, or template markers)."""
+        # Check if node has type attribute (Lark tokens)
+        if hasattr(node, 'type'):
+            # Skip whitespace and comments (exclusion list approach)
+            if node.type in ['WHITESPACE', 'COMMENT']:
+                return False
+            
+            # Don't skip NEWLINE tokens - they represent actual line breaks that should be counted
+            # The goal is to count procedural code lines, and NEWLINE tokens are part of that
+            
+            # Count actual code tokens (exclusion list approach)
+            # Only exclude specific non-code types, everything else is code
+            return True
+        
+        # Check if node has data attribute (Lark Tree nodes)
+        if hasattr(node, 'data'):
+            # Skip template markers
+            if node.data in ['template_start', 'template_end']:
+                return False
+            
+            # Skip comments
+            if node.data in ['line_comment', 'block_comment']:
+                return False
+            
+            # Skip empty statements
+            if node.data == 'empty_statement':
+                return False
+            
+            # Don't skip EOS tokens - they represent actual line breaks that should be counted
+            # The goal is to count procedural code lines, and EOS tokens are part of that
+            
+            # Everything else is considered code
+            return True
+        
+        return False
