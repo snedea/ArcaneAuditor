@@ -1,5 +1,12 @@
+"""
+Key insight: 
+- Script parsing (parse_with_preprocessor) uses preprocess() for EXTRACTED script code
+- File parsing (preprocess_pmd_content) needs to track FULL file with <% %> tags
+"""
+
 import re
-from typing import Tuple, List
+import hashlib
+from typing import Tuple, List, Dict
 
 class PMDPreprocessor:
     def __init__(self, warn_ambiguous=True):
@@ -7,7 +14,10 @@ class PMDPreprocessor:
         self.warnings = []
     
     def preprocess(self, code: str) -> str:
-        """Disambiguate { tokens into #{ for sets, and { for objects/blocks"""
+        """
+        Disambiguate { tokens into #{ for sets, and { for objects/blocks.
+        Used by parse_with_preprocessor() for .script files and extracted PMD scripts.
+        """
         # Handle newlines in PMD script blocks first, regardless of content type
         code = self._preprocess_newlines_in_script_blocks(code)
         
@@ -53,6 +63,79 @@ class PMDPreprocessor:
                 i += 1
         
         return ''.join(result)
+    
+    def preprocess_with_line_tracking(self, code: str) -> Tuple[str, Dict[str, List[List[int]]]]:
+        """
+        Used by preprocess_pmd_content() to track where scripts are located.
+        
+        Returns:
+            tuple: (processed_content, hash_to_lines)
+        """
+        # STEP 1: Extract script blocks and track their line numbers BEFORE any modification
+        hash_to_lines = self._extract_script_blocks_with_lines(code)
+        
+        # STEP 2: Now do the normal preprocessing (newline escaping + brace disambiguation)
+        # This is the same as preprocess() but we keep track of the hash mappings
+        processed_code = self.preprocess(code)
+        
+        return processed_code, hash_to_lines
+    
+    def _extract_script_blocks_with_lines(self, code: str) -> Dict[str, List[List[int]]]:
+        """
+        Find all <% %> script blocks in FULL FILE and track their line numbers.
+        
+        This only looks at FULL PMD/Pod files, not extracted script code.
+        
+        Returns:
+            Dict mapping SHA256 hash -> list of line number ranges
+        """
+        hash_to_lines = {}
+        i = 0
+        current_line = 1
+        
+        while i < len(code):
+            # Track line numbers
+            if code[i] == '\n':
+                current_line += 1
+                i += 1
+                continue
+            
+            # Look for script block start
+            if code[i:i+2] == '<%':
+                script_start_line = current_line
+                
+                # Find the end
+                end_pos = code.find('%>', i + 2)
+                if end_pos == -1:
+                    break  # Unclosed
+                
+                # Extract FULL block including <% %>
+                script_block = code[i:end_pos+2]
+                
+                # Count lines in this block
+                lines_in_block = script_block.count('\n')
+                script_end_line = current_line + lines_in_block
+                
+                # Create line range
+                line_range = list(range(script_start_line, script_end_line + 1))
+                
+                # Hash the ORIGINAL content (before any escaping)
+                content_hash = hashlib.sha256(script_block.encode('utf-8')).hexdigest()
+                
+                # Store mapping
+                if content_hash not in hash_to_lines:
+                    hash_to_lines[content_hash] = []
+                hash_to_lines[content_hash].append(line_range)
+                
+                # Move past this block
+                current_line = script_end_line
+                i = end_pos + 2
+            else:
+                i += 1
+        
+        return hash_to_lines
+    
+    # ===== ALL YOUR EXISTING METHODS BELOW - UNCHANGED ===== 
     
     def _classify_brace(self, code: str, pos: int) -> Tuple[str, str]:
         """
@@ -365,20 +448,21 @@ class PMDPreprocessor:
         return ''.join(result)
 
 
-def preprocess_pmd_content(content: str) -> tuple[str, dict, dict]:
+def preprocess_pmd_content(content: str) -> Tuple[str, dict, Dict[str, List[List[int]]]]:
     """
-    Legacy function for preprocessing PMD content with hash-based line mapping.
-    This is used by some existing tests that expect this function signature.
+    Preprocess PMD/Pod FULL FILE content with line tracking.
+    
+    This is called by the file parsers (app_parser.py) on FULL files.
     
     Returns:
         tuple: (processed_content, line_mappings, hash_to_lines)
     """
     preprocessor = PMDPreprocessor()
-    processed_content = preprocessor.preprocess(content)
     
-    # For backward compatibility, return empty mappings
-    # The hash-based preprocessing functionality was removed in favor of brace disambiguation
+    # Use the line tracking method for full files
+    processed_content, hash_to_lines = preprocessor.preprocess_with_line_tracking(content)
+    
+    # Line mappings deprecated but kept for compatibility
     line_mappings = {}
-    hash_to_lines = {}
     
     return processed_content, line_mappings, hash_to_lines

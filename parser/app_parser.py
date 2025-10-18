@@ -149,10 +149,9 @@ class ModelParser:
             path_obj = Path(file_path)
             
             # Use the preprocessor to handle newlines in PMD script blocks and brace disambiguation
-            preprocessor = PMDPreprocessor()
-            processed_content = preprocessor.preprocess(content)
-            line_mappings = {}
-            hash_to_lines = {}
+            # This now also provides hash-to-lines mapping for accurate line number tracking
+            from .pmd_preprocessor import preprocess_pmd_content
+            processed_content, line_mappings, hash_to_lines = preprocess_pmd_content(content)
             
             # Try to parse as JSON
             try:

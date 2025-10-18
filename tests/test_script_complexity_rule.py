@@ -333,12 +333,9 @@ class TestScriptComplexityRule:
     def test_nested_function_line_numbers_correct(self):
         """Test that line numbers are correct for nested function violations."""
         from parser.models import PMDModel
+        import hashlib
         
-        pmd_model = PMDModel(
-            pageId="testPage",
-            file_path="test.pmd",
-            source_content="",
-            script="""<%
+        script_content = """<%
   const parentFunc = function(data) {
     const complexHelper = function(x) {
       if (x.a) {
@@ -369,7 +366,23 @@ class TestScriptComplexityRule:
     return complexHelper(data);
   };
 %>"""
+        
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content="",
+            script=script_content
         )
+        
+        # Set up hash-to-lines mapping for correct line number calculation
+        content_hash = hashlib.sha256(script_content.encode('utf-8')).hexdigest()
+        # The script spans from line 1 to line 25 in the file
+        line_list = list(range(1, 26))
+        hash_to_lines = {
+            content_hash: [line_list]
+        }
+        pmd_model.set_hash_to_lines_mapping(hash_to_lines)
+        
         self.context.pmds["testPage"] = pmd_model
         
         findings = list(self.rule.analyze(self.context))
