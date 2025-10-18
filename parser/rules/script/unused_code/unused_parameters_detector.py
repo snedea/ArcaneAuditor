@@ -97,12 +97,5 @@ class UnusedParametersDetector(ScriptDetector):
         return used_params
     
     def _get_function_line_number(self, function_node: Any) -> int:
-        """Get line number from function expression node by finding the first token with line info."""
-        if hasattr(function_node, 'children') and len(function_node.children) > 0:
-            # Look for the first token with line information
-            for child in function_node.children:
-                if hasattr(child, 'line') and child.line is not None:
-                    # Apply the same line calculation as other working detectors
-                    relative_line = child.line
-                    return self.line_offset + relative_line - 1
-        return self.line_offset
+        """Get line number from function expression node using standardized method."""
+        return self.get_line_from_tree_node(function_node)

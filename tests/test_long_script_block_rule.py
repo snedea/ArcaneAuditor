@@ -13,6 +13,8 @@ class TestScriptLongBlockRule:
     def setup_method(self):
         """Set up test fixtures."""
         self.rule = ScriptLongBlockRule()
+        # Configure rule with 20-line threshold for testing
+        self.rule.apply_settings({'max_lines': 20})
 
     def test_rule_metadata(self):
         """Test rule metadata."""

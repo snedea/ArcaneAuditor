@@ -36,10 +36,37 @@ class LongScriptBlockDetector(ScriptDetector):
     
     def _count_script_lines(self, ast: Tree) -> int:
         """Count the number of lines in a script block using the same method as ScriptLongFunctionRule."""
-        # Count the number of statements in the script (same as function body counting)
-        if hasattr(ast, 'children'):
-            return len(ast.children)
-        return 1
+        if not hasattr(ast, 'children'):
+            return 1
+        
+        # Count actual lines by finding the range of line numbers
+        min_line = None
+        max_line = None
+        
+        # Traverse all nodes in the script block to find line number range
+        def find_line_range(node):
+            nonlocal min_line, max_line
+            
+            # Check if this node has a line number
+            if hasattr(node, 'line') and node.line is not None:
+                if min_line is None or node.line < min_line:
+                    min_line = node.line
+                if max_line is None or node.line > max_line:
+                    max_line = node.line
+            
+            # Recursively check children
+            if hasattr(node, 'children'):
+                for child in node.children:
+                    find_line_range(child)
+        
+        find_line_range(ast)
+        
+        # Calculate line count
+        if min_line is not None and max_line is not None:
+            return max_line - min_line + 1
+        
+        # Fallback: count statements if we can't determine line range
+        return len(ast.children) if ast.children else 1
     
     def _is_function_definition(self, ast: Tree) -> bool:
         """Check if the AST represents a function definition."""

@@ -18,10 +18,8 @@ class LongFunctionDetector(ScriptDetector):
         long_functions = self._find_long_functions(ast, self.max_lines)
         
         for func_info in long_functions:
-            # Get line number from function info and apply offset
-            relative_line = func_info.get('line', 1) or 1
-            line_number = self.line_offset + relative_line - 1
-            self._debug_line_calc(relative_line, self.line_offset, line_number, "long_function_detection")
+            # Get line number using standardized method
+            line_number = self.get_line_from_tree_node(func_info.get('node', ast))
             
             # Check if this long function is inside another function
             function_node = func_info.get('node')

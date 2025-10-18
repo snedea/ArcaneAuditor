@@ -39,9 +39,8 @@ class NestingLevelDetector(ScriptDetector):
             else:
                 context_info = ""
             
-            # Get line number from nesting info and apply offset
-            relative_line = nesting_info.get('line', 1) or 1
-            line_number = self.line_offset + relative_line - 1
+            # Get line number using standardized method
+            line_number = self.get_line_from_tree_node(nesting_info.get('node', ast))
             
             yield Violation(
                 message=f"File section '{field_name}' has {max_nesting_found} nesting levels{context_info} (max recommended: {self.max_nesting}). Consider refactoring.",

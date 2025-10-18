@@ -23,7 +23,6 @@ class VariableNamingDetector(ScriptDetector):
             if not is_valid:
                 # Get line number using the proper method
                 line_number = var_info.get('line_number', self.line_offset)
-                self._debug_line_calc(var_info.get('ast_line', 1), self.line_offset, line_number, "variable_naming")
                 
                 # Check if this variable is inside a function
                 variable_node = var_info.get('node')
@@ -55,13 +54,11 @@ class VariableNamingDetector(ScriptDetector):
             if node.data == 'variable_declaration':
                 if len(node.children) > 0 and hasattr(node.children[0], 'value'):
                     var_name = node.children[0].value
-                    # Get AST line and calculate file line using standard formula
-                    ast_line = node.children[0].line if hasattr(node.children[0], 'line') else 1
-                    line_number = self.line_offset + ast_line - 1
+                    # Get line number using standardized method
+                    line_number = self.get_line_from_tree_node(node)
                     
                     declared_vars[var_name] = {
                         'line_number': line_number,
-                        'ast_line': ast_line,
                         'type': 'declaration',
                         'node': node
                     }
@@ -77,13 +74,11 @@ class VariableNamingDetector(ScriptDetector):
                             if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
                                 if len(var_declaration.children) > 0 and hasattr(var_declaration.children[0], 'value'):
                                     var_name = var_declaration.children[0].value
-                                    # Get AST line and calculate file line using standard formula
-                                    ast_line = var_declaration.children[0].line if hasattr(var_declaration.children[0], 'line') else 1
-                                    line_number = self.line_offset + ast_line - 1
+                                    # Get line number using standardized method
+                                    line_number = self.get_line_from_tree_node(var_declaration)
                                     
                                     declared_vars[var_name] = {
                                         'line_number': line_number,
-                                        'ast_line': ast_line,
                                         'type': 'declaration',
                                         'node': var_declaration
                                     }
@@ -99,13 +94,11 @@ class VariableNamingDetector(ScriptDetector):
                             if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
                                 if len(var_declaration.children) > 0 and hasattr(var_declaration.children[0], 'value'):
                                     var_name = var_declaration.children[0].value
-                                    # Get AST line and calculate file line using standard formula
-                                    ast_line = var_declaration.children[0].line if hasattr(var_declaration.children[0], 'line') else 1
-                                    line_number = self.line_offset + ast_line - 1
+                                    # Get line number using standardized method
+                                    line_number = self.get_line_from_tree_node(var_declaration)
                                     
                                     declared_vars[var_name] = {
                                         'line_number': line_number,
-                                        'ast_line': ast_line,
                                         'type': 'declaration',
                                         'node': var_declaration
                                     }
@@ -115,13 +108,11 @@ class VariableNamingDetector(ScriptDetector):
                 # Get the variable name (second child)
                 if len(node.children) > 1 and hasattr(node.children[1], 'value'):
                     var_name = node.children[1].value
-                    # Get AST line and calculate file line using standard formula
-                    ast_line = node.children[1].line if hasattr(node.children[1], 'line') else 1
-                    line_number = self.line_offset + ast_line - 1
+                    # Get line number using standardized method
+                    line_number = self.get_line_from_tree_node(node)
                     
                     declared_vars[var_name] = {
                         'line_number': line_number,
-                        'ast_line': ast_line,
                         'type': 'declaration',
                         'node': node.children[1]
                     }
@@ -142,12 +133,11 @@ class VariableNamingDetector(ScriptDetector):
                     # Parameters are IDENTIFIER tokens, the body is an AST node
                     if hasattr(child, 'value') and hasattr(child, 'type') and child.type == 'IDENTIFIER':
                         var_name = child.value
-                        ast_line = child.line if hasattr(child, 'line') else 1
-                        line_number = self.line_offset + ast_line - 1
+                        # Get line number using standardized method
+                        line_number = self.get_line_number_from_token(child)
                         
                         declared_vars[var_name] = {
                             'line_number': line_number,
-                            'ast_line': ast_line,
                             'type': 'arrow_function_parameter',
                             'node': child
                         }

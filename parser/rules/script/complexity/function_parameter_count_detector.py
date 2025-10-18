@@ -21,9 +21,8 @@ class FunctionParameterCountDetector(ScriptDetector):
         for func_def in function_definitions:
             param_count = self._count_parameters(func_def)
             if param_count > self.max_parameters:
-                line_number = self._get_line_number(func_def)
-                if line_number:
-                    line_number = self.line_offset + line_number - 1
+                # Get line number using standardized method
+                line_number = self.get_line_from_tree_node(func_def)
                 
                 # Get the function name using proper function context mapping
                 function_name = self.get_function_context_for_node(func_def, ast)
