@@ -393,7 +393,6 @@ async def upload_file(
             # Create analysis job for ZIP
             job = AnalysisJob(job_id, zip_path, actual_config_path)
             job.is_zip = True
-            print(f"DEBUG: Created ZIP job {job_id} with config='{actual_config_path}'")
         
         else:
             # Individual files mode
@@ -421,7 +420,6 @@ async def upload_file(
             job = AnalysisJob(job_id, None, actual_config_path)
             job.is_zip = False
             job.individual_files = saved_files
-            print(f"DEBUG: Created individual files job {job_id} with {len(saved_files)} files, config='{actual_config_path}'")
         
         with job_lock:
             analysis_jobs[job_id] = job
