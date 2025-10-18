@@ -192,7 +192,7 @@ class TestScriptLongBlockRule:
         context = ProjectContext()
         context.pmds = {'test': pmd_model}
         findings = list(self.rule.analyze(context))
-        assert len(findings) == 3  # onLoad, script, onChange
+        assert len(findings) == 2  # onLoad, onChange (script field is skipped)
         
         # Check that all findings mention script blocks
         for finding in findings:
@@ -246,11 +246,7 @@ class TestScriptLongBlockRule:
         context = ProjectContext()
         context.pmds = {'test': pmd_model}
         findings = list(self.rule.analyze(context))
-        assert len(findings) == 1  # Only script should be flagged
-        
-        finding = findings[0]
-        assert finding.rule == self.rule
-        assert "script" in finding.message
+        assert len(findings) == 0  # No violations since script field is skipped and others are short
 
     def test_pod_with_long_script(self):
         """Test POD with long script block."""

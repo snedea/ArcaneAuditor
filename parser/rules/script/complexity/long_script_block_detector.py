@@ -16,6 +16,11 @@ class LongScriptBlockDetector(ScriptDetector):
     
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
         """Detect script blocks that exceed maximum line count in the AST."""
+        # Skip the 'script' field entirely - it only contains function definitions
+        # which are handled by ScriptLongFunctionRule, not ScriptLongBlockRule
+        if field_name == 'script':
+            return
+        
         # Skip function definitions - those are handled by ScriptLongFunctionRule
         if self._is_function_definition(ast):
             return
@@ -24,8 +29,8 @@ class LongScriptBlockDetector(ScriptDetector):
         line_count = self._count_script_lines(ast)
         
         if line_count > self.max_lines:
-            # Get line number from AST
-            line_number = self._get_ast_line_number(ast)
+            # Get line number from AST using standardized method
+            line_number = self.get_line_from_tree_node(ast)
             
             message = f"Script block in '{field_name}' has {line_count} lines (max recommended: {self.max_lines}). Consider breaking it into smaller functions or extracting logic to separate methods."
             
@@ -35,17 +40,21 @@ class LongScriptBlockDetector(ScriptDetector):
             )
     
     def _count_script_lines(self, ast: Tree) -> int:
-        """Count the number of lines in a script block using the same method as ScriptLongFunctionRule."""
+        """Count the number of lines in a script block, excluding function definitions."""
         if not hasattr(ast, 'children'):
             return 1
         
-        # Count actual lines by finding the range of line numbers
+        # Count actual lines by finding the range of line numbers, excluding functions
         min_line = None
         max_line = None
         
         # Traverse all nodes in the script block to find line number range
         def find_line_range(node):
             nonlocal min_line, max_line
+            
+            # Skip function definitions
+            if self._is_function_definition(node):
+                return
             
             # Check if this node has a line number
             if hasattr(node, 'line') and node.line is not None:
@@ -65,8 +74,14 @@ class LongScriptBlockDetector(ScriptDetector):
         if min_line is not None and max_line is not None:
             return max_line - min_line + 1
         
-        # Fallback: count statements if we can't determine line range
-        return len(ast.children) if ast.children else 1
+        # Fallback: count non-function statements if we can't determine line range
+        non_function_count = 0
+        if hasattr(ast, 'children'):
+            for child in ast.children:
+                if not self._is_function_definition(child):
+                    non_function_count += 1
+        
+        return non_function_count if non_function_count > 0 else 1
     
     def _is_function_definition(self, ast: Tree) -> bool:
         """Check if the AST represents a function definition."""
@@ -77,32 +92,35 @@ class LongScriptBlockDetector(ScriptDetector):
         if ast.data in ['function_declaration', 'function_expression', 'arrow_function']:
             return True
         
+        # Check for variable statements that contain function expressions
+        if ast.data == 'variable_statement':
+            return self._variable_statement_contains_function(ast)
+        
         # Check if any child is a function definition
         if hasattr(ast, 'children'):
             for child in ast.children:
                 if hasattr(child, 'data') and child.data in ['function_declaration', 'function_expression', 'arrow_function']:
                     return True
+                # Also check variable statements
+                if hasattr(child, 'data') and child.data == 'variable_statement':
+                    if self._variable_statement_contains_function(child):
+                        return True
         
         return False
     
-    def _get_ast_line_number(self, ast: Tree) -> int:
-        """Get line number from AST node using the same method as LongFunctionDetector."""
-        if not ast:
-            return self.line_offset
+    def _variable_statement_contains_function(self, variable_statement: Tree) -> bool:
+        """Check if a variable statement contains a function definition."""
+        if not hasattr(variable_statement, 'children'):
+            return False
         
-        # Try to get line number from the AST node itself
-        if hasattr(ast, 'line') and ast.line is not None:
-            return self.line_offset + ast.line - 1
+        for child in variable_statement.children:
+            if hasattr(child, 'data'):
+                if child.data == 'variable_declaration':
+                    # Check if the variable declaration has a function expression
+                    if hasattr(child, 'children'):
+                        for grandchild in child.children:
+                            if hasattr(grandchild, 'data') and grandchild.data == 'function_expression':
+                                return True
         
-        # Try to get line number from children (same approach as LongFunctionDetector)
-        if hasattr(ast, 'children'):
-            for child in ast.children:
-                if hasattr(child, 'line') and child.line is not None:
-                    return self.line_offset + child.line - 1
-                # Also check grandchildren for line numbers
-                if hasattr(child, 'children'):
-                    for grandchild in child.children:
-                        if hasattr(grandchild, 'line') and grandchild.line is not None:
-                            return self.line_offset + grandchild.line - 1
-        
-        return self.line_offset
+        return False
+    
