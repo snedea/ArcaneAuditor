@@ -18,9 +18,9 @@ class HardCodedWorkdayAPIRule(StructureRuleBase):
     def __init__(self):
         """Initialize the rule."""
         super().__init__()
-        # Pattern to match *.workday.com URLs (both HTTP and HTTPS)
+        # Pattern to match *.workday.com URLs (protocol optional)
         self.workday_url_pattern = re.compile(
-            r'https?://[a-zA-Z0-9.-]*\.workday\.com[^\s\'"]*',
+            r'(?:https?://)?[a-zA-Z0-9.-]*\.workday\.com[^\s\'"]*',
             re.IGNORECASE
         )
 
@@ -77,11 +77,12 @@ class HardCodedWorkdayAPIRule(StructureRuleBase):
             
             # Check if the value contains hardcoded *.workday.com URLs
             if self.workday_url_pattern.search(value):
+                line_number = self._get_amd_data_provider_line_number(amd_model, key, value)
                 finding = Finding(
                     rule=self,
                     message=f"AMD dataProvider '{key}' uses hardcoded *.workday.com URL: '{value}'. "
                            f"Use apiGatewayEndpoint instead of hardcoded Workday URLs for regional awareness.",
-                    line=1,  # We don't have line tracking for AMD files yet
+                    line=line_number,
                     file_path=amd_model.file_path
                 )
                 yield finding
@@ -112,6 +113,17 @@ class HardCodedWorkdayAPIRule(StructureRuleBase):
     def _get_endpoint_url_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:
         """Get line number for the endpoint URL field."""
         if endpoint_name and hasattr(model, 'source_content') and model.source_content:
-            # Use the existing base class method to find the URL field after the endpoint name
-            return self.get_field_after_entity_line_number(model, 'name', endpoint_name, 'url')
+            # For PMD models, use the existing base class method
+            if hasattr(model, 'pageId'):  # PMDModel has pageId
+                return self.get_field_after_entity_line_number(model, 'name', endpoint_name, 'url')
+            # For POD models, use a simpler pattern search
+            else:
+                return self.find_pattern_line_number(model, f'"{endpoint_name}"')
+        return 1
+    
+    def _get_amd_data_provider_line_number(self, amd_model, provider_key: str, provider_value: str) -> int:
+        """Get line number for AMD dataProvider with hardcoded URL."""
+        if hasattr(amd_model, 'source_content') and amd_model.source_content:
+            # Search for the actual URL value in the source content for more accurate line number
+            return self.find_pattern_line_number(amd_model, provider_value)
         return 1
