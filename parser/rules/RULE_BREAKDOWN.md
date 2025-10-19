@@ -10,6 +10,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 
 - [ScriptArrayMethodUsageRule](#scriptarraymethodusagerule)
 - [ScriptComplexityRule](#scriptcomplexityrule)
+- [ScriptNestedArraySearchRule](#scriptnestedarraysearchrule)
 - [ScriptConsoleLogRule](#scriptconsolelogrule)
 - [ScriptDeadCodeRule](#scriptdeadcoderule)
 - [ScriptDescriptiveParameterRule](#scriptdescriptiveparameterrule)
@@ -33,7 +34,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 
 ### Structure Rules
 
-- [AMDDataProvidersWorkdayRule](#amddataprovidersworkdayrule)
+- [HardCodedWorkdayAPIRule](#hardcodedworkdayapirule)
 - [EmbeddedImagesRule](#embeddedimagesrule)
 - [EndpointBaseUrlTypeRule](#endpointbaseurltyperule)
 - [EndpointFailOnStatusCodesRule](#endpointfailonstatuscodesrule)
@@ -645,6 +646,58 @@ const results = items
 
 ---
 
+### ScriptNestedArraySearchRule
+
+**Severity:** ℹ️ADVICE
+**Description:** Detects nested array search patterns that cause severe performance issues
+**Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+
+**Why This Matters:**
+
+Nested array searches (like `workers.map(worker => orgData.find(org => org.id == worker.orgId))`) create O(n²) performance problems that can cause out-of-memory issues with large datasets. For every item in the outer array, the inner array is searched completely, leading to exponential performance degradation. This pattern is especially problematic in Workday Extend where data arrays can contain thousands of records.
+
+**What it catches:**
+
+- Nested array searches using `find()` or `filter()` inside `map()`, `forEach()`, or `filter()` callbacks
+- Performance anti-patterns that cause exponential time complexity
+- Code that searches external arrays from within iteration callbacks
+
+**What it allows:**
+
+- Searching owned data (e.g., `worker.skills.find()` where `skills` belongs to the `worker` parameter)
+- Direct array operations without nesting
+- Using `list:toMap()` patterns for efficient lookups
+
+**Example violations:**
+
+```javascript
+// ❌ Nested search - searches entire orgData for each worker
+const result = workers.map(worker => 
+    orgData.find(org => org.id == worker.orgId)
+);
+
+// ❌ Nested filter - filters entire teams array for each department
+departments.forEach(department => {
+    const team = teams.filter(team => team.deptId == department.id);
+});
+```
+
+**Fix:**
+
+```javascript
+// ✅ Use list:toMap for efficient O(1) lookups
+const orgById = list:toMap(orgData, 'id');
+const result = workers.map(worker => orgById[worker.orgId]);
+
+// ✅ Or use a single filter with proper indexing
+const teamByDeptId = list:toMap(teams, 'deptId');
+departments.forEach(department => {
+    const team = teamByDeptId[department.id];
+});
+```
+
+---
+
 ### ScriptMagicNumberRule
 
 **Severity:** ℹ️ADVICE
@@ -687,7 +740,6 @@ function calculateDiscount(price) {
 ```
 
 ---
-
 
 ### ScriptDescriptiveParameterRule
 
@@ -1292,24 +1344,27 @@ const query = "SELECT worker FROM allIndexedWorkers WHERE country = usaLocation"
 
 ---
 
-### AMDDataProvidersWorkdayRule
+### HardCodedWorkdayAPIRule
 
 **Severity:** 🚨ACTION
-**Description:** Ensures AMD dataProviders don't use hardcoded *.workday.com URLs
-**Applies to:** AMD application definition files
+**Description:** Detects hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness
+**Applies to:** AMD dataProviders, PMD inbound/outbound endpoints, POD endpoints
 
 **Why This Matters:**
 
-Hardcoded workday.com URLs in AMD dataProviders are not update safe. Using the `apiGatewayEndpoint` variable ensures your endpoints work across all environments without code changes. If Workday adds additional regional endpoints, for example, using the `apiGatewayEndpoint` application variable keeps your app update safe.
+Hardcoded workday.com URLs are not update safe and lack regional awareness. Using the `apiGatewayEndpoint` variable ensures your endpoints work across all environments and regions without code changes. If Workday adds additional regional endpoints or changes infrastructure, using the `apiGatewayEndpoint` application variable keeps your app update safe and regionally aware.
 
 **What it catches:**
 
 - Hardcoded *.workday.com URLs in AMD dataProviders
+- Hardcoded *.workday.com URLs in PMD inbound and outbound endpoint URLs
+- Hardcoded *.workday.com URLs in POD endpoint URLs
 - URLs that should use apiGatewayEndpoint variable instead
 
 **Example violations:**
 
 ```json
+// AMD dataProvider
 {
   "dataProviders": [
     {
@@ -1318,11 +1373,24 @@ Hardcoded workday.com URLs in AMD dataProviders are not update safe. Using the `
     }
   ]
 }
+
+// PMD endpoint
+{
+  "name": "getWorker",
+  "url": "https://api.workday.com/common/v1/workers/me"  // ❌ Hardcoded workday.com URL
+}
+
+// POD endpoint
+{
+  "name": "updateWorker", 
+  "url": "https://api.workday.com/hcm/v1/workers"  // ❌ Hardcoded workday.com URL
+}
 ```
 
 **Fix:**
 
 ```json
+// AMD dataProvider
 {
   "dataProviders": [
     {
@@ -1330,6 +1398,12 @@ Hardcoded workday.com URLs in AMD dataProviders are not update safe. Using the `
       "value": "<% apiGatewayEndpoint + '/common/v1/' %>"  // ✅ Use apiGatewayEndpoint
     }
   ]
+}
+
+// PMD/POD endpoint
+{
+  "name": "getWorker",
+  "url": "<% apiGatewayEndpoint + '/common/v1/workers/me' %>"  // ✅ Use apiGatewayEndpoint
 }
 ```
 
@@ -1558,13 +1632,21 @@ Workday APIs are heavily used within most Extend applications. Creating a re-usa
 - Hardcoded *.workday.com domains in endpoint URLs
 - Hardcoded apiGatewayEndpoint values in URLs
 - Endpoints that should use baseUrlType instead of hardcoded values
+- Both patterns promote extracting Workday endpoints to shared AMD data providers
 
 **Example violations:**
 
 ```json
+// Hardcoded workday.com URL
 {
   "name": "getWorker",
   "url": "https://api.workday.com/common/v1/workers/me"  // ❌ Hardcoded workday.com
+}
+
+// Direct apiGatewayEndpoint usage
+{
+  "name": "getWorker",
+  "url": "<% apiGatewayEndpoint + '/common/v1/workers/me' %>"  // ❌ Should use baseUrlType
 }
 ```
 
@@ -1746,7 +1828,7 @@ You can add additional widget types to exclude from ID requirements:
   "WidgetIdRequiredRule": {
     "enabled": true,
     "custom_settings": {
-      "excluded_widget_types": ["section", "fieldSet", "customWidget"]
+      "excluded_widget_types": ["section", "fieldSet"]
     }
   }
 }
@@ -2085,12 +2167,13 @@ Combining paging with sortableAndFilterable columns forces Workday to load and p
 | **ScriptMagicNumberRule**                | Script    | ℹ️ ADVICE | ✅              | —                                                     |
 | **ScriptStringConcatRule**               | Script    | ℹ️ ADVICE | ✅              | —                                                     |
 | **ScriptArrayMethodUsageRule**           | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptNestedArraySearchRule**          | Script    | ℹ️ ADVICE | ✅              | —                                                     |
 | **ScriptDescriptiveParametersRule**      | Script    | ℹ️ ADVICE | ✅              | —                                                     |
 | **ScriptFunctionReturnConsistencyRule**  | Script    | ℹ️ ADVICE | ✅              | —                                                     |
 | **ScriptVerboseBooleanRule**             | Script    | ℹ️ ADVICE | ✅              | —                                                     |
 | **StringBooleanRule**                    | Script    | ℹ️ ADVICE | ✅              | —                                                     |
 | **UnusedScriptIncludesRule**             | Script    | ℹ️ ADVICE | ✅              | —                                                     |
-| **ScriptOnSendSelfDataRule**             | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptOnSendSelfDataRule**             | Script    | ℹ️ ADVICE | ✅              | `excluded_widget_types`                              |
 | **EndpointFailOnStatusCodesRule**        | Structure | 🚨 ACTION   | ✅              | —                                                     |
 | **EndpointNameLowerCamelCaseRule**       | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **EndpointBaseUrlTypeRule**              | Structure | ℹ️ ADVICE | ✅              | —                                                     |
@@ -2103,7 +2186,7 @@ Combining paging with sortableAndFilterable columns forces Workday to load and p
 | **PMDSecurityDomainRule**                | Structure | 🚨 ACTION   | ✅              | `strict`                                             |
 | **EmbeddedImagesRule**                   | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **FooterPodHubMicroExclusionsRule**      | Structure | ℹ️ ADVICE | ✅              | —                                                     |
-| **AmdDataProvidersWorkdayRule**          | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **HardCodedWorkdayAPIRule**          | Structure | 🚨 ACTION   | ✅              | —                                                     |
 | **FileNameLowerCamelCaseRule**           | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **NoIsCollectionOnEndpointsRule**        | Structure | 🚨 ACTION   | ✅              | —                                                     |
 | **OnlyMaximumEffortRule**                | Structure | 🚨 ACTION   | ✅              | —                                                     |

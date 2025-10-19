@@ -6,7 +6,7 @@ from ..shared import StructureRuleBase
 class EndpointBaseUrlTypeRule(StructureRuleBase):
     """Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values."""
     
-    DESCRIPTION = "Ensures endpoint URLs don't include hardcoded workday.com or apiGatewayEndpoint values"
+    DESCRIPTION = "Ensures endpoint URLs for Workday APIs utilize dataProviders and baseUrlType"
     SEVERITY = "ADVICE"
 
     def get_description(self) -> str:
@@ -57,7 +57,8 @@ class EndpointBaseUrlTypeRule(StructureRuleBase):
             line_number = self._get_endpoint_url_line_number(model, endpoint_name, endpoint_type)
             
             yield self._create_finding(
-                message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is pointing to a Workday API, but not leveraging a baseUrlType. Consider adding one, such as 'workday-common' or 'workday-app'.",
+                message=f"{endpoint_type.title()} endpoint '{endpoint_name}' is pointing to a Workday API, but not leveraging a baseUrlType. "
+                       f"Extract Workday endpoints to shared AMD data providers to avoid duplication.",
                 file_path=model.file_path,
                 line=line_number
             )

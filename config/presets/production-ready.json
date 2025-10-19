@@ -192,7 +192,7 @@
         "strict": false
       }
     },
-    "AMDDataProvidersWorkdayRule": {
+    "HardCodedWorkdayAPIRule": {
       "enabled": true,
       "severity_override": null,
       "custom_settings": {}

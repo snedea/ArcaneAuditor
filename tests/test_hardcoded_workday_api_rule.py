@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-"""Unit tests for AMD dataProviders workday.com rule."""
+"""Unit tests for HardCodedWorkdayAPIRule."""
 
 import pytest
-from parser.rules.structure.validation.amd_data_providers_workday import AMDDataProvidersWorkdayRule
+from parser.rules.structure.validation.hardcoded_workday_api import HardCodedWorkdayAPIRule
 from parser.rules.base import Finding
-from parser.models import AMDModel, ProjectContext
+from parser.models import AMDModel, PMDModel, PodModel, PodSeed, ProjectContext
 
 
-class TestAMDDataProvidersWorkdayRule:
-    """Test cases for AMD dataProviders workday.com rule."""
+class TestHardCodedWorkdayAPIRule:
+    """Test cases for HardCodedWorkdayAPIRule."""
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.rule = AMDDataProvidersWorkdayRule()
+        self.rule = HardCodedWorkdayAPIRule()
 
     def test_rule_metadata(self):
         """Test rule metadata."""
-        assert self.rule.ID == "AMDDataProvidersWorkdayRule"
-        assert self.rule.DESCRIPTION == "Ensures AMD dataProviders don't use hardcoded *.workday.com URLs"
+        assert self.rule.ID == "HardCodedWorkdayAPIRule"
+        assert self.rule.DESCRIPTION == "Detects hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness"
         assert self.rule.SEVERITY == "ACTION"
 
     def test_valid_data_providers_with_api_gateway(self):
@@ -194,4 +194,91 @@ class TestAMDDataProvidersWorkdayRule:
         assert "workday-common" in message
         assert "https://api.workday.com/common/v1/" in message
         assert "apiGatewayEndpoint" in message
-        assert "recommended" in message.lower() or "should" in message.lower() or "consider" in message.lower()
+        assert "regional awareness" in message.lower()
+
+    def test_pmd_inbound_endpoint_with_hardcoded_workday_url(self):
+        """Test PMD inbound endpoint with hardcoded *.workday.com URL."""
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content="",
+            inboundEndpoints=[{
+                "name": "getWorker",
+                "url": "https://api.workday.com/common/v1/workers/me"
+            }]
+        )
+        
+        context = ProjectContext()
+        findings = list(self.rule.visit_pmd(pmd_model, context))
+        assert len(findings) == 1
+        
+        finding = findings[0]
+        assert finding.rule == self.rule
+        assert finding.file_path == "test.pmd"
+        assert "getWorker" in finding.message
+        assert "https://api.workday.com/common/v1/workers/me" in finding.message
+        assert "regional awareness" in finding.message.lower()
+
+    def test_pmd_outbound_endpoint_with_hardcoded_workday_url(self):
+        """Test PMD outbound endpoint with hardcoded *.workday.com URL."""
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content="",
+            outboundEndpoints=[{
+                "name": "updateWorker",
+                "url": "https://api.workday.com/hcm/v1/workers"
+            }]
+        )
+        
+        context = ProjectContext()
+        findings = list(self.rule.visit_pmd(pmd_model, context))
+        assert len(findings) == 1
+        
+        finding = findings[0]
+        assert finding.rule == self.rule
+        assert finding.file_path == "test.pmd"
+        assert "updateWorker" in finding.message
+        assert "https://api.workday.com/hcm/v1/workers" in finding.message
+        assert "regional awareness" in finding.message.lower()
+
+    def test_pod_endpoint_with_hardcoded_workday_url(self):
+        """Test POD endpoint with hardcoded *.workday.com URL."""
+        pod_model = PodModel(
+            podId="testPod",
+            file_path="test.pod",
+            source_content="",
+            seed=PodSeed(
+                endPoints=[{
+                    "name": "getWorker",
+                    "url": "https://api.workday.com/common/v1/workers/me"
+                }]
+            )
+        )
+        
+        context = ProjectContext()
+        findings = list(self.rule.visit_pod(pod_model, context))
+        assert len(findings) == 1
+        
+        finding = findings[0]
+        assert finding.rule == self.rule
+        assert finding.file_path == "test.pod"
+        assert "getWorker" in finding.message
+        assert "https://api.workday.com/common/v1/workers/me" in finding.message
+        assert "regional awareness" in finding.message.lower()
+
+    def test_pmd_endpoint_with_api_gateway_not_flagged(self):
+        """Test PMD endpoint with apiGatewayEndpoint usage is not flagged by this rule."""
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content="",
+            inboundEndpoints=[{
+                "name": "getWorker",
+                "url": "<% apiGatewayEndpoint + '/common/v1/workers/me' %>"
+            }]
+        )
+        
+        context = ProjectContext()
+        findings = list(self.rule.visit_pmd(pmd_model, context))
+        assert len(findings) == 0  # Should not be flagged by HardCodedWorkdayAPIRule
