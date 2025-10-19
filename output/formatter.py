@@ -268,14 +268,12 @@ class OutputFormatter:
         context_sheet['A1'].font = Font(bold=True, size=14)
         context_sheet.append([])
         
-        # Analysis Type
-        context_sheet.append(["Analysis Type", analysis_context.analysis_type])
-        context_sheet['A3'].font = Font(bold=True)
+        # Analysis Type - removed as not needed
         
         # Context Status
         status = "Complete" if analysis_context.is_complete else "Partial"
         context_sheet.append(["Context Status", status])
-        context_sheet['A4'].font = Font(bold=True)
+        context_sheet['A3'].font = Font(bold=True)
         
         # Apply color based on status
         status_fill = PatternFill(
@@ -283,7 +281,7 @@ class OutputFormatter:
             end_color="C6EFCE" if analysis_context.is_complete else "FFC7CE",
             fill_type="solid"
         )
-        context_sheet['B4'].fill = status_fill
+        context_sheet['B3'].fill = status_fill
         
         context_sheet.append([])
         
