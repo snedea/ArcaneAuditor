@@ -8,10 +8,9 @@ There are two exceptions that are allowed in the code:
 A WID can be identified as a 32 character long string that is alphanumeric.
 """
 import re
-from typing import Generator, List, Dict, Any, Optional
+from typing import Generator, Any
 from ...base import Finding
 from ....models import PMDModel, PodModel, ProjectContext
-from ...common import PMDLineUtils
 from ..shared import StructureRuleBase
 
 
@@ -121,7 +120,7 @@ class HardcodedWidRule(StructureRuleBase):
             line_num = self._find_wid_line_number(wid_value, pmd_model, pod_model)
             
             yield self._create_finding(
-                message=f"Hardcoded WID '{wid_value}' found in {field_name}. Consider configuring WIDs in app attributes instead of hardcoding them.",
+                message=f"Hardcoded WID '{wid_value}' in {field_name}. Use app attributes instead.",
                 file_path=file_path,
                 line=line_num
             )
@@ -153,7 +152,7 @@ class HardcodedWidRule(StructureRuleBase):
                     if hasattr(token, 'value'):
                         literal_value = token.value.strip('\'"')
                         
-                        if re.match(wid_pattern, literal_value, re.IGNORECASE):
+                        if re.match(wid_pattern, literal_value):
                             wid_value = literal_value.lower()
                             
                             if wid_value in self.ALLOWED_WIDS:
@@ -163,7 +162,7 @@ class HardcodedWidRule(StructureRuleBase):
                             context_desc = f"in variable '{var_name}' in {field_name}" if var_name else f"in {field_name}"
                             
                             yield self._create_finding(
-                                message=f"Hardcoded WID '{wid_value}' found {context_desc}. Consider configuring WIDs in app attributes instead of hardcoding them.",
+                                message=f"Hardcoded WID '{wid_value}' {context_desc}. Use app attributes instead.",
                                 file_path=file_path,
                                 line=line_num
                             )
