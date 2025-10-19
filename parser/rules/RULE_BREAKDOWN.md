@@ -312,7 +312,7 @@ function processStandardOrder(order) {
 
 **Severity:** ℹ️ADVICE
 **Description:** Ensures scripts don't have excessively long functions (default max 50 lines)
-**Applies to:** PMD *scripts* section and standalone .script files
+**Applies to:** PMD *scripts* section and standalone .script files (handles all function definitions)
 
 **Why This Matters:**
 
@@ -323,7 +323,13 @@ Functions longer than 50 lines typically violate the single responsibility princ
 - Functions that exceed 50 lines of code
 - Monolithic functions that should be broken down
 - Functions that likely violate single responsibility principle
-- **Note:** Nested functions are analyzed independently - inner function lines are excluded from outer function counts
+- **Note:** Nested functions are analyzed independently - but inner function lines are also included in outer function counts. This means you could get multiple violations when an inner function exceeds the threshold. This means the outer function does, too!
+
+**Configuration Options:**
+
+- `skip_comments` (boolean, default: false): When true, comment lines are excluded from line count. When false (default), lines with comments are counted.
+- `skip_blank_lines` (boolean, default: false): When true, blank/empty lines are excluded from line count. When false (default), blank lines are counted.
+- `max_lines` (integer, default: 50): Maximum allowed lines per function
 
 **Example violations:**
 
@@ -362,7 +368,7 @@ const formatOutput = function(data) {
 
 **Severity:** ℹ️ADVICE
 **Description:** Ensures embedded script blocks in PMD/POD files don't exceed maximum line count (*default* max 30 lines). Skips the `script` field entirely (handled by ScriptLongFunctionRule) and counts ALL lines in embedded blocks including inline functions and callbacks.
-**Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
+**Applies to:** PMD embedded scripts and Pod endpoint/widget scripts only. Standalone .script files are excluded (handled by ScriptLongFunctionRule instead).
 
 **Why This Matters:**
 
@@ -372,10 +378,16 @@ This rule enforces the principle that embedded blocks should contain only simple
 
 **What it catches:**
 
-- Script blocks in any field (onLoad, onChange, onSend, widget properties, etc.) that exceed 30 lines
+- Script blocks in PMD/POD embedded fields (onLoad, onChange, onSend, widget properties, etc.) that exceed 30 lines
 - Embedded blocks containing inline functions, callbacks, and procedural code that should be refactored
 - Script blocks that violate single responsibility principle by doing too much in one place
-- **Note:** The `script` field is skipped entirely as it's designed to contain only function definitions
+- **Note:** The `script` field in PMD files and standalone .script files are excluded entirely as they're handled by ScriptLongFunctionRule
+
+**Configuration Options:**
+
+- `skip_comments` (boolean, default: false): When true, comment lines are excluded from line count. When false (default), all lines including comments are counted.
+- `skip_blank_lines` (boolean, default: false): When true, blank/empty lines are excluded from line count. When false (default), all lines including blank lines are counted.
+- `max_lines` (integer, default: 30): Maximum allowed lines per script block
 
 **Example violations:**
 
@@ -718,7 +730,7 @@ const skills = workerData.skills[0].name ?? '';      // ✅ Null coalescing fall
 
 **Why This Matters:**
 
-Single-letter parameters in array methods (`x => x.active`) hide information about is being processed, making code harder to scan and understand at a glance. Descriptive names (`user => user.active`) self-document the code and prevent confusion in nested method chains where multiple single-letter variables could refer to different things.
+Single-letter parameters in array methods (`x => x.active`) hide information about what is being processed, making code harder to scan and understand at a glance. Descriptive names (`user => user.active`) self-document the code and prevent confusion in nested method chains where multiple single-letter variables could refer to different things.
 
 **What it catches:**
 
@@ -754,7 +766,7 @@ const total = numbers.reduce((acc, num) => {acc + num});
 
 - **Sort methods:** `a`, `b` are allowed for comparison parameters
 - **Reduce methods:** Suggests `acc` for accumulator, contextual names for items
-- **Context-aware:** Suggests `user` for `users.map()`, `team` for `teams.filter()`, etc.
+- **Minimally context-aware:** Suggests `user` for `users.map()`, `team` for `teams.filter()`, etc.
 
 **Configuration:**
 
@@ -2088,50 +2100,50 @@ Combining paging with sortableAndFilterable columns forces Workday to load and p
 
 ## 📊 Quick Reference
 
-| Rule Name                                      | Category  | Severity  | Default Enabled | Key Settings       |
-| ---------------------------------------------- | --------- | --------- | --------------- | ------------------ |
-| **ScriptVarUsageRule**                   | Script    | 🟢 ADVICE | ✅              | —                 |
-| **ScriptDeadCodeRule**                   | Script    | 🟢 ADVICE | ✅              | —                 |
-| **ScriptComplexityRule**                 | Script    | 🟢 ADVICE | ✅              | `max_complexity` |
-| **ScriptLongFunctionRule**               | Script    | 🟢 ADVICE | ✅              | `max_length`     |
-| **ScriptFunctionParameterCountRule**     | Script    | 🟢 ADVICE | ✅              | `max_parameters` |
-| **ScriptFunctionParameterNamingRule**    | Script    | 🟢 ADVICE | ✅              | —                 |
-| **ScriptUnusedVariableRule**             | Script    | 🟢 ADVICE | ✅              | —                 |
-| **ScriptUnusedFunctionParametersRule**   | Script    | 🟢 ADVICE | ✅              | —                 |
-| **ScriptVariableNamingRule**             | Script    | 🟢 ADVICE | ✅              | —                 |
-| **ScriptConsoleLogRule**                 | Script    | 🔴 ACTION | ✅              | —                 |
-| **ScriptNullSafetyRule**                 | Script    | 🔴 ACTION | ✅              | —                 |
-| **ScriptEmptyFunctionRule**              | Script    | 🔴 ACTION | ✅              | —                 |
-| **ScriptNestingLevelRule**               | Script    | 🟢 ADVICE | ✅              | `max_nesting`    |
-| **ScriptLongScriptBlockRule**            | Script    | 🟢 ADVICE | ✅              | `max_length`     |
-| **ScriptMagicNumberRule**                | Script    | 🟢 ADVICE | ✅              | —                 |
-| **ScriptStringConcatRule**               | Script    | 🟢 ADVICE | ✅              | —                 |
-| **ScriptArrayMethodUsageRule**           | Script    | 🟢 ADVICE | ✅              | —                 |
-| **ScriptDescriptiveParametersRule**      | Script    | 🟢 ADVICE | ✅              | —                 |
-| **ScriptFunctionReturnConsistencyRule**  | Script    | 🟢 ADVICE | ✅              | —                 |
-| **ScriptVerboseBooleanRule**             | Script    | 🟢 ADVICE | ✅              | —                 |
-| **StringBooleanRule**                    | Script    | 🟢 ADVICE | ✅              | —                 |
-| **UnusedScriptIncludesRule**             | Script    | 🟢 ADVICE | ✅              | —                 |
-| **ScriptOnSendSelfDataRule**             | Script    | 🟢 ADVICE | ✅              | —                 |
-| **EndpointFailOnStatusCodesRule**        | Structure | 🔴 ACTION | ✅              | —                 |
-| **EndpointNameLowerCamelCaseRule**       | Structure | 🟢 ADVICE | ✅              | —                 |
-| **EndpointBaseUrlTypeRule**              | Structure | 🟢 ADVICE | ✅              | —                 |
-| **WidgetIdRequiredRule**                 | Structure | 🔴 ACTION | ✅              | —                 |
-| **WidgetIdLowerCamelCaseRule**           | Structure | 🟢 ADVICE | ✅              | —                 |
-| **HardcodedApplicationIdRule**           | Structure | 🟢 ADVICE | ✅              | —                 |
-| **HardcodedWidRule**                     | Structure | 🟢 ADVICE | ✅              | —                 |
-| **ReadableEndpointPathsRule**            | Structure | 🟢 ADVICE | ✅              | —                 |
-| **PMDSectionOrderingRule**               | Structure | 🟢 ADVICE | ✅              | `required_order` |
-| **PMDSecurityDomainRule**                | Structure | 🔴 ACTION | ✅              | `strict`         |
-| **EmbeddedImagesRule**                   | Structure | 🟢 ADVICE | ✅              | —                 |
-| **FooterPodHubMicroExclusionsRule**      | Structure | 🟢 ADVICE | ✅              | —                 |
-| **AmdDataProvidersWorkdayRule**          | Structure | 🟢 ADVICE | ✅              | —                 |
-| **FileNameLowerCamelCaseRule**           | Structure | 🟢 ADVICE | ✅              | —                 |
-| **NoIsCollectionOnEndpointsRule**        | Structure | 🔴 ACTION | ✅              | —                 |
-| **OnlyMaximumEffortRule**                | Structure | 🔴 ACTION | ✅              | —                 |
-| **NoPMDSessionVariablesRule**            | Structure | 🔴 ACTION | ✅              | —                 |
-| **MultipleStringInterpolatorsRule**      | Structure | 🟢 ADVICE | ✅              | —                 |
-| **GridPagingWithSortableFilterableRule** | Structure | 🔴 ACTION | ✅              | —                 |
+| Rule Name                                      | Category  | Severity    | Default Enabled | Key Settings                                           |
+| ---------------------------------------------- | --------- | ----------- | --------------- | ------------------------------------------------------ |
+| **ScriptVarUsageRule**                   | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptDeadCodeRule**                   | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptComplexityRule**                 | Script    | ℹ️ ADVICE | ✅              | `max_complexity`                                     |
+| **ScriptLongFunctionRule**               | Script    | ℹ️ ADVICE | ✅              | `max_lines`, `skip_comments`, `skip_blank_lines` |
+| **ScriptFunctionParameterCountRule**     | Script    | ℹ️ ADVICE | ✅              | `max_parameters`                                     |
+| **ScriptFunctionParameterNamingRule**    | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptUnusedVariableRule**             | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptUnusedFunctionParametersRule**   | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptVariableNamingRule**             | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptConsoleLogRule**                 | Script    | 🚨 ACTION   | ✅              | —                                                     |
+| **ScriptNullSafetyRule**                 | Script    | 🚨 ACTION   | ✅              | —                                                     |
+| **ScriptEmptyFunctionRule**              | Script    | 🚨 ACTION   | ✅              | —                                                     |
+| **ScriptNestingLevelRule**               | Script    | ℹ️ ADVICE | ✅              | `max_nesting`                                        |
+| **ScriptLongScriptBlockRule**            | Script    | ℹ️ ADVICE | ✅              | `max_lines`, `skip_comments`, `skip_blank_lines` |
+| **ScriptMagicNumberRule**                | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptStringConcatRule**               | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptArrayMethodUsageRule**           | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptDescriptiveParametersRule**      | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptFunctionReturnConsistencyRule**  | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptVerboseBooleanRule**             | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **StringBooleanRule**                    | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **UnusedScriptIncludesRule**             | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **ScriptOnSendSelfDataRule**             | Script    | ℹ️ ADVICE | ✅              | —                                                     |
+| **EndpointFailOnStatusCodesRule**        | Structure | 🚨 ACTION   | ✅              | —                                                     |
+| **EndpointNameLowerCamelCaseRule**       | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **EndpointBaseUrlTypeRule**              | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **WidgetIdRequiredRule**                 | Structure | 🚨 ACTION   | ✅              | —                                                     |
+| **WidgetIdLowerCamelCaseRule**           | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **HardcodedApplicationIdRule**           | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **HardcodedWidRule**                     | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **ReadableEndpointPathsRule**            | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **PMDSectionOrderingRule**               | Structure | ℹ️ ADVICE | ✅              | `required_order`                                     |
+| **PMDSecurityDomainRule**                | Structure | 🚨 ACTION   | ✅              | `strict`                                             |
+| **EmbeddedImagesRule**                   | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **FooterPodHubMicroExclusionsRule**      | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **AmdDataProvidersWorkdayRule**          | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **FileNameLowerCamelCaseRule**           | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **NoIsCollectionOnEndpointsRule**        | Structure | 🚨 ACTION   | ✅              | —                                                     |
+| **OnlyMaximumEffortRule**                | Structure | 🚨 ACTION   | ✅              | —                                                     |
+| **NoPMDSessionVariablesRule**            | Structure | 🚨 ACTION   | ✅              | —                                                     |
+| **MultipleStringInterpolatorsRule**      | Structure | ℹ️ ADVICE | ✅              | —                                                     |
+| **GridPagingWithSortableFilterableRule** | Structure | 🚨 ACTION   | ✅              | —                                                     |
 
 ---
 

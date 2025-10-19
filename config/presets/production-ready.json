@@ -13,13 +13,18 @@
     "ScriptLongFunctionRule": {
       "enabled": true,
       "severity_override": null,
-      "custom_settings": {}
+      "custom_settings": {
+        "skip_comments": false,
+        "skip_blank_lines": false
+      }
     },
     "ScriptLongBlockRule": {
       "enabled": true,
       "severity_override": null,
       "custom_settings": {
-        "max_lines": 30
+        "max_lines": 30,
+        "skip_comments": false,
+        "skip_blank_lines": false
       }
     },
     "ScriptNestingLevelRule": {
