@@ -31,8 +31,8 @@ class CyclomaticComplexityDetector(ScriptDetector):
         for func_name, complexity_info in analysis_results['functions'].items():
             complexity = complexity_info['complexity']
             if complexity > self.max_complexity:
-                # Get line number using standardized method
-                line_number = self.get_line_from_tree_node(complexity_info.get('node', ast))
+                # Get line number from the stored line in complexity_info
+                line_number = complexity_info.get('line', 1)
                 
                 # Create appropriate message based on whether it's nested
                 if complexity_info.get('is_nested', False):
@@ -48,8 +48,8 @@ class CyclomaticComplexityDetector(ScriptDetector):
         
         # Generate violation for procedural code if no functions found
         if not analysis_results['functions'] and analysis_results['procedural_complexity'] > self.max_complexity:
-            # Get line number using standardized method
-            line_number = self.get_line_from_tree_node(ast)
+            # Get line number from the stored procedural line
+            line_number = analysis_results.get('procedural_line', 1)
             message = f"File section '{field_name}' has complexity of {analysis_results['procedural_complexity']} (max recommended: {self.max_complexity}). Consider refactoring."
             
             yield Violation(
