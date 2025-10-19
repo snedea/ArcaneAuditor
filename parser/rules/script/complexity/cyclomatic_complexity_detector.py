@@ -173,14 +173,5 @@ class CyclomaticComplexityDetector(ScriptDetector):
             return None
     
     def _extract_line_number(self, node: Tree) -> int:
-        """Extract line number from a node efficiently."""
-        if hasattr(node, 'line') and node.line is not None:
-            return node.line
-        
-        # Search children for line number
-        if hasattr(node, 'children'):
-            for child in node.children:
-                if hasattr(child, 'line') and child.line is not None:
-                    return child.line
-        
-        return 1  # Default line number
+        """Extract line number from a node using standardized calculation."""
+        return self.get_line_from_tree_node(node)
