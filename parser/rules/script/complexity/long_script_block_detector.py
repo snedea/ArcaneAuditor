@@ -21,7 +21,7 @@ class LongScriptBlockDetector(ScriptDetector):
         # Skip the 'script' field entirely - it only contains function definitions
         # which are handled by ScriptLongFunctionRule, not ScriptLongBlockRule
         if field_name == 'script':
-            return
+            return  # Return empty generator
         
         # For embedded script blocks (onChange, onLoad, etc.), count ALL lines
         # including inline functions, callbacks, and procedural code

@@ -71,7 +71,9 @@ class ScriptRuleBase(Rule, ABC):
         """Analyze script fields from a model."""
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and field_value.strip():
-                yield from self._check(field_value, field_name, model.file_path, line_offset, context)
+                check_result = self._check(field_value, field_name, model.file_path, line_offset, context)
+                if check_result is not None:
+                    yield from check_result
     
     def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None) -> Generator[Finding, None, None]:
         """Check script content using the detector."""
@@ -82,7 +84,7 @@ class ScriptRuleBase(Rule, ABC):
         ast = self._parse_script_content(clean_script_content, context)
         if not ast:
             # Parsing failed - error should already be logged to context by _parse_script_content
-            return
+            return  # Return empty generator
         
         # Use detector to find violations
         detector = self.DETECTOR(file_path, line_offset)

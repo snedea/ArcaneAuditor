@@ -41,7 +41,7 @@ class ScriptLongBlockRule(ScriptRuleBase):
         """
         # Skip standalone script files entirely - they should only be analyzed
         # by ScriptLongFunctionRule, not ScriptLongBlockRule
-        return
+        yield from []
     
     def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None):
         """Override to pass custom settings to detector."""
@@ -51,6 +51,7 @@ class ScriptLongBlockRule(ScriptRuleBase):
         # Parse the script content with context for caching
         ast = self._parse_script_content(clean_script_content, context)
         if not ast:
+            yield from []
             return
         
         # Use detector to find violations, passing custom settings AND stripped content
@@ -60,9 +61,10 @@ class ScriptLongBlockRule(ScriptRuleBase):
         # Convert violations to findings
         if violations is not None and hasattr(violations, '__iter__') and not isinstance(violations, str):
             for violation in violations:
-                yield Finding(
-                    rule=self,
-                    message=violation.message,
-                    line=violation.line,
-                    file_path=file_path
-                )
+                if violation is not None:
+                    yield Finding(
+                        rule=self,
+                        message=violation.message,
+                        line=violation.line,
+                        file_path=file_path
+                    )
