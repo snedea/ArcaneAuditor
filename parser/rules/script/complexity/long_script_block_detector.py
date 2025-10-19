@@ -10,9 +10,11 @@ from ...common import Violation
 class LongScriptBlockDetector(ScriptDetector):
     """Detects script blocks that exceed maximum line count."""
     
-    def __init__(self, file_path: str = "", line_offset: int = 1, max_lines: int = 30):
-        super().__init__(file_path, line_offset)
-        self.max_lines = max_lines  # Configurable threshold, default 30
+    def __init__(self, file_path: str = "", line_offset: int = 1, max_lines: int = 30, skip_comments: bool = False, skip_blank_lines: bool = False, source_text: str = ""):
+        super().__init__(file_path, line_offset, source_text)
+        self.max_lines = max_lines
+        self.skip_comments = skip_comments
+        self.skip_blank_lines = skip_blank_lines  # Configurable threshold, default 30
     
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
         """Detect script blocks that exceed maximum line count in the AST."""
@@ -40,74 +42,81 @@ class LongScriptBlockDetector(ScriptDetector):
             )
     
     def _count_script_lines(self, ast: Tree) -> int:
-        """Count the number of lines in a script block, including ALL code."""
+        """
+        Count lines using source text (ESLint approach).
+        
+        For script blocks, we count from the first line to the last line
+        of the entire block using the source text.
+        """
         if not hasattr(ast, 'children'):
             return 1
         
-        # Count actual lines by collecting all code line numbers
+        # Collect all line numbers from the AST
         counted_lines = set()
         
-        # Traverse all nodes in the script block to collect line numbers
         def collect_lines(node):
-            # Count ALL code lines - no exceptions for inline functions or callbacks
-            # The goal is to keep embedded script blocks tiny
             if hasattr(node, 'line') and node.line is not None:
-                # Only count actual code (not empty lines, comments, template markers)
-                if self._is_code_line(node):
+                if self._should_count_line(node):
                     counted_lines.add(node.line)
             
-            # Recursively check all children
             if hasattr(node, 'children'):
                 for child in node.children:
                     collect_lines(child)
         
         collect_lines(ast)
         
-        # Calculate line count based on actual counted lines
-        if counted_lines:
-            return len(counted_lines)
+        if not counted_lines:
+            return 1
         
-        # Fallback: count all statements if we can't determine line range
-        total_count = 0
-        if hasattr(ast, 'children'):
-            for child in ast.children:
-                total_count += 1
+        # Get the range from AST
+        min_line = min(counted_lines)
+        max_line = max(counted_lines)
         
-        return total_count if total_count > 0 else 1
+        # For script blocks, the end is max_line (no separate closing brace to find
+        # since the block itself is the entire script content)
+        # Use the shared helper to count physical lines
+        return self.count_physical_lines(min_line, max_line)
     
-    def _is_code_line(self, node: Tree) -> bool:
-        """Check if a node represents actual code (not empty lines, comments, or template markers)."""
+    def _should_count_line(self, node) -> bool:
+        """
+        Determine if a node's line should be counted based on skip flags.
+        
+        Args:
+            node: AST node to check
+            
+        Returns:
+            True if the line should be counted, False otherwise
+        """
         # Check if node has type attribute (Lark tokens)
         if hasattr(node, 'type'):
-            # Skip whitespace and comments (exclusion list approach)
-            if node.type in ['WHITESPACE', 'COMMENT']:
+            # Always skip whitespace tokens
+            if node.type == 'WHITESPACE':
                 return False
             
-            # Don't skip NEWLINE tokens - they represent actual line breaks that should be counted
-            # The goal is to count procedural code lines, and NEWLINE tokens are part of that
+            # Skip comment tokens if flag is set
+            if self.skip_comments and node.type == 'COMMENT':
+                return False
             
-            # Count actual code tokens (exclusion list approach)
-            # Only exclude specific non-code types, everything else is code
+            # Skip newline/blank line tokens if flag is set
+            if self.skip_blank_lines and node.type in ['NEWLINE', 'NL']:
+                return False
+            
             return True
         
         # Check if node has data attribute (Lark Tree nodes)
         if hasattr(node, 'data'):
-            # Skip template markers
+            # Skip comment nodes if flag is set
+            if self.skip_comments and node.data in ['line_comment', 'block_comment', 'comment']:
+                return False
+            
+            # Skip template markers (always)
             if node.data in ['template_start', 'template_end']:
                 return False
             
-            # Skip comments
-            if node.data in ['line_comment', 'block_comment']:
-                return False
-            
-            # Skip empty statements
+            # Skip empty statements (always)
             if node.data == 'empty_statement':
                 return False
             
-            # Don't skip EOS tokens - they represent actual line breaks that should be counted
-            # The goal is to count procedural code lines, and EOS tokens are part of that
-            
-            # Everything else is considered code
             return True
         
-        return False
+        return True

@@ -16,7 +16,9 @@ class ScriptLongBlockRule(ScriptRuleBase):
 
     def __init__(self):
         super().__init__()
-        self.max_lines = 30  # Default threshold
+        self.max_lines = 30
+        self.skip_comments = False  # Default to ESLint behavior
+        self.skip_blank_lines = False  # Default to ESLint behavior
 
     def get_description(self) -> str:
         """Get rule description."""
@@ -26,16 +28,23 @@ class ScriptLongBlockRule(ScriptRuleBase):
         """Apply custom settings from configuration."""
         if 'max_lines' in custom_settings:
             self.max_lines = custom_settings['max_lines']
+        if 'skip_comments' in custom_settings:
+            self.skip_comments = custom_settings['skip_comments']
+        if 'skip_blank_lines' in custom_settings:
+            self.skip_blank_lines = custom_settings['skip_blank_lines']
     
     def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None):
-        """Override to pass custom max_lines to detector."""
+        """Override to pass custom settings to detector."""
+        # Strip <% %> tags from script content if present
+        clean_script_content = self._strip_script_tags(script_content)
+        
         # Parse the script content with context for caching
-        ast = self._parse_script_content(script_content, context)
+        ast = self._parse_script_content(clean_script_content, context)
         if not ast:
             return
         
-        # Use detector to find violations, passing the custom max_lines
-        detector = self.DETECTOR(file_path, line_offset, self.max_lines)
+        # Use detector to find violations, passing custom settings AND stripped content
+        detector = self.DETECTOR(file_path, line_offset, self.max_lines, self.skip_comments, self.skip_blank_lines, clean_script_content)
         violations = detector.detect(ast, field_name)
         
         # Convert violations to findings

@@ -75,8 +75,11 @@ class ScriptRuleBase(Rule, ABC):
     
     def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None) -> Generator[Finding, None, None]:
         """Check script content using the detector."""
+        # Strip <% %> tags from script content if present
+        clean_script_content = self._strip_script_tags(script_content)
+        
         # Parse the script content with context for caching
-        ast = self._parse_script_content(script_content, context)
+        ast = self._parse_script_content(clean_script_content, context)
         if not ast:
             # Parsing failed - error should already be logged to context by _parse_script_content
             return
@@ -167,3 +170,31 @@ class ScriptRuleBase(Rule, ABC):
                         return self._extract_variable_from_node(child)
         
         return ""
+    
+    def _strip_script_tags(self, script_content: str) -> str:
+        """
+        Strip <% %> tags from script content if present.
+        
+        Args:
+            script_content: Raw script content (may include <% %> tags)
+            
+        Returns:
+            Clean script content without tags
+        """
+        if not script_content:
+            return script_content
+        
+        # Check if content starts with <%
+        if script_content.strip().startswith('<%'):
+            # Find the end tag
+            end_pos = script_content.find('%>')
+            if end_pos != -1:
+                # Extract content between <% and %>
+                start_pos = script_content.find('<%')
+                if start_pos != -1:
+                    # Get content after <% and before %>
+                    clean_content = script_content[start_pos + 2:end_pos].strip()
+                    return clean_content
+        
+        # No tags found, return as-is
+        return script_content

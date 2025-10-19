@@ -111,6 +111,158 @@ class TestScriptLongFunctionRule:
         findings = list(self.rule.analyze(self.context))
         
         assert len(findings) == 0
+    
+    def test_functions_in_embedded_blocks_not_flagged(self):
+        """Test that functions in embedded blocks (onLoad, onChange, etc.) are not flagged."""
+        from parser.models import PMDModel
+        
+        # Create a PMD with a long function in onLoad (should NOT be flagged)
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content="",
+            script="<%\n  const shortFunction = function() {\n    return 'short';\n  };\n%>",
+            onLoad="""<%
+              const longFunction = function(data) {
+                const result = {:};
+                result.step1 = data.field1;
+                result.step2 = data.field2;
+                result.step3 = data.field3;
+                result.step4 = data.field4;
+                result.step5 = data.field5;
+                result.step6 = data.field6;
+                result.step7 = data.field7;
+                result.step8 = data.field8;
+                result.step9 = data.field9;
+                result.step10 = data.field10;
+                result.step11 = data.field11;
+                result.step12 = data.field12;
+                result.step13 = data.field13;
+                result.step14 = data.field14;
+                result.step15 = data.field15;
+                result.step16 = data.field16;
+                result.step17 = data.field17;
+                result.step18 = data.field18;
+                result.step19 = data.field19;
+                result.step20 = data.field20;
+                result.step21 = data.field21;
+                result.step22 = data.field22;
+                result.step23 = data.field23;
+                result.step24 = data.field24;
+                result.step25 = data.field25;
+                result.step26 = data.field26;
+                result.step27 = data.field27;
+                result.step28 = data.field28;
+                result.step29 = data.field29;
+                result.step30 = data.field30;
+                result.step31 = data.field31;
+                result.step32 = data.field32;
+                result.step33 = data.field33;
+                result.step34 = data.field34;
+                result.step35 = data.field35;
+                result.step36 = data.field36;
+                result.step37 = data.field37;
+                result.step38 = data.field38;
+                result.step39 = data.field39;
+                result.step40 = data.field40;
+                result.step41 = data.field41;
+                result.step42 = data.field42;
+                result.step43 = data.field43;
+                result.step44 = data.field44;
+                result.step45 = data.field45;
+                result.step46 = data.field46;
+                result.step47 = data.field47;
+                result.step48 = data.field48;
+                result.step49 = data.field49;
+                result.step50 = data.field50;
+                result.step51 = data.field51;
+                return result;
+              };
+            %>"""
+        )
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        
+        # Should have NO findings because the long function is in onLoad, not script section
+        assert len(findings) == 0
+    
+    def test_standalone_script_file_analyzed(self):
+        """Test that standalone .script files are analyzed for long functions."""
+        from parser.models import ScriptModel
+        
+        # Create a standalone script file with a long function
+        long_function = """const processData = function(data) {
+  const result = {:};
+  result.step1 = data.field1;
+  result.step2 = data.field2;
+  result.step3 = data.field3;
+  result.step4 = data.field4;
+  result.step5 = data.field5;
+  result.step6 = data.field6;
+  result.step7 = data.field7;
+  result.step8 = data.field8;
+  result.step9 = data.field9;
+  result.step10 = data.field10;
+  result.step11 = data.field11;
+  result.step12 = data.field12;
+  result.step13 = data.field13;
+  result.step14 = data.field14;
+  result.step15 = data.field15;
+  result.step16 = data.field16;
+  result.step17 = data.field17;
+  result.step18 = data.field18;
+  result.step19 = data.field19;
+  result.step20 = data.field20;
+  result.step21 = data.field21;
+  result.step22 = data.field22;
+  result.step23 = data.field23;
+  result.step24 = data.field24;
+  result.step25 = data.field25;
+  result.step26 = data.field26;
+  result.step27 = data.field27;
+  result.step28 = data.field28;
+  result.step29 = data.field29;
+  result.step30 = data.field30;
+  result.step31 = data.field31;
+  result.step32 = data.field32;
+  result.step33 = data.field33;
+  result.step34 = data.field34;
+  result.step35 = data.field35;
+  result.step36 = data.field36;
+  result.step37 = data.field37;
+  result.step38 = data.field38;
+  result.step39 = data.field39;
+  result.step40 = data.field40;
+  result.step41 = data.field41;
+  result.step42 = data.field42;
+  result.step43 = data.field43;
+  result.step44 = data.field44;
+  result.step45 = data.field45;
+  result.step46 = data.field46;
+  result.step47 = data.field47;
+  result.step48 = data.field48;
+  result.step49 = data.field49;
+  result.step50 = data.field50;
+  result.step51 = data.field51;
+  return result;
+};
+
+{
+  "processData": processData
+}"""
+        
+        script_model = ScriptModel(
+            file_path="test.script",
+            source=long_function
+        )
+        self.context.scripts["test.script"] = script_model
+        
+        findings = list(self.rule.analyze(self.context))
+        
+        # Should have findings because standalone script files are analyzed
+        assert len(findings) >= 1
+        assert "long" in findings[0].message.lower() or "lines" in findings[0].message.lower()
 
 
 if __name__ == '__main__':

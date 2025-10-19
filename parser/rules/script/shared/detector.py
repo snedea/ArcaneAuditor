@@ -59,10 +59,11 @@ class ScriptDetector(ABC):
     # Debug flag for line number calculations
     DEBUG_LINE_NUMBERS = os.environ.get('DEBUG_LINE_NUMBERS', 'false').lower() == 'true'
     
-    def __init__(self, file_path: str = "", line_offset: int = 1):
+    def __init__(self, file_path: str = "", line_offset: int = 1, source_text: str = ""):
         """Initialize detector with file context."""
         self.file_path = file_path
         self.line_offset = line_offset
+        self.source_text = source_text  # Store the original source text for physical line counting
         # Cache for function context maps to avoid rebuilding for each violation
         self._function_context_cache = {}
     
@@ -382,3 +383,62 @@ class ScriptDetector(ABC):
             return self._extract_property_chain(node) or ""
         
         return ""
+    
+    def count_physical_lines(self, start_line: int, end_line: int) -> int:
+        """
+        Count physical lines in the source text between start_line and end_line (inclusive).
+        
+        This method counts actual lines in the source text, including:
+        - All code lines
+        - Closing braces
+        - Blank lines (unless skip_blank_lines=True)
+        - Comments (unless skip_comments=True)
+        
+        Args:
+            start_line: Starting line number (1-based)
+            end_line: Ending line number (1-based, inclusive)
+            
+        Returns:
+            The number of lines between start_line and end_line
+        """
+        if not hasattr(self, 'source_text') or not self.source_text:
+            # Fallback: if no source text, just return line span
+            return end_line - start_line + 1
+        
+        # Split source into lines
+        source_lines = self.source_text.split('\n')
+        
+        # Adjust for 0-based indexing (line numbers are 1-based)
+        start_idx = start_line - 1
+        end_idx = end_line - 1
+        
+        # Ensure indices are within bounds
+        if start_idx < 0:
+            start_idx = 0
+        if end_idx >= len(source_lines):
+            end_idx = len(source_lines) - 1
+        
+        # Count lines, optionally filtering blank lines and comments
+        line_count = 0
+        for line_idx in range(start_idx, end_idx + 1):
+            line = source_lines[line_idx]
+            
+            # Check if we should count this line
+            should_count = True
+            
+            # Skip blank lines if flag is set
+            if hasattr(self, 'skip_blank_lines') and self.skip_blank_lines:
+                if line.strip() == '':
+                    should_count = False
+            
+            # Skip comment lines if flag is set
+            if hasattr(self, 'skip_comments') and self.skip_comments and should_count:
+                stripped = line.strip()
+                # Simple heuristic: line starts with // or is between /* */
+                if stripped.startswith('//') or stripped.startswith('/*') or stripped.startswith('*'):
+                    should_count = False
+            
+            if should_count:
+                line_count += 1
+        
+        return line_count

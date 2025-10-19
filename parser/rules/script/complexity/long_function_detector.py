@@ -9,12 +9,22 @@ from ...common import Violation
 class LongFunctionDetector(ScriptDetector):
     """Detects functions that exceed maximum line count."""
     
-    def __init__(self, file_path: str = "", line_offset: int = 1):
-        super().__init__(file_path, line_offset)
+    def __init__(self, file_path: str = "", line_offset: int = 1, skip_comments: bool = False, skip_blank_lines: bool = False, source_text: str = ""):
+        super().__init__(file_path, line_offset, source_text)
         self.max_lines = 50
+        self.skip_comments = skip_comments
+        self.skip_blank_lines = skip_blank_lines
+        
     
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
         """Detect functions that exceed maximum line count in the AST."""
+        # Only analyze functions in locations where they can be globally accessible:
+        # 1. PMD 'script' section (functions are available throughout the PMD file)
+        # 2. Standalone .script files (functions are exported and reusable)
+        # Skip embedded blocks (onLoad, onChange, onSend, etc.) where functions are local only
+        if field_name and field_name != 'script':
+            return
+        
         long_functions = self._find_long_functions(ast, self.max_lines)
         
         for func_info in long_functions:
@@ -57,7 +67,11 @@ class LongFunctionDetector(ScriptDetector):
                                 break
                         
                         if func_body:
-                            line_count = self._count_function_lines(func_body)
+                            # Count lines from the ENTIRE variable declaration node, not just the function expression
+                            # The function_expression node is incomplete - it doesn't include the return statement
+                            # and closing brace. We need to count from the variable declaration node instead.
+                            line_count = self._count_function_lines(node, var_name)
+                            
                             if line_count > max_lines:
                                 # Get line number from the first token in the node
                                 line_number = None
@@ -82,90 +96,124 @@ class LongFunctionDetector(ScriptDetector):
         
         return long_functions
     
-    def _count_function_lines(self, func_body) -> int:
-        """Count the number of code lines in a function body, excluding nested function bodies."""
-        if not hasattr(func_body, 'children'):
+    def _count_function_lines(self, func_expr, var_name="unknown") -> int:
+        """
+        Count lines using source text (ESLint approach).
+        
+        Gets the start and end line numbers from the AST, then counts
+        the actual physical lines in the source text between them.
+        """
+        if not hasattr(func_expr, 'children'):
             return 1
         
+        # Collect all line numbers from the AST to find min and max
         counted_lines = set()
         
-        def collect_lines(node, inside_nested_function=False):
-            # Check if this node is a nested function definition
-            is_nested_function = False
-            if hasattr(node, 'data'):
-                if node.data in ['function_expression', 'arrow_function', 'function_declaration']:
-                    is_nested_function = True
-                    # Don't traverse into nested functions at all
-                    return
-                
-                # Also check for variable statements that contain function expressions
-                if node.data == 'variable_statement':
-                    # Check if this variable statement contains a function expression
-                    if hasattr(node, 'children'):
-                        for child in node.children:
-                            if hasattr(child, 'data') and child.data == 'variable_declaration':
-                                if hasattr(child, 'children') and len(child.children) >= 2:
-                                    func_expr = child.children[1]
-                                    if hasattr(func_expr, 'data') and func_expr.data == 'function_expression':
-                                        is_nested_function = True
-                                        # Don't traverse into this variable statement at all
-                                        return
+        def collect_lines(node):
+            """Recursively collect all line numbers from the AST."""
+            if hasattr(node, 'line') and node.line is not None:
+                if self._should_count_line(node):
+                    counted_lines.add(node.line)
             
-            # Only count lines if we're not inside a nested function
-            if not inside_nested_function:
-                if hasattr(node, 'line') and node.line is not None:
-                    # Skip newline tokens that might be associated with function declarations
-                    if hasattr(node, 'type') and node.type == 'NEWLINE':
-                        # Don't count newline tokens
-                        pass
-                    elif self._is_code_line(node):
-                        counted_lines.add(node.line)
-            
-            # Recursively check children
             if hasattr(node, 'children'):
                 for child in node.children:
-                    collect_lines(child, inside_nested_function or is_nested_function)
+                    collect_lines(child)
         
-        collect_lines(func_body)
+        collect_lines(func_expr)
         
-        if counted_lines:
-            return len(counted_lines)
+        if not counted_lines:
+            return 1
         
-        return len(func_body.children) if func_body.children else 1
+        # Get the range of lines from the AST
+        min_line = min(counted_lines)
+        max_line = max(counted_lines)
+        
+        # Find closing brace, but limit search to actual source text length
+        actual_end_line = self._find_closing_brace_from_start(min_line, max_line, var_name)
+        
+        # Ensure we don't go beyond the actual source text length
+        max_source_line = len(self.source_text.split('\n'))
+        if actual_end_line > max_source_line:
+            actual_end_line = max_source_line
+
+        # Use the shared helper to count physical lines from source text
+        result = self.count_physical_lines(min_line, actual_end_line)
+        
+        return result
     
-    def _is_code_line(self, node: Tree) -> bool:
-        """Check if a node represents actual code (not empty lines, comments, or template markers)."""
+    def _find_closing_brace_from_start(self, func_start_line: int, last_ast_line: int, function_name: str = "") -> int:
+        """Find the closing brace by counting from the function start."""
+        if not self.source_text:
+            return last_ast_line + 1
+        
+        source_lines = self.source_text.split('\n')
+        
+        # Start counting braces from the function declaration line
+        brace_depth = 0
+        start_idx = func_start_line - 1
+        has_seen_opening_brace = False
+        
+        for line_idx in range(start_idx, len(source_lines)):
+            line = source_lines[line_idx]
+            
+            # Count braces on this line
+            open_braces = line.count('{')
+            close_braces = line.count('}')
+            
+            # Track if we've seen an opening brace
+            if open_braces > 0:
+                has_seen_opening_brace = True
+            
+            # Update brace depth
+            brace_depth += open_braces
+            brace_depth -= close_braces
+            
+            # Once we close all braces AND we've seen an opening brace, we found the end
+            if brace_depth == 0 and has_seen_opening_brace:
+                return line_idx + 1
+        
+        return last_ast_line + 1
+    
+    def _should_count_line(self, node) -> bool:
+        """
+        Determine if a node's line should be counted based on skip flags.
+        
+        Args:
+            node: AST node to check
+            
+        Returns:
+            True if the line should be counted, False otherwise
+        """
         # Check if node has type attribute (Lark tokens)
         if hasattr(node, 'type'):
-            # Skip whitespace and comments (exclusion list approach)
-            if node.type in ['WHITESPACE', 'COMMENT']:
+            # Always skip whitespace tokens
+            if node.type == 'WHITESPACE':
                 return False
             
-            # Don't skip NEWLINE tokens - they represent actual line breaks that should be counted
-            # The goal is to count procedural code lines, and NEWLINE tokens are part of that
+            # Skip comment tokens if flag is set
+            if self.skip_comments and node.type == 'COMMENT':
+                return False
             
-            # Count actual code tokens (exclusion list approach)
-            # Only exclude specific non-code types, everything else is code
+            # Skip newline/blank line tokens if flag is set
+            if self.skip_blank_lines and node.type in ['NEWLINE', 'NL']:
+                return False
+            
             return True
         
         # Check if node has data attribute (Lark Tree nodes)
         if hasattr(node, 'data'):
-            # Skip template markers
+            # Skip comment nodes if flag is set
+            if self.skip_comments and node.data in ['line_comment', 'block_comment', 'comment']:
+                return False
+            
+            # Skip template markers (always)
             if node.data in ['template_start', 'template_end']:
                 return False
             
-            # Skip comments
-            if node.data in ['line_comment', 'block_comment']:
-                return False
-            
-            # Skip empty statements
+            # Skip empty statements (always)
             if node.data == 'empty_statement':
                 return False
             
-            # Don't skip EOS tokens - they represent actual line breaks that should be counted
-            # The goal is to count procedural code lines, and EOS tokens are part of that
-            
-            # Everything else is considered code
             return True
         
-        return False
+        return True
