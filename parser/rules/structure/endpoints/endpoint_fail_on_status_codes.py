@@ -93,9 +93,9 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
             )
 
     def _get_endpoint_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:
-        """Get line number for the endpoint."""
+        """Get line number for the endpoint name field."""
         if endpoint_name and hasattr(model, 'source_content'):
-            # For PMD models, use the unified method
+            # For PMD models, use the unified method to find the name field
             if isinstance(model, PMDModel):
                 return self.get_field_line_number(model, 'name', endpoint_name)
             # For POD models, return a basic line number (could be enhanced later)
