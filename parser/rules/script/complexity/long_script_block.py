@@ -33,6 +33,16 @@ class ScriptLongBlockRule(ScriptRuleBase):
         if 'skip_blank_lines' in custom_settings:
             self.skip_blank_lines = custom_settings['skip_blank_lines']
     
+    def _analyze_script(self, script_model, context=None):
+        """Override to skip standalone script files entirely.
+        
+        ScriptLongBlockRule only applies to embedded script blocks in PMD/POD files,
+        not to standalone .script files which are handled by ScriptLongFunctionRule.
+        """
+        # Skip standalone script files entirely - they should only be analyzed
+        # by ScriptLongFunctionRule, not ScriptLongBlockRule
+        return
+    
     def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None):
         """Override to pass custom settings to detector."""
         # Strip <% %> tags from script content if present

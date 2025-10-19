@@ -420,6 +420,8 @@ class ScriptDetector(ABC):
         
         # Count lines, optionally filtering blank lines and comments
         line_count = 0
+        in_block_comment = False
+        
         for line_idx in range(start_idx, end_idx + 1):
             line = source_lines[line_idx]
             
@@ -434,9 +436,26 @@ class ScriptDetector(ABC):
             # Skip comment lines if flag is set
             if hasattr(self, 'skip_comments') and self.skip_comments and should_count:
                 stripped = line.strip()
-                # Simple heuristic: line starts with // or is between /* */
-                if stripped.startswith('//') or stripped.startswith('/*') or stripped.startswith('*'):
+                
+                # Single-line comments
+                if stripped.startswith('//'):
                     should_count = False
+                # Block comments - track state across lines
+                elif '/*' in line or '*/' in line or in_block_comment:
+                    # Check if this line starts a new block comment
+                    if '/*' in line and '*/' not in line:
+                        in_block_comment = True
+                        should_count = False
+                    # Check if this line ends a block comment
+                    elif '*/' in line:
+                        in_block_comment = False
+                        should_count = False
+                    # Check if we're in the middle of a block comment
+                    elif in_block_comment:
+                        should_count = False
+                    # Handle inline block comments that start and end on the same line
+                    elif '/*' in line and '*/' in line:
+                        should_count = False
             
             if should_count:
                 line_count += 1
