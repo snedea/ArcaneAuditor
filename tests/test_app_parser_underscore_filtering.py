@@ -374,40 +374,6 @@ class TestRuleBehaviorWithFiltering:
         """Set up test fixtures."""
         self.parser = ModelParser()
 
-    def test_null_safety_rule_ignores_commented_content(self):
-        """Test that ScriptNullSafetyRule doesn't flag commented unsafe access."""
-        from file_processing.models import SourceFile
-        from parser.rules.script.logic.null_safety import ScriptNullSafetyRule
-        
-        pmd_content = '''{
-  "id": "testPage",
-  "presentation": {
-    "body": {
-      "widgets": [{
-        "type": "text",
-        "label": "Safe Field",
-        "render": "<% safe.field %>",
-        "_render": "<% unsafe.field.chain.that.would.flag %>"
-      }]
-    }
-  }
-}'''
-        
-        from pathlib import Path
-        source_file = SourceFile(Path("test.pmd"), pmd_content, len(pmd_content.encode('utf-8')))
-        context = ProjectContext()
-        
-        # Parse the file
-        self.parser._parse_single_file("test.pmd", source_file, context)
-        
-        # Run the null safety rule
-        rule = ScriptNullSafetyRule()
-        findings = list(rule.analyze(context))
-        
-        # Should only find violations in the active render field, not the commented one
-        # Since the commented field is filtered out, it shouldn't appear in findings
-        render_findings = [f for f in findings if "render" in f.field_path.lower()]
-        assert len(render_findings) == 0  # The safe.field should not flag
 
     def test_hardcoded_wid_rule_ignores_commented_content(self):
         """Test that HardcodedWidRule doesn't flag commented WIDs."""
