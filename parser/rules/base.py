@@ -588,20 +588,20 @@ class Rule(ABC):
                 return None
             
             # Check if this looks like a string value that contains script blocks rather than actual script
-            # This happens when JSON string values like "template is <% foo %> and <% bar %>" are passed
             stripped_content = script_content.strip()
-            if ('<%' in stripped_content and '%>' in stripped_content and 
-                stripped_content.count('<%') > 1):
-                # This is a template expression with multiple script blocks - handle it specially
-                from .script.shared.template_expression_preprocessor import TemplateExpressionPreprocessor
-                preprocessor = TemplateExpressionPreprocessor()
-                if preprocessor.is_template_expression(stripped_content):
-                    # Parse as template expression
-                    try:
-                        return preprocessor.preprocess_template_expression(stripped_content)
-                    except Exception as e:
-                        print(f"Warning: Failed to parse template expression: {e}")
-                        return None
+            
+            # If the original content has <% %> tags AND content outside the tags, it's a template expression
+            if '<%' in stripped_content and '%>' in stripped_content:
+                # Simple check: if content doesn't start and end with script tags, it's a template expression
+                if not (stripped_content.startswith('<%') and stripped_content.endswith('%>')):
+                    from .script.shared.template_expression_preprocessor import TemplateExpressionPreprocessor
+                    preprocessor = TemplateExpressionPreprocessor()
+                    if preprocessor.is_template_expression(stripped_content):
+                        try:
+                            return preprocessor.preprocess_template_expression(stripped_content)
+                        except Exception as e:
+                            print(f"Warning: Failed to parse template expression '{stripped_content[:50]}...': {e}")
+                            return None
                 
             
             # Use context-level caching if available
