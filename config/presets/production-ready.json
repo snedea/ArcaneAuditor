@@ -64,6 +64,11 @@
       "severity_override": null,
       "custom_settings": {}
     },
+    "ScriptNestedArraySearchRule": {
+      "enabled": true,
+      "severity_override": null,
+      "custom_settings": {}
+    },
     "ScriptMagicNumberRule": {
       "enabled": true,
       "severity_override": null,
