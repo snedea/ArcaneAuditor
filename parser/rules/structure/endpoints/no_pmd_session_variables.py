@@ -67,8 +67,9 @@ class NoPMDSessionVariablesRule(StructureRuleBase):
             )
     
     def _get_endpoint_line_number(self, pmd_model: PMDModel, endpoint_name: str) -> int:
-        """Get line number for the endpoint."""
-        if endpoint_name and hasattr(pmd_model, 'source_content'):
-            return self.get_field_line_number(pmd_model, 'name', endpoint_name)
+        """Get line number for the variableScope field."""
+        if hasattr(pmd_model, 'source_content'):
+            # Use pattern search to find the variableScope field
+            return self.find_pattern_line_number(pmd_model, '"variableScope": "session"')
         return 1
 
