@@ -69,11 +69,6 @@
       "severity_override": null,
       "custom_settings": {}
     },
-    "ScriptNullSafetyRule": {
-      "enabled": true,
-      "severity_override": null,
-      "custom_settings": {}
-    },
     "ScriptFunctionReturnConsistencyRule": {
       "enabled": true,
       "severity_override": null,

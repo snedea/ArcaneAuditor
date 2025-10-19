@@ -21,7 +21,6 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 - [ScriptLongFunctionRule](#scriptlongfunctionrule)
 - [ScriptMagicNumberRule](#scriptmagicnumberrule)
 - [ScriptNestingLevelRule](#scriptnestinglevelrule)
-- [ScriptNullSafetyRule](#scriptnullsafetyrule)
 - [ScriptOnSendSelfDataRule](#scriptonsendselfdatarule)
 - [ScriptStringConcatRule](#scriptstringconcatrule)
 - [ScriptUnusedFunctionParametersRule](#scriptunusedfunctionparametersrule)
@@ -689,38 +688,6 @@ function calculateDiscount(price) {
 
 ---
 
-### ScriptNullSafetyRule
-
-**Severity:** 🚨ACTION
-**Description:** Ensures property access chains are protected against null reference exceptions
-**Applies to:** PMD embedded scripts, Pod endpoint/widget scripts, and standalone .script files
-
-**Why This Matters:**
-
-Accessing properties on null or undefined objects (`user.address.city` when `user.address` is null) cause runtime errors that can break your entire page. In Workday Extend, this means users see errors instead of their work. Using null coalescing, empty checks, or optional chaining (`user.address.city ?? ''`) provide graceful degradation or defaults when data is missing.
-
-**What it catches:**
-
-- Unsafe property access that could throw null reference exceptions
-- Missing null checks before property access
-- Improper use of null coalescing operator
-
-**Example violations:**
-
-```javascript
-const skill = workerData.skills[0].name;  // ❌ Unsafe - skills could be null/undefined
-```
-
-**Fix:**
-
-```javascript
-const skills = workerData.skills[0].name ?? '';      // ✅ Null coalescing fallback
-```
-
-> **🧙‍♂️ Wizard's Note:** As you might imagine, this is a very complex rule to implement. There are a number of ways that something can be protected that may happen elsewhere in the page, making the finding invalid.
-> We've done our best to implement a smart rule here and will continue to refine it as we go. Currently, the logic checks general chain length (more than 3 properties in the access chain) and it IS smart enough to evaluate exclude in endpoints and render in widgets. Strategies that we have no yet covered are render in parent widgets, such as fieldSets or sections as well as page-level applicationExceptions, which are also a valid way to check ahead of time.
-
----
 
 ### ScriptDescriptiveParameterRule
 
@@ -2112,7 +2079,6 @@ Combining paging with sortableAndFilterable columns forces Workday to load and p
 | **ScriptUnusedFunctionParametersRule**   | Script    | ℹ️ ADVICE | ✅              | —                                                     |
 | **ScriptVariableNamingRule**             | Script    | ℹ️ ADVICE | ✅              | —                                                     |
 | **ScriptConsoleLogRule**                 | Script    | 🚨 ACTION   | ✅              | —                                                     |
-| **ScriptNullSafetyRule**                 | Script    | 🚨 ACTION   | ✅              | —                                                     |
 | **ScriptEmptyFunctionRule**              | Script    | 🚨 ACTION   | ✅              | —                                                     |
 | **ScriptNestingLevelRule**               | Script    | ℹ️ ADVICE | ✅              | `max_nesting`                                        |
 | **ScriptLongScriptBlockRule**            | Script    | ℹ️ ADVICE | ✅              | `max_lines`, `skip_comments`, `skip_blank_lines` |

@@ -40,7 +40,6 @@ class RulesConfig(BaseModel):
     ScriptFunctionParameterNamingRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures function parameters follow lowerCamelCase naming convention")
     ScriptArrayMethodUsageRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using array higher-order methods instead of manual loops")
     ScriptMagicNumberRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures scripts don't contain magic numbers (use named constants)")
-    ScriptNullSafetyRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures property access chains are protected against null reference exceptions")
     ScriptFunctionReturnConsistencyRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures functions have consistent return patterns")
     ScriptStringConcatRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using template literals instead of string concatenation")
     ScriptVerboseBooleanCheckRule: RuleConfig = Field(default_factory=RuleConfig, description="Recommends using concise boolean expressions")
