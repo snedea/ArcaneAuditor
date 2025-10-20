@@ -65,7 +65,7 @@ Layered config system protects your customizations during updates. Your personal
 
 > 💡 **That's all you need!** UV handles Python installation automatically when you run the tool.
 >
-> 🔧 **Advanced users:** If you cannot use UV, see [Alternative Installation Methods](#alternative-installation-methods) for pip instructions.
+> 🔧 **Advanced users:** If you cannot use UV, see [Alternative Installation Methods](#-alternative-installation-methods) for pip instructions.
 
 ---
 
