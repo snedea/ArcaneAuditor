@@ -13,11 +13,16 @@ Arcane Auditor unified architecture. It demonstrates:
 - Proper error handling and AST parsing
 - Configuration support through custom_settings and apply_settings method
 - Readable widget paths with id/label/type priority
+
+PATTERN COMPARISON:
+- Pattern 1: Constructor parameters (valid but more complex)
+- Pattern 2: Set attributes after creation (RECOMMENDED - simpler)
 """
 
-from typing import Generator, List
+from typing import Generator
 from lark import Tree
-from ...script.shared import ScriptRuleBase, ScriptDetector, Violation
+from ...script.shared import ScriptRuleBase, ScriptDetector
+from ...common import Violation
 from ...base import Finding
 from ....models import ProjectContext
 
@@ -26,16 +31,15 @@ from ....models import ProjectContext
 class CommentQualityDetector(ScriptDetector):
     """Detects functions with low comment density."""
     
-    def __init__(self, file_path: str = "", line_offset: int = 1, min_comment_density: float = 0.1, min_function_lines: int = 5):
-        """Initialize detector with configuration."""
+    def __init__(self, file_path: str = "", line_offset: int = 1):
+        """Initialize detector with file info only."""
         super().__init__(file_path, line_offset)
-        self.min_comment_density = min_comment_density
-        self.min_function_lines = min_function_lines
+        # Configuration defaults - will be set by rule
+        self.min_comment_density = 0.1
+        self.min_function_lines = 5
     
-    def detect(self, ast: Tree, field_name: str = "") -> List[Violation]:
+    def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
         """Find functions with low comment density."""
-        violations = []
-        
         # Find all function definitions in the AST
         functions = self._find_functions_in_ast(ast)
         
@@ -46,15 +50,12 @@ class CommentQualityDetector(ScriptDetector):
             if func_info['line_count'] >= self.min_function_lines and comment_density < self.min_comment_density:
                 line_number = self.get_line_from_tree_node(func_info['node'])
                 
-                violations.append(Violation(
+                yield Violation(
                     message=f"Function '{func_info['name']}' has low comment density "
                            f"({comment_density:.1%}, minimum: {self.min_comment_density:.1%}). "
                            f"Consider adding comments to improve code maintainability.",
-                    line=line_number,
-                    metadata={'function_name': func_info['name'], 'density': comment_density}
-                ))
-        
-        return violations
+                    line=line_number
+                )
     
     def _find_functions_in_ast(self, ast: Tree) -> list:
         """Find all function definitions in the AST."""
@@ -100,6 +101,9 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
     - Detector handles AST analysis and violation detection
     - Rule orchestrates detector usage and configuration
     - Clean separation of concerns
+    
+    PATTERN 2 (RECOMMENDED): Set attributes after detector creation
+    This is simpler and more flexible than passing parameters to constructor.
     """
     
     IS_EXAMPLE = True  # Flag to exclude from automatic discovery
@@ -110,6 +114,7 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
     
     def __init__(self, config: dict = None):
         """Initialize with optional configuration."""
+        super().__init__()
         self.config = config or {}
         # Default values - can be overridden via apply_settings()
         self.min_comment_density = 0.1  # 10% default
@@ -136,14 +141,148 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
         """Get rule description."""
         return self.DESCRIPTION
     
-    def _create_detector(self, file_path: str, line_offset: int) -> CommentQualityDetector:
-        """Create detector instance with current configuration."""
-        return CommentQualityDetector(
+    def _check(self, script_content: str, field_name: str, file_path: str, 
+               line_offset: int = 1, context=None) -> Generator[Finding, None, None]:
+        """
+        Override _check to pass configuration to detector.
+        This demonstrates PATTERN 2 (RECOMMENDED): Set attributes after creation.
+        """
+        # Parse the script content with context for caching
+        ast = self._parse_script_content(script_content, context)
+        if not ast:
+            return
+        
+        # Create detector and configure it (PATTERN 2 - RECOMMENDED)
+        detector = self.DETECTOR(file_path, line_offset)
+        detector.min_comment_density = self.min_comment_density
+        detector.min_function_lines = self.min_function_lines
+        
+        # Use detector to find violations and yield them directly
+        for violation in detector.detect(ast, field_name):
+            yield Finding(
+                rule=self,
+                message=violation.message,
+                line=violation.line,
+                file_path=file_path
+            )
+
+
+# Alternative Pattern 1 Example (for comparison):
+class CommentQualityDetectorPattern1(ScriptDetector):
+    """
+    Alternative detector using PATTERN 1: Constructor parameters.
+    This is valid but more complex than Pattern 2.
+    """
+    
+    def __init__(self, file_path: str = "", line_offset: int = 1, 
+                 min_comment_density: float = 0.1, min_function_lines: int = 5):
+        """Initialize detector with configuration parameters."""
+        super().__init__(file_path, line_offset)
+        self.min_comment_density = min_comment_density
+        self.min_function_lines = min_function_lines
+    
+    def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
+        """Find functions with low comment density."""
+        # Same implementation as Pattern 2 detector
+        functions = self._find_functions_in_ast(ast)
+        
+        for func_info in functions:
+            comment_density = self._calculate_comment_density(func_info)
+            
+            if func_info['line_count'] >= self.min_function_lines and comment_density < self.min_comment_density:
+                line_number = self.get_line_from_tree_node(func_info['node'])
+                
+                yield Violation(
+                    message=f"Function '{func_info['name']}' has low comment density "
+                           f"({comment_density:.1%}, minimum: {self.min_comment_density:.1%}). "
+                           f"Consider adding comments to improve code maintainability.",
+                    line=line_number
+                )
+    
+    def _find_functions_in_ast(self, ast: Tree) -> list:
+        """Find all function definitions in the AST."""
+        functions = []
+        for func_node in ast.find_data('function_declaration'):
+            func_name = self._extract_function_name(func_node)
+            line_count = self._estimate_function_length(func_node)
+            functions.append({
+                'name': func_name,
+                'node': func_node,
+                'line_count': line_count
+            })
+        return functions
+    
+    def _extract_function_name(self, func_node: Tree) -> str:
+        """Extract function name from AST node."""
+        if len(func_node.children) > 0:
+            return str(func_node.children[0]) if hasattr(func_node.children[0], 'value') else 'anonymous'
+        return 'anonymous'
+    
+    def _estimate_function_length(self, func_node: Tree) -> int:
+        """Estimate function length from AST node."""
+        return 10  # Placeholder
+    
+    def _calculate_comment_density(self, func_info: dict) -> float:
+        """Calculate comment density for a function."""
+        return 0.05  # Placeholder - 5% comment density
+
+
+class CustomScriptCommentQualityRulePattern1(ScriptRuleBase):
+    """
+    Alternative rule using PATTERN 1: Constructor parameters.
+    This is valid but more complex than Pattern 2.
+    """
+    
+    IS_EXAMPLE = True
+    DESCRIPTION = "Functions should have adequate comments for maintainability (Pattern 1 example)"
+    SEVERITY = "ADVICE"
+    DETECTOR = CommentQualityDetectorPattern1
+    
+    def __init__(self, config: dict = None):
+        super().__init__()
+        self.config = config or {}
+        self.min_comment_density = 0.1
+        self.min_function_lines = 5
+        
+        if config:
+            self.apply_settings(config)
+    
+    def apply_settings(self, settings: dict):
+        """Apply custom settings to the rule."""
+        if 'min_comment_density' in settings:
+            self.min_comment_density = settings['min_comment_density']
+        if 'min_function_lines' in settings:
+            self.min_function_lines = settings['min_function_lines']
+    
+    def get_description(self) -> str:
+        return self.DESCRIPTION
+    
+    def _check(self, script_content: str, field_name: str, file_path: str, 
+               line_offset: int = 1, context=None) -> Generator[Finding, None, None]:
+        """
+        Override _check using PATTERN 1: Constructor parameters.
+        This is more complex than Pattern 2.
+        """
+        ast = self._parse_script_content(script_content, context)
+        if not ast:
+            return
+        
+        # PATTERN 1: Pass configuration to constructor
+        detector = self.DETECTOR(
             file_path=file_path,
             line_offset=line_offset,
             min_comment_density=self.min_comment_density,
             min_function_lines=self.min_function_lines
         )
+        
+        # Use detector to find violations
+        for violation in detector.detect(ast, field_name):
+            yield Finding(
+                rule=self,
+                message=violation.message,
+                line=violation.line,
+                file_path=file_path
+            )
 
 
 # Additional example: Structure validation rule using unified architecture
@@ -165,6 +304,7 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
     
     def __init__(self, config: dict = None):
         """Initialize with configuration."""
+        super().__init__()
         self.config = config or {}
         # Default values - can be overridden via apply_settings()
         self.required_sections = ['id', 'presentation']
