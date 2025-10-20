@@ -127,9 +127,8 @@ class TestAnalysisContext:
         )
         
         not_executed = context.rules_not_executed
-        assert len(not_executed) == 1
-        assert not_executed[0]["rule"] == "HardcodedWorkdayAPIRule"
-        assert not_executed[0]["reason"] == "Requires AMD file"
+        # HardcodedWorkdayAPIRule no longer requires AMD, so no rules should be not executed
+        assert len(not_executed) == 0
     
     def test_rules_partially_executed_empty(self):
         """Test rules_partially_executed with no skipped checks."""
@@ -200,7 +199,7 @@ class TestAnalysisContext:
         assert result["context_status"] == "partial"
         assert "AMD" in result["files_missing"]
         assert "SMD" in result["files_missing"]
-        assert len(result["impact"]["rules_not_executed"]) == 2  # HardcodedWorkdayAPIRule and HardcodedApplicationIdRule
+        assert len(result["impact"]["rules_not_executed"]) == 1  # Only HardcodedApplicationIdRule
         assert len(result["impact"]["rules_partially_executed"]) == 1
         assert result["impact"]["rules_partially_executed"][0]["rule"] == "TestRule"
     

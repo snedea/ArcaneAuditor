@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-"""Unit tests for HardCodedWorkdayAPIRule."""
+"""Unit tests for HardcodedWorkdayAPIRule."""
 
 import pytest
-from parser.rules.structure.validation.hardcoded_workday_api import HardCodedWorkdayAPIRule
+from parser.rules.structure.validation.hardcoded_workday_api import HardcodedWorkdayAPIRule
 from parser.rules.base import Finding
 from parser.models import AMDModel, PMDModel, PodModel, PodSeed, ProjectContext
 
 
-class TestHardCodedWorkdayAPIRule:
-    """Test cases for HardCodedWorkdayAPIRule."""
+class TestHardcodedWorkdayAPIRule:
+    """Test cases for HardcodedWorkdayAPIRule."""
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.rule = HardCodedWorkdayAPIRule()
+        self.rule = HardcodedWorkdayAPIRule()
 
     def test_rule_metadata(self):
         """Test rule metadata."""
-        assert self.rule.ID == "HardCodedWorkdayAPIRule"
+        assert self.rule.ID == "HardcodedWorkdayAPIRule"
         assert self.rule.DESCRIPTION == "Detects hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness"
         assert self.rule.SEVERITY == "ACTION"
 
@@ -281,4 +281,4 @@ class TestHardCodedWorkdayAPIRule:
         
         context = ProjectContext()
         findings = list(self.rule.visit_pmd(pmd_model, context))
-        assert len(findings) == 0  # Should not be flagged by HardCodedWorkdayAPIRule
+        assert len(findings) == 0  # Should not be flagged by HardcodedWorkdayAPIRule

@@ -6,7 +6,6 @@ from typing import Generator, List, Dict, Any
 from parser.rules.structure.shared.rule_base import StructureRuleBase
 from parser.rules.base import Finding
 from parser.models import ProjectContext, PMDModel, PodModel, AMDModel
-from file_processing.context_tracker import SkippedCheck
 
 
 class HardcodedWorkdayAPIRule(StructureRuleBase):
@@ -26,17 +25,7 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
         )
     
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
-        """Main analysis entry point with context awareness."""
-        # Check if AMD is missing and register skipped check
-        if not context.amd:
-            context.register_skipped_check(
-                SkippedCheck(
-                    rule=self.ID,
-                    reason="Requires AMD file",
-                    skipped_checks=["amd_data_provider_validation"]
-                )
-            )
-        
+        """Main analysis entry point."""
         # Run analysis on available files
         yield from super().analyze(context)
 

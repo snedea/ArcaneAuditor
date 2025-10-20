@@ -34,7 +34,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 
 ### Structure Rules
 
-- [HardCodedWorkdayAPIRule](#hardcodedworkdayapirule)
+- [HardcodedWorkdayAPIRule](#Hardcodedworkdayapirule)
 - [EmbeddedImagesRule](#embeddedimagesrule)
 - [EndpointBaseUrlTypeRule](#endpointbaseurltyperule)
 - [EndpointFailOnStatusCodesRule](#endpointfailonstatuscodesrule)
@@ -42,8 +42,8 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 - [FileNameLowerCamelCaseRule](#filenamelowercamelcaserule)
 - [FooterPodRequiredRule](#footerpodrequiredrule)
 - [GridPagingWithSortableFilterableRule](#gridpagingwithsortablefilterablerule)
-- [HardcodedApplicationIdRule](#hardcodedapplicationidrule)
-- [HardcodedWidRule](#hardcodedwidrule)
+- [HardcodedApplicationIdRule](#Hardcodedapplicationidrule)
+- [HardcodedWidRule](#Hardcodedwidrule)
 - [MultipleStringInterpolatorsRule](#multiplestringinterpolatorsrule)
 - [NoIsCollectionOnEndpointsRule](#noiscollectiononendpointsrule)
 - [NoPMDSessionVariablesRule](#nopmdsessionvariablesrule)
@@ -59,7 +59,7 @@ This grimoire provides a comprehensive overview of all **42 validation rules** w
 The rules are organized into two main categories:
 
 - **Script Rules**: Code quality and best practices for PMD, Pod, and standalone script files
-- **Structure Rules**: Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- **Structure Rules**: Widget configurations, endpoint validation, structural compliance, Hardcoded values, and PMD organization
 
 ## Severity Levels
 
@@ -1277,7 +1277,7 @@ Including unused script files forces the engine to parse and load code that's ne
 ### HardcodedApplicationIdRule
 
 **Severity:** ℹ️ADVICE
-**Description:** Detects hardcoded applicationId values that should be replaced with site.applicationId
+**Description:** Detects Hardcoded applicationId values that should be replaced with site.applicationId
 **Applies to:** PMD and Pod files
 
 **Why This Matters:**
@@ -1341,7 +1341,7 @@ Base64-encoded images bloat your PMD/Pod file sizes dramatically (often 30% larg
 ### HardcodedWidRule
 
 **Severity:** ℹ️ADVICE
-**Description:** Detects hardcoded WID (Workday ID) values that should be configured in app attributes
+**Description:** Detects Hardcoded WID (Workday ID) values that should be configured in app attributes
 **Applies to:** PMD and Pod files
 
 **Why This Matters:**
@@ -1368,10 +1368,10 @@ const query = "SELECT worker FROM allIndexedWorkers WHERE country = usaLocation"
 
 ---
 
-### HardCodedWorkdayAPIRule
+### HardcodedWorkdayAPIRule
 
 **Severity:** 🚨ACTION
-**Description:** Detects hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness
+**Description:** Detects Hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness
 **Applies to:** AMD dataProviders, PMD inbound/outbound endpoints, POD endpoints
 
 **Why This Matters:**
@@ -1437,7 +1437,7 @@ Hardcoded workday.com URLs are not update safe and lack regional awareness. Usin
 
 *The Structure Rules bind the outer wards and conduits of your magical constructs. These architectural validations ensure your endpoints, widgets, and configurations form a harmonious and secure foundation for your mystical applications.*
 
-*These rules validate widget configurations, endpoint structures, component compliance, hardcoded values, file naming conventions, and PMD organization in both PMD and Pod files.*
+*These rules validate widget configurations, endpoint structures, component compliance, Hardcoded values, file naming conventions, and PMD organization in both PMD and Pod files.*
 
 ### EndpointFailOnStatusCodesRule
 
@@ -1655,7 +1655,7 @@ Workday APIs are heavily used within most Extend applications. Creating a re-usa
 
 - Hardcoded *.workday.com domains in endpoint URLs
 - Hardcoded apiGatewayEndpoint values in URLs
-- Endpoints that should use baseUrlType instead of hardcoded values
+- Endpoints that should use baseUrlType instead of Hardcoded values
 - Both patterns promote extracting Workday endpoints to shared AMD data providers
 
 **Example violations:**
@@ -2210,7 +2210,7 @@ Combining paging with sortableAndFilterable columns forces Workday to load and p
 | **PMDSecurityDomainRule**                | Structure | 🚨 ACTION | ✅              | `strict`                                              |
 | **EmbeddedImagesRule**                   | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **FooterPodRequiredRule**                | Structure | ℹ️ ADVICE | ✅              | —                                                     |
-| **HardCodedWorkdayAPIRule**              | Structure | 🚨 ACTION | ✅              | —                                                     |
+| **HardcodedWorkdayAPIRule**              | Structure | 🚨 ACTION | ✅              | —                                                     |
 | **FileNameLowerCamelCaseRule**           | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **NoIsCollectionOnEndpointsRule**        | Structure | 🚨 ACTION | ✅              | —                                                     |
 | **OnlyMaximumEffortRule**                | Structure | 🚨 ACTION | ✅              | —                                                     |
@@ -2264,7 +2264,7 @@ Each rule supports:
 The Arcane Auditor channels mystical powers through **42 rules** across **2 categories**:
 
 - ✅ **Script Rules** - Code quality for PMD and standalone scripts
-- ✅ **Structure Rules** - Widget configurations, endpoint validation, structural compliance, hardcoded values, and PMD organization
+- ✅ **Structure Rules** - Widget configurations, endpoint validation, structural compliance, Hardcoded values, and PMD organization
 
 **Severity Distribution:**
 
