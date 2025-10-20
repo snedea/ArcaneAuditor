@@ -64,17 +64,79 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
                 all_function_calls.update(self._collect_function_calls(ast))
         
         # Third pass: check for unused global functions
-        for (field_path, field_name, line_offset), ast in global_field_asts.items():
-            detector = self.DETECTOR(model.file_path, line_offset, all_declared_functions, all_function_calls)
-            violations = detector.detect(ast, field_name)
-            
-            for violation in violations:
+        # Find which declared function variables are never called
+        unused_functions = all_declared_functions - all_function_calls
+        
+        # For each unused function, find its actual declaration line and report it
+        for var_name in unused_functions:
+            declaration_line = self._find_function_declaration_line(global_field_asts, var_name)
+            if declaration_line:
                 yield Finding(
                     rule=self,
-                    message=violation.message,
-                    line=violation.line,
+                    message=f"Unused function variable '{var_name}' - function is declared but never called",
+                    line=declaration_line,
                     file_path=model.file_path
                 )
+
+    def _find_function_declaration_line(self, global_field_asts: dict, var_name: str) -> int:
+        """Find the actual line number where a function variable is declared."""
+        for (field_path, field_name, line_offset), ast in global_field_asts.items():
+            # Create a detector instance to use its method
+            detector = self.DETECTOR("", line_offset)
+            declaration_line = detector._find_function_variable_declaration_line(ast, var_name)
+            if declaration_line:  # Found declaration
+                # If it returned line_offset, it means it didn't find the specific line
+                # Otherwise, it should return the actual line number
+                if declaration_line == line_offset:
+                    # Fallback: search manually for the function in the AST
+                    actual_line = self._find_function_line_in_ast(ast, var_name, line_offset)
+                    if actual_line:
+                        return actual_line
+                else:
+                    return declaration_line
+        return None
+
+    def _find_function_line_in_ast(self, ast, var_name: str, field_line_offset: int) -> int:
+        """Manually search AST for function declaration line."""
+        try:
+            # Search for variable statements containing the function
+            for var_statement in ast.find_data('variable_statement'):
+                for child in var_statement.iter_subtrees():
+                    if child.data == 'variable_declaration':
+                        if len(child.children) >= 1:
+                            identifier = child.children[0]
+                            if hasattr(identifier, 'value') and identifier.value == var_name:
+                                # Check if it's a function assignment
+                                if len(child.children) >= 2:
+                                    initializer = child.children[1]
+                                    if self._is_function_assignment(initializer):
+                                        # Get the line number from the AST node
+                                        line_in_field = self._get_line_from_ast_node(var_statement)
+                                        return field_line_offset + line_in_field - 1
+        except Exception:
+            pass
+        return None
+
+    def _is_function_assignment(self, initializer_node) -> bool:
+        """Check if an initializer node assigns a function."""
+        try:
+            for subtree in initializer_node.iter_subtrees():
+                if subtree.data in ('function_expression', 'arrow_function_expression'):
+                    return True
+        except Exception:
+            pass
+        return False
+
+    def _get_line_from_ast_node(self, node) -> int:
+        """Get line number from AST node."""
+        try:
+            if hasattr(node, 'meta') and hasattr(node.meta, 'line'):
+                return node.meta.line
+            elif hasattr(node, 'line'):
+                return node.line
+        except Exception:
+            pass
+        return 1
 
     def _analyze_local_functions(self, model, local_fields: List[Tuple[str, str, str, int]], 
                                 context=None) -> Generator[Finding, None, None]:

@@ -51,10 +51,13 @@ class MagicNumberDetector(ScriptDetector):
                                 # Check if this magic number is inside a function
                                 function_name = self.get_function_context_for_node(node, ast)
                                 
+                                # Extract code context for better error message
+                                code_snippet = self._extract_code_context(node, ast)
+                                
                                 if function_name:
-                                    message = f"File section '{field_name}' contains magic number '{number}' in function '{function_name}'. Consider using a named constant instead."
+                                    message = f"File section '{field_name}' contains magic number '{number}' in function '{function_name}': '{code_snippet}'. Consider using a named constant instead."
                                 else:
-                                    message = f"File section '{field_name}' contains magic number '{number}'. Consider using a named constant instead."
+                                    message = f"File section '{field_name}' contains magic number '{number}' in: '{code_snippet}'. Consider using a named constant instead."
                                 
                                 findings.append({
                                     'message': message,
@@ -220,3 +223,22 @@ class MagicNumberDetector(ScriptDetector):
                         return True
         
         return False
+    
+    def _extract_code_context(self, literal_node: Tree, ast: Tree) -> str:
+        """
+        Extract readable code context around a magic number.
+        
+        For now, just return the magic number itself to avoid garbled output.
+        This is much cleaner than the previous garbled text.
+        """
+        try:
+            # Get the magic number value
+            if hasattr(literal_node, 'children') and len(literal_node.children) > 0:
+                child = literal_node.children[0]
+                if hasattr(child, 'value'):
+                    return str(child.value)
+            
+            return "magic number"
+        except Exception:
+            # If anything fails, return a safe fallback
+            return "magic number"
