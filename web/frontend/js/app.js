@@ -151,14 +151,23 @@ class ArcaneAuditorApp {
         e.currentTarget.classList.remove('dragover');
         
         const files = Array.from(e.dataTransfer.files);
+        
         if (files.length > 0) {
-            // Check if it's a single ZIP file
-            if (files.length === 1 && files[0].name.endsWith('.zip')) {
-                this.selectedFiles = [files[0]];
-                this.uploadedFileName = files[0].name; // Set for ZIP files
-                this.uploadFile(files[0]); // Auto-upload ZIP files
+            // Check if any ZIP files are present
+            const zipFiles = files.filter(file => file.name.endsWith('.zip'));
+            
+            if (zipFiles.length > 0) {
+                // If multiple ZIP files are present, show error
+                if (zipFiles.length > 1) {
+                    this.showError('Only one ZIP file can be uploaded at a time. Please drop a single ZIP file or individual files (.pmd, .pod, .amd, .smd, .script).');
+                    return;
+                }
+                // Single ZIP file - proceed with upload
+                this.selectedFiles = [zipFiles[0]];
+                this.uploadedFileName = zipFiles[0].name;
+                this.uploadFile(zipFiles[0]); // Auto-upload ZIP files
             } else {
-                // Multiple files or individual files - don't set uploadedFileName
+                // No ZIP files - handle individual files
                 const validExtensions = ['.pmd', '.pod', '.amd', '.smd', '.script'];
                 const validFiles = files.filter(file => {
                     return validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
@@ -210,13 +219,15 @@ class ArcaneAuditorApp {
         }
 
         selectedFilesList.style.display = 'block';
-        selectedFilesContainer.innerHTML = this.selectedFiles.map(file => `
+        const html = this.selectedFiles.map(file => `
             <div class="selected-file">
                 <span class="file-icon">📄</span>
                 <span class="file-name">${file.name}</span>
                 <span class="file-size">(${this.formatFileSize(file.size)})</span>
             </div>
         `).join('');
+        
+        selectedFilesContainer.innerHTML = html;
     }
 
     formatFileSize(bytes) {
