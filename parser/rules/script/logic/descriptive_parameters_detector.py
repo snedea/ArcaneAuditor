@@ -29,15 +29,24 @@ class DescriptiveParameterDetector(ScriptDetector):
         # Use AST traversal to find arrow function expressions in call expressions
         violations = self._find_arrow_function_violations(ast)
         for violation in violations:
-            # Check if this parameter is inside a function (only if node is available)
+            # Check if this parameter is inside a function using line-based matching
             function_name = None
             if 'node' in violation:
-                function_name = self.get_function_context_for_node(violation['node'], ast)
+                function_name = self._get_function_name_for_node(violation['node'], ast)
+            
+            # Get the variable name for better context
+            variable_name = self._get_variable_name_for_arrow_function(violation['node'], ast)
             
             if function_name:
-                message = f"Parameter '{violation['param_name']}' in {violation['method_name']}() in function '{function_name}' should be more descriptive. "
+                if variable_name:
+                    message = f"Parameter '{violation['param_name']}' in {variable_name} (calls {violation['method_name']}()) in function '{function_name}' should be more descriptive. "
+                else:
+                    message = f"Parameter '{violation['param_name']}' in {violation['method_name']}() in function '{function_name}' should be more descriptive. "
             else:
-                message = f"Parameter '{violation['param_name']}' in {violation['method_name']}() should be more descriptive. "
+                if variable_name:
+                    message = f"Parameter '{violation['param_name']}' in {variable_name} (calls {violation['method_name']}()) should be more descriptive. "
+                else:
+                    message = f"Parameter '{violation['param_name']}' in {violation['method_name']}() should be more descriptive. "
             
             # Special messaging for sort method
             if violation['method_name'] == 'sort':
@@ -319,33 +328,157 @@ class DescriptiveParameterDetector(ScriptDetector):
         """Analyze an arrow function to see if it's part of a functional method call."""
         violations = []
         
+        # Get the line number of this arrow function for line-based matching
+        arrow_func_line = self.get_line_from_tree_node(arrow_func)
+        
+        # Try to find the specific functional method call this arrow function belongs to first
+        method_name = self._find_specific_functional_method(arrow_func, ast)
+        
         # Only analyze arrow functions that have problematic parameters
         has_problematic_params = False
         if hasattr(arrow_func, 'children'):
             for param in arrow_func.children[:-1]:  # Exclude the last child (expression)
                 if hasattr(param, 'value'):
                     param_name = param.value
-                    if self._is_problematic_parameter(param_name):
+                    # Use the actual method name if found, otherwise use "unknown"
+                    actual_method_name = method_name if method_name else "unknown"
+                    if self._is_problematic_parameter(param_name, actual_method_name):
                         has_problematic_params = True
                         break
         
         if not has_problematic_params:
             return violations
         
-        # Try to find the specific functional method call this arrow function belongs to
-        # by looking for nearby member_dot_expression nodes in the same statement
-        method_name = self._find_specific_functional_method(arrow_func, ast)
+        # If we found a method name, analyze the arrow function with it
         if method_name:
             violations.extend(self._analyze_arrow_function(arrow_func, method_name, None))
+        else:
+            # For arrow functions without a clear method context, still report violations
+            # but with a generic message
+            if hasattr(arrow_func, 'children'):
+                for i, param in enumerate(arrow_func.children[:-1]):
+                    if hasattr(param, 'value'):
+                        param_name = param.value
+                        if self._is_problematic_parameter(param_name, "unknown"):
+                            violations.append({
+                                'method_name': 'arrow_function',
+                                'param_name': param_name,
+                                'suggested_name': f'param{i+1}',
+                                'line': arrow_func_line,
+                                'context': 'arrow function',
+                                'param_index': i,
+                                'node': arrow_func
+                            })
         
         return violations
     
+    def _get_function_name_for_node(self, node: Tree, ast: Tree) -> str:
+        """Get function name for a node using line-based matching to avoid AST object sharing issues."""
+        node_line = self.get_line_from_tree_node(node)
+        
+        # Find all function declarations and variable declarations with function expressions
+        function_declarations = list(ast.find_data('function_declaration'))
+        variable_declarations = list(ast.find_data('variable_declaration'))
+        
+        # Check function declarations first
+        for func_decl in function_declarations:
+            if hasattr(func_decl, 'children') and len(func_decl.children) > 0:
+                func_name_node = func_decl.children[0]
+                if hasattr(func_name_node, 'value'):
+                    func_name = func_name_node.value
+                    # Check if this node is within this function's body
+                    if self._node_within_function_body(node, func_decl, node_line):
+                        return func_name
+        
+        # Check variable declarations with function expressions
+        for var_decl in variable_declarations:
+            if hasattr(var_decl, 'children') and len(var_decl.children) >= 2:
+                var_name_node = var_decl.children[0]
+                if hasattr(var_name_node, 'value'):
+                    var_name = var_name_node.value
+                    # Check if this variable declaration contains a function expression
+                    if self._contains_function_expression(var_decl):
+                        # Check if this node is within this function's body
+                        if self._node_within_function_body(node, var_decl, node_line):
+                            return var_name
+        
+        return None
+    
+    def _contains_function_expression(self, node: Tree) -> bool:
+        """Check if a node contains a function expression."""
+        return len(list(node.find_data('function_expression'))) > 0
+    
+    def _node_within_function_body(self, target_node: Tree, function_node: Tree, target_line: int) -> bool:
+        """Check if a target node is within a function's body using line numbers."""
+        # Get the function's start and end lines
+        func_start_line = self.get_line_from_tree_node(function_node)
+        
+        # Find the function body (usually the last child)
+        if hasattr(function_node, 'children') and len(function_node.children) > 0:
+            func_body = function_node.children[-1]
+            func_end_line = self._get_node_end_line(func_body)
+            
+            # Check if target line is within function body
+            return func_start_line <= target_line <= func_end_line
+        
+        return False
+    
+    def _get_node_end_line(self, node: Tree) -> int:
+        """Get the end line of a node by finding the maximum line number in its subtree."""
+        max_line = self.get_line_from_tree_node(node)
+        
+        if hasattr(node, 'children'):
+            for child in node.children:
+                child_max_line = self._get_node_end_line(child)
+                max_line = max(max_line, child_max_line)
+        
+        return max_line
+    
+    def _get_variable_name_for_arrow_function(self, arrow_func: Tree, ast: Tree) -> str:
+        """Get the variable name that contains this arrow function using line-based matching."""
+        arrow_func_line = self.get_line_from_tree_node(arrow_func)
+        
+        # Find all variable declarations
+        variable_declarations = list(ast.find_data('variable_declaration'))
+        
+        for var_decl in variable_declarations:
+            if hasattr(var_decl, 'children') and len(var_decl.children) >= 2:
+                var_name_node = var_decl.children[0]
+                if hasattr(var_name_node, 'value'):
+                    var_name = var_name_node.value
+                    var_decl_line = self.get_line_from_tree_node(var_decl)
+                    
+                    # Check if this arrow function is part of this variable declaration
+                    if self._arrow_function_in_variable_declaration(arrow_func, var_decl, arrow_func_line):
+                        return var_name
+        
+        return None
+    
+    def _arrow_function_in_variable_declaration(self, arrow_func: Tree, var_decl: Tree, arrow_func_line: int) -> bool:
+        """Check if an arrow function is part of a variable declaration using line-based matching."""
+        # Get the variable declaration's line range
+        var_start_line = self.get_line_from_tree_node(var_decl)
+        var_end_line = self._get_node_end_line(var_decl)
+        
+        # Check if arrow function line is within the variable declaration
+        if var_start_line <= arrow_func_line <= var_end_line:
+            # Also check if the variable declaration actually contains an arrow function
+            arrow_funcs = list(var_decl.find_data('arrow_function_expression'))
+            for af in arrow_funcs:
+                af_line = self.get_line_from_tree_node(af)
+                if af_line == arrow_func_line:
+                    return True
+        
+        return False
+    
     def _find_specific_functional_method(self, arrow_func: Tree, ast: Tree) -> str:
         """Find the specific functional method call that contains this arrow function."""
+        arrow_func_line = self.get_line_from_tree_node(arrow_func)
+        
         # Look for arguments_expression nodes that contain this arrow function
         args_exprs = list(ast.find_data('arguments_expression'))
         for args_expr in args_exprs:
-            if self._contains_arrow_function(args_expr, arrow_func):
+            if self._contains_arrow_function_by_line(args_expr, arrow_func_line):
                 # This arrow function is in an arguments expression
                 # Extract the method name from the first child
                 if hasattr(args_expr, 'children') and len(args_expr.children) > 0:
@@ -358,7 +491,7 @@ class DescriptiveParameterDetector(ScriptDetector):
         # This handles cases like: items.map(x => x * 2) where the arrow function is in a parenthesized_expression
         paren_exprs = list(ast.find_data('parenthesized_expression'))
         for paren_expr in paren_exprs:
-            if self._contains_arrow_function(paren_expr, arrow_func):
+            if self._contains_arrow_function_by_line(paren_expr, arrow_func_line):
                 # This arrow function is in a parenthesized expression
                 # Look for a nearby member_dot_expression that's likely associated
                 method_name = self._find_nearby_functional_method(paren_expr, ast)
@@ -416,6 +549,15 @@ class DescriptiveParameterDetector(ScriptDetector):
         """Check if a node contains the target arrow function."""
         arrow_funcs = list(node.find_data('arrow_function_expression'))
         return target_arrow_func in arrow_funcs
+    
+    def _contains_arrow_function_by_line(self, node: Tree, target_line: int) -> bool:
+        """Check if a node contains an arrow function on the target line."""
+        arrow_funcs = list(node.find_data('arrow_function_expression'))
+        for arrow_func in arrow_funcs:
+            arrow_func_line = self.get_line_from_tree_node(arrow_func)
+            if arrow_func_line == target_line:
+                return True
+        return False
     
     def _contains_multiplicative_expression(self, node: Tree, target_mult_expr: Tree) -> bool:
         """Check if a node contains the target multiplicative expression."""
