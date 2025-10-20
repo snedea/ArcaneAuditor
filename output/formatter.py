@@ -28,7 +28,7 @@ class OutputFormatter:
     # Emoji mappings for different severity levels
     SEVERITY_EMOJIS = {
         "ACTION": "🚨",
-        "ADVICE": "ℹ️"
+        "ADVICE": "ℹ️ "
     }
     
     # Emoji mappings for different rule categories
@@ -101,15 +101,15 @@ class OutputFormatter:
                 output.append(f"  {emoji} **{severity}** ({len(severity_findings)} issue(s))")
                 
                 for finding in severity_findings:
-                    # Rule category emoji
-                    rule_category = finding.rule_id.split('0')[0] if '0' in finding.rule_id else "UNKNOWN"
-                    category_emoji = self.RULE_CATEGORY_EMOJIS.get(rule_category, "🔧")
+                    # Use severity emoji for each finding to distinguish ACTION vs ADVICE
+                    severity_emoji = self.SEVERITY_EMOJIS.get(finding.severity, "❓")
                     
                     # Format the finding with file path
                     file_display = finding.file_path.split('\\')[-1] if finding.file_path else "Unknown"
                     # Clean file path by removing job ID prefix
                     file_display = re.sub(r'^[a-f0-9-]+_', '', file_display)
-                    output.append(f"    {category_emoji} **[{finding.rule_id}:{finding.line}]** in `{file_display}`: {finding.message}")
+                    output.append(f"    {severity_emoji} [{finding.rule_id}:{finding.line}] in `{file_display}`: {finding.message}")
+                    output.append("")  # Add spacing between findings
             
             output.append("")  # Empty line between files
         
