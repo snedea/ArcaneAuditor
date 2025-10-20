@@ -395,8 +395,8 @@ class TestScriptComplexityRule:
         # (line 3 in the script, but accounting for PMD wrapper, should be around line 2-4)
         assert 2 <= finding.line <= 4, f"Expected line 2-4, got {finding.line}"
 
-    def test_deeply_nested_functions_limit_tracking(self):
-        """Test that deeply nested functions (3+ levels) only track top 2 levels."""
+    def test_deeply_nested_functions_track_all_levels(self):
+        """Test that all nested functions are tracked regardless of depth."""
         from parser.models import PMDModel
         
         pmd_model = PMDModel(
@@ -442,12 +442,17 @@ class TestScriptComplexityRule:
         
         findings = list(self.rule.analyze(self.context))
         
-        # Should only flag level2Func (the nested function we track)
-        # level3Func should be ignored as it's too deeply nested
+        # Should flag level3Func since it has complexity 12 (> 10 threshold)
+        # level2Func has complexity 1 (base only) which is below threshold
+        # level1Func has complexity 1 (base only) which is below threshold
         assert len(findings) == 1
-        assert "level2Func" in findings[0].message
-        assert "level3Func" not in findings[0].message
-        assert "level1Func" in findings[0].message  # Should be mentioned as parent
+        
+        # Find the finding for level3Func
+        level3_finding = next((f for f in findings if "level3Func" in f.message), None)
+        
+        assert level3_finding is not None, "Should find level3Func"
+        assert "level3Func" in level3_finding.message
+        assert "level2Func" in level3_finding.message  # Should mention parent function
 
 
 if __name__ == '__main__':

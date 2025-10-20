@@ -15,7 +15,7 @@ class CyclomaticComplexityDetector(ScriptDetector):
         
         # Pre-compile complexity-increasing node types for faster lookup
         self.complexity_nodes = {
-            'if_statement', 'while_statement', 'for_statement', 'do_statement',
+            'if_statement', 'else_if_statement', 'while_statement', 'for_statement', 'do_statement',
             'logical_and_expression', 'logical_or_expression', 'ternary_expression'
         }
     
@@ -63,6 +63,7 @@ class CyclomaticComplexityDetector(ScriptDetector):
         procedural_complexity = 1  # Base complexity
         procedural_line = None
         
+        
         # Use iterative traversal with a stack for better performance
         # Stack format: (node, function_stack) where function_stack is a list of function names
         stack = [(ast, [])]  # Start with empty function stack
@@ -79,7 +80,7 @@ class CyclomaticComplexityDetector(ScriptDetector):
             
             if hasattr(node, 'data'):
                 # Check if this is a function declaration (variable_statement with function)
-                if node.data == 'variable_statement' and len(function_stack) < 2:
+                if node.data == 'variable_statement':
                     func_info = self._extract_function_info(node)
                     if func_info:
                         # Create unique identifier for nested function
@@ -91,6 +92,7 @@ class CyclomaticComplexityDetector(ScriptDetector):
                             parent_name = function_stack[-1]
                             func_name = f"{parent_name}.{func_info['name']}"
                             is_nested = True
+                        
                         
                         functions[func_name] = {
                             'complexity': 1,  # Base complexity
@@ -106,19 +108,31 @@ class CyclomaticComplexityDetector(ScriptDetector):
                 
                 # Count complexity-increasing constructs
                 if node.data in self.complexity_nodes:
+                    line_num = self._extract_line_number(node)
+                    current_func = function_stack[-1] if len(function_stack) > 0 else 'procedural'
+                    
+                    # Calculate complexity contribution based on node type
+                    complexity_contribution = self._calculate_complexity_contribution(node)
+                    
                     if len(function_stack) > 0:
                         # Add to the current function's complexity (the last one in the stack)
-                        current_func = function_stack[-1]
-                        if len(function_stack) == 1:
-                            # Top-level function
-                            functions[current_func]['complexity'] += 1
-                        elif len(function_stack) == 2:
-                            # Nested function - use the full name
-                            nested_func_name = f"{function_stack[0]}.{function_stack[1]}"
-                            functions[nested_func_name]['complexity'] += 1
+                        # Build the full function name from the stack
+                        func_name = '.'.join(function_stack)
+                        
+                        # Ensure the function exists in our tracking
+                        if func_name not in functions:
+                            # This is a deeply nested function we haven't seen yet
+                            functions[func_name] = {
+                                'complexity': 1,  # Base complexity
+                                'line': self._extract_line_number(node),
+                                'is_nested': len(function_stack) > 1,
+                                'parent': function_stack[-2] if len(function_stack) > 1 else None
+                            }
+                        
+                        functions[func_name]['complexity'] += complexity_contribution
                     else:
                         # Add to procedural complexity
-                        procedural_complexity += 1
+                        procedural_complexity += complexity_contribution
                         if not procedural_line:
                             procedural_line = self._extract_line_number(node)
             
@@ -164,13 +178,30 @@ class CyclomaticComplexityDetector(ScriptDetector):
                     line = self._extract_line_number(child)
                     break
             
+            # Only return function info if we actually found a function expression
+            if func_body is None:
+                return None
+            
             return {
                 'name': func_name,
                 'line': line,
                 'body': func_body
             }
-        except (AttributeError, IndexError):
+        except (AttributeError, IndexError) as e:
             return None
+    
+    def _calculate_complexity_contribution(self, node: Tree) -> int:
+        """Calculate the complexity contribution of a node based on its type and structure."""
+        if node.data in ('logical_and_expression', 'logical_or_expression'):
+            # For logical operators, count the actual number of operators
+            # Number of operators = Number of children - 1
+            if hasattr(node, 'children') and len(node.children) > 1:
+                return len(node.children) - 1
+            else:
+                return 1  # Fallback if no children
+        else:
+            # For other complexity-increasing constructs (if, while, for, etc.), count as 1
+            return 1
     
     def _extract_line_number(self, node: Tree) -> int:
         """Extract line number from a node using standardized calculation."""
