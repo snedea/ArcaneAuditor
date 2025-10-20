@@ -9,10 +9,10 @@ from parser.models import ProjectContext, PMDModel, PodModel, AMDModel
 from file_processing.context_tracker import SkippedCheck
 
 
-class HardCodedWorkdayAPIRule(StructureRuleBase):
+class HardcodedWorkdayAPIRule(StructureRuleBase):
     """Rule to check for hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness."""
 
-    ID = "HardCodedWorkdayAPIRule"
+    ID = "HardcodedWorkdayAPIRule"
     DESCRIPTION = "Detects hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness"
     SEVERITY = "ACTION"
 
@@ -28,10 +28,10 @@ class HardCodedWorkdayAPIRule(StructureRuleBase):
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         """Main analysis entry point with context awareness."""
         # Check if AMD is missing and register skipped check
-        if not context.amds:
+        if not context.amd:
             context.register_skipped_check(
                 SkippedCheck(
-                    rule=self.__class__.__name__,
+                    rule=self.ID,
                     reason="Requires AMD file",
                     skipped_checks=["amd_data_provider_validation"]
                 )

@@ -68,7 +68,7 @@ class RulesConfig(BaseModel):
     GridPagingWithSortableFilterableRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects grids with paging and sortableAndFilterable columns which can cause performance issues")
     
     # General Structure Rules
-    HardCodedWorkdayAPIRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness")
+    HardcodedWorkdayAPIRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness")
     FooterPodRequiredRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures footer widgets utilize pods")
     StringBooleanRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures boolean values are not stored as strings")
     EmbeddedImagesRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects base64 encoded images and large binary content")

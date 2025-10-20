@@ -82,7 +82,7 @@ class AnalysisContext:
         # AMD-specific rules
         if "AMD" not in self.files_present:
             not_executed.append({
-                "rule": "AMDDataProvidersWorkdayRule",
+                "rule": "HardcodedWorkdayAPIRule",
                 "reason": "Requires AMD file"
             })
             # Add other AMD-only rules here as they're created
