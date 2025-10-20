@@ -70,8 +70,8 @@ class ArrayMethodUsageDetector(ScriptDetector):
         init, condition, increment = loop_components
         
         # Check if it's a counter-based loop pattern:
-        # 1. Initializes a counter variable (let i = 0) OR initializes with array.length (let i = array.length - 1)
-        # 2. Compares counter to array length (i < array.length) OR compares to literal (i >= 0 for reverse)
+        # 1. Initializes a counter variable (let i = 0) OR initializes with array.size() (let i = array.size() - 1)
+        # 2. Compares counter to array size (i < array.size()) OR compares to literal (i >= 0 for reverse)
         # 3. Increments/decrements counter (i++, i--, i += n, etc.)
         return (self._is_counter_initialization(init) and
                 (self._is_array_length_condition(condition) or self._is_array_length_initialization(init)) and
@@ -106,24 +106,29 @@ class ArrayMethodUsageDetector(ScriptDetector):
         }
 
     def _is_array_length_condition(self, condition_node) -> bool:
-        """Check if condition compares counter to array length."""
+        """Check if condition compares counter to array size."""
         if not isinstance(condition_node, Tree):
             return False
         
-        # Use efficient AST traversal to find length access
+        # Use efficient AST traversal to find .size() access
         return self._has_length_access(condition_node)
 
     def _has_length_access(self, node: Tree) -> bool:
-        """Efficiently check if a node or its children access .length property."""
+        """Efficiently check if a node or its children access .size() method (PMD Script)."""
         if not isinstance(node, Tree):
             return False
         
-        # Direct length access
-        if (node.data == 'member_dot_expression' and 
-            len(node.children) >= 2 and 
-            hasattr(node.children[1], 'value') and 
-            node.children[1].value == 'length'):
-            return True
+        # Check for .size() method call (PMD Script lists use this)
+        if node.data == 'arguments_expression':
+            # Check if this is a call to .size()
+            if len(node.children) >= 1:
+                function_node = node.children[0]
+                if (isinstance(function_node, Tree) and 
+                    function_node.data == 'member_dot_expression' and
+                    len(function_node.children) >= 2 and
+                    hasattr(function_node.children[1], 'value') and
+                    function_node.children[1].value == 'size'):
+                    return True
         
         # Check children recursively
         for child in node.children:
@@ -133,7 +138,7 @@ class ArrayMethodUsageDetector(ScriptDetector):
         return False
 
     def _is_array_length_initialization(self, init_node) -> bool:
-        """Check if initialization involves array.length (e.g., let i = array.length - 1)."""
+        """Check if initialization involves array.size() (e.g., let i = array.size() - 1)."""
         if not isinstance(init_node, Tree):
             return False
         
@@ -195,6 +200,8 @@ class ArrayMethodUsageDetector(ScriptDetector):
             return "forEach()"
         elif patterns['has_accumulation']:
             return "reduce()"
+        elif patterns['has_mutation']:
+            return "map()"
         
         return "functional methods like map(), filter(), or forEach()"
 
@@ -204,7 +211,8 @@ class ArrayMethodUsageDetector(ScriptDetector):
             'has_array_push': False,
             'has_conditional': False,
             'has_side_effects': False,
-            'has_accumulation': False
+            'has_accumulation': False,
+            'has_mutation': False
         }
         
         if not isinstance(loop_body, Tree):
@@ -228,7 +236,11 @@ class ArrayMethodUsageDetector(ScriptDetector):
         elif node.data == 'if_statement':
             patterns['has_conditional'] = True
         elif node.data == 'assignment_expression':
-            patterns['has_accumulation'] = True
+            # Distinguish between accumulation and mutation
+            if self._is_accumulation_assignment(node):
+                patterns['has_accumulation'] = True
+            elif self._is_mutation_assignment(node):
+                patterns['has_mutation'] = True
         
         # Traverse children
         for child in node.children:
@@ -249,7 +261,7 @@ class ArrayMethodUsageDetector(ScriptDetector):
         return False
 
     def _is_side_effect_call(self, call_node: Tree) -> bool:
-        """Check if call is a side effect operation (console.log, etc.)."""
+        """Check if call is a side effect operation (console.debug, etc.)."""
         if (len(call_node.children) > 0 and 
             isinstance(call_node.children[0], Tree) and 
             call_node.children[0].data == 'member_dot_expression'):
@@ -257,6 +269,77 @@ class ArrayMethodUsageDetector(ScriptDetector):
             member_expr = call_node.children[0]
             return (len(member_expr.children) >= 2 and 
                     hasattr(member_expr.children[1], 'value') and 
-                    member_expr.children[1].value in ['log', 'info', 'warn', 'error'])
+                    member_expr.children[1].value in ['debug', 'info', 'warn', 'error'])
+        
+        return False
+    
+    def _is_accumulation_assignment(self, assignment_node: Tree) -> bool:
+        """Check if assignment is accumulation (result += array[i] or result = result + array[i])."""
+        if not isinstance(assignment_node, Tree) or len(assignment_node.children) < 2:
+            return False
+        
+        # Check for compound assignment operators (+=, -=, *=, etc.)
+        if assignment_node.data == 'assignment_operator_expression':
+            return True
+        
+        # Check for regular assignment where right side contains the left variable
+        # e.g., result = result + array[i]
+        left_var = assignment_node.children[0]
+        right_expr = assignment_node.children[1]
+        
+        if not isinstance(left_var, Tree) or not isinstance(right_expr, Tree):
+            return False
+        
+        # Check if right expression contains the left variable (accumulation pattern)
+        return self._contains_variable_reference(right_expr, left_var)
+    
+    def _is_mutation_assignment(self, assignment_node: Tree) -> bool:
+        """Check if assignment is array mutation (array[i] = value)."""
+        if not isinstance(assignment_node, Tree) or len(assignment_node.children) < 2:
+            return False
+        
+        left_side = assignment_node.children[0]
+        
+        # Check if left side is array access (array[index])
+        return self._is_array_access(left_side)
+    
+    def _contains_variable_reference(self, node: Tree, target_var: Tree) -> bool:
+        """Check if node contains a reference to the target variable."""
+        if not isinstance(node, Tree):
+            return False
+        
+        # Check if this node is the same variable
+        if node.data == target_var.data:
+            # Compare variable names if available
+            if (len(node.children) > 0 and len(target_var.children) > 0 and
+                hasattr(node.children[0], 'value') and hasattr(target_var.children[0], 'value')):
+                return node.children[0].value == target_var.children[0].value
+        
+        # Check children recursively
+        for child in node.children:
+            if isinstance(child, Tree) and self._contains_variable_reference(child, target_var):
+                return True
+        
+        return False
+    
+    def _is_array_access(self, node: Tree) -> bool:
+        """Check if node represents array access (array[index])."""
+        if not isinstance(node, Tree):
+            return False
+        
+        # Check for bracket notation: array[index] (PMD Script uses member_index_expression)
+        if node.data in ['bracket_expression', 'member_index_expression']:
+            return True
+        
+        # Check for dot notation with numeric access (less common but possible)
+        if (node.data == 'member_dot_expression' and 
+            len(node.children) >= 2 and
+            hasattr(node.children[1], 'value')):
+            # Check if it's a numeric property (array.0, array.1, etc.)
+            try:
+                int(node.children[1].value)
+                return True
+            except ValueError:
+                pass
         
         return False

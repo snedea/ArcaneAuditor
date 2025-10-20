@@ -19,6 +19,17 @@ class ScriptRuleBase(Rule, ABC):
         """Get rule description - must be implemented by subclasses."""
         pass
     
+    def apply_settings(self, settings: dict):
+        """
+        Apply custom settings to the rule.
+        This method is called by the rules engine to apply configuration.
+        
+        Args:
+            settings: Dictionary containing custom settings
+        """
+        # Store settings for use in detector instantiation
+        self._custom_settings = settings
+    
     def analyze(self, context) -> Generator[Finding, None, None]:
         """Main analysis entry point."""
         # Analyze PMD files
@@ -60,17 +71,28 @@ class ScriptRuleBase(Rule, ABC):
         """Analyze script fields from a model."""
         for field_path, field_value, field_name, line_offset in script_fields:
             if field_value and field_value.strip():
-                yield from self._check(field_value, field_name, model.file_path, line_offset, context)
+                check_result = self._check(field_value, field_name, model.file_path, line_offset, context)
+                if check_result is not None:
+                    yield from check_result
     
     def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None) -> Generator[Finding, None, None]:
         """Check script content using the detector."""
+        # Strip <% %> tags from script content if present
+        clean_script_content = self._strip_script_tags(script_content)
+        
         # Parse the script content with context for caching
-        ast = self._parse_script_content(script_content, context)
+        ast = self._parse_script_content(clean_script_content, context)
         if not ast:
-            return
+            # Parsing failed - error should already be logged to context by _parse_script_content
+            return  # Return empty generator
         
         # Use detector to find violations
         detector = self.DETECTOR(file_path, line_offset)
+        
+        # Apply custom settings to detector if available
+        if hasattr(self, '_custom_settings') and hasattr(detector, 'apply_settings'):
+            detector.apply_settings(self._custom_settings)
+        
         violations = detector.detect(ast, field_name)
         
         # Convert violations to findings
@@ -150,3 +172,31 @@ class ScriptRuleBase(Rule, ABC):
                         return self._extract_variable_from_node(child)
         
         return ""
+    
+    def _strip_script_tags(self, script_content: str) -> str:
+        """
+        Strip <% %> tags from script content if present.
+        
+        Args:
+            script_content: Raw script content (may include <% %> tags)
+            
+        Returns:
+            Clean script content without tags
+        """
+        if not script_content:
+            return script_content
+        
+        # Check if content starts with <%
+        if script_content.strip().startswith('<%'):
+            # Find the end tag
+            end_pos = script_content.find('%>')
+            if end_pos != -1:
+                # Extract content between <% and %>
+                start_pos = script_content.find('<%')
+                if start_pos != -1:
+                    # Get content after <% and before %>
+                    clean_content = script_content[start_pos + 2:end_pos].strip()
+                    return clean_content
+        
+        # No tags found, return as-is
+        return script_content

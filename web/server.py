@@ -319,7 +319,8 @@ def run_analysis_background(job: AnalysisJob):
                     "action": len([f for f in findings if f.severity == "ACTION"]),
                     "advice": len([f for f in findings if f.severity == "ADVICE"])
                 }
-            }
+            },
+            "config_name": job.config  # Add config name to result
         }
         
         # Add context awareness information if available
@@ -392,7 +393,6 @@ async def upload_file(
             # Create analysis job for ZIP
             job = AnalysisJob(job_id, zip_path, actual_config_path)
             job.is_zip = True
-            print(f"DEBUG: Created ZIP job {job_id} with config='{actual_config_path}'")
         
         else:
             # Individual files mode
@@ -420,7 +420,6 @@ async def upload_file(
             job = AnalysisJob(job_id, None, actual_config_path)
             job.is_zip = False
             job.individual_files = saved_files
-            print(f"DEBUG: Created individual files job {job_id} with {len(saved_files)} files, config='{actual_config_path}'")
         
         with job_lock:
             analysis_jobs[job_id] = job

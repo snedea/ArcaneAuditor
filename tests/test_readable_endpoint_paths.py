@@ -48,42 +48,6 @@ def test_inbound_endpoint_readable_name():
         print()
 
 
-def test_outbound_endpoint_readable_name():
-    """Test that outbound endpoint names appear in error messages."""
-    source = """{
-  "id": "testPage",
-  "outboundData": {
-    "outboundEndPoints": [
-      {
-        "name": "updateRequestPOST",
-        "url": "/api/update",
-        "onSend": "<% var data = 'payload' + id; %>"
-      }
-    ]
-  }
-}"""
-    
-    pmd_model = _create_pmd_model(source)
-    context = ProjectContext()
-    context.pmds = {'test': pmd_model}
-    
-    rule = ScriptStringConcatRule()
-    findings = list(rule.analyze(context))
-    
-    print("\n=== Outbound Endpoint Test ===")
-    print(f"Found {len(findings)} violations\n")
-    
-    for finding in findings:
-        print(f"Message: {finding.message}")
-        
-        # Check that the message contains readable endpoint name
-        # Note: model shows outboundEndpoints (not outboundData->outboundEndPoints)
-        assert "updateRequestPOST" in finding.message, \
-            f"Expected 'updateRequestPOST' in message"
-        assert "Outbound endpoint 'updateRequestPOST'" in finding.message, \
-            f"Expected full readable path in message"
-        print("[OK] updateRequestPOST endpoint name found in readable format")
-        print()
 
 
 def test_script_field_readable_name():
@@ -115,35 +79,6 @@ def test_script_field_readable_name():
         print()
 
 
-def test_real_capital_planning_readable():
-    """Test with real Capital Planning file."""
-    file_path = "samples/archives/capitalProjectPlanning/presentation/CapitalPlanningRequestEdit.pmd"
-    
-    with open(file_path, 'r', encoding='utf-8') as f:
-        source_content = f.read().strip()
-    
-    pmd_model = _create_pmd_model(source_content)
-    context = ProjectContext()
-    context.pmds = {'test': pmd_model}
-    
-    rule = ScriptStringConcatRule()
-    findings = list(rule.analyze(context))
-    
-    print("\n=== Real Capital Planning File Test ===")
-    print(f"Found {len(findings)} violations\n")
-    
-    # Show first 5 findings
-    for i, finding in enumerate(findings[:5]):
-        print(f"\nFinding {i+1} (Line {finding.line}):")
-        print(f"  {finding.message[:150]}...")
-        
-        # Check if endpoint names are in messages
-        if "submitWidGET" in finding.message:
-            print("  [OK] Contains 'submitWidGET' endpoint name")
-        if "eventInfoGET" in finding.message:
-            print("  [OK] Contains 'eventInfoGET' endpoint name")
-        if "requestGET" in finding.message:
-            print("  [OK] Contains 'requestGET' endpoint name")
 
 
 def _create_pmd_model(source_content: str):

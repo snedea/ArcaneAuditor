@@ -45,10 +45,25 @@ def review_app(
     config_start_time = time.time()
     try:
         config = load_configuration(str(config_file) if config_file else None)
-        if config_file and not quiet:
-            typer.echo(f"Loaded configuration: {config_file}")
-        elif not quiet:
-            typer.echo("Using default configuration with layered loading")
+        
+        # Determine config name for display
+        if config_file:
+            config_name = config_file.stem if hasattr(config_file, 'stem') else Path(config_file).stem
+            config_display_name = f"Custom ({config_name})"
+        else:
+            # Check if default config exists
+            from pathlib import Path
+            default_config_path = Path("config/presets/development.json")
+            if default_config_path.exists():
+                config_display_name = "Development (default)"
+            else:
+                config_display_name = "Built-in defaults"
+        
+        if not quiet:
+            if config_file:
+                typer.echo(f"Loaded configuration: {config_file}")
+            else:
+                typer.echo(f"Using {config_display_name} configuration")
     except Exception as e:
         typer.secho(f"Configuration Error: {e}", fg=typer.colors.RED)
         typer.echo("Try using --config with a valid configuration file, or run without --config for defaults")
@@ -270,20 +285,24 @@ def review_app(
             # ACTION issues always fail (code quality issues)
             if not quiet:
                 typer.echo(f"Analysis completed with {action_count} ACTION issue(s)")
+                typer.echo(f"Configuration used: {config_display_name}")
             raise typer.Exit(1)  # Exit code 1 for code quality issues
         elif fail_on_advice and advice_count > 0:
             # ADVICE issues fail only in CI mode (--fail-on-advice flag)
             if not quiet:
                 typer.echo(f"Analysis completed with {advice_count} ADVICE issue(s) (CI mode: failing on advice)")
+                typer.echo(f"Configuration used: {config_display_name}")
             raise typer.Exit(1)  # Exit code 1 for code quality issues
         else:
             # ADVICE issues in normal mode don't fail
             if not quiet:
                 typer.echo(f"Analysis completed with {advice_count} ADVICE issue(s)")
+                typer.echo(f"Configuration used: {config_display_name}")
             raise typer.Exit(0)  # Exit code 0 for advice in normal mode
     else:
         if not quiet:
             typer.echo("Analysis completed successfully - no issues found!")
+            typer.echo(f"Configuration used: {config_display_name}")
         raise typer.Exit(0)  # Exit code 0 for no issues
 
 

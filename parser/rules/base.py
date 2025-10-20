@@ -102,27 +102,42 @@ class Rule(ABC):
         Returns:
             Parsed AST or None if parsing failed
         """
+        # Strip PMD wrappers if present
+        content = self._strip_pmd_wrappers(script_content)
+        if not content:
+            return None
+        
+        # Use context-level caching if available
         if context is not None:
-            # Check if AST is already cached
-            cached_ast = context.get_cached_ast(script_content)
-            if cached_ast is not None:
+            cache_key = hash(content)
+            cached_ast = context.get_cached_ast(cache_key)
+            if cached_ast is None:
+                try:
+                    from ..pmd_script_parser import parse_with_preprocessor
+                    parsed_ast = parse_with_preprocessor(content)
+                    context.set_cached_ast(cache_key, parsed_ast)
+                    return parsed_ast
+                except Exception as e:
+                    print(f"Failed to parse script content: {e}")
+                    context.set_cached_ast(cache_key, None)
+                    return None
+            else:
                 return cached_ast
-            
-            # Parse and cache the AST
-            try:
-                from ..pmd_script_parser import pmd_script_parser
-                ast = pmd_script_parser.parse(script_content)
-                context.set_cached_ast(script_content, ast)
-                return ast
-            except Exception:
-                return None
         else:
-            # Fallback to direct parsing without caching
-            try:
-                from ..pmd_script_parser import pmd_script_parser
-                return pmd_script_parser.parse(script_content)
-            except Exception:
-                return None
+            # Fallback to per-rule caching for backward compatibility
+            cache_key = hash(content)
+            if not hasattr(self, '_script_ast_cache'):
+                self._script_ast_cache = {}
+            
+            if cache_key not in self._script_ast_cache:
+                try:
+                    from ..pmd_script_parser import parse_with_preprocessor
+                    self._script_ast_cache[cache_key] = parse_with_preprocessor(content)
+                except Exception as e:
+                    print(f"Failed to parse script content: {e}")
+                    self._script_ast_cache[cache_key] = None
+            
+            return self._script_ast_cache[cache_key]
     
     def _get_readable_identifier(self, item: Dict[str, Any], fallback_index: int) -> str:
         """
@@ -167,6 +182,32 @@ class Rule(ABC):
         # Fallback: index
         return f"[{fallback_index}]"
     
+    def _is_multiline_script_block(self, script_value: str) -> bool:
+        """
+        Determine if a script block is multi-line (content starts on line after <%).
+        
+        Single-line: <% content %> - content starts on same line as <%
+        Multi-line: <% on one line, content on next line - content starts on line after <%
+        """
+        if not script_value.startswith('<%'):
+            return False
+        
+        # Find where the actual content starts after <%
+        idx_after_open = 2  # After '<%'
+        
+        # Skip whitespace and count newlines after <%
+        while idx_after_open < len(script_value):
+            if script_value[idx_after_open] == '\n':
+                # Found a newline after <% - this is a multi-line script
+                return True
+            elif script_value[idx_after_open] in ' \t\r':
+                idx_after_open += 1
+            else:
+                # Found first non-whitespace character on same line as <%
+                return False
+        
+        return False
+
     def _extract_script_fields(self, pmd_model: PMDModel) -> List[Tuple[str, str, str, int]]:
         """Internal method to extract script fields without caching."""
         script_fields = []
@@ -215,6 +256,12 @@ class Rule(ABC):
                     new_prefix = f"{prefix}.{key}" if prefix else key
                     new_display_prefix = f"{display_prefix}->{key}" if display_prefix else key
                     _search_dict(value, new_prefix, file_content, new_display_prefix)
+                elif hasattr(value, 'model_dump'):  # Handle Pydantic models
+                    # Convert Pydantic model to dictionary
+                    model_dict = value.model_dump()
+                    new_prefix = f"{prefix}.{key}" if prefix else key
+                    new_display_prefix = f"{display_prefix}->{key}" if display_prefix else key
+                    _search_dict(model_dict, new_prefix, file_content, new_display_prefix)
                 elif isinstance(value, list):
                     for i, item in enumerate(value):
                         if isinstance(item, dict):
@@ -242,13 +289,23 @@ class Rule(ABC):
                                 used_hashes[value_hash] = occurrence_index + 1
                                 
                                 line_offset = self._calculate_script_line_offset(
-                                    file_content, item,
+                                    file_content, item, 
                                     search_start_line=last_line_found,
                                     occurrence_index=occurrence_index
                                 ) if file_content else 1
                             
                             last_line_found = line_offset
                             script_fields.append((field_path, item, display_name, line_offset))
+                        elif hasattr(item, 'model_dump'):  # Handle Pydantic models in lists
+                            # Convert Pydantic model to dictionary
+                            model_dict = item.model_dump()
+                            new_prefix = f"{prefix}.{key}.{i}" if prefix else f"{key}.{i}"
+                            
+                            # Create human-readable path using priority: id -> label -> type -> name -> index
+                            readable_id = self._get_readable_identifier(model_dict, i)
+                            new_display_prefix = f"{display_prefix}->{key}[{i}]->{readable_id}" if display_prefix else f"{key}[{i}]->{readable_id}"
+                            
+                            _search_dict(model_dict, new_prefix, file_content, new_display_prefix)
         
         # Get the source content from the PMD model
         source_content = getattr(pmd_model, 'source_content', '')
@@ -292,6 +349,8 @@ class Rule(ABC):
             for i in range(0, len(lines)):  # Search from beginning
                 if script_content in lines[i] or escaped_content in lines[i]:
                     if matches_found == occurrence_index:
+                        # For single-line scripts, the exact match IS on the content line
+                        # Don't adjust - return i + 1 as-is
                         return i + 1
                     matches_found += 1
             
@@ -299,7 +358,11 @@ class Rule(ABC):
             # This is reliable for sequential processing
             for i in range(start_index, len(lines)):
                 if '<%' in lines[i]:
-                    return i + 1
+                    # Check if content starts on same line or next line
+                    if self._is_multiline_script_block(script_content):
+                        return i + 2  # Content starts on next line
+                    else:
+                        return i + 1  # Content starts on same line
         
         # Strategy 2: For multi-line scripts, search for distinctive content
         # Search for unique code patterns that would appear in the file
@@ -334,7 +397,11 @@ class Rule(ABC):
                                 if '<%' in lines[j]:
                                     # Verify this is likely the right <% by checking proximity
                                     if i - j < 25:  # Should be within 25 lines
-                                        return j + 1
+                                        # Found the <%, now determine where AST line 1 starts
+                                        if self._is_multiline_script_block(script_content):
+                                            return j + 2  # Multiline: return line after <%
+                                        else:
+                                            return j + 1  # Single-line: return line with <%
                             return i + 1
                     
                     # If not found forward, search from beginning (handles out-of-order presentation fields)
@@ -344,7 +411,11 @@ class Rule(ABC):
                             for j in range(i, max(0, i - 30), -1):  # Search backward from found line
                                 if '<%' in lines[j]:
                                     if i - j < 25:
-                                        return j + 1
+                                        # Found the <%, now determine where AST line 1 starts
+                                        if self._is_multiline_script_block(script_content):
+                                            return j + 2  # Multiline: return line after <%
+                                        else:
+                                            return j + 1  # Single-line: return line with <%
                             return i + 1
         
         # Strategy 3: Search for distinctive content from within the script
@@ -516,6 +587,23 @@ class Rule(ABC):
             if not content:
                 return None
             
+            # Check if this looks like a string value that contains script blocks rather than actual script
+            stripped_content = script_content.strip()
+            
+            # If the original content has <% %> tags AND content outside the tags, it's a template expression
+            if '<%' in stripped_content and '%>' in stripped_content:
+                # Simple check: if content doesn't start and end with script tags, it's a template expression
+                if not (stripped_content.startswith('<%') and stripped_content.endswith('%>')):
+                    from .script.shared.template_expression_preprocessor import TemplateExpressionPreprocessor
+                    preprocessor = TemplateExpressionPreprocessor()
+                    if preprocessor.is_template_expression(stripped_content):
+                        try:
+                            return preprocessor.preprocess_template_expression(stripped_content)
+                        except Exception as e:
+                            print(f"Warning: Failed to parse template expression '{stripped_content[:50]}...': {e}")
+                            return None
+                
+            
             # Use context-level caching if available
             if context is not None:
                 return self.get_cached_ast(content, context)
@@ -526,12 +614,15 @@ class Rule(ABC):
                     self._script_ast_cache = {}
                 
                 if cache_key not in self._script_ast_cache:
-                    from ..pmd_script_parser import pmd_script_parser
-                    self._script_ast_cache[cache_key] = pmd_script_parser.parse(content)
+                    from ..pmd_script_parser import parse_with_preprocessor
+                    self._script_ast_cache[cache_key] = parse_with_preprocessor(content)
                 
                 return self._script_ast_cache[cache_key]
         except Exception as e:
             print(f"Failed to parse script content: {e}")
+            # Add parsing error to context if available
+            if context is not None:
+                context.parsing_errors.append(f"Script parsing failed: {str(e)}")
             return None
     
     # Pod-specific utility methods

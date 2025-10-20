@@ -13,19 +13,26 @@
     "ScriptLongFunctionRule": {
       "enabled": true,
       "severity_override": null,
-      "custom_settings": {}
+      "custom_settings": {
+        "skip_comments": false,
+        "skip_blank_lines": false
+      }
     },
     "ScriptLongBlockRule": {
       "enabled": true,
       "severity_override": null,
       "custom_settings": {
-        "max_lines": 30
+        "max_lines": 30,
+        "skip_comments": false,
+        "skip_blank_lines": false
       }
     },
     "ScriptNestingLevelRule": {
       "enabled": true,
       "severity_override": null,
-      "custom_settings": {}
+      "custom_settings": {
+        "max_nesting_level": 4
+      }
     },
     "ScriptConsoleLogRule": {
       "enabled": false,
@@ -57,12 +64,12 @@
       "severity_override": null,
       "custom_settings": {}
     },
-    "ScriptMagicNumberRule": {
+    "ScriptNestedArraySearchRule": {
       "enabled": true,
       "severity_override": null,
       "custom_settings": {}
     },
-    "ScriptNullSafetyRule": {
+    "ScriptMagicNumberRule": {
       "enabled": true,
       "severity_override": null,
       "custom_settings": {}
@@ -109,7 +116,7 @@
       "severity_override": null,
       "custom_settings": {}
     },
-    "ScriptUnusedScriptIncludesRule": {
+    "ScriptUnusedIncludesRule": {
       "enabled": false,
       "severity_override": null,
       "custom_settings": {}
@@ -137,7 +144,9 @@
     "WidgetIdRequiredRule": {
       "enabled": true,
       "severity_override": null,
-      "custom_settings": {}
+      "custom_settings": {
+        "excluded_widget_types": []
+      }
     },
     "WidgetIdLowerCamelCaseRule": {
       "enabled": true,
@@ -183,7 +192,7 @@
         "strict": false
       }
     },
-    "AMDDataProvidersWorkdayRule": {
+    "HardcodedWorkdayAPIRule": {
       "enabled": true,
       "severity_override": null,
       "custom_settings": {}

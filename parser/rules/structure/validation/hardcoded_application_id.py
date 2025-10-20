@@ -103,14 +103,14 @@ class HardcodedApplicationIdRule(StructureRuleBase):
         if not source_content or not app_id:
             return
         
-        # Use a single comprehensive pattern that matches all variations
+        # Use a pattern that matches exact applicationId values only
         # This pattern will match:
         # - "applicationId": "template_nkhlsq"
         # - 'applicationId': 'template_nkhlsq'
-        # - "template_nkhlsq"
-        # - 'template_nkhlsq'
-        # - template_nkhlsq (with word boundaries)
-        comprehensive_pattern = rf'(?:["\']applicationId["\']\s*:\s*)?["\']?{re.escape(app_id)}["\']?'
+        # - "template_nkhlsq" (exact match)
+        # - 'template_nkhlsq' (exact match)
+        # - template_nkhlsq (with word boundaries for exact match)
+        comprehensive_pattern = rf'(?:["\']applicationId["\']\s*:\s*)?["\']?{re.escape(app_id)}["\']?(?![a-zA-Z0-9])'
         
         matches = re.finditer(comprehensive_pattern, source_content, re.IGNORECASE)
         for match in matches:
@@ -151,14 +151,14 @@ class HardcodedApplicationIdRule(StructureRuleBase):
         if not text or not app_id:
             return
         
-        # Use a single comprehensive pattern that matches all variations
+        # Use a pattern that matches exact applicationId values only
         # This pattern will match:
         # - "applicationId": "template_nkhlsq"
         # - 'applicationId': 'template_nkhlsq'
-        # - "template_nkhlsq"
-        # - 'template_nkhlsq'
-        # - template_nkhlsq (with word boundaries)
-        comprehensive_pattern = rf'(?:["\']applicationId["\']\s*:\s*)?["\']?{re.escape(app_id)}["\']?'
+        # - "template_nkhlsq" (exact match)
+        # - 'template_nkhlsq' (exact match)
+        # - template_nkhlsq (with word boundaries for exact match)
+        comprehensive_pattern = rf'(?:["\']applicationId["\']\s*:\s*)?["\']?{re.escape(app_id)}["\']?(?![a-zA-Z0-9])'
         
         matches = re.finditer(comprehensive_pattern, text, re.IGNORECASE)
         for match in matches:

@@ -1,5 +1,6 @@
 """Base detector class for script analysis."""
 
+import os
 from abc import ABC, abstractmethod
 from typing import Any, List
 from lark import Tree
@@ -7,16 +8,74 @@ from .violation import Violation
 
 
 class ScriptDetector(ABC):
-    """Base class for script analysis detectors."""
+    """
+    Base class for script analysis detectors.
     
-    def __init__(self, file_path: str = "", line_offset: int = 1):
+    LINE NUMBER CALCULATION STANDARD:
+    =================================
+    
+    All script detectors MUST use the standardized formula for line number calculations:
+    
+        file_line = self.line_offset + ast.line - 1
+    
+    Where:
+    - `self.line_offset`: The file line number where AST line 1 begins (calculated by PMDModel.get_script_start_line())
+    - `ast.line`: The line number within the parsed script content (1-based)
+    - `file_line`: The actual line number in the source file (1-based)
+    
+    This formula ensures consistent line number reporting across all detectors and eliminates
+    the off-by-1 errors that were previously common.
+    
+    IMPLEMENTATION REQUIREMENTS:
+    ============================
+    
+    1. Use get_line_number_from_token() for token-based line numbers
+    2. Use get_line_from_tree_node() for AST node-based line numbers  
+    3. Add debug logging with _debug_line_calc() during development
+    4. Never use raw ast.line or token.line without applying the formula
+    
+    DEBUG LOGGING:
+    ==============
+    
+    Set DEBUG_LINE_NUMBERS=true environment variable to enable detailed line calculation logging.
+    This helps verify correct line number calculations during development and debugging.
+    
+    EXAMPLES:
+    =========
+    
+    # Correct usage:
+    line_number = self.get_line_number_from_token(token)
+    line_number = self.get_line_from_tree_node(node)
+    
+    # With debug logging:
+    line_number = self.line_offset + ast.line - 1
+    self._debug_line_calc(ast.line, self.line_offset, line_number, "context_description")
+    
+    # Incorrect usage (DO NOT DO THIS):
+    line_number = ast.line  # Missing offset calculation
+    line_number = token.line  # Missing offset calculation
+    """
+    
+    # Debug flag for line number calculations
+    DEBUG_LINE_NUMBERS = os.environ.get('DEBUG_LINE_NUMBERS', 'false').lower() == 'true'
+    
+    def __init__(self, file_path: str = "", line_offset: int = 1, source_text: str = ""):
         """Initialize detector with file context."""
         self.file_path = file_path
         self.line_offset = line_offset
+        self.source_text = source_text  # Store the original source text for physical line counting
         # Cache for function context maps to avoid rebuilding for each violation
         self._function_context_cache = {}
     
-    @abstractmethod
+    def _debug_line_calc(self, ast_line: int, line_offset: int, result: int, context: str = ""):
+        """Helper to log line number calculations."""
+        if self.DEBUG_LINE_NUMBERS:
+            print(f"[{self.__class__.__name__}] {context}")
+            print(f"   ast.line={ast_line}, line_offset={line_offset}")
+            print(f"   formula: {line_offset} + {ast_line} - 1 = {result}")
+            if hasattr(self, 'file_path'):
+                print(f"   file: {self.file_path}")
+    
     def detect(self, ast: Any) -> List[Violation]:
         """
         Analyze AST and return list of violations.
@@ -27,7 +86,57 @@ class ScriptDetector(ABC):
         Returns:
             List of Violation objects
         """
-        pass
+        violations = []
+        
+        # Handle template expressions specially
+        if hasattr(ast, 'data') and ast.data == 'template_expression':
+            violations.extend(self._detect_template_expression(ast))
+        else:
+            # Handle regular script analysis
+            violations.extend(self._detect_regular_script(ast))
+        
+        return violations
+    
+    def _detect_template_expression(self, template_ast: Any) -> List[Violation]:
+        """
+        Analyze template expression by traversing each script block.
+        
+        Args:
+            template_ast: template_expression AST node
+            
+        Returns:
+            List of Violation objects found in script blocks
+        """
+        violations = []
+        
+        if not hasattr(template_ast, 'children'):
+            return violations
+        
+        # Traverse each child of the template expression
+        for child in template_ast.children:
+            if hasattr(child, 'data') and child.data == 'template_script_block':
+                # This is a script block - analyze its AST
+                if hasattr(child, 'children') and len(child.children) > 0:
+                    script_ast = child.children[0]
+                    # Recursively analyze the script block AST
+                    violations.extend(self._detect_regular_script(script_ast))
+            # Skip template_text nodes - they don't contain script to analyze
+        
+        return violations
+    
+    def _detect_regular_script(self, ast: Any) -> List[Violation]:
+        """
+        Analyze regular script AST (to be implemented by subclasses).
+        
+        Args:
+            ast: Parsed AST node
+            
+        Returns:
+            List of Violation objects
+        """
+        # This method should be overridden by subclasses
+        # For now, return empty list to avoid breaking existing detectors
+        return []
     
     def get_line_number(self, node: Any) -> int:
         """Get line number from AST node with offset."""
@@ -35,10 +144,33 @@ class ScriptDetector(ABC):
         return ASTLineUtils.get_line_number(node, self.line_offset)
     
     def get_line_number_from_token(self, token: Any) -> int:
-        """Get line number from token with offset - more reliable than get_line_number()."""
+        """Get line number from token with offset using standardized formula."""
         # First try direct token access (most reliable for Lark tokens)
-        relative_line = getattr(token, 'line', 1) or 1
-        return relative_line + self.line_offset - 1
+        if hasattr(token, 'line') and token.line is not None:
+            # Standard formula: line_offset + ast.line - 1
+            result = self.line_offset + token.line - 1
+            self._debug_line_calc(token.line, self.line_offset, result, "get_line_number_from_token")
+            return result
+        elif hasattr(token, 'children'):
+            # If token doesn't have line info, search children for line numbers
+            for child in token.children:
+                if hasattr(child, 'line') and child.line is not None:
+                    # Standard formula: line_offset + ast.line - 1
+                    result = self.line_offset + child.line - 1
+                    self._debug_line_calc(child.line, self.line_offset, result, "get_line_number_from_token (child)")
+                    return result
+                # Recursively search deeper if needed
+                if hasattr(child, 'children'):
+                    for grandchild in child.children:
+                        if hasattr(grandchild, 'line') and grandchild.line is not None:
+                            # Standard formula: line_offset + ast.line - 1
+                            result = self.line_offset + grandchild.line - 1
+                            self._debug_line_calc(grandchild.line, self.line_offset, result, "get_line_number_from_token (grandchild)")
+                            return result
+        
+        # Default to line_offset if no line info found
+        self._debug_line_calc(1, self.line_offset, self.line_offset, "get_line_number_from_token (fallback)")
+        return self.line_offset
     
     def get_line_from_tree_node(self, node: Any) -> int:
         """Get line number from a Tree node by finding the first token with line info."""
@@ -46,27 +178,25 @@ class ScriptDetector(ABC):
             for child in node.children:
                 # Check if child has line info directly
                 if hasattr(child, 'line') and child.line is not None:
-                    return child.line + self.line_offset - 1
+                    result = self.line_offset + child.line - 1
+                    self._debug_line_calc(child.line, self.line_offset, result, "get_line_from_tree_node")
+                    return result
                 # If child is a Tree, recurse into it
                 elif hasattr(child, 'children') and len(child.children) > 0:
                     for grandchild in child.children:
                         if hasattr(grandchild, 'line') and grandchild.line is not None:
-                            return grandchild.line + self.line_offset - 1
+                            result = self.line_offset + grandchild.line - 1
+                            self._debug_line_calc(grandchild.line, self.line_offset, result, "get_line_from_tree_node (grandchild)")
+                            return result
+        
+        # Default to line_offset if no line info found
+        self._debug_line_calc(1, self.line_offset, self.line_offset, "get_line_from_tree_node (fallback)")
         return self.line_offset
     
     def get_function_context_for_node(self, node: Any, ast: Any) -> str:
         """Get the function name that contains the given node, or None if not in a function."""
-        # Use AST object id as cache key to avoid rebuilding the same map
-        ast_id = id(ast)
-        
-        # Check if we already have the function context map for this AST
-        if ast_id not in self._function_context_cache:
-            # Build function context map and cache it
-            function_contexts = self._build_function_context_map(ast)
-            self._function_context_cache[ast_id] = function_contexts
-        else:
-            # Use cached function context map
-            function_contexts = self._function_context_cache[ast_id]
+        # Always rebuild function context map to avoid caching issues
+        function_contexts = self._build_function_context_map(ast)
         
         # Find the enclosing function name
         return self._get_enclosing_function_name(node, function_contexts)
@@ -109,7 +239,9 @@ class ScriptDetector(ABC):
         
         if hasattr(function_node, 'children'):
             for child in function_node.children:
-                if hasattr(child, 'data'):  # Only map Tree nodes, not Tokens
+                # Map both Tree nodes and Token nodes
+                function_contexts[child] = function_name
+                if hasattr(child, 'data'):  # Tree nodes - recurse
                     self._map_function_nodes(child, function_name, function_contexts)
     
     def _get_enclosing_function_name(self, node: Any, function_contexts: dict) -> str:
@@ -244,3 +376,81 @@ class ScriptDetector(ABC):
             return self._extract_property_chain(node) or ""
         
         return ""
+    
+    def count_physical_lines(self, start_line: int, end_line: int) -> int:
+        """
+        Count physical lines in the source text between start_line and end_line (inclusive).
+        
+        This method counts actual lines in the source text, including:
+        - All code lines
+        - Closing braces
+        - Blank lines (unless skip_blank_lines=True)
+        - Comments (unless skip_comments=True)
+        
+        Args:
+            start_line: Starting line number (1-based)
+            end_line: Ending line number (1-based, inclusive)
+            
+        Returns:
+            The number of lines between start_line and end_line
+        """
+        if not hasattr(self, 'source_text') or not self.source_text:
+            # Fallback: if no source text, just return line span
+            return end_line - start_line + 1
+        
+        # Split source into lines
+        source_lines = self.source_text.split('\n')
+        
+        # Adjust for 0-based indexing (line numbers are 1-based)
+        start_idx = start_line - 1
+        end_idx = end_line - 1
+        
+        # Ensure indices are within bounds
+        if start_idx < 0:
+            start_idx = 0
+        if end_idx >= len(source_lines):
+            end_idx = len(source_lines) - 1
+        
+        # Count lines, optionally filtering blank lines and comments
+        line_count = 0
+        in_block_comment = False
+        
+        for line_idx in range(start_idx, end_idx + 1):
+            line = source_lines[line_idx]
+            
+            # Check if we should count this line
+            should_count = True
+            
+            # Skip blank lines if flag is set
+            if hasattr(self, 'skip_blank_lines') and self.skip_blank_lines:
+                if line.strip() == '':
+                    should_count = False
+            
+            # Skip comment lines if flag is set
+            if hasattr(self, 'skip_comments') and self.skip_comments and should_count:
+                stripped = line.strip()
+                
+                # Single-line comments
+                if stripped.startswith('//'):
+                    should_count = False
+                # Block comments - track state across lines
+                elif '/*' in line or '*/' in line or in_block_comment:
+                    # Check if this line starts a new block comment
+                    if '/*' in line and '*/' not in line:
+                        in_block_comment = True
+                        should_count = False
+                    # Check if this line ends a block comment
+                    elif '*/' in line:
+                        in_block_comment = False
+                        should_count = False
+                    # Check if we're in the middle of a block comment
+                    elif in_block_comment:
+                        should_count = False
+                    # Handle inline block comments that start and end on the same line
+                    elif '/*' in line and '*/' in line:
+                        should_count = False
+            
+            if should_count:
+                line_count += 1
+        
+        return line_count

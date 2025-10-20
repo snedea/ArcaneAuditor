@@ -12,7 +12,6 @@ from parser.rules.script.unused_code.unused_variables import ScriptUnusedVariabl
 from parser.rules.script.unused_code.unused_parameters import ScriptUnusedFunctionParametersRule
 from parser.rules.script.unused_code.empty_functions import ScriptEmptyFunctionRule
 from parser.rules.script.logic.magic_numbers import ScriptMagicNumberRule
-from parser.rules.script.logic.null_safety import ScriptNullSafetyRule
 from parser.rules.script.logic.verbose_boolean import ScriptVerboseBooleanCheckRule
 from parser.rules.script.logic.return_consistency import ScriptFunctionReturnConsistencyRule
 from parser.rules.base import Finding
@@ -47,7 +46,6 @@ class TestAllScriptRulesIntegration:
             ScriptUnusedFunctionParametersRule(),
             ScriptEmptyFunctionRule(),
             ScriptMagicNumberRule(),
-            ScriptNullSafetyRule(),
             ScriptVerboseBooleanCheckRule(),
             ScriptFunctionReturnConsistencyRule(),
         ]
@@ -74,7 +72,6 @@ class TestAllScriptRulesIntegration:
             ScriptUnusedFunctionParametersRule(),
             ScriptEmptyFunctionRule(),
             ScriptMagicNumberRule(),
-            ScriptNullSafetyRule(),
             ScriptVerboseBooleanCheckRule(),
             ScriptFunctionReturnConsistencyRule(),
         ]

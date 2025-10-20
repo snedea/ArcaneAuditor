@@ -23,7 +23,7 @@ class UnusedParametersDetector(ScriptDetector):
         
         # Find all function expressions
         for function_node in ast.find_data('function_expression'):
-            function_name = self._get_function_name(function_node)
+            function_name = self._get_function_name(function_node, ast)
             parameters = self._get_function_parameters(function_node)
             function_body = self._get_function_body(function_node)
             
@@ -49,13 +49,12 @@ class UnusedParametersDetector(ScriptDetector):
         
         return violations
 
-    def _get_function_name(self, node: Any) -> str:
+    def _get_function_name(self, node: Any, ast: Any) -> str:
         """Extract function name from a function expression node."""
-        if hasattr(node, 'children') and len(node.children) > 0:
-            name_node = node.children[0]
-            if hasattr(name_node, 'value'):
-                return name_node.value
-        return "anonymous"
+        # In PMD Script, functions are anonymous and assigned to variables
+        # We need to find the variable declaration that contains this function
+        # Use the function context mapping to get the correct function name
+        return self.get_function_context_for_node(node, ast) or "anonymous"
 
     def _get_function_parameters(self, node: Any) -> List[str]:
         """Extract parameter names from a function expression node."""
@@ -98,12 +97,5 @@ class UnusedParametersDetector(ScriptDetector):
         return used_params
     
     def _get_function_line_number(self, function_node: Any) -> int:
-        """Get line number from function expression node by finding the first token with line info."""
-        if hasattr(function_node, 'children') and len(function_node.children) > 0:
-            # Look for the first token with line information
-            for child in function_node.children:
-                if hasattr(child, 'line') and child.line is not None:
-                    # Apply the same line calculation as other working detectors
-                    relative_line = child.line
-                    return self.line_offset + relative_line - 1
-        return self.line_offset
+        """Get line number from function expression node using standardized method."""
+        return self.get_line_from_tree_node(function_node)

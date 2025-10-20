@@ -21,9 +21,8 @@ class VariableNamingDetector(ScriptDetector):
         for var_name, var_info in declared_vars.items():
             is_valid, suggestion = self._validate_camel_case(var_name)
             if not is_valid:
-                # Get line number from the variable info and apply offset
-                relative_line = var_info.get('line', 1) or 1
-                line_number = self.line_offset + relative_line - 1
+                # Get line number using the proper method
+                line_number = var_info.get('line_number', self.line_offset)
                 
                 # Check if this variable is inside a function
                 variable_node = var_info.get('node')
@@ -31,7 +30,12 @@ class VariableNamingDetector(ScriptDetector):
                 if variable_node:
                     function_name = self.get_function_context_for_node(variable_node, ast)
                 
-                if function_name:
+                # Check if this is an arrow function parameter
+                var_type = var_info.get('type', 'declaration')
+                
+                if var_type == 'arrow_function_parameter':
+                    message = f"File section '{field_name}' declares arrow function parameter '{var_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'."
+                elif function_name:
                     message = f"File section '{field_name}' declares variable '{var_name}' in function '{function_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'."
                 else:
                     message = f"File section '{field_name}' declares variable '{var_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'."
@@ -46,21 +50,97 @@ class VariableNamingDetector(ScriptDetector):
         declared_vars = {}
         
         if hasattr(node, 'data'):
+            # Handle variable_declaration nodes (direct declarations)
             if node.data == 'variable_declaration':
                 if len(node.children) > 0 and hasattr(node.children[0], 'value'):
                     var_name = node.children[0].value
-                    # Get line number from the first token in the node
-                    line_number = None
-                    if hasattr(node, 'children') and len(node.children) > 0:
-                        for child in node.children:
-                            if hasattr(child, 'line') and child.line is not None:
-                                line_number = child.line
-                                break
+                    # Get line number using standardized method
+                    line_number = self.get_line_from_tree_node(node)
                     
                     declared_vars[var_name] = {
-                        'line': line_number,
-                        'type': 'declaration'
+                        'line_number': line_number,
+                        'type': 'declaration',
+                        'node': node
                     }
+            
+            # Handle variable_statement nodes (var/let/const declarations)
+            elif node.data == 'variable_statement':
+                # Get the variable declaration list (second child)
+                if len(node.children) > 1:
+                    var_declaration_list = node.children[1]
+                    if hasattr(var_declaration_list, 'data') and var_declaration_list.data == 'variable_declaration_list':
+                        # Process each variable declaration in the list
+                        for var_declaration in var_declaration_list.children:
+                            if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
+                                if len(var_declaration.children) > 0 and hasattr(var_declaration.children[0], 'value'):
+                                    var_name = var_declaration.children[0].value
+                                    # Get line number using standardized method
+                                    line_number = self.get_line_from_tree_node(var_declaration)
+                                    
+                                    declared_vars[var_name] = {
+                                        'line_number': line_number,
+                                        'type': 'declaration',
+                                        'node': var_declaration
+                                    }
+            
+            # Handle for loop variable declarations
+            elif node.data in ['for_var_statement', 'for_let_statement', 'for_const_statement']:
+                # Get the variable declaration list (second child)
+                if len(node.children) > 1:
+                    var_declaration_list = node.children[1]
+                    if hasattr(var_declaration_list, 'data') and var_declaration_list.data == 'variable_declaration_list':
+                        # Process each variable declaration in the list
+                        for var_declaration in var_declaration_list.children:
+                            if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
+                                if len(var_declaration.children) > 0 and hasattr(var_declaration.children[0], 'value'):
+                                    var_name = var_declaration.children[0].value
+                                    # Get line number using standardized method
+                                    line_number = self.get_line_from_tree_node(var_declaration)
+                                    
+                                    declared_vars[var_name] = {
+                                        'line_number': line_number,
+                                        'type': 'declaration',
+                                        'node': var_declaration
+                                    }
+            
+            # Handle for-in loop variable declarations
+            elif node.data in ['for_var_in_statement', 'for_let_in_statement', 'for_const_in_statement']:
+                # Get the variable name (second child)
+                if len(node.children) > 1 and hasattr(node.children[1], 'value'):
+                    var_name = node.children[1].value
+                    # Get line number using standardized method
+                    line_number = self.get_line_from_tree_node(node)
+                    
+                    declared_vars[var_name] = {
+                        'line_number': line_number,
+                        'type': 'declaration',
+                        'node': node.children[1]
+                    }
+            
+            # Handle arrow function parameters
+            elif node.data == 'arrow_function_expression':
+                # Arrow functions can have parameters in different formats:
+                # 1. Single parameter: IDENTIFIER => expression
+                # 2. Multiple parameters: (param1, param2) => expression
+                # 3. Single parameter with parens: (IDENTIFIER) => expression
+                # 4. No parameters: () => expression
+                #
+                # In the AST, parameters are direct IDENTIFIER children of arrow_function_expression,
+                # followed by the function body (expression or statement_list)
+                
+                # Process all direct IDENTIFIER children as parameters
+                for child in node.children:
+                    # Parameters are IDENTIFIER tokens, the body is an AST node
+                    if hasattr(child, 'value') and hasattr(child, 'type') and child.type == 'IDENTIFIER':
+                        var_name = child.value
+                        # Get line number using standardized method
+                        line_number = self.get_line_number_from_token(child)
+                        
+                        declared_vars[var_name] = {
+                            'line_number': line_number,
+                            'type': 'arrow_function_parameter',
+                            'node': child
+                        }
         
         # Recursively check children
         if hasattr(node, 'children'):

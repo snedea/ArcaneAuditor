@@ -4,7 +4,7 @@ Tests for PMD script grammar parsing functionality.
 """
 
 import pytest
-from parser.pmd_script_parser import pmd_script_parser
+from parser.pmd_script_parser import get_pmd_script_parser, parse_with_preprocessor
 
 
 class TestPMDScriptGrammar:
@@ -18,7 +18,7 @@ class TestPMDScriptGrammar:
         ]
         
         for script_content, expected_rule in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = get_pmd_script_parser().parse(script_content)
             assert ast.data == expected_rule
             assert len(ast.children) == 1
             assert ast.children[0].type == "NAMESPACE_IDENTIFIER"
@@ -26,27 +26,17 @@ class TestPMDScriptGrammar:
     def test_namespace_function_calls(self):
         """Test parsing of function calls with namespace identifiers."""
         test_cases = [
-            ("date:getTodaysDate()", "namespace_function_expression"),
-            ("date:getTodaysDate(date:getDateTimeZone('US/Pacific'))", "namespace_function_expression")
+            ("date:getTodaysDate()", "arguments_expression"),
+            ("date:getTodaysDate(date:getDateTimeZone('US/Pacific'))", "arguments_expression")
         ]
         
         for script_content, expected_rule in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = get_pmd_script_parser().parse(script_content)
             assert ast.data == expected_rule
             # Check that the namespace function expression has the correct structure
-            # The AST has a nested namespace_function_expression with 3 children
-            assert len(ast.children) == 1
-            inner_expr = ast.children[0]
-            assert inner_expr.data == "namespace_function_expression"
-            assert len(inner_expr.children) == 3
-            assert inner_expr.children[0].type == "IDENTIFIER"  # namespace (e.g., "date")
-            assert inner_expr.children[1].type == "IDENTIFIER"  # function name (e.g., "getTodaysDate")
-            # Arguments can be None for empty parentheses, an arguments node, or another namespace_function_expression
-            third_child = inner_expr.children[2]
-            assert (third_child is None or 
-                   third_child.data == "arguments" or 
-                   third_child.data == "namespace_function_expression" or
-                   third_child.data == "literal_expression")
+            # The AST has a namespace_identifier_expression + arguments
+            assert len(ast.children) == 2
+            assert ast.children[0].data == "namespace_identifier_expression"
 
     def test_namespace_in_expressions(self):
         """Test namespace identifiers in various expression contexts."""
@@ -61,7 +51,7 @@ class TestPMDScriptGrammar:
         ]
         
         for script_content, expected_rule in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = get_pmd_script_parser().parse(script_content)
             # With ASI, the root is source_elements, so check the first child
             if ast.data == 'source_elements' and len(ast.children) > 0:
                 assert ast.children[0].data == expected_rule
@@ -77,7 +67,7 @@ class TestPMDScriptGrammar:
             return date:formatDate(combined);
         """
         
-        ast = pmd_script_parser.parse(script_content)
+        ast = get_pmd_script_parser().parse(script_content)
         assert ast is not None
         # Should parse successfully without conflicts
 
@@ -92,7 +82,7 @@ class TestPMDScriptGrammar:
         
         for invalid_content in invalid_cases:
             with pytest.raises(Exception):
-                pmd_script_parser.parse(invalid_content)
+                get_pmd_script_parser().parse(invalid_content)
         
         # Some cases that Earley parser might accept (due to its permissive nature)
         # but would be caught by other validation layers
@@ -103,7 +93,7 @@ class TestPMDScriptGrammar:
         for invalid_content in potentially_invalid_cases:
             # Earley parser might accept this, so we just verify it doesn't crash
             try:
-                ast = pmd_script_parser.parse(invalid_content)
+                ast = get_pmd_script_parser().parse(invalid_content)
                 # If it parses, that's okay - validation would happen elsewhere
                 assert ast is not None
             except Exception:
@@ -120,7 +110,7 @@ class TestPMDScriptGrammar:
         ]
         
         for script_content, expected_rule in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = get_pmd_script_parser().parse(script_content)
             # With ASI, the root is source_elements, so check the first child
             if ast.data == 'source_elements' and len(ast.children) > 0:
                 assert ast.children[0].data == expected_rule
@@ -136,7 +126,7 @@ class TestPMDScriptGrammar:
         ]
         
         for script_content, expected_rule in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = get_pmd_script_parser().parse(script_content)
             assert ast is not None
             # Should parse successfully without errors
 
@@ -149,7 +139,7 @@ class TestPMDScriptGrammar:
             };
         """
         
-        ast = pmd_script_parser.parse(script_content)
+        ast = get_pmd_script_parser().parse(script_content)
         assert ast is not None
         # Should parse the function definition with namespace calls successfully
 
@@ -163,7 +153,7 @@ class TestPMDScriptGrammar:
         ]
         
         for script_content, expected_rule in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = parse_with_preprocessor(script_content)
             print(ast)
             # Find the null coalescing expression in the tree
             found = False
@@ -183,7 +173,7 @@ class TestPMDScriptGrammar:
         ]
         
         for script_content, expected_rule in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = parse_with_preprocessor(script_content)
             # Find the null coalescing expression in the tree
             found = False
             for node in ast.iter_subtrees():
@@ -207,7 +197,7 @@ class TestPMDScriptGrammar:
         
         for script_content, description in test_cases:
             # Just ensure it parses without error - precedence is handled by grammar structure
-            ast = pmd_script_parser.parse(script_content)
+            ast = parse_with_preprocessor(script_content)
             assert ast is not None, f"Failed to parse: {script_content} ({description})"
 
     def test_null_coalescing_chaining(self):
@@ -219,7 +209,7 @@ class TestPMDScriptGrammar:
         ]
         
         for script_content in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = parse_with_preprocessor(script_content)
             assert ast is not None, f"Failed to parse chained null coalescing: {script_content}"
             
             # Verify that null coalescing expressions are present
@@ -260,7 +250,7 @@ class TestPMDScriptGrammar:
         ]
         
         for script_content in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = parse_with_preprocessor(script_content)
             assert ast is not None, f"Failed to parse complex expression: {script_content}"
 
     def test_null_coalescing_with_problematic_case(self):
@@ -275,7 +265,7 @@ class TestPMDScriptGrammar:
         # This is the exact case that was failing before grammar support
         script_content = "const isProgrammer = workerData.skills[0] == 'Programming' ?? false;"
         
-        ast = pmd_script_parser.parse(script_content)
+        ast = get_pmd_script_parser().parse(script_content)
         assert ast is not None, "Failed to parse the problematic null coalescing case"
         
         # Verify it contains a null coalescing expression
@@ -307,7 +297,7 @@ class TestPMDScriptGrammar:
         ]
         
         for script_content in correct_usage_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = get_pmd_script_parser().parse(script_content)
             assert ast is not None, f"Failed to parse correct usage: {script_content}"
 
     def test_set_literal_basic_parsing(self):
@@ -329,7 +319,7 @@ class TestPMDScriptGrammar:
         ]
         
         for script_content in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = parse_with_preprocessor(script_content)
             assert ast is not None, f"Failed to parse set literal: {script_content}"
             
             # Verify that set literal expressions are present
@@ -348,18 +338,18 @@ class TestPMDScriptGrammar:
             "var mySet = {1, 2, 3};",
             "const colors = {'red', 'green', 'blue'};",
             "let numbers = {10, 20, 30};",
-            
+    
             # Assignments
             "mySet = {4, 5, 6};",
             "this.allowedValues = {'option1', 'option2'};",
-            
+    
             # In function calls
             "processSet({1, 2, 3});",
             "return {user.id, user.name};",
         ]
-        
+    
         for script_content in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = parse_with_preprocessor(script_content)
             assert ast is not None, f"Failed to parse set in context: {script_content}"
 
     def test_set_literal_vs_empty_block_disambiguation(self):
@@ -377,7 +367,7 @@ class TestPMDScriptGrammar:
         ]
         
         for script_content, description in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = parse_with_preprocessor(script_content)
             assert ast is not None, f"Failed to parse: {script_content} ({description})"
 
     def test_set_literal_complex_expressions(self):
@@ -388,19 +378,19 @@ class TestPMDScriptGrammar:
             "{getValue() ?? 'default', getOther()}",
             "{items[0], items[1]}",
             
-            # Sets in object literals
-            "var config = { allowedValues: {1, 2, 3}, name: 'test' };",
-            
-            # Sets in arrays
+            # Sets in arrays (common use case)
             "var data = [{1, 2}, {3, 4}];",
             
             # Nested expressions
             "{func(a, b), func(c, d)}",
             "{a ? b : c, d ? e : f}",
+            
+            # More realistic object with array instead of set
+            "var config = { allowedValues: [1, 2, 3], name: 'test' };",
         ]
         
         for script_content in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = parse_with_preprocessor(script_content)
             assert ast is not None, f"Failed to parse complex set: {script_content}"
 
     def test_set_literal_edge_cases(self):
@@ -427,7 +417,7 @@ class TestPMDScriptGrammar:
         ]
         
         for script_content in test_cases:
-            ast = pmd_script_parser.parse(script_content)
+            ast = parse_with_preprocessor(script_content)
             assert ast is not None, f"Failed to parse set edge case: {script_content}"
 
     def test_empty_set_limitation(self):
@@ -443,12 +433,12 @@ class TestPMDScriptGrammar:
         ]
         
         for case in working_cases:
-            ast = pmd_script_parser.parse(case)
+            ast = get_pmd_script_parser().parse(case)
             assert ast is not None, f"Non-empty set should work: {case}"
         
         # Empty {} will parse as a block/statement, not a set literal
         # This is expected behavior due to the grammar disambiguation
         empty_block = "{}"
-        ast = pmd_script_parser.parse(empty_block)
+        ast = get_pmd_script_parser().parse(empty_block)
         assert ast is not None, f"Empty braces should parse (as block): {empty_block}"
         

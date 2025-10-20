@@ -25,12 +25,12 @@ class ScriptDeadCodeRule(ScriptRuleBase):
         """Analyze standalone script files for dead code."""
         # This rule only analyzes standalone script files, not PMD/POD embedded scripts
         for script_model in context.scripts.values():
-            yield from self._analyze_script_file(script_model)
+            yield from self._analyze_script_file(script_model, context)
 
-    def _analyze_script_file(self, script_model):
+    def _analyze_script_file(self, script_model, context):
         """Analyze a single script file for dead code."""
         try:
-            ast = self._parse_script_content(script_model.source, None)
+            ast = self._parse_script_content(script_model.source, context)
             if not ast:
                 return
             

@@ -72,12 +72,9 @@ class OnlyMaximumEffortRule(StructureRuleBase):
             )
     
     def _get_endpoint_line_number(self, model, endpoint_name: str, endpoint_type: str) -> int:
-        """Get line number for the endpoint."""
-        if endpoint_name and hasattr(model, 'source_content'):
-            # For PMD models, use the unified method
-            if isinstance(model, PMDModel):
-                return self.get_field_line_number(model, 'name', endpoint_name)
-            elif isinstance(model, PodModel):
-                return self.get_field_line_number(model, 'name', endpoint_name)
+        """Get line number for the bestEffort field."""
+        if hasattr(model, 'source_content'):
+            # Use pattern search to find the bestEffort field
+            return self.find_pattern_line_number(model, '"bestEffort": true')
         return 1
 

@@ -4,15 +4,15 @@ from typing import Generator, Set, Any
 from ...script.shared import ScriptRuleBase
 from ...base import Finding
 from ....models import PMDModel
-from .unused_script_includes_detector import UnusedScriptIncludesDetector
+from .unused_script_includes_detector import ScriptUnusedIncludesRuleDetector
 
 
-class ScriptUnusedScriptIncludesRule(ScriptRuleBase):
+class ScriptUnusedIncludesRule(ScriptRuleBase):
     """Validates that included script files are actually used in PMD files."""
 
     DESCRIPTION = "Ensures included script files are actually used (via script.function() calls)"
     SEVERITY = "ADVICE"
-    DETECTOR = UnusedScriptIncludesDetector
+    DETECTOR = ScriptUnusedIncludesRuleDetector
 
     def get_description(self) -> str:
         """Get rule description."""
@@ -79,18 +79,15 @@ class ScriptUnusedScriptIncludesRule(ScriptRuleBase):
                 try:
                     ast = self._parse_script_content(field_value, context)
                     if ast:
-                        # Find script calls (script.function() pattern)
-                        ast_calls_found = False
+                        # Find script calls (script.function() pattern) using AST
+                        # AST parsing automatically ignores comments
                         for node in ast.find_data('arguments_expression'):
                             script_name = self._extract_script_name_from_call(node)
                             if script_name:
                                 script_calls.add(script_name)
-                                ast_calls_found = True
                         
-                        # If AST parsing succeeded but found no script calls, try fallback
-                        if not ast_calls_found:
-                            fallback_calls = self._extract_script_calls_fallback(field_value)
-                            script_calls.update(fallback_calls)
+                        # Don't use fallback when AST parsing succeeds
+                        # AST is authoritative - if it finds no calls, there are no calls
                     else:
                         # If AST parsing failed (returned None), fall back to string matching
                         fallback_calls = self._extract_script_calls_fallback(field_value)

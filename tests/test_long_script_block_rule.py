@@ -13,6 +13,8 @@ class TestScriptLongBlockRule:
     def setup_method(self):
         """Set up test fixtures."""
         self.rule = ScriptLongBlockRule()
+        # Configure rule with 20-line threshold for testing
+        self.rule.apply_settings({'max_lines': 20})
 
     def test_rule_metadata(self):
         """Test rule metadata."""
@@ -190,7 +192,7 @@ class TestScriptLongBlockRule:
         context = ProjectContext()
         context.pmds = {'test': pmd_model}
         findings = list(self.rule.analyze(context))
-        assert len(findings) == 3  # onLoad, script, onChange
+        assert len(findings) == 2  # onLoad, onChange (script field is skipped)
         
         # Check that all findings mention script blocks
         for finding in findings:
@@ -244,11 +246,7 @@ class TestScriptLongBlockRule:
         context = ProjectContext()
         context.pmds = {'test': pmd_model}
         findings = list(self.rule.analyze(context))
-        assert len(findings) == 1  # Only script should be flagged
-        
-        finding = findings[0]
-        assert finding.rule == self.rule
-        assert "script" in finding.message
+        assert len(findings) == 0  # No violations since script field is skipped and others are short
 
     def test_pod_with_long_script(self):
         """Test POD with long script block."""
@@ -283,7 +281,7 @@ class TestScriptLongBlockRule:
                 "parameters": [],
                 "endPoints": [{
                     "name": "test-endpoint",
-                    "onReceive": long_script
+                    "onSend": long_script
                 }],
                 "template": {
                     "body": {
@@ -302,7 +300,7 @@ class TestScriptLongBlockRule:
         
         finding = findings[0]
         assert finding.rule == self.rule
-        assert "onReceive" in finding.message
+        assert "onSend" in finding.message
         assert "test.pod" in finding.file_path
 
     def test_script_without_template_syntax(self):

@@ -22,7 +22,7 @@ _eos: eos
 
 ?block: "{" statement_list? "}"
 
-?statement_list: statement+
+?statement_list: statement (_eos statement)* _eos?
 
 ?variable_statement: VAR variable_declaration_list
     | LET variable_declaration_list
@@ -67,16 +67,11 @@ _eos: eos
 
 ?elision: ","+
 
-// Unified rule to handle all curly brace expressions: objects, empty objects, and sets
-// This structure is unambiguous and resolves the conflict with block when using Earley parser
-?curly_literal: "{" "}" -> empty_set_literal
+// Sets use #{} syntax, objects use {:} or {key: value}
+?curly_literal: "#" "{" "}" -> empty_set_literal
+    | "#" "{" single_expression ("," single_expression)* ","? "}" -> set_literal
     | "{" ":" "}" -> empty_object_literal
-    | "{" single_expression _curly_tail
-
-_curly_tail: ":" single_expression ("," property_assignment)* ","? "}"
-    | ("," single_expression)* ","? "}"
-
-?property_name_and_value_list: property_assignment ("," property_assignment)*
+    | "{" property_assignment ("," property_assignment)* ","? "}" -> object_literal
 
 ?property_assignment: property_name ":" single_expression -> property_expression_assignment
     | "get" property_name "(" ")" "{" function_body "}" -> property_getter
@@ -166,6 +161,8 @@ _curly_tail: ":" single_expression ("," property_assignment)* ","? "}"
     | FUNCTION "(" formal_parameter_list? ")" "{" function_body "}" -> function_expression
     | "(" [IDENTIFIER ("," IDENTIFIER)*] ")" "=>" single_expression -> arrow_function_expression
     | "(" [IDENTIFIER ("," IDENTIFIER)*] ")" "=>" "{" function_body "}" -> arrow_function_expression
+    | "(" IDENTIFIER ")" "=>" single_expression -> arrow_function_expression
+    | "(" IDENTIFIER ")" "=>" "{" function_body "}" -> arrow_function_expression
     | IDENTIFIER "=>" single_expression -> arrow_function_expression
     | IDENTIFIER "=>" "{" function_body "}" -> arrow_function_expression
 
@@ -228,6 +225,8 @@ DOT: "."
 OPTIONAL_DOT: "?."
 LBRACE: "{"
 RBRACE: "}"
+COMMA: ","
+HASH: "#"
 PLUS_PLUS: "++"
 MINUS_MINUS: "--"
 PLUS: "+"
@@ -253,6 +252,7 @@ PLUS_ASSIGN: "+="
 MINUS_ASSIGN: "-="
 ARROW: "=>"
 
-// Ignored tokens
-%ignore /(\/\*.*?\*\/|\/\/[^\r\n]*|[\t\u000B\u000C\u0020\u00A0]+|[\r\n\u2028\u2029])+/
+// Ignored tokens - handle comments and whitespace more carefully
+%ignore /(\/\*[\s\S]*?\*\/|\/\/[^\r\n]*|[\t\u000B\u000C\u0020\u00A0]+)/
+%ignore /[\r\n\u2028\u2029]+/
 

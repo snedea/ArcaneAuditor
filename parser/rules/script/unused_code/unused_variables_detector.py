@@ -27,6 +27,20 @@ class UnusedVariableDetector(ScriptDetector):
         """
         violations = []
         
+        # Handle template expressions specially
+        if hasattr(ast, 'data') and ast.data == 'template_expression':
+            # Analyze each script block in the template expression
+            if hasattr(ast, 'children'):
+                for child in ast.children:
+                    if hasattr(child, 'data') and child.data == 'template_script_block':
+                        # This is a script block - analyze its AST
+                        if hasattr(child, 'children') and len(child.children) > 0:
+                            script_ast = child.children[0]
+                            # Recursively analyze the script block AST
+                            violations.extend(self.detect(script_ast, field_name))
+            return violations
+        
+        # Handle regular script analysis
         # Analyze the script with scope awareness
         scope_analysis = self._analyze_script_scope(ast, self.is_global_scope, self.global_functions)
         
@@ -48,11 +62,15 @@ class UnusedVariableDetector(ScriptDetector):
                     if scope_type == 'global' and var_name in scope_analysis['global_used_vars']:
                         continue
                     
-                    # Create violation with function name context
+                    # Create violation with context information
                     if scope_type == 'function':
                         message = f"Unused variable '{var_name}' in function '{scope_name}'"
                     else:
-                        message = f"Unused variable '{var_name}' in {scope_type} scope"
+                        # Use field_name for better context instead of generic scope type
+                        if field_name and field_name != 'script':
+                            message = f"Unused variable '{var_name}' in {field_name}"
+                        else:
+                            message = f"Unused variable '{var_name}' in script"
                     
                     violations.append(Violation(
                         message=message,
@@ -87,10 +105,11 @@ class UnusedVariableDetector(ScriptDetector):
         """Find all scopes in the script."""
         scopes = []
         
-        # Global scope
-        if is_global_scope:
-            global_scope = self._analyze_scope(ast, 'global', 'global', global_functions)
-            scopes.append(global_scope)
+        # Always analyze the top-level scope (whether it's global script or onSend/onLoad/etc.)
+        # The is_global_scope parameter just determines the scope type name
+        scope_type = 'global' if is_global_scope else 'script'
+        top_level_scope = self._analyze_scope(ast, scope_type, scope_type, global_functions)
+        scopes.append(top_level_scope)
         
         # Function scopes - look for variable statements that contain function expressions
         for node in ast.find_data('variable_statement'):
@@ -140,13 +159,17 @@ class UnusedVariableDetector(ScriptDetector):
                         }
         else:
             # For function scope, look for variable statements within the function
+            # but exclude those that are inside nested functions
             for node in ast.find_data('variable_statement'):
-                var_name = self._get_variable_name_from_statement(node)
-                if var_name:
-                    declared_vars[var_name] = {
-                        'node': node,
-                        'is_function': False
-                    }
+                # Only include variable statements that are direct children of this function
+                # (not nested inside other function expressions)
+                if self._is_direct_child_of_function(node, ast):
+                    var_name = self._get_variable_name_from_statement(node)
+                    if var_name:
+                        declared_vars[var_name] = {
+                            'node': node,
+                            'is_function': False
+                        }
         
         # Find function declarations within this scope
         for node in ast.find_data('function_expression'):
@@ -162,6 +185,11 @@ class UnusedVariableDetector(ScriptDetector):
             var_name = self._get_identifier_name(node)
             if var_name:
                 used_vars.add(var_name)
+        
+        # Find variable usage in template literals
+        for node in ast.find_data('template_literal'):
+            template_vars = self._extract_variables_from_template(node)
+            used_vars.update(template_vars)
         
         # Add global functions to used vars (they're available in all scopes)
         used_vars.update(global_functions)
@@ -194,6 +222,22 @@ class UnusedVariableDetector(ScriptDetector):
             if child == node:
                 return True
         
+        return False
+
+    def _is_direct_child_of_function(self, node: Any, function_ast: Any) -> bool:
+        """Check if a variable statement is a direct child of the function (not nested in other functions)."""
+        # Find the function body and check if the variable statement is directly within it
+        # Look for the function body (block_statement) within the function
+        for block_node in function_ast.find_data('block_statement'):
+            # Check if this variable statement is a direct child of the function body
+            if hasattr(block_node, 'children'):
+                for child in block_node.children:
+                    if child == node:
+                        # Found the variable statement as a direct child of the function body
+                        return True
+        
+        # If we didn't find it as a direct child of any block_statement in the function,
+        # it might be nested inside another function
         return False
 
     def _get_variable_name_from_statement(self, node: Any) -> str:
@@ -232,3 +276,48 @@ class UnusedVariableDetector(ScriptDetector):
             if hasattr(identifier, 'value'):
                 return identifier.value
         return ""
+    
+    def _extract_variables_from_template(self, node: Any) -> Set[str]:
+        """
+        Extract variable names from template literal interpolations.
+        
+        PMD Script uses {{expression}} syntax for template interpolations.
+        This method parses the template literal content to find variable usage.
+        """
+        variables = set()
+        
+        if not hasattr(node, 'children') or not node.children:
+            return variables
+        
+        # Get the template literal content
+        template_content = ""
+        for child in node.children:
+            if hasattr(child, 'value'):
+                template_content += child.value
+            elif hasattr(child, 'type') and child.type == 'TEMPLATE_LITERAL':
+                template_content += child.value
+        
+        if not template_content:
+            return variables
+        
+        # Use regex to find {{...}} interpolation blocks
+        import re
+        interpolation_pattern = r'\{\{([^}]+)\}\}'
+        matches = re.findall(interpolation_pattern, template_content)
+        
+        for match in matches:
+            # Extract identifiers from the interpolation content
+            # Handle cases like: variable, obj.prop, namespace:func
+            interpolation_content = match.strip()
+            
+            # Split by common operators to find identifiers
+            # This is a simple approach - more sophisticated parsing would require grammar changes
+            parts = re.split(r'[+\-*/=<>!&|?:,;()\[\]{}.\s]+', interpolation_content)
+            
+            for part in parts:
+                part = part.strip()
+                # Check if it looks like a variable name (alphanumeric, underscore, no spaces)
+                if part and re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', part):
+                    variables.add(part)
+        
+        return variables

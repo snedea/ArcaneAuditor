@@ -375,6 +375,74 @@ class TestWidgetIdRequiredRule:
         # dynamicColumns object itself doesn't need id, columns inside use columnId
         assert len(findings) == 0
 
+    def test_custom_configuration_exclusions(self):
+        """Test that custom widget type exclusions work correctly."""
+        # Create a rule with custom exclusions for common widget types
+        config = {
+            'excluded_widget_types': ['section', 'fieldSet']
+        }
+        custom_rule = WidgetIdRequiredRule(config)
+        
+        # Verify built-in exclusions are preserved
+        assert 'footer' in custom_rule.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT
+        assert 'item' in custom_rule.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT
+        
+        # Verify custom exclusions are added
+        assert 'section' in custom_rule.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT
+        assert 'fieldSet' in custom_rule.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT
+        
+        # Test that custom excluded widgets are not flagged
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "source_content": '{"presentation": {"body": {"children": [{"type": "section"}, {"type": "fieldSet"}]}}}',
+            "presentation": {
+                "body": {
+                    "children": [
+                        {"type": "section"},  # Should not be flagged due to custom exclusion
+                        {"type": "fieldSet"}  # Should not be flagged due to custom exclusion
+                    ]
+                }
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        context = ProjectContext()
+        context.pmds["testPage"] = pmd_model
+        
+        findings = list(custom_rule.analyze(context))
+        # Both custom widgets should be excluded and not flagged
+        assert len(findings) == 0
+
+    def test_custom_configuration_without_config(self):
+        """Test that rule works normally when no config is provided."""
+        rule_no_config = WidgetIdRequiredRule()
+        
+        # Should have built-in exclusions only
+        assert 'footer' in rule_no_config.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT
+        assert 'section' not in rule_no_config.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT
+        
+        # Test that non-excluded widgets are still flagged
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "source_content": '{"presentation": {"body": {"children": [{"type": "section"}]}}}',
+            "presentation": {
+                "body": {
+                    "children": [
+                        {"type": "section"}  # Should be flagged since not in built-in exclusions
+                    ]
+                }
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        context = ProjectContext()
+        context.pmds["testPage"] = pmd_model
+        
+        findings = list(rule_no_config.analyze(context))
+        # section should be flagged since it's not in built-in exclusions
+        assert len(findings) == 1
+        assert "section" in findings[0].message
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

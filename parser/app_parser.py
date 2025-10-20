@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from .models import ProjectContext, PMDModel, ScriptModel, AMDModel, PMDIncludes, PMDPresentation, PodModel, PodSeed, SMDModel
-from .pmd_preprocessor import preprocess_pmd_content
+from .pmd_preprocessor import PMDPreprocessor
 
 
 class ModelParser:
@@ -14,6 +14,28 @@ class ModelParser:
     
     def __init__(self):
         self.supported_extensions = {'.pmd', '.script', '.amd', '.pod', '.smd'}
+    
+    def _filter_commented_keys(self, data):
+        """
+        Recursively remove keys starting with underscore (commented out).
+        
+        In Extend, keys starting with underscore are considered commented out
+        and should be ignored by all rules and analysis.
+        
+        Args:
+            data: The data structure to filter (dict, list, or primitive)
+            
+        Returns:
+            Filtered data structure with underscore-prefixed keys removed
+        """
+        if isinstance(data, dict):
+            return {k: self._filter_commented_keys(v) 
+                    for k, v in data.items() 
+                    if not k.startswith('_')}
+        elif isinstance(data, list):
+            return [self._filter_commented_keys(item) for item in data]
+        else:
+            return data
     
     def parse_files(self, source_files_map: Dict[str, Any]) -> ProjectContext:
         """
@@ -122,16 +144,20 @@ class ModelParser:
     def _parse_pmd_file(self, file_path: str, source_file: Any, context: ProjectContext):
         """Parse a .pmd file into a PMDModel."""
         try:
-            # Preprocess the content to handle multi-line script sections
+            # Preprocess the content to handle multi-line script sections and newlines in PMD script blocks
             content = source_file.content.strip()
             path_obj = Path(file_path)
             
-            # Preprocess the PMD content
+            # Use the preprocessor to handle newlines in PMD script blocks and brace disambiguation
+            # This now also provides hash-to-lines mapping for accurate line number tracking
+            from .pmd_preprocessor import preprocess_pmd_content
             processed_content, line_mappings, hash_to_lines = preprocess_pmd_content(content)
             
             # Try to parse as JSON
             try:
                 pmd_data = json.loads(processed_content)
+                # Filter out commented-out keys (starting with underscore)
+                pmd_data = self._filter_commented_keys(pmd_data)
 
                 # Extract presentation data - handle the nested structure properly
                 presentation_data = pmd_data.get('presentation', {})
@@ -206,12 +232,15 @@ class ModelParser:
             
             try:
                 amd_data = json.loads(content)
+                # Filter out commented-out keys (starting with underscore)
+                amd_data = self._filter_commented_keys(amd_data)
                 amd_model = AMDModel(
                     routes=amd_data.get('routes', {}),
                     baseUrls=amd_data.get('baseUrls', {}),
                     flows=amd_data.get('flows', {}),
                     dataProviders=amd_data.get('dataProviders', []),
-                    file_path=file_path
+                    file_path=file_path,
+                    source_content=content
                 )
                 context.amd = amd_model
                 print(f"Parsed AMD: {file_path}")
@@ -236,6 +265,8 @@ class ModelParser:
             
             try:
                 pod_data = json.loads(processed_content)
+                # Filter out commented-out keys (starting with underscore)
+                pod_data = self._filter_commented_keys(pod_data)
                 
                 # Extract seed data
                 seed_data = pod_data.get('seed', {})
@@ -275,6 +306,8 @@ class ModelParser:
             
             # Parse JSON content
             smd_data = json.loads(content)
+            # Filter out commented-out keys (starting with underscore)
+            smd_data = self._filter_commented_keys(smd_data)
             
             # Create SMD model
             smd_model = SMDModel(
@@ -329,7 +362,7 @@ class ModelParser:
     def _precompute_asts(self, context: ProjectContext):
         """Pre-compute ASTs for all script fields to avoid repeated parsing."""
         from .rules.base import Rule
-        from .pmd_script_parser import pmd_script_parser
+        from .pmd_script_parser import parse_with_preprocessor
         
         # Create a concrete rule instance to use its script field extraction methods
         class TempRule(Rule):
@@ -351,9 +384,11 @@ class ModelParser:
                             parsed_script = temp_rule._strip_pmd_wrappers(field_value)
                             if parsed_script:
                                 # Check if AST is already cached
-                                if context.get_cached_ast(parsed_script) is None:
-                                    ast = pmd_script_parser.parse(parsed_script)
-                                    context.set_cached_ast(parsed_script, ast)
+                                cache_key = hash(parsed_script)
+                                if context.get_cached_ast(cache_key) is None:
+                                    # Use _parse_script_content to handle string extraction properly
+                                    ast = temp_rule._parse_script_content(field_value, context)
+                                    context.set_cached_ast(cache_key, ast)
                                     ast_count += 1
                         except Exception as e:
                             error_count += 1
@@ -368,12 +403,28 @@ class ModelParser:
                             parsed_script = temp_rule._strip_pmd_wrappers(field_value)
                             if parsed_script:
                                 # Check if AST is already cached
-                                if context.get_cached_ast(parsed_script) is None:
-                                    ast = pmd_script_parser.parse(parsed_script)
-                                    context.set_cached_ast(parsed_script, ast)
+                                cache_key = hash(parsed_script)
+                                if context.get_cached_ast(cache_key) is None:
+                                    # Use _parse_script_content to handle string extraction properly
+                                    ast = temp_rule._parse_script_content(field_value, context)
+                                    context.set_cached_ast(cache_key, ast)
                                     ast_count += 1
                         except Exception as e:
                             error_count += 1
+        
+        # Pre-compute ASTs for standalone script files
+        for script_name, script_model in context.scripts.items():
+            if script_model.source and len(script_model.source.strip()) > 0:
+                try:
+                    # Check if AST is already cached
+                    cache_key = hash(script_model.source)
+                    if context.get_cached_ast(cache_key) is None:
+                        # Use _parse_script_content to handle any preprocessing needed
+                        ast = temp_rule._parse_script_content(script_model.source, context)
+                        context.set_cached_ast(cache_key, ast)
+                        ast_count += 1
+                except Exception as e:
+                    error_count += 1
         
         print(f"Pre-computed {ast_count} ASTs (errors: {error_count})")
     

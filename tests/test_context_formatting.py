@@ -73,12 +73,12 @@ class TestContextFormattingCLI:
     
     def test_console_output_with_rules_not_executed(self):
         """Test console output showing rules that didn't run."""
-        # Create context missing AMD (which prevents AMDDataProvidersWorkdayRule)
+        # Create context missing SMD (which prevents HardcodedApplicationIdRule)
         context = ProjectContext()
         context.analysis_context = AnalysisContext(
             analysis_type="individual_files",
-            files_analyzed=["page.pmd", "app.smd"],
-            files_present={"PMD", "SMD"}
+            files_analyzed=["page.pmd"],
+            files_present={"PMD"}
         )
         
         # Create formatter
@@ -87,10 +87,11 @@ class TestContextFormattingCLI:
         # Format with no findings
         output = formatter.format_results([], 2, 10, context)
         
-        # Should show rules not executed
+        # Should show rules not executed (only SMD-dependent rules now)
         assert "Rules Not Executed" in output
-        assert "AMDDataProvidersWorkdayRule" in output
-        assert "Requires AMD file" in output
+        assert "HardcodedApplicationIdRule" in output
+        assert "Requires SMD file" in output
+        # HardcodedWorkdayAPIRule no longer appears in Rules Not Executed
     
     def test_console_output_without_context(self):
         """Test console output when context is None (backwards compatibility)."""
@@ -170,7 +171,7 @@ class TestContextFormattingJSON:
         
         # Should have impact information
         assert "impact" in result["context"]
-        assert len(result["context"]["impact"]["rules_not_executed"]) == 2  # AMDDataProvidersWorkdayRule and HardcodedApplicationIdRule
+        assert len(result["context"]["impact"]["rules_not_executed"]) == 1  # Only HardcodedApplicationIdRule
         assert len(result["context"]["impact"]["rules_partially_executed"]) == 1
         
         # Check partially executed rule details

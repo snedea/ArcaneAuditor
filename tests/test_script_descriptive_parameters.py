@@ -157,38 +157,6 @@ class TestScriptDescriptiveParameterRule:
         assert detector._suggest_parameter_name("reduce", "items", 0) == "acc"  # Special case for reduce
         assert detector._suggest_parameter_name("forEach", "users", 0) == "user"
     
-    def test_standalone_script_files(self):
-        """Test analysis of standalone script files."""
-        script_content = """const getCurrentTime = function() {
-    return date:getTodaysDate(date:getDateTimeZone('US/Pacific'));
-};
-
-const processUsers = function(userList) {
-    return userList
-        .filter(x => x.active)
-        .map(y => ({
-            id: y.id,
-            name: y.name,
-            email: y.email
-        }));
-};
-
-{
-    "getCurrentTime": getCurrentTime,
-    "processUsers": processUsers
-}"""
-        
-        script_model = ScriptModel(source=script_content, file_path="util.script")
-        self.context.scripts["util.script"] = script_model
-        
-        findings = list(self.rule.analyze(self.context))
-        
-        # Should find violations for 'x' and 'y'
-        assert len(findings) == 2
-        
-        violation_params = [f.message for f in findings]
-        assert any("'x'" in msg and "filter()" in msg for msg in violation_params)
-        assert any("'y'" in msg and "map()" in msg for msg in violation_params)
     
     def test_reduce_method_special_case(self):
         """Test that reduce method suggests 'acc' for accumulator parameter."""

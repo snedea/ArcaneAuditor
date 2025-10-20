@@ -157,24 +157,33 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
                 if func_name:
                     function_calls.add(func_name)
             
-            # 2. Identifiers used in member expressions (e.g., obj.method())
-            # These are already handled by call_expression above if they're called
+            # 2. Identifiers used as function arguments (e.g., array.map(myFunc))
+            for call_node in ast.find_data('arguments_expression'):
+                # Get all identifiers in the arguments
+                for arg_node in call_node.find_data('identifier_expression'):
+                    if len(arg_node.children) > 0 and hasattr(arg_node.children[0], 'value'):
+                        function_calls.add(arg_node.children[0].value)
             
-            # 3. Identifiers used as arguments or in expressions
-            # Parse through all expression nodes and collect standalone identifiers
-            for tree in ast.iter_subtrees():
-                # Look for identifiers that aren't part of variable declarations
-                if tree.data not in ('variable_declaration', 'variable_statement'):
-                    for child in tree.children:
-                        if hasattr(child, 'type') and child.type == 'IDENTIFIER':
-                            function_calls.add(child.value)
-                            
+            # 3. Identifiers in assignments (e.g., var x = myFunc)
+            for assignment_node in ast.find_data('assignment_expression'):
+                if len(assignment_node.children) >= 2:
+                    right_side = assignment_node.children[1]
+                    func_name = self._extract_identifier_from_expression(right_side)
+                    if func_name:
+                        function_calls.add(func_name)
+            
+            # 4. Return statements that return a function reference
+            for return_node in ast.find_data('return_statement'):
+                if len(return_node.children) > 0:
+                    func_name = self._extract_identifier_from_expression(return_node.children[0])
+                    if func_name:
+                        function_calls.add(func_name)
         except Exception:
-            pass  # If AST traversal fails, return empty set
+            pass
         
         return function_calls
     
-    def _extract_identifier_from_expression(self, node) -> str:
+    def _extract_identifier_from_expression(self, node):
         """Extract identifier name from an expression node."""
         if node is None:
             return ""
@@ -218,15 +227,50 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
         return function_vars
     
     def _is_function_assignment(self, initializer_node) -> bool:
-        """Check if an initializer node assigns a function."""
+        """
+        Check if an initializer node assigns a function (not a function call result).
+        """
         try:
-            # Check if the initializer contains a function expression or arrow function
-            for subtree in initializer_node.iter_subtrees():
-                if subtree.data in ('function_expression', 'arrow_function_expression'):
+            # First, check if the initializer node ITSELF is a function expression
+            # (This handles cases where there's no wrapper)
+            if hasattr(initializer_node, 'data'):
+                if initializer_node.data in ('function_expression', 'arrow_function_expression'):
                     return True
-        except Exception:
-            pass
-        return False
+            
+            if not hasattr(initializer_node, 'children') or not initializer_node.children:
+                return False
+            
+            # Look through ALL children (not just first) to find function expressions
+            for child in initializer_node.children:
+                # Skip tokens (like "=" operator)
+                if not hasattr(child, 'data'):
+                    continue
+                
+                # Direct function assignment ✅
+                if child.data in ('function_expression', 'arrow_function_expression'):
+                    return True
+                
+                # Parenthesized function ✅
+                if child.data == 'parenthesized_expression':
+                    if hasattr(child, 'children') and child.children:
+                        for inner in child.children:
+                            if hasattr(inner, 'data') and inner.data in ('function_expression', 'arrow_function_expression'):
+                                return True
+                
+                # Call expression = returns result, NOT a function ❌
+                if child.data == 'call_expression':
+                    return False
+                
+                # Member expression (property access) = not a function ❌
+                if child.data == 'member_dot_expression':
+                    return False
+            
+            # No function found
+            return False
+            
+        except Exception as e:
+            print(f"Exception in _is_function_assignment: {e}")
+            return False
     
     def _extract_function_from_assignment(self, assignment_node) -> str:
         """

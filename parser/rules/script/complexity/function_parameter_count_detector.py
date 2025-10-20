@@ -21,12 +21,19 @@ class FunctionParameterCountDetector(ScriptDetector):
         for func_def in function_definitions:
             param_count = self._count_parameters(func_def)
             if param_count > self.max_parameters:
-                line_number = self._get_line_number(func_def)
-                if line_number:
-                    line_number = self.line_offset + line_number - 1
+                # Get line number using standardized method
+                line_number = self.get_line_from_tree_node(func_def)
+                
+                # Get the function name using proper function context mapping
+                function_name = self.get_function_context_for_node(func_def, ast)
+                
+                if function_name:
+                    message = f"Function '{function_name}' has {param_count} parameters (max allowed: {self.max_parameters}). Consider refactoring to reduce complexity."
+                else:
+                    message = f"Function has {param_count} parameters (max allowed: {self.max_parameters}). Consider refactoring to reduce complexity."
                 
                 yield Violation(
-                    message=f"Function has {param_count} parameters (max allowed: {self.max_parameters}). Consider refactoring to reduce complexity.",
+                    message=message,
                     line=line_number or self.line_offset
                 )
     
