@@ -778,6 +778,9 @@ Single-letter parameters in array methods (`x => x.active`) hide information abo
 - Nested array methods with confusing parameter names
 - Non-descriptive variable names in map, filter, find, forEach, reduce, sort
 
+**Configuration Options:**
+- `allowed_single_letters` (array, default: []): Additional single-letter parameter names to allow beyond the built-in exceptions ('a', 'b' for sort)
+
 **Example violations:**
 
 ```javascript
@@ -1688,7 +1691,7 @@ Workday APIs are heavily used within most Extend applications. Creating a re-usa
 **Severity:** ℹ️ADVICE
 **Description:** Ensures PMD file root-level sections follow consistent ordering
 **Applies to:** PMD file structure
-**Configurable:** ✅ Section order and enforcement can be customized
+**Configurable:** ✅ Top-level section order and enforcement can be customized
 
 **Why This Matters:**
 
@@ -1806,7 +1809,7 @@ Security domains control who can access your PMD pages in Workday. Missing secur
   - `false`: Normal mode with smart exclusions (default for all presets)
   - `true`: Strict mode requiring security domains for all pages (opt-in only)
 
-**Example configuration:**
+**Configuration:**
 
 ```json
 {
@@ -1840,7 +1843,7 @@ Widget IDs are essential for referencing widgets in scripts (to get/set values, 
 
 Built-in widget types that don't require IDs: `footer`, `item`, `group`, `title`, `pod`, `cardContainer`, `card`, `instanceList`, `taskReference`, `editTasks`, `multiSelectCalendar`, `bpExtender`, `hub`, and column objects (which use `columnId` instead).
 
-**Custom Configuration:**
+**Configuration:**
 
 You can add additional widget types to exclude from ID requirements:
 
@@ -2195,11 +2198,11 @@ Combining paging with sortableAndFilterable columns forces Workday to load and p
 | **ScriptVerboseBooleanCheckRule**        | Script    | ℹ️ ADVICE | ✅              | —                                                     |
 | **StringBooleanRule**                    | Script    | ℹ️ ADVICE | ✅              | —                                                     |
 | **ScriptUnusedIncludesRule**             | Script    | ℹ️ ADVICE | ✅              | —                                                     |
-| **ScriptOnSendSelfDataRule**             | Script    | ℹ️ ADVICE | ✅              | `excluded_widget_types`                               |
+| **ScriptOnSendSelfDataRule**             | Script    | ℹ️ ADVICE | ✅              | —                                                     |
 | **EndpointFailOnStatusCodesRule**        | Structure | 🚨 ACTION | ✅              | —                                                     |
 | **EndpointNameLowerCamelCaseRule**       | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **EndpointBaseUrlTypeRule**              | Structure | ℹ️ ADVICE | ✅              | —                                                     |
-| **WidgetIdRequiredRule**                 | Structure | 🚨 ACTION | ✅              | —                                                     |
+| **WidgetIdRequiredRule**                 | Structure | 🚨 ACTION | ✅              | `excluded_widget_types`                               |
 | **WidgetIdLowerCamelCaseRule**           | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **HardcodedApplicationIdRule**           | Structure | ℹ️ ADVICE | ✅              | —                                                     |
 | **HardcodedWidRule**                     | Structure | ℹ️ ADVICE | ✅              | —                                                     |
