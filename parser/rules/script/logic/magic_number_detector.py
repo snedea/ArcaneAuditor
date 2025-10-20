@@ -1,6 +1,6 @@
 """Magic number detection logic for ScriptMagicNumberRule."""
 
-from typing import Generator, List
+from typing import Generator, List, Optional
 from lark import Tree
 from ..shared.detector import ScriptDetector
 from ...common import Violation
@@ -9,8 +9,8 @@ from ...common import Violation
 class MagicNumberDetector(ScriptDetector):
     """Detects magic numbers in script content."""
     
-    def __init__(self, file_path: str = "", line_offset: int = 1):
-        super().__init__(file_path, line_offset)
+    def __init__(self, file_path: str = "", line_offset: int = 1, source_text: str = ""):
+        super().__init__(file_path, line_offset, source_text)
         # Define allowed numbers - ONLY the sentinel values
         self.allowed_numbers = {0, 1, -1}
     
@@ -49,12 +49,15 @@ class MagicNumberDetector(ScriptDetector):
                                 line_number = self.get_line_number_from_token(node.children[0])
                                 
                                 # Check if this magic number is inside a function
-                                function_name = self.get_function_context_for_node(node, ast)
+                                function_name = self._get_function_name_for_node(node, ast)
+                                
+                                # Get code context for better error message
+                                code_context = self._get_code_context(node, ast)
                                 
                                 if function_name:
-                                    message = f"File section '{field_name}' contains magic number '{number}' in function '{function_name}'. Consider using a named constant instead."
+                                    message = f"File section '{field_name}' contains magic number '{number}' in function '{function_name}': {code_context}. Consider using a named constant instead."
                                 else:
-                                    message = f"File section '{field_name}' contains magic number '{number}'. Consider using a named constant instead."
+                                    message = f"File section '{field_name}' contains magic number '{number}': {code_context}. Consider using a named constant instead."
                                 
                                 findings.append({
                                     'message': message,
@@ -239,3 +242,130 @@ class MagicNumberDetector(ScriptDetector):
         except Exception:
             # If anything fails, return a safe fallback
             return "magic number"
+    
+    def _get_function_name_for_node(self, node: Tree, ast: Tree) -> Optional[str]:
+        """Get the function name for a specific node using line-based matching."""
+        # Get the line number of this node
+        node_line = self.get_line_from_tree_node(node)
+        
+        # Find all variable statements and check which one contains this node
+        for var_stmt in ast.find_data('variable_statement'):
+            if len(var_stmt.children) > 1:
+                var_declaration = var_stmt.children[1]
+                if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
+                    # Check if this variable declaration contains a function expression
+                    for child in var_declaration.children:
+                        if hasattr(child, 'data') and child.data == 'function_expression':
+                            # Check if this node is within this function by comparing line numbers
+                            func_line = self.get_line_from_tree_node(child)
+                            if node_line >= func_line:
+                                # Check if the node is within the function's scope
+                                if self._is_node_within_function(node, child, ast):
+                                    # Found it! Get the variable name
+                                    if len(var_declaration.children) > 0:
+                                        var_name_token = var_declaration.children[0]
+                                        if hasattr(var_name_token, 'value'):
+                                            return var_name_token.value
+        return None
+    
+    def _is_node_within_function(self, node: Tree, func_expr: Tree, ast: Tree) -> bool:
+        """Check if a node is within the scope of a function expression."""
+        # Simple heuristic: check if the node's line number is within the function's range
+        node_line = self.get_line_from_tree_node(node)
+        func_line = self.get_line_from_tree_node(func_expr)
+        
+        # Find the end of the function by looking for the next function or end of script
+        func_end_line = self._find_function_end_line(func_expr, ast)
+        
+        return func_line <= node_line <= func_end_line
+    
+    def _find_function_end_line(self, func_expr: Tree, ast: Tree) -> int:
+        """Find the approximate end line of a function expression."""
+        # Get the function's starting line
+        func_line = self.get_line_from_tree_node(func_expr)
+        
+        # Find all function expressions to determine boundaries
+        all_functions = list(ast.find_data('function_expression'))
+        func_index = all_functions.index(func_expr)
+        
+        # If this is the last function, use a large number
+        if func_index == len(all_functions) - 1:
+            return func_line + 100  # Arbitrary large number
+        
+        # Otherwise, use the next function's line as the boundary
+        next_func = all_functions[func_index + 1]
+        next_func_line = self.get_line_from_tree_node(next_func)
+        return next_func_line - 1
+    
+    def _get_code_context(self, node: Tree, ast: Tree) -> str:
+        """Get actual code context around a magic number using source text."""
+        try:
+            # Get the line number of the magic number WITHIN THE SCRIPT (1-based)
+            # This is relative to the parsed script content, NOT the file
+            magic_line_in_script = self.get_line_from_tree_node(node)
+            
+            # Convert from file line back to script-relative line
+            # Formula: script_line = file_line - line_offset + 1
+            script_line = magic_line_in_script - self.line_offset + 1
+            
+            # Use source text to get the actual line content
+            if self.source_text:
+                source_lines = self.source_text.split('\n')
+                if 1 <= script_line <= len(source_lines):
+                    actual_line = source_lines[script_line - 1].strip()
+                    if actual_line:
+                        return f"'{actual_line}'"
+            
+            # Fallback: try to reconstruct from AST
+            return self._reconstruct_expression_from_ast(node)
+        except Exception:
+            return f"literal value"
+    
+    def _reconstruct_expression_from_ast(self, node: Tree) -> str:
+        """Try to reconstruct a simple expression from the AST."""
+        try:
+            # Get the parent to understand the context
+            parent = self._find_parent_node_in_tree(node)
+            if parent and hasattr(parent, 'data'):
+                if parent.data == 'additive_expression':
+                    return f"arithmetic expression"
+                elif parent.data == 'multiplicative_expression':
+                    return f"arithmetic expression"
+                elif parent.data == 'assignment_expression':
+                    return f"assignment"
+                elif parent.data == 'call_expression':
+                    return f"function call"
+                elif parent.data == 'member_expression':
+                    return f"property access"
+                elif parent.data == 'conditional_expression':
+                    return f"conditional expression"
+                elif parent.data == 'array_expression':
+                    return f"array access"
+                else:
+                    return f"{parent.data}"
+            
+            return f"literal value"
+        except Exception:
+            return f"literal value"
+    
+    def _find_parent_node_in_tree(self, target_node: Tree) -> Optional[Tree]:
+        """Find the immediate parent of a target node within its own tree."""
+        # This is a simplified version that works within the current context
+        # The full implementation would need access to the full AST
+        return None
+    
+    def _find_parent_node(self, ast: Tree, target_node: Tree) -> Optional[Tree]:
+        """Find the immediate parent of a target node."""
+        def find_parent_recursive(node: Tree, target: Tree, parent: Optional[Tree] = None) -> Optional[Tree]:
+            if node == target:
+                return parent
+            
+            if isinstance(node, Tree):
+                for child in node.children:
+                    if isinstance(child, Tree):
+                        result = find_parent_recursive(child, target, node)
+                        if result is not None:
+                            return result
+            return None
+        
+        return find_parent_recursive(ast, target_node)
