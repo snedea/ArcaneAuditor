@@ -7,7 +7,7 @@ from ....models import PMDModel
 from .unused_script_includes_detector import UnusedScriptIncludesDetector
 
 
-class ScriptUnusedScriptIncludesRule(ScriptRuleBase):
+class ScriptUnusedIncludesRule(ScriptRuleBase):
     """Validates that included script files are actually used in PMD files."""
 
     DESCRIPTION = "Ensures included script files are actually used (via script.function() calls)"

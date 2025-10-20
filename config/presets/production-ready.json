@@ -116,7 +116,7 @@
       "severity_override": null,
       "custom_settings": {}
     },
-    "ScriptUnusedScriptIncludesRule": {
+    "ScriptUnusedIncludesRule": {
       "enabled": true,
       "severity_override": null,
       "custom_settings": {}

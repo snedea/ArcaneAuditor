@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-Tests for ScriptUnusedScriptIncludesRule.
+Tests for ScriptUnusedIncludesRule.
 """
 
 import pytest
-from parser.rules.script.unused_code.unused_script_includes import ScriptUnusedScriptIncludesRule
+from parser.rules.script.unused_code.unused_script_includes import ScriptUnusedIncludesRule
 from parser.models import ProjectContext, PMDModel, PMDIncludes
 
 
-class TestScriptUnusedScriptIncludesRule:
-    """Test cases for ScriptUnusedScriptIncludesRule class."""
+class TestScriptUnusedIncludesRule:
+    """Test cases for ScriptUnusedIncludesRule class."""
     
     def setup_method(self):
         """Set up test fixtures."""
-        self.rule = ScriptUnusedScriptIncludesRule()
+        self.rule = ScriptUnusedIncludesRule()
         self.context = ProjectContext()
     
     def test_rule_metadata(self):

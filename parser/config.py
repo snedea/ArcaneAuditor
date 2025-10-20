@@ -51,7 +51,7 @@ class RulesConfig(BaseModel):
     ScriptUnusedFunctionRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects functions that are declared but never called")
     ScriptUnusedFunctionParametersRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects unused function parameters")
     ScriptUnusedVariableRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures all declared variables are used (prevents dead code)")
-    ScriptUnusedScriptIncludesRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects script files that are included but never used in PMD files")
+    ScriptUnusedIncludesRule: RuleConfig = Field(default_factory=RuleConfig, description="Detects script files that are included but never used in PMD files")
     
     # Endpoint Structure Rules
     EndpointFailOnStatusCodesRule: RuleConfig = Field(default_factory=RuleConfig, description="Ensures endpoints handle failure status codes properly")
