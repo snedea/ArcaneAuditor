@@ -5,7 +5,8 @@ import re
 from typing import Generator, List, Dict, Any
 from parser.rules.structure.shared.rule_base import StructureRuleBase
 from parser.rules.base import Finding
-from parser.models import ProjectContext
+from parser.models import ProjectContext, PMDModel, PodModel, AMDModel
+from file_processing.context_tracker import SkippedCheck
 
 
 class HardCodedWorkdayAPIRule(StructureRuleBase):
@@ -23,6 +24,21 @@ class HardCodedWorkdayAPIRule(StructureRuleBase):
             r'(?:https?://)?[a-zA-Z0-9.-]*\.workday\.com[^\s\'"]*',
             re.IGNORECASE
         )
+    
+    def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
+        """Main analysis entry point with context awareness."""
+        # Check if AMD is missing and register skipped check
+        if not context.amds:
+            context.register_skipped_check(
+                SkippedCheck(
+                    rule=self.__class__.__name__,
+                    reason="Requires AMD file",
+                    skipped_checks=["amd_data_provider_validation"]
+                )
+            )
+        
+        # Run analysis on available files
+        yield from super().analyze(context)
 
     def visit_pmd(self, pmd_model, context: ProjectContext) -> Generator[Finding, None, None]:
         """Check PMD inbound and outbound endpoints for hardcoded *.workday.com URLs."""
@@ -62,7 +78,6 @@ class HardCodedWorkdayAPIRule(StructureRuleBase):
         data_providers = amd_model.dataProviders or []
         if not data_providers:
             return
-            yield
         
         # Check each dataProvider
         for provider in data_providers:

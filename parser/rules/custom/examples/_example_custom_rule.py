@@ -149,7 +149,7 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
 # Additional example: Structure validation rule using unified architecture
 from ...structure.shared import StructureRuleBase
 from ...base import Finding
-from ....models import PodModel
+from ....models import PodModel, PMDModel, ProjectContext
 
 class CustomPMDSectionValidationRule(StructureRuleBase):
     """
