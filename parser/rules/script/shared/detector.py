@@ -195,17 +195,8 @@ class ScriptDetector(ABC):
     
     def get_function_context_for_node(self, node: Any, ast: Any) -> str:
         """Get the function name that contains the given node, or None if not in a function."""
-        # Use AST object id as cache key to avoid rebuilding the same map
-        ast_id = id(ast)
-        
-        # Check if we already have the function context map for this AST
-        if ast_id not in self._function_context_cache:
-            # Build function context map and cache it
-            function_contexts = self._build_function_context_map(ast)
-            self._function_context_cache[ast_id] = function_contexts
-        else:
-            # Use cached function context map
-            function_contexts = self._function_context_cache[ast_id]
+        # Always rebuild function context map to avoid caching issues
+        function_contexts = self._build_function_context_map(ast)
         
         # Find the enclosing function name
         return self._get_enclosing_function_name(node, function_contexts)
@@ -248,7 +239,9 @@ class ScriptDetector(ABC):
         
         if hasattr(function_node, 'children'):
             for child in function_node.children:
-                if hasattr(child, 'data'):  # Only map Tree nodes, not Tokens
+                # Map both Tree nodes and Token nodes
+                function_contexts[child] = function_name
+                if hasattr(child, 'data'):  # Tree nodes - recurse
                     self._map_function_nodes(child, function_name, function_contexts)
     
     def _get_enclosing_function_name(self, node: Any, function_contexts: dict) -> str:

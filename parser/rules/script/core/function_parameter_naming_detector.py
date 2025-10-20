@@ -1,7 +1,7 @@
 """Function parameter naming detection logic for ScriptFunctionParameterNamingRule."""
 
-from typing import Generator, Dict, Any
-from lark import Tree
+from typing import Generator, Dict, Any, Optional
+from lark import Tree, Token
 from ..shared.detector import ScriptDetector
 from ...common import Violation
 from ...common_validations import validate_script_variable_camel_case
@@ -19,6 +19,9 @@ class FunctionParameterNamingDetector(ScriptDetector):
         function_expressions = ast.find_data('function_expression')
         
         for func_expr in function_expressions:
+            # Get the function name specific to THIS function expression
+            function_name = self._get_function_name_for_expression(func_expr, ast)
+            
             # Look for formal_parameter_list first
             for child in func_expr.children:
                 if hasattr(child, 'data') and child.data == 'formal_parameter_list':
@@ -31,8 +34,13 @@ class FunctionParameterNamingDetector(ScriptDetector):
                                 # Get line number from the parameter token
                                 line_number = self.get_line_number_from_token(param)
                                 
+                                if function_name:
+                                    message = f"File section '{field_name}' has function parameter '{param_name}' in function '{function_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'."
+                                else:
+                                    message = f"File section '{field_name}' has function parameter '{param_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'."
+                                
                                 yield Violation(
-                                    message=f"File section '{field_name}' has function parameter '{param_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'.",
+                                    message=message,
                                     line=line_number
                                 )
                 elif hasattr(child, 'value') and not hasattr(child, 'data'):
@@ -45,8 +53,13 @@ class FunctionParameterNamingDetector(ScriptDetector):
                             # Get line number from the parameter token
                             line_number = self.get_line_number_from_token(child)
                             
+                            if function_name:
+                                message = f"File section '{field_name}' has function parameter '{param_name}' in function '{function_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'."
+                            else:
+                                message = f"File section '{field_name}' has function parameter '{param_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'."
+                            
                             yield Violation(
-                                message=f"File section '{field_name}' has function parameter '{param_name}' that doesn't follow lowerCamelCase convention. Consider renaming to '{suggestion}'.",
+                                message=message,
                                 line=line_number
                             )
     
@@ -69,3 +82,36 @@ class FunctionParameterNamingDetector(ScriptDetector):
                 break
         
         return False
+    
+    def _get_function_name_for_expression(self, func_expr: Tree, ast: Tree) -> Optional[str]:
+        """Get the function name for a specific function expression by finding its parent variable declaration."""
+        # Get the line number of this function expression
+        func_line = self.get_line_from_tree_node(func_expr)
+        
+        # Find all variable statements and check which one contains this function expression
+        for var_stmt in ast.find_data('variable_statement'):
+            if len(var_stmt.children) > 1:
+                var_declaration = var_stmt.children[1]
+                if hasattr(var_declaration, 'data') and var_declaration.data == 'variable_declaration':
+                    # Check if this variable declaration contains our function expression
+                    for child in var_declaration.children:
+                        if hasattr(child, 'data') and child.data == 'function_expression':
+                            # Check if this is the same function expression by comparing line numbers
+                            child_line = self.get_line_from_tree_node(child)
+                            if child_line == func_line:
+                                # Found it! Get the variable name
+                                if len(var_declaration.children) > 0:
+                                    var_name_token = var_declaration.children[0]
+                                    if hasattr(var_name_token, 'value'):
+                                        return var_name_token.value
+        return None
+    
+    def _extract_member_name(self, member_expr: Tree) -> Optional[str]:
+        """Extract the member name from a member expression (e.g., 'functionName' from 'obj.functionName')."""
+        # Look for the rightmost identifier in the member expression
+        identifiers = []
+        for child in member_expr.children:
+            if isinstance(child, Token) and child.type == 'IDENTIFIER':
+                identifiers.append(child.value)
+        
+        return identifiers[-1] if identifiers else None
