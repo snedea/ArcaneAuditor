@@ -127,6 +127,9 @@ Layered config system protects your customizations during updates. Your personal
 **Issues View:**
 ![Issues View](assets/issues-dark.png)
 
+**Issues Breakdown:**
+![Issues Breakdown](assets/details-dark.png)
+
 **Configuration View:**
 ![Configuration View](assets/config-dark.png)
 
