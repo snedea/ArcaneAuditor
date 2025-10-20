@@ -5,7 +5,7 @@ from ...script.shared import ScriptDetector, Violation
 from ...common import ASTLineUtils
 
 
-class UnusedScriptIncludesDetector(ScriptDetector):
+class ScriptUnusedIncludesRuleDetector(ScriptDetector):
     """Detects unused script includes in PMD files."""
 
     def __init__(self, file_path: str = "", line_offset: int = 1, included_scripts: Set[str] = None, script_calls: Set[str] = None):

@@ -4,7 +4,7 @@ from typing import Generator, Set, Any
 from ...script.shared import ScriptRuleBase
 from ...base import Finding
 from ....models import PMDModel
-from .unused_script_includes_detector import UnusedScriptIncludesDetector
+from .unused_script_includes_detector import ScriptUnusedIncludesRuleDetector
 
 
 class ScriptUnusedIncludesRule(ScriptRuleBase):
@@ -12,7 +12,7 @@ class ScriptUnusedIncludesRule(ScriptRuleBase):
 
     DESCRIPTION = "Ensures included script files are actually used (via script.function() calls)"
     SEVERITY = "ADVICE"
-    DETECTOR = UnusedScriptIncludesDetector
+    DETECTOR = ScriptUnusedIncludesRuleDetector
 
     def get_description(self) -> str:
         """Get rule description."""
