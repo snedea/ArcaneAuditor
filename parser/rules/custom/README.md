@@ -71,9 +71,11 @@ custom/
 
 Arcane Auditor now supports a **unified rule architecture** with specialized base classes:
 
-#### For Script Rules (Detector Pattern - Recommended)
+#### For Script Rules (Two Valid Patterns)
 
-The best practice for script rules is to use the **Detector pattern** which separates AST detection logic from rule orchestration:
+**Pattern 1: Detector Pattern (Recommended for AST-based analysis)**
+
+The detector pattern separates AST detection logic from rule orchestration and is recommended for most script analysis:
 
 ```python
 from typing import Generator, List
@@ -121,8 +123,38 @@ class CustomScriptMyRule(ScriptRuleBase):
 - ✅ Separation of concerns (AST logic vs orchestration)
 - ✅ Reusable detectors across multiple rules
 - ✅ Comments automatically ignored by parser
-- ✅ Consistent with all official script rules
+- ✅ Consistent with most official script rules
 - ✅ Easier to test (test detector and rule separately)
+
+**Pattern 2: Custom Analysis Pattern (For complex logic)**
+
+Some rules implement custom `analyze()` methods for complex logic that doesn't fit the detector pattern:
+
+```python
+class CustomScriptComplexRule(ScriptRuleBase):
+    """Custom rule with complex analysis logic."""
+    
+    DESCRIPTION = "Complex analysis that doesn't fit detector pattern"
+    SEVERITY = "ADVICE"
+    
+    def get_description(self) -> str:
+        return self.DESCRIPTION
+    
+    def analyze(self, context) -> Generator[Finding, None, None]:
+        """Custom analysis implementation."""
+        # Your custom analysis logic here
+        for pmd_model in context.pmds.values():
+            yield from self._analyze_pmd_custom(pmd_model, context)
+    
+    def _analyze_pmd_custom(self, pmd_model, context):
+        """Custom PMD analysis logic."""
+        # Complex analysis that doesn't fit detector pattern
+        pass
+```
+
+**When to use each pattern:**
+- **Use Detector Pattern**: For AST-based analysis, syntax checking, code quality rules
+- **Use Custom Analysis**: For complex business logic, cross-file analysis, or when detector pattern doesn't fit
 
 #### For Structure Rules (Recommended)
 
@@ -694,7 +726,7 @@ uv run main.py review-app samples/archives/template_bad_nkhlsq.zip --config user
 # user/my_comment_rule.py
 from typing import Generator
 from ...script.shared import ScriptRuleBase
-from ...common.violation import Violation
+from ...common import Violation
 from ...base import Finding
 from ....models import ProjectContext
 
