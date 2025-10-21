@@ -59,11 +59,6 @@ class ArcaneAuditorApp {
         }
 
         // Upload button listeners
-        const uploadBtn = document.getElementById('upload-btn');
-        if (uploadBtn) {
-            uploadBtn.addEventListener('click', () => this.uploadAndAnalyze());
-        }
-
         const uploadFilesBtn = document.getElementById('upload-files-btn');
         if (uploadFilesBtn) {
             uploadFilesBtn.addEventListener('click', () => this.uploadAndAnalyze());
