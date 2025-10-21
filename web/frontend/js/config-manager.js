@@ -149,57 +149,110 @@ export class ConfigManager {
     }
 
     showConfigBreakdown() {
+        const modal = document.getElementById('config-breakdown-modal');
+        const content = document.getElementById('config-breakdown-content');
+        
         if (!this.selectedConfig) {
             alert('Please select a configuration first');
             return;
         }
-
+        
         const config = this.availableConfigs.find(c => c.id === this.selectedConfig);
         if (!config) {
             alert('Configuration not found');
             return;
         }
-
-        // Create modal content
-        const modalContent = `
-            <div class="modal-overlay" onclick="closeModal()">
-                <div class="modal-content" onclick="event.stopPropagation()">
-                    <div class="modal-header">
-                        <h3>📋 ${config.name} - Configuration Details</h3>
-                        <button class="modal-close" onclick="closeModal()">&times;</button>
+        
+        const rules = config.rules || {};
+        const enabledRules = Object.entries(rules).filter(([_, ruleConfig]) => ruleConfig.enabled);
+        const disabledRules = Object.entries(rules).filter(([_, ruleConfig]) => !ruleConfig.enabled);
+        
+        let html = `
+            <div class="config-breakdown-section">
+                <h4>📊 Configuration: ${config.name}</h4>
+                <div class="config-summary-grid">
+                    <div class="summary-card enabled">
+                        <div class="summary-number">${enabledRules.length}</div>
+                        <div class="summary-label">Enabled Rules</div>
                     </div>
-                    <div class="modal-body">
-                        <div class="config-detail-section">
-                            <h4>📊 Overview</h4>
-                            <div class="config-detail-grid">
-                                <div class="detail-item">
-                                    <strong>Type:</strong> ${config.type || 'Built-in'}
-                                </div>
-                                <div class="detail-item">
-                                    <strong>Rules Enabled:</strong> ${config.rules_count}
-                                </div>
-                                <div class="detail-item">
-                                    <strong>Performance:</strong> ${config.performance}
-                                </div>
-                                <div class="detail-item">
-                                    <strong>Description:</strong> ${config.description}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="config-detail-section">
-                            <h4>📁 File Path</h4>
-                            <div class="file-path-display">
-                                <code>${config.path}</code>
-                            </div>
-                        </div>
+                    <div class="summary-card disabled">
+                        <div class="summary-number">${disabledRules.length}</div>
+                        <div class="summary-label">Disabled Rules</div>
+                    </div>
+                    <div class="summary-card total">
+                        <div class="summary-number">${Object.keys(rules).length}</div>
+                        <div class="summary-label">Total Rules</div>
                     </div>
                 </div>
             </div>
         `;
-
-        // Add modal to page
-        document.body.insertAdjacentHTML('beforeend', modalContent);
+        
+        if (enabledRules.length > 0) {
+            html += `
+                <div class="config-breakdown-section">
+                    <h4>✅ Enabled Rules</h4>
+                    <div class="rule-breakdown">
+            `;
+            
+            enabledRules.forEach(([ruleName, ruleConfig]) => {
+                const severity = ruleConfig.severity_override || 'ADVICE';
+                const customSettings = ruleConfig.custom_settings || {};
+                const settingsText = Object.keys(customSettings).length > 0 
+                    ? JSON.stringify(customSettings, null, 2) 
+                    : '';
+                
+                html += `
+                    <div class="rule-item enabled">
+                        <div class="rule-header-row">
+                            <div class="rule-name">${ruleName}</div>
+                        </div>
+                        <div class="rule-description">Severity: ${severity}</div>
+                        ${settingsText ? `
+                            <div class="rule-settings">
+                                <div class="settings-label">Custom Settings:</div>
+                                <pre class="settings-json">${settingsText}</pre>
+                            </div>
+                        ` : ''}
+                        <div class="rule-status-badge enabled">✓ Enabled</div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (disabledRules.length > 0) {
+            html += `
+                <div class="config-breakdown-section">
+                    <h4>❌ Disabled Rules</h4>
+                    <div class="rule-breakdown">
+            `;
+            
+            disabledRules.forEach(([ruleName, ruleConfig]) => {
+                const severity = ruleConfig.severity_override || 'ADVICE';
+                html += `
+                    <div class="rule-item disabled">
+                        <div class="rule-header-row">
+                            <div class="rule-name">${ruleName}</div>
+                        </div>
+                        <div class="rule-description">Severity: ${severity}</div>
+                        <div class="rule-status-badge disabled">✗ Disabled</div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+        
+        content.innerHTML = html;
+        
+        modal.style.display = 'flex';
     }
 
     // Theme management
@@ -240,9 +293,24 @@ window.showConfigBreakdown = function() {
     }
 };
 
-window.closeModal = function() {
-    const modal = document.querySelector('.modal-overlay');
+window.hideConfigBreakdown = function() {
+    const modal = document.getElementById('config-breakdown-modal');
     if (modal) {
-        modal.remove();
+        modal.style.display = 'none';
     }
 };
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('config-breakdown-modal');
+    if (event.target === modal) {
+        window.hideConfigBreakdown();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        window.hideConfigBreakdown();
+    }
+});
