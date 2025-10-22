@@ -367,6 +367,8 @@ Arcane Auditor enforces **42 validation rules** across 2 categories:
 
 Master the 42 Arcane Auditor rules through an **interactive quiz game** with real code examples!
 
+![Learning Game Preview](assets/learning-game/game-hero.png)
+
 ### 🎮 Features
 
 - **42 Rules Coverage**: Practice all Script and Structure validation rules

@@ -2,6 +2,8 @@
 
 An interactive, gamified learning experience to master all 42 ArcaneAuditor code quality rules through engaging quizzes and real code examples.
 
+![Arcane Auditor Learning Game](../assets/learning-game/game-hero.png)
+
 ![Game Status](https://img.shields.io/badge/status-ready-green)
 ![Rules Covered](https://img.shields.io/badge/rules-42-blue)
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
@@ -50,6 +52,32 @@ An interactive, gamified learning experience to master all 42 ArcaneAuditor code
 3. **Start Playing** - Choose your category and difficulty, then begin learning!
 
 That's it! The game runs entirely in your browser with no dependencies.
+
+## 📸 Screenshots
+
+### Main Menu
+Choose your category and difficulty to start your learning journey:
+
+![Main Menu](../assets/learning-game/game-hero.png)
+
+### Gameplay
+Test your knowledge with interactive questions and code examples:
+
+![Question Screen](../assets/learning-game/game-question.png)
+
+### Learning from Results
+
+**Correct Answer:**
+
+When you get it right, see detailed explanations of why the rule matters:
+
+![Correct Answer](../assets/learning-game/game-correct.png)
+
+**Learning from Mistakes:**
+
+When you get it wrong, learn from comprehensive feedback with code comparisons:
+
+![Wrong Answer](../assets/learning-game/game-wrong.png)
 
 ## 📖 How to Play
 
