@@ -363,6 +363,35 @@ Arcane Auditor enforces **42 validation rules** across 2 categories:
 
 ---
 
+## 🎓 Learning Game
+
+Master the 42 Arcane Auditor rules through an **interactive quiz game** with real code examples!
+
+### 🎮 Features
+
+- **42 Rules Coverage**: Practice all Script and Structure validation rules
+- **Gamified Learning**: Score points, build streaks, earn mastery badges
+- **Multiple Difficulty Levels**: Easy (True/False), Medium (Code Identification), Hard (Complex Scenarios)
+- **Dark/Light Mode**: Choose your preferred theme
+- **Comprehensive Explanations**: Learn why each rule matters with code comparisons
+- **Progress Tracking**: Monitor which rules you've mastered
+- **No Installation Required**: Pure HTML/CSS/JavaScript - just open in your browser!
+
+### 🚀 Quick Start
+
+```bash
+# Open the game
+open arcane-learning-game/index.html
+
+# Or just double-click index.html in your file browser
+```
+
+The game helps you learn Workday Extend best practices through hands-on quizzes with real violation and fix examples from the rule documentation.
+
+> 📖 **More details:** See [Learning Game Guide](arcane-learning-game/README.md) | [Quick Start](arcane-learning-game/QUICK_START.md)
+
+---
+
 ## 🚀 Advanced Usage
 
 <details>

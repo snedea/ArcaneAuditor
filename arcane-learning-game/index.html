@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcane Auditor Learning Game</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🧙‍♂️ Arcane Auditor Learning Game</h1>
+            <p class="subtitle">Master the 42 Rules of Code Quality</p>
+        </header>
+
+        <!-- Score Dashboard -->
+        <div class="score-dashboard">
+            <div class="score-item">
+                <span class="score-label">Score:</span>
+                <span class="score-value" id="current-score">0</span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">Streak:</span>
+                <span class="score-value" id="streak">0</span>
+                <span class="streak-fire" id="streak-fire"></span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">Progress:</span>
+                <span class="score-value" id="progress">0/42</span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">High Score:</span>
+                <span class="score-value" id="high-score">0</span>
+            </div>
+        </div>
+
+        <!-- Main Menu -->
+        <div id="main-menu" class="screen active">
+            <div class="menu-content">
+                <h2>Choose Your Challenge</h2>
+
+                <div class="category-selection">
+                    <button class="category-btn" data-category="script">
+                        <span class="category-icon">📜</span>
+                        <span class="category-name">Script Rules</span>
+                        <span class="category-count">23 Rules</span>
+                    </button>
+                    <button class="category-btn" data-category="structure">
+                        <span class="category-icon">🏗️</span>
+                        <span class="category-name">Structure Rules</span>
+                        <span class="category-count">19 Rules</span>
+                    </button>
+                    <button class="category-btn" data-category="all">
+                        <span class="category-icon">⚡</span>
+                        <span class="category-name">All Rules</span>
+                        <span class="category-count">42 Rules</span>
+                    </button>
+                </div>
+
+                <div class="difficulty-selection">
+                    <h3>Difficulty</h3>
+                    <div class="difficulty-buttons">
+                        <button class="difficulty-btn active" data-difficulty="easy">
+                            <span>Easy</span>
+                            <small>True/False & Multiple Choice</small>
+                        </button>
+                        <button class="difficulty-btn" data-difficulty="medium">
+                            <span>Medium</span>
+                            <small>Code Example Identification</small>
+                        </button>
+                        <button class="difficulty-btn" data-difficulty="hard">
+                            <span>Hard</span>
+                            <small>Complex Scenarios</small>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="start-btn" id="start-game">Start Learning</button>
+            </div>
+        </div>
+
+        <!-- Quiz Screen -->
+        <div id="quiz-screen" class="screen">
+            <div class="quiz-header">
+                <div class="question-counter">
+                    Question <span id="question-number">1</span> of <span id="total-questions">10</span>
+                </div>
+                <div class="timer" id="timer">30s</div>
+            </div>
+
+            <div class="question-card">
+                <div class="rule-badge">
+                    <span class="severity-badge" id="severity-badge">ADVICE</span>
+                    <span class="category-badge" id="category-badge">Script</span>
+                </div>
+
+                <h3 class="question-text" id="question-text"></h3>
+
+                <div class="code-example" id="code-example-container" style="display: none;">
+                    <pre><code id="code-example"></code></pre>
+                </div>
+
+                <div class="answers" id="answers-container"></div>
+
+                <div class="question-info">
+                    <div class="rule-name" id="rule-name"></div>
+                </div>
+            </div>
+
+            <button class="submit-btn" id="submit-answer" disabled>Submit Answer</button>
+        </div>
+
+        <!-- Result Screen -->
+        <div id="result-screen" class="screen">
+            <div class="result-content">
+                <div class="result-icon" id="result-icon"></div>
+                <h2 id="result-title"></h2>
+                <p id="result-message"></p>
+
+                <div class="explanation-card" id="explanation-card">
+                    <!-- Rule Details -->
+                    <div class="rule-details-section">
+                        <h3 id="rule-detail-name"></h3>
+                        <div class="rule-meta">
+                            <span class="rule-severity" id="rule-detail-severity"></span>
+                            <span class="rule-category" id="rule-detail-category"></span>
+                        </div>
+                        <p class="rule-description" id="rule-detail-description"></p>
+
+                        <div class="rule-applies-to" id="rule-applies-to-section" style="display: none;">
+                            <strong>Applies to:</strong> <span id="rule-applies-to"></span>
+                        </div>
+
+                        <div class="rule-configurable" id="rule-configurable-section" style="display: none;">
+                            <strong>Configurable:</strong> <span id="rule-configurable"></span>
+                        </div>
+                    </div>
+
+                    <!-- What It Catches -->
+                    <div class="catches-section">
+                        <h3>What It Catches</h3>
+                        <ul id="catches-list"></ul>
+                    </div>
+
+                    <!-- Smart Exclusions -->
+                    <div class="smart-exclusions-section" id="smart-exclusions-section" style="display: none;">
+                        <h3>Smart Exclusions</h3>
+                        <p id="smart-exclusions"></p>
+                    </div>
+
+                    <!-- Why This Matters -->
+                    <div class="why-matters-section">
+                        <h3>Why This Matters</h3>
+                        <p id="why-matters"></p>
+                    </div>
+
+                    <!-- Configuration Example -->
+                    <div class="config-example-section" id="config-example-section" style="display: none;">
+                        <h3>Configuration</h3>
+                        <pre><code id="config-example"></code></pre>
+                    </div>
+
+                    <!-- Code Comparison -->
+                    <div class="code-comparison-section">
+                        <h3>Correct Answer</h3>
+                        <div class="code-comparison">
+                            <div class="code-block violation">
+                                <h4>❌ Violation</h4>
+                                <pre><code id="violation-code"></code></pre>
+                            </div>
+                            <div class="code-block fix">
+                                <h4>✅ Fix</h4>
+                                <pre><code id="fix-code"></code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-buttons">
+                    <button class="next-btn" id="next-question">Next Question</button>
+                    <button class="menu-btn" id="back-to-menu">Back to Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Final Score Screen -->
+        <div id="final-screen" class="screen">
+            <div class="final-content">
+                <h2>🎉 Quiz Complete!</h2>
+
+                <div class="final-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="final-score">0</div>
+                        <div class="stat-label">Total Score</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="final-correct">0</div>
+                        <div class="stat-label">Correct Answers</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="final-accuracy">0%</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="final-streak">0</div>
+                        <div class="stat-label">Best Streak</div>
+                    </div>
+                </div>
+
+                <div class="mastery-level">
+                    <h3>Mastery Level</h3>
+                    <div class="mastery-badge" id="mastery-badge"></div>
+                    <p id="mastery-message"></p>
+                </div>
+
+                <div class="final-buttons">
+                    <button class="play-again-btn" id="play-again">Play Again</button>
+                    <button class="menu-btn" id="final-menu">Back to Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fixed theme toggle in bottom corner -->
+        <div class="theme-toggle-fixed">
+            <button id="theme-toggle" class="theme-toggle-btn" onclick="toggleTheme()">
+                <span id="theme-icon">🌙</span>
+                <span id="theme-text">Dark Mode</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="data/rules-data.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
