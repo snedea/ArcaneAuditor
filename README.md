@@ -477,14 +477,12 @@ parser/rules/     → Validation rules
   └── custom/     → Custom rule support
 ```
 
-### Contributing
+## 🤝 Contributing
 
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature-name`
-3. Make changes and add tests
-4. Run test suite: `uv run pytest`
-5. Commit: `git commit -m "Add feature"`
-6. Push and create Pull Request
+Contributions are welcome! Please submit pull requests against the `develop` branch.
+
+➡️ **See full guidelines here:** [CONTRIBUTING.md](CONTRIBUTING.md)
+
 
 ### Custom Rules
 
