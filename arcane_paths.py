@@ -76,12 +76,21 @@ def get_rule_dirs():
     Includes built-in delivered rule folders and the per-user
     custom/user folder (created automatically if missing).
     
+    In developer mode: uses local parser/rules/custom/user directory
+    In frozen mode: uses AppData/ArcaneAuditor/parser/rules/custom/user directory
+    
     Returns:
         list: List of rule directory paths in priority order
     """
     builtin_script = resource_path(os.path.join("parser", "rules", "script"))
     builtin_structure = resource_path(os.path.join("parser", "rules", "structure"))
-    user_rules = os.path.join(user_root(), "parser", "rules", "custom", "user")
+    
+    # Use local custom rules directory in developer mode, AppData in frozen mode
+    if is_developer_mode():
+        user_rules = os.path.join(os.path.dirname(__file__), "parser", "rules", "custom", "user")
+    else:
+        user_rules = os.path.join(user_root(), "parser", "rules", "custom", "user")
+    
     os.makedirs(user_rules, exist_ok=True)
     return [builtin_script, builtin_structure, user_rules]
 
