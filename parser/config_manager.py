@@ -73,15 +73,8 @@ class ConfigurationManager:
                 config_files.append(config_file)
         
         if not config_files:
-            # Fallback to development configuration using arcane_paths
-            dirs = get_config_dirs()
-            default_config_file = Path(dirs["presets"]) / "development.json"
-            
-            if default_config_file.exists():
-                return ArcaneAuditorConfig.from_file(default_config_file.as_posix())
-            else:
-                # Ultimate fallback - use built-in defaults
-                return ArcaneAuditorConfig()
+            # No fallback - raise error for non-existent config names
+            raise FileNotFoundError(f"Configuration '{config_name}' not found in any config directory (personal, teams, presets)")
         
         # For specific config names, use only the highest priority config (no merging)
         # For "default" config, merge all layers
@@ -144,41 +137,12 @@ class ConfigurationManager:
                 config_files.append((config_dir.name, config_file))
         
         if not config_files:
-            # Check if we have any preset configs at all
-            preset_dir = Path(get_config_dirs()["presets"])
-            if preset_dir.exists() and any(preset_dir.glob("*.json")):
-                # Check which specific preset would be used as fallback
-                fallback_config_file = preset_dir / "development.json"
-                if fallback_config_file.exists():
-                    return {
-                        "type": "preset",
-                        "name": "development",
-                        "source": "presets",
-                        "description": "fallback to development preset (no default config found)"
-                    }
-                else:
-                    # Find the first available preset
-                    preset_files = list(preset_dir.glob("*.json"))
-                    if preset_files:
-                        first_preset = preset_files[0].stem
-                        return {
-                            "type": "preset", 
-                            "name": first_preset,
-                            "source": "presets",
-                            "description": f"fallback to {first_preset} preset (no default config found)"
-                        }
-                
-                return {
-                    "type": "layered_defaults",
-                    "name": "layered configuration",
-                    "description": "presets -> teams -> personal"
-                }
-            else:
-                return {
-                    "type": "builtin_defaults",
-                    "name": "built-in defaults",
-                    "description": "no config files found"
-                }
+            # No fallback - return error info for non-existent config names
+            return {
+                "type": "error",
+                "name": config_name,
+                "description": f"Configuration '{config_name}' not found in any config directory (personal, teams, presets)"
+            }
         
         # Determine the highest priority source
         source_dir, source_file = config_files[0]  # First one is highest priority
