@@ -46,22 +46,27 @@ def review_app(
     try:
         config = load_configuration(str(config_file) if config_file else None)
         
-        # Determine config name for display
-        if config_file:
-            config_name = config_file.stem if hasattr(config_file, 'stem') else Path(config_file).stem
-            config_display_name = f"Custom ({config_name})"
+        # Determine config name for display using config manager
+        from parser.config_manager import get_config_manager
+        config_manager = get_config_manager()
+        source_info = config_manager.get_config_source_info(str(config_file) if config_file else None)
+        
+        if source_info["type"] == "custom_file":
+            config_display_name = f"Custom ({source_info['name']})"
+        elif source_info["type"] == "preset":
+            config_display_name = f"Built-in preset ({source_info['name']})"
+        elif source_info["type"] == "team":
+            config_display_name = f"Team configuration ({source_info['name']})"
+        elif source_info["type"] == "personal":
+            config_display_name = f"Personal configuration ({source_info['name']})"
+        elif source_info["type"] == "layered_defaults":
+            config_display_name = "Layered configuration (presets -> teams -> personal)"
         else:
-            # Check if default config exists
-            from pathlib import Path
-            default_config_path = Path("config/presets/development.json")
-            if default_config_path.exists():
-                config_display_name = "Development (default)"
-            else:
-                config_display_name = "Built-in defaults"
+            config_display_name = "Built-in defaults"
         
         if not quiet:
-            if config_file:
-                typer.echo(f"Loaded configuration: {config_file}")
+            if source_info["type"] == "custom_file":
+                typer.echo(f"Using Custom ({source_info['name']}) configuration from {source_info['path']}")
             else:
                 typer.echo(f"Using {config_display_name} configuration")
     except Exception as e:

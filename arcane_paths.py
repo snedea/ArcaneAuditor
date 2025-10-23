@@ -20,13 +20,28 @@ import shutil
 
 
 
+def is_developer_mode() -> bool:
+    """
+    Return True if running from source (not frozen).
+    
+    Returns:
+        bool: True if in developer mode, False if frozen/packaged
+    """
+    return not hasattr(sys, "_MEIPASS") and os.path.isdir(
+        os.path.join(os.path.dirname(__file__), "config", "presets")
+    )
+
+
 def resource_path(rel: str) -> str:
     """
     Resolve a resource path whether running from source or PyInstaller bundle.
+    
+    Returns:
+        str: Normalized absolute path to the resource
     """
     if hasattr(sys, "_MEIPASS"):
-        return os.path.join(sys._MEIPASS, rel)
-    return os.path.join(os.path.dirname(__file__), rel)
+        return os.path.normpath(os.path.join(sys._MEIPASS, rel))
+    return os.path.normpath(os.path.join(os.path.dirname(__file__), rel))
 
 
 def user_root() -> str:
@@ -36,6 +51,9 @@ def user_root() -> str:
     Windows → %AppData%\\ArcaneAuditor
     macOS   → ~/Library/Application Support/ArcaneAuditor
     Linux   → ~/.config/ArcaneAuditor
+    
+    Returns:
+        str: Normalized absolute path to the user data directory
     """
     system = platform.system()
     if system == "Windows":
@@ -45,7 +63,7 @@ def user_root() -> str:
     else:  # Linux, WSL, etc.
         base = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
 
-    path = os.path.join(base, "ArcaneAuditor")
+    path = os.path.normpath(os.path.join(base, "ArcaneAuditor"))
     os.makedirs(path, exist_ok=True)
     return path
 
@@ -57,6 +75,9 @@ def get_rule_dirs():
 
     Includes built-in delivered rule folders and the per-user
     custom/user folder (created automatically if missing).
+    
+    Returns:
+        list: List of rule directory paths in priority order
     """
     builtin_script = resource_path(os.path.join("parser", "rules", "script"))
     builtin_structure = resource_path(os.path.join("parser", "rules", "structure"))
@@ -70,13 +91,28 @@ def get_config_dirs():
     """
     Return a dict of configuration directories.
 
-    - presets  → delivered defaults (read-only, inside bundle)
-    - teams    → editable team configs (external)
-    - personal → editable personal configs (external)
-    """
-    builtin_presets = resource_path(os.path.join("config", "presets"))
-    root = user_root()
+    In developer mode (running from source):
+        config/presets, config/teams, config/personal (local)
 
+    In frozen mode (packaged executable):
+        presets in bundle, teams/personal in user-writable AppData location
+        
+    Returns:
+        dict: Dictionary with 'presets', 'teams', and 'personal' directory paths
+    """
+    root = user_root()
+    local_base = os.path.join(os.path.dirname(__file__), "config")
+
+    # Developer mode: prefer local repo structure
+    if is_developer_mode():
+        return {
+            "presets": os.path.join(local_base, "presets"),
+            "teams": os.path.join(local_base, "teams"),
+            "personal": os.path.join(local_base, "personal"),
+        }
+
+    # Frozen mode: presets bundled, user configs external
+    builtin_presets = resource_path(os.path.join("config", "presets"))
     teams_dir = os.path.join(root, "config", "teams")
     personal_dir = os.path.join(root, "config", "personal")
 
@@ -94,6 +130,9 @@ def get_config_dirs():
 def get_output_dir() -> str:
     """
     Return the per-user output directory for generated reports/logs.
+    
+    Returns:
+        str: Normalized absolute path to the output directory
     """
     out_dir = os.path.join(user_root(), "output")
     os.makedirs(out_dir, exist_ok=True)
@@ -105,6 +144,9 @@ def ensure_default_configs():
     """
     Copy delivered preset configs to user directories if empty.
     Safe to call on startup; won't overwrite user files.
+    
+    Returns:
+        None
     """
     dirs = get_config_dirs()
     preset_dir = dirs["presets"]
