@@ -1,0 +1,11 @@
+# Personal Configurations - Private Developer Overrides
+# 
+# This directory contains personal developer configurations that should
+# remain private and never be committed to version control. These files
+# are completely excluded from git to maintain privacy.
+
+# Ignore all JSON configuration files
+*.json
+
+# Keep documentation
+!README.md

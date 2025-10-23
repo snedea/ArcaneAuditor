@@ -1,0 +1,11 @@
+# Team Configurations - Protected from App Updates
+# 
+# This directory contains team-created configurations that should
+# survive application updates. These files are excluded from git
+# to prevent conflicts during updates.
+
+# Ignore all JSON configuration files
+*.json
+
+# Keep documentation
+!README.md
