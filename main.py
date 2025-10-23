@@ -290,24 +290,36 @@ def review_app(
             # ACTION issues always fail (code quality issues)
             if not quiet:
                 typer.echo(f"Analysis completed with {action_count} ACTION issue(s)")
-                typer.echo(f"Configuration used: {config_display_name}")
+                if source_info["type"] == "custom_file":
+                    typer.echo(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
+                else:
+                    typer.echo(f"Configuration used: {config_display_name}")
             raise typer.Exit(1)  # Exit code 1 for code quality issues
         elif fail_on_advice and advice_count > 0:
             # ADVICE issues fail only in CI mode (--fail-on-advice flag)
             if not quiet:
                 typer.echo(f"Analysis completed with {advice_count} ADVICE issue(s) (CI mode: failing on advice)")
-                typer.echo(f"Configuration used: {config_display_name}")
+                if source_info["type"] == "custom_file":
+                    typer.echo(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
+                else:
+                    typer.echo(f"Configuration used: {config_display_name}")
             raise typer.Exit(1)  # Exit code 1 for code quality issues
         else:
             # ADVICE issues in normal mode don't fail
             if not quiet:
                 typer.echo(f"Analysis completed with {advice_count} ADVICE issue(s)")
-                typer.echo(f"Configuration used: {config_display_name}")
+                if source_info["type"] == "custom_file":
+                    typer.echo(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
+                else:
+                    typer.echo(f"Configuration used: {config_display_name}")
             raise typer.Exit(0)  # Exit code 0 for advice in normal mode
     else:
         if not quiet:
             typer.echo("Analysis completed successfully - no issues found!")
-            typer.echo(f"Configuration used: {config_display_name}")
+            if source_info["type"] == "custom_file":
+                typer.echo(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
+            else:
+                typer.echo(f"Configuration used: {config_display_name}")
         raise typer.Exit(0)  # Exit code 0 for no issues
 
 
