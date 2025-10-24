@@ -32,6 +32,10 @@ MANIFEST
 *.manifest
 *.spec
 
+# Exclude specific specs for our application specific specs
+!ArcaneAuditor.spec
+!ArcaneAuditorWeb.spec
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
