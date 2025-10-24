@@ -18,11 +18,12 @@ python -m venv $BuildEnv
 
 & (Join-Path $BuildEnv "Scripts\activate.ps1")
 pip install -U pip
-pip install pyinstaller typer click pydantic lark-parser
+pip install pyinstaller typer click pydantic lark-parser uvicorn fastapi starlette python-multipart openpyxl psutil
 
 # --- Build -------------------------------------------------------------------
 Write-Host "🪄 Running PyInstaller..."
 pyinstaller ArcaneAuditor.spec --clean
+pyinstaller ArcaneAuditorWeb.spec --clean
 
 # --- Cleanup -----------------------------------------------------------------
 deactivate
@@ -31,4 +32,5 @@ Write-Host "🧹 Cleaning up temporary build environment..."
 Remove-Item -Recurse -Force $BuildEnv -ErrorAction SilentlyContinue
 
 Write-Host "`n✅ Build complete!"
-Write-Host "   Final binary: dist\ArcaneAuditor.exe"
+Write-Host "   Final binary(CLI): dist\ArcaneAuditor.exe"
+Write-Host "   Final binary(Web): dist\ArcaneAuditorWeb.exe"
