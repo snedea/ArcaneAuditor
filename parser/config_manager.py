@@ -63,7 +63,7 @@ class ConfigurationManager:
                 raise FileNotFoundError(f"Configuration file not found: {config_path}")
         
         # Use default if no name provided
-        config_name = config_name or "default"
+        config_name = config_name or "production-ready"
         
         # Find all applicable configuration files in priority order
         config_files = []
@@ -77,8 +77,8 @@ class ConfigurationManager:
             raise FileNotFoundError(f"Configuration '{config_name}' not found in any config directory (personal, teams, presets)")
         
         # For specific config names, use only the highest priority config (no merging)
-        # For "default" config, merge all layers
-        if config_name == "default":
+        # For "production-ready" config, merge all layers
+        if config_name == "production-ready":
             # Load and merge configurations (lowest priority first)
             merged_config = None
             for config_file in reversed(config_files):  # Start with lowest priority (presets) as base
@@ -118,8 +118,8 @@ class ConfigurationManager:
         Returns:
             Dictionary with source information
         """
-        # Use default if no name provided
-        config_name = config_name or "default"
+        # Use production-ready if no name provided
+        config_name = config_name or "production-ready"
         
         # Handle explicit file paths
         if config_name and ('/' in config_name or '\\' in config_name or config_name.endswith('.json')):

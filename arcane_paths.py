@@ -16,8 +16,6 @@ The same functions work seamlessly in:
 import os
 import sys
 import platform
-import shutil
-
 
 
 def is_developer_mode() -> bool:
@@ -27,9 +25,15 @@ def is_developer_mode() -> bool:
     Returns:
         bool: True if in developer mode, False if frozen/packaged
     """
-    return not hasattr(sys, "_MEIPASS") and os.path.isdir(
-        os.path.join(os.path.dirname(__file__), "config", "presets")
-    )
+    if hasattr(sys, "_MEIPASS"):
+        return False
+    
+    # Check for either old or new config structure
+    config_dir = os.path.join(os.path.dirname(__file__), "config")
+    old_presets = os.path.join(config_dir, "presets")
+    new_presets = os.path.join(config_dir, "rules", "presets")
+    
+    return os.path.isdir(old_presets) or os.path.isdir(new_presets)
 
 
 def resource_path(rel: str) -> str:
@@ -114,16 +118,20 @@ def get_config_dirs():
 
     # Developer mode: prefer local repo structure
     if is_developer_mode():
+        rules_base = os.path.join(local_base, "rules")
+        teams_dir = os.path.join(rules_base, "teams")
+        personal_dir = os.path.join(rules_base, "personal")
+
         return {
-            "presets": os.path.join(local_base, "presets"),
-            "teams": os.path.join(local_base, "teams"),
-            "personal": os.path.join(local_base, "personal"),
+            "presets": os.path.join(rules_base, "presets"),
+            "teams": teams_dir,
+            "personal": personal_dir,
         }
 
     # Frozen mode: presets bundled, user configs external
-    builtin_presets = resource_path(os.path.join("config", "presets"))
-    teams_dir = os.path.join(root, "config", "teams")
-    personal_dir = os.path.join(root, "config", "personal")
+    builtin_presets = resource_path(os.path.join("config","rules","presets"))
+    teams_dir = os.path.join(root, "config", "rules", "teams")
+    personal_dir = os.path.join(root, "config", "rules", "personal")
 
     os.makedirs(teams_dir, exist_ok=True)
     os.makedirs(personal_dir, exist_ok=True)
@@ -146,23 +154,3 @@ def get_output_dir() -> str:
     out_dir = os.path.join(user_root(), "output")
     os.makedirs(out_dir, exist_ok=True)
     return out_dir
-
-
-
-def ensure_default_configs():
-    """
-    Copy delivered preset configs to user directories if empty.
-    Safe to call on startup; won't overwrite user files.
-    
-    Returns:
-        None
-    """
-    dirs = get_config_dirs()
-    preset_dir = dirs["presets"]
-    teams_dir = dirs["teams"]
-    if os.path.isdir(preset_dir) and not os.listdir(teams_dir):
-        for f in os.listdir(preset_dir):
-            src = os.path.join(preset_dir, f)
-            dst = os.path.join(teams_dir, f)
-            if os.path.isfile(src) and not os.path.exists(dst):
-                shutil.copy2(src, dst)
