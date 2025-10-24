@@ -17,6 +17,7 @@ import os
 import sys
 import platform
 import shutil
+from pathlib import Path
 
 def is_frozen() -> bool:
     """Return True if running from a PyInstaller bundle."""
@@ -34,14 +35,13 @@ def ensure_sample_rule_config():
     preset_src = resource_path(os.path.join("config", "rules", "presets", "production-ready.json"))
 
     for target_dir in (dirs["teams"], dirs["personal"]):
-        # Only seed if directory is empty (no .json or .json.sample)
-        if os.path.isdir(target_dir) and not any(f.endswith(".json") for f in os.listdir(target_dir)):
-            dst = os.path.join(target_dir, "production-ready.json.sample")
-            try:
-                shutil.copy2(preset_src, dst)
-                print(f"✨ Seeded sample config: {dst}")
-            except Exception as e:
-                print(f"⚠️ Could not seed sample config for {target_dir}: {e}")
+        target_path = Path(target_dir)
+        if target_path.is_dir() and not any(f.endswith(".json") for f in os.listdir(target_path)):
+            dst = target_path / f"{target_path.name}.json.sample"
+            shutil.copy2(preset_src, dst)
+            print(f"✨ Seeded {dst}")
+        else:
+            print(f"⚠️ {target_dir} is not a directory or is not empty")
 
 
 def is_developer_mode() -> bool:
