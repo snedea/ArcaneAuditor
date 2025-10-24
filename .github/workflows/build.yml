@@ -30,7 +30,7 @@ jobs:
 
       - name: 🧰 Run build script
         run: |
-          powershell .\build.ps1
+          powershell .\scripts\build.ps1
 
       - name: 📦 Upload CLI build
         uses: actions/upload-artifact@v4
