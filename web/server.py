@@ -94,13 +94,14 @@ def load_web_config(cli_args=None):
             config["host"] = cli_args.host
         if cli_args.port:
             config["port"] = cli_args.port
-        if cli_args.no_browser:
+        if cli_args.open_browser:
+            config["open_browser"] = True
+        elif cli_args.no_browser:
             config["open_browser"] = False
         if cli_args.log_level:
             config["log_level"] = cli_args.log_level
 
     return config
-
 
 def get_dynamic_config_info():
     """Dynamically discover configuration information from all config directories."""
@@ -677,7 +678,8 @@ def parse_args():
 
     parser.add_argument("--host", type=str, help="Host to bind the server to (default from config or 127.0.0.1)")
     parser.add_argument("--port", type=int, help="Port to run the server on (default from config or 8080)")
-    parser.add_argument("--no-browser", type=bool, default=False, help="Disable automatic browser launch")
+    parser.add_argument("--open-browser", action="store_true", help="Open browser automatically on startup")
+    parser.add_argument("--no-browser", action="store_true", help="Do not open browser automatically on startup")
     parser.add_argument("--log-level", type=str, choices=["info", "debug", "warning", "error"], help="Set logging verbosity")
 
     return parser.parse_args()
