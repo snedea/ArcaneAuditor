@@ -16,6 +16,32 @@ The same functions work seamlessly in:
 import os
 import sys
 import platform
+import shutil
+
+def is_frozen() -> bool:
+    """Return True if running from a PyInstaller bundle."""
+    return getattr(sys, "frozen", False)
+
+def ensure_sample_rule_config():
+    """
+    Seeds user config directories with a .sample copy of production-ready.json
+    if running in a frozen build and the folders are empty.
+    """
+    if not is_frozen():
+        return  # Only seed in packaged mode
+
+    dirs = get_config_dirs()
+    preset_src = resource_path(os.path.join("config", "rules", "presets", "production-ready.json"))
+
+    for target_dir in (dirs["teams"], dirs["personal"]):
+        # Only seed if directory is empty (no .json or .json.sample)
+        if os.path.isdir(target_dir) and not any(f.endswith(".json") for f in os.listdir(target_dir)):
+            dst = os.path.join(target_dir, "production-ready.json.sample")
+            try:
+                shutil.copy2(preset_src, dst)
+                print(f"✨ Seeded sample config: {dst}")
+            except Exception as e:
+                print(f"⚠️ Could not seed sample config for {target_dir}: {e}")
 
 
 def is_developer_mode() -> bool:
@@ -25,15 +51,7 @@ def is_developer_mode() -> bool:
     Returns:
         bool: True if in developer mode, False if frozen/packaged
     """
-    if hasattr(sys, "_MEIPASS"):
-        return False
-    
-    # Check for either old or new config structure
-    config_dir = os.path.join(os.path.dirname(__file__), "config")
-    old_presets = os.path.join(config_dir, "presets")
-    new_presets = os.path.join(config_dir, "rules", "presets")
-    
-    return os.path.isdir(old_presets) or os.path.isdir(new_presets)
+    return not is_frozen()
 
 
 def resource_path(rel: str) -> str:
@@ -43,7 +61,7 @@ def resource_path(rel: str) -> str:
     Returns:
         str: Normalized absolute path to the resource
     """
-    if hasattr(sys, "_MEIPASS"):
+    if is_frozen():
         return os.path.normpath(os.path.join(sys._MEIPASS, rel))
     return os.path.normpath(os.path.join(os.path.dirname(__file__), rel))
 
