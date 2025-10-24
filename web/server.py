@@ -6,7 +6,6 @@ This serves the simple HTML/JavaScript interface with FastAPI backend.
 
 from contextlib import asynccontextmanager
 import sys
-import tempfile
 import threading
 import time
 import uuid
@@ -35,16 +34,27 @@ CHUNK_SIZE = 8192  # 8KB chunks for streaming
 analysis_jobs: Dict[str, 'AnalysisJob'] = {}
 job_lock = threading.Lock()
 
+# Arcane paths for path resolution
+from arcane_paths import (
+    get_config_dirs,
+    resource_path,
+    ensure_sample_rule_config,
+    is_frozen,
+)
+
+
 def get_dynamic_config_info():
     """Dynamically discover configuration information from all config directories."""
     config_info = {}
     
     # Search in priority order: personal, teams, presets
+    dirs = get_config_dirs()
     config_dirs = [
-        project_root / "config" / "personal",
-        project_root / "config" / "teams", 
-        project_root / "config" / "presets"
+        Path(dirs["personal"]), 
+        Path(dirs["teams"]), 
+        Path(dirs["presets"])
     ]
+
     
     for config_dir in config_dirs:
         if not config_dir.exists():
@@ -96,7 +106,7 @@ def get_dynamic_config_info():
                     "rules_count": enabled_rules,
                     "performance": performance,
                     "type": config_type,
-                    "path": str(config_file.relative_to(project_root)),
+                    "path": str(config_file),
                     "id": config_name,  # Original name for API compatibility
                     "source": config_dir.name,  # Track which directory it came from
                     "rules": config_data.get('rules', {})  # Include actual rules data
@@ -191,6 +201,14 @@ app = FastAPI(
     version="0.4.0",
     lifespan=lifespan
 )
+
+
+# Mount static files at /static to avoid conflicts with API routes
+if is_frozen():
+    static_dir = Path(resource_path("web/frontend"))
+else:
+    static_dir = Path(__file__).parent / "frontend"
+
 
 async def periodic_cleanup():
     """Run cleanup every 5 minutes."""
@@ -591,8 +609,6 @@ async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "version": "0.1.3"}
 
-# Mount static files at /static to avoid conflicts with API routes
-static_dir = Path(__file__).parent / "frontend"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 def main():
@@ -616,6 +632,9 @@ def main():
     
     print(f"Starting Arcane Auditor FastAPI server on http://{args.host}:{args.port}")
     print("Press Ctrl+C to stop the server")
+
+    # Ensure sample rule config is seeded
+    ensure_sample_rule_config()
     
     uvicorn.run(
         app,
