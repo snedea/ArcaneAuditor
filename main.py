@@ -7,9 +7,14 @@ from parser.app_parser import ModelParser
 from parser.config import ArcaneAuditorConfig
 from parser.config_manager import load_configuration, get_config_manager
 from output.formatter import OutputFormatter, OutputFormat
+from arcane_paths import ensure_sample_rule_config
 
 app = typer.Typer(add_completion=False, help="Arcane Auditor CLI: A mystical code review tool for Workday Extend applications - part of Developers and Dragons")
 
+# Ensure sample rule config is seeded
+ensure_sample_rule_config()
+
+# Review app command
 @app.command()
 def review_app(
     path: Path = typer.Argument(..., exists=True, help="Path to application ZIP, individual file(s), or directory."),
@@ -46,22 +51,27 @@ def review_app(
     try:
         config = load_configuration(str(config_file) if config_file else None)
         
-        # Determine config name for display
-        if config_file:
-            config_name = config_file.stem if hasattr(config_file, 'stem') else Path(config_file).stem
-            config_display_name = f"Custom ({config_name})"
+        # Determine config name for display using config manager
+        from parser.config_manager import get_config_manager
+        config_manager = get_config_manager()
+        source_info = config_manager.get_config_source_info(str(config_file) if config_file else None)
+        
+        if source_info["type"] == "custom_file":
+            config_display_name = f"Custom ({source_info['name']})"
+        elif source_info["type"] == "preset":
+            config_display_name = f"Built-in preset ({source_info['name']})"
+        elif source_info["type"] == "team":
+            config_display_name = f"Team configuration ({source_info['name']})"
+        elif source_info["type"] == "personal":
+            config_display_name = f"Personal configuration ({source_info['name']})"
+        elif source_info["type"] == "layered_defaults":
+            config_display_name = "Layered configuration (presets -> teams -> personal)"
         else:
-            # Check if default config exists
-            from pathlib import Path
-            default_config_path = Path("config/presets/development.json")
-            if default_config_path.exists():
-                config_display_name = "Development (default)"
-            else:
-                config_display_name = "Built-in defaults"
+            config_display_name = "Built-in defaults"
         
         if not quiet:
-            if config_file:
-                typer.echo(f"Loaded configuration: {config_file}")
+            if source_info["type"] == "custom_file":
+                typer.echo(f"Using Custom ({source_info['name']}) configuration from {source_info['path']}")
             else:
                 typer.echo(f"Using {config_display_name} configuration")
     except Exception as e:
@@ -285,24 +295,36 @@ def review_app(
             # ACTION issues always fail (code quality issues)
             if not quiet:
                 typer.echo(f"Analysis completed with {action_count} ACTION issue(s)")
-                typer.echo(f"Configuration used: {config_display_name}")
+                if source_info["type"] == "custom_file":
+                    typer.echo(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
+                else:
+                    typer.echo(f"Configuration used: {config_display_name}")
             raise typer.Exit(1)  # Exit code 1 for code quality issues
         elif fail_on_advice and advice_count > 0:
             # ADVICE issues fail only in CI mode (--fail-on-advice flag)
             if not quiet:
                 typer.echo(f"Analysis completed with {advice_count} ADVICE issue(s) (CI mode: failing on advice)")
-                typer.echo(f"Configuration used: {config_display_name}")
+                if source_info["type"] == "custom_file":
+                    typer.echo(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
+                else:
+                    typer.echo(f"Configuration used: {config_display_name}")
             raise typer.Exit(1)  # Exit code 1 for code quality issues
         else:
             # ADVICE issues in normal mode don't fail
             if not quiet:
                 typer.echo(f"Analysis completed with {advice_count} ADVICE issue(s)")
-                typer.echo(f"Configuration used: {config_display_name}")
+                if source_info["type"] == "custom_file":
+                    typer.echo(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
+                else:
+                    typer.echo(f"Configuration used: {config_display_name}")
             raise typer.Exit(0)  # Exit code 0 for advice in normal mode
     else:
         if not quiet:
             typer.echo("Analysis completed successfully - no issues found!")
-            typer.echo(f"Configuration used: {config_display_name}")
+            if source_info["type"] == "custom_file":
+                typer.echo(f"Configuration used: Custom ({source_info['name']}) from {source_info['path']}")
+            else:
+                typer.echo(f"Configuration used: {config_display_name}")
         raise typer.Exit(0)  # Exit code 0 for no issues
 
 
