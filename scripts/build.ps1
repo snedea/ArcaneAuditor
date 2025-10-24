@@ -31,6 +31,7 @@ deactivate
 Write-Host "🧹 Cleaning up temporary build environment..."
 Remove-Item -Recurse -Force $BuildEnv -ErrorAction SilentlyContinue
 
-Write-Host "`n✅ Build complete!"
+Write-Host "`n"
+Write-Host "✅ Build complete!"
 Write-Host '   Final binary(CLI): dist\ArcaneAuditor.exe'
 Write-Host '   Final binary(Web): dist\ArcaneAuditorWeb.exe'
