@@ -11,8 +11,22 @@ on:
 
 jobs:
   build:
-    name: Build CLI + Web Executables
-    runs-on: windows-latest
+    name: Build CLI + Web Executables (${{ matrix.os }})
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform_name: Windows
+            build_script: powershell .\scripts\build.ps1
+            cli_artifact: dist/ArcaneAuditorCLI.exe
+            web_artifact: dist/ArcaneAuditorWeb.exe
+          - os: macos-latest
+            platform_name: macOS
+            build_script: bash ./scripts/build.sh
+            cli_artifact: dist/ArcaneAuditorCLI
+            web_artifact: dist/ArcaneAuditorWeb
+    
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: 🪄 Checkout code
@@ -29,17 +43,16 @@ jobs:
           pip install pyinstaller typer click lark fastapi starlette uvicorn openpyxl python-multipart psutil
 
       - name: 🧰 Run build script
-        run: |
-          powershell .\scripts\build.ps1
+        run: ${{ matrix.build_script }}
 
       - name: 📦 Upload CLI build
         uses: actions/upload-artifact@v4
         with:
-          name: ArcaneAuditor_CLI
-          path: dist/ArcaneAuditorCLI.exe
+          name: ArcaneAuditor_CLI_${{ matrix.platform_name }}
+          path: ${{ matrix.cli_artifact }}
 
       - name: 📦 Upload Web build
         uses: actions/upload-artifact@v4
         with:
-          name: ArcaneAuditor_Web
-          path: dist/ArcaneAuditorWeb.exe
+          name: ArcaneAuditor_Web_${{ matrix.platform_name }}
+          path: ${{ matrix.web_artifact }}

@@ -11,8 +11,16 @@ on:
 
 jobs:
   build-and-release:
-    name: Build and publish release artifacts (Windows)
-    runs-on: windows-latest
+    name: Build and publish release artifacts
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform_name: Windows
+            
+          - os: macos-latest
+            platform_name: macOS
 
     steps:
       - name: 🪄 Checkout code
@@ -28,22 +36,45 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller typer click lark fastapi starlette uvicorn openpyxl python-multipart psutil
 
-      - name: 🧰 Build executables
-        run: |
-          powershell .\scripts\build.ps1
+      - name: 🧰 Build executables (Windows)
+        if: matrix.os == 'windows-latest'
+        run: powershell .\scripts\build.ps1
 
-      - name: 📦 Create ZIP packages
+      - name: 🧰 Build executables (macOS)
+        if: matrix.os == 'macos-latest'
+        run: bash ./scripts/build.sh
+
+      - name: 📦 Create ZIP packages (Windows)
+        if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
           Compress-Archive -Path dist\ArcaneAuditorCLI.exe -DestinationPath ArcaneAuditor_Windows_CLI.zip
           Compress-Archive -Path dist\ArcaneAuditorWeb.exe -DestinationPath ArcaneAuditor_Windows_Web.zip
           Write-Host "Created ZIP packages ready for release."
 
-      - name: 🚀 Publish GitHub Release
+      - name: 📦 Create tar.gz packages (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          tar -czf ArcaneAuditor_macOS_CLI.tar.gz -C dist ArcaneAuditorCLI
+          tar -czf ArcaneAuditor_macOS_Web.tar.gz -C dist ArcaneAuditorWeb
+          echo "Created tar.gz packages ready for release."
+
+      - name: 🚀 Publish GitHub Release (Windows)
+        if: matrix.os == 'windows-latest'
         uses: softprops/action-gh-release@v2
         with:
           files: |
             ArcaneAuditor_Windows_CLI.zip
             ArcaneAuditor_Windows_Web.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🚀 Publish GitHub Release (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ArcaneAuditor_macOS_CLI.tar.gz
+            ArcaneAuditor_macOS_Web.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
