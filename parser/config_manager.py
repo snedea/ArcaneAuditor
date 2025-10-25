@@ -304,17 +304,13 @@ class ConfigurationManager:
                 safety_status[config_dir.name] = "Directory does not exist"
                 continue
             
-            gitignore_file = config_dir / ".gitignore"
-            
             # Check if this is an app-managed directory
             is_app_managed = (config_dir.name == "presets")
             
             if is_app_managed:
                 safety_status[config_dir.name] = "App-managed (will be updated)"
-            elif gitignore_file.exists():
-                safety_status[config_dir.name] = "Protected (update-safe)"
             else:
-                safety_status[config_dir.name] = "Warning: No .gitignore protection"
+                safety_status[config_dir.name] = "Protected (update-safe)"
         
         return safety_status
 

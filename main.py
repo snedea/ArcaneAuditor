@@ -435,15 +435,18 @@ def list_configs():
     
     typer.echo("Available Configurations:")
     for directory, configs in available_configs.items():
-        if directory == "local_configs":
-            icon = "Local"
+        if directory == "Personal Configurations":
+            icon = "Personal"
             desc = "Personal overrides (highest priority)"
-        elif directory == "user_configs":
+        elif directory == "Team Configurations":
             icon = "Team"
             desc = "Team/project configs (update-safe)"
-        else:
+        elif directory == "Built-in Configurations":
             icon = "Built-in"
             desc = "App defaults (may be updated)"
+        else:
+            icon = "Custom"
+            desc = "Custom configurations"
         
         typer.echo(f"\n{icon} {directory}/ - {desc}")
         for config in configs:
