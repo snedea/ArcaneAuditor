@@ -124,6 +124,22 @@ Use via CLI:
 ArcaneAuditorCLI.exe review-app myapp.zip --config my-config
 ```
 
+### 🌐 Web Service Configuration
+
+The web interface supports configuration via `web_service_config.json`:
+
+**Executable users:** `%AppData%\ArcaneAuditor\config\web\web_service_config.json`  
+**Source users:** `config/web/web_service_config.json`
+
+```json
+{
+  "host": "127.0.0.1",
+  "port": 8080,
+  "open_browser": true,
+  "log_level": "info"
+}
+```
+
 > 📖 Full reference: [Configuration Guide](config/README.md)
 
 ---
