@@ -4,125 +4,85 @@
 
 > ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.1.0-blue?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
 
 ---
 
-## 🎯 Overview
+## ✨ Overview
 
-Arcane Auditor channels ancient wisdom through **42 comprehensive validation rules** to reveal hidden quality issues that compilers cannot detect but master code wizards should catch. This mystical tool analyzes:
+Arcane Auditor channels ancient wisdom through **42 validation rules** to reveal subtle code quality issues invisible to compilers but obvious to master developers.
 
-- **📄 PMD Files**: Page definitions with embedded scripts, endpoints, and presentation layers
-- **🧩 Pod Files**: Reusable components with template widgets and endpoint configurations
-- **📜 Script Files**: Standalone .script files with function libraries and utilities
-- **📋 AMD Files**: Application manifest definitions
-- **📋 SMD Files**: Security manifest definitions
+It analyzes:
 
----
+- **📄 PMD** – Page definitions with embedded scripts and endpoints  
+- **🧩 Pod** – Reusable widget components  
+- **📜 Script** – Function libraries and utilities  
+- **🏗️ AMD / 🔒 SMD** – Application and security manifests  
 
-## 🌟 What Makes Arcane Auditor Special?
+**Key Traits**
 
-### 🧙 **Always Ready Reviewer**
-Like having an experienced Extend developer over your shoulder. No more wondering if you're following the style guide!
-
-### 🔍 **True Script Understanding**
-Actually parses PMD Script to analyze complexity and quality—not just text matching.
-
-### 🎯 **Exact Line Numbers**
-Violations are reported according to the exact line in your source files - no more hunting through hundreds of lines of code.
-
-### 🧠 **Smart Analysis**
-- **42 comprehensive rules** covering script quality and structural issues
-- **Intelligent function tracking** - knows when functions are called across sections
-- **Cross-field analysis** - detects issues that span multiple script blocks
-- **Context-aware validation** - understands PMD/Pod/Script/AMD/SMD relationships
-
-### 🛡️ **Update-Safe Configuration**
-Layered config system protects your customizations during updates. Your personal and team configs are never overwritten.
-
-### 📊 **Multiple Output Formats**
-- **Console**: Quick feedback during development
-- **Excel**: Detailed reports with context sheets for stakeholder review
-- **JSON**: Optimal for CI system or ingestion by external tools
-- **Web Interface**: Visual analysis with drag-and-drop convenience
+- 🧙 Always-ready reviewer that understands Extend best practices  
+- 🔍 Precise line-level detection  
+- 🧠 Context-aware validation (cross-file and cross-field)  
+- ⚙️ Update-safe configuration layering  
+- 📊 Multiple output formats: Console, Excel, JSON, and Web
 
 ---
 
-## 📋 Prerequisites
+## 🚀 Quick Start — *No Install Required (Windows Only — macOS coming soon!)*
 
-### **UV Package Manager** ⭐
 
-**UV is the fastest and easiest way to get started!**
+**New in v1.1:** Arcane Auditor now ships as a self-contained executable.  
+No Python, no setup — just download and run.
 
-- **Automatically downloads Python** - no separate installation needed
-- **10-100x faster** than pip
-- **Install UV:**
-  - **Windows:** `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
-  - **macOS/Linux:** `curl -LsSf https://astral.sh/uv/install.sh | sh`
-  - **More options:** [UV Installation Guide](https://docs.astral.sh/uv/getting-started/installation/)
-- **Verify:** `uv --version`
+### 1. Download
+Get the latest build from [GitHub Releases](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases):
 
-> 💡 **That's all you need!** UV handles Python installation automatically when you run the tool.
+- `ArcaneAuditorWeb.exe` → **Web Interface (Recommended)**
+- `ArcaneAuditorCLI.exe` → **Command Line Interface**
+
+### 2. Run
+
+- **Web:** double-click `ArcaneAuditorWeb.exe` → your browser opens automatically  
+- **CLI:**  
+  ```bash
+  ArcaneAuditorCLI.exe review-app myapp.zip
+  ```
+
+### 3. Review
+Upload a ZIP of your Extend app or drop individual `.pmd`, `.pod`, `.script`, `.amd`, `.smd` files.  
+Results appear instantly — download Excel or JSON reports as needed.
+
+**Includes:** all 42 rules, all configuration presets, Excel export, and web UI — fully self-contained.
+
+> 💡 **Windows SmartScreen Notice**<br>
+> When running Arcane Auditor for the first time, Windows may still show a “Windows protected your PC” warning.<br>
+> Even after code signing, SmartScreen continues to display this notice until Microsoft’s reputation system marks the app as trusted — based on successful downloads and launches over time.
 >
-> 🔧 **Advanced users:** If you cannot use UV, see [Alternative Installation Methods](#-alternative-installation-methods) for pip instructions.
+> ✅ Your safety is not at risk.<br>
+> Click More info → Run anyway to proceed.
+>
+> Once enough users run the signed version without issues, SmartScreen will automatically stop showing this message.
 
 ---
 
-## ⚡ Quick Start Guide
+## 🧩 Interfaces at a Glance
 
-### Installation
-1. **Download** the [latest release](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
-1. **Extract** to your desired location
-1. **Install dependencies** (first time only):
-   ```bash
-   cd ArcaneAuditor
-   uv sync
-   ```
+| Interface | Best For | Launch | Highlights |
+|------------|-----------|---------|-------------|
+| 🌐 **Web** | Most users | `ArcaneAuditorWeb.exe` | Drag-and-drop files, auto-browser, dark/light themes |
+| ⚔️ **CLI** | CI/CD and power users | `ArcaneAuditorCLI.exe review-app myapp.zip` | Scriptable, supports Excel/JSON output |
+| 🧰 **Source (optional)** | Developers extending rules | `uv run main.py ...` | Full source access and development setup |
 
-### 🤔 Which Interface Should I Use?
+<details>
+<summary>📸 Screenshots</summary>
 
-| Use Case | Best Choice | Why? |
-|----------|-------------|------|
-| **First-time users** | 🌐 Web Interface | Visual, intuitive, no commands to remember |
-| **Quick analysis** | 🌐 Web Interface | Drag & drop, instant results |
-| **CI/CD pipelines** | ⚔️ Command Line | Scriptable, exit codes, automation-friendly |
-| **Batch processing** | ⚔️ Command Line | Process multiple archives efficiently |
-| **Custom workflows** | ⚔️ Command Line | Full control over configuration and output |
-
----
-
-### 🌐 Option 1: Web Interface (Recommended for Most Users)
-
-1. **Run** the startup script:
-   ```bash
-   cd ArcaneAuditor
-
-   # Windows
-   start-web-service.bat
-   
-   # macOS/Linux
-   ./start-web-service.sh
-   ```
-   *The script automatically starts the server, and opens your browser!*
-
-1. **Upload** your application ZIP file or drag & drop individual files
-1. **Review** results and download Excel reports
-
-
-#### Screenshots
-
-**Dark Mode:**
+**Dark Mode:**  
 ![Web Interface - Dark Mode](assets/results-dark.png)
 
 **Light Mode:**
 ![Web Interface - Light Mode](assets/results-light.png)
-
-<details>
-<summary>📸 More Screenshots</summary>
-
-**Upload View:**
-![Upload View](assets/upload-dark.png)
 
 **Issues View:**
 ![Issues View](assets/issues-dark.png)
@@ -132,398 +92,146 @@ Layered config system protects your customizations during updates. Your personal
 
 **Configuration View:**
 ![Configuration View](assets/config-dark.png)
-
-</details>
-
----
-
-### ⚔️ Option 2: Command Line (Power Users & CI)
-
-**Quick commands:**
-
-```bash
-cd ArcaneAuditor
-
-# Analyze a complete application
-uv run main.py review-app myapp.zip
-
-# Analyze individual files
-uv run main.py review-app file1.pmd file2.pod file3.script
-
-# Use specific configuration
-uv run main.py review-app myapp.zip --config my-config
-
-# Generate Excel report
-uv run main.py review-app myapp.zip --format excel --output report.xlsx
-```
-
-> 💡 **No Python installation needed!** UV automatically downloads and manages Python when you run `uv run`.
-
----
-
-## 📦 Alternative Installation Methods
-
-<details>
-<summary>📦 Installation Details (click to expand)</summary>
-
-### Option A: Clone Repository
-
-**Best for:** Contributing or staying on latest development
-
-```bash
-# Clone the repository
-git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git
-cd ArcaneAuditor
-
-# Install dependencies
-uv sync
-
-# Optional: Run tests
-uv run pytest
-```
-
-### Option B: Traditional pip
-
-**Best for:** Restricted environments without UV
-
-> ⚠️ Requires Python 3.12+ pre-installed
-
-```bash
-# Download and extract release
-cd ArcaneAuditor
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run without 'uv run' prefix
-python main.py review-app myapp.zip
-python web/server.py --port 8080
-```
-
-</details>
-
----
-
-## 🌐 Web Interface
-
-### Features
-
-- **📁 Drag & Drop Upload**: Easy file selection with ZIP or individual files
-- **⚙️ Configuration Presets**: Choose from `development` or `production-ready` modes
-- **📊 Real-time Results**: Quick analysis with detailed violation reports
-- **📥 Excel Export**: Comprehensive reports with context information
-- **🌙 Theme Support**: Dark and light modes
-
-### Starting the Server
-
-**Quick Launch (Recommended):**
-
-```bash
-# Windows - Auto-opens browser
-start-web-service.bat
-
-# macOS/Linux - Auto-opens browser
-./start-web-service.sh
-```
-
-**Custom Options:**
-
-```bash
-# Custom port
-start-web-service.bat --port 3000
-
-# Specific host (for network access)
-./start-web-service.sh --host 0.0.0.0 --port 8080
-
-# Don't auto-open browser
-start-web-service.bat --no-browser
-```
-
-> 💡 **Tip:** See [WEB_SERVICE_SCRIPTS.md](WEB_SERVICE_SCRIPTS.md) for advanced options.
-
-<details>
-<summary>🔗 API Endpoints</summary>
-
-- `GET /` - Main interface
-- `POST /upload` - File upload
-- `GET /job/{job_id}` - Job status
-- `GET /download/{job_id}/excel` - Download Excel report
-- `GET /configurations` - Available configurations
-- `GET /static/{file}` - Static assets
-
 </details>
 
 ---
 
 ## ⚙️ Configuration
 
-Arcane Auditor uses a **layered configuration system** that protects your customizations:
+Arcane Auditor uses a **layered, update-safe configuration** system:
 
-### Built-in Presets
+1. **Built-in Presets**
+   - `development` — lenient, allows console logs / work-in-progress code  
+   - `production-ready` — strict, deployment-grade validation  
+2. **Team Configuration** (`%AppData%\ArcaneAuditor\config\rules\teams\`)
+3. **Personal Configuration** (`%AppData%\ArcaneAuditor\config\rules\personal\`)
+4. **Command-line overrides** (highest priority)
 
-- **`development`** - Lenient rules for active development
-  - Allows console logs, unused code, work-in-progress
-  - Perfect for daily coding
-- **`production-ready`** - Comprehensive validation for deployment
-  - All rules enabled, strict settings
-  - Catches everything including cleanup items
-
-### Configuration Priority (Highest to Lowest)
-
-1. **Command Line Arguments**
-1. **Personal Configuration** (`config/personal/*.json`) ✅ Update-safe
-1. **Team Configuration** (`config/teams/*.json`) ✅ Update-safe
-1. **Built-in Presets** (`config/presets/*.json`) ⚠️ Overwritten on app updates - don't modify these!
-
-### Creating Custom Configs
-
-**Generate a baseline:**
-
-```bash
-uv run main.py generate-config > config/personal/my-config.json
-```
-
-**Example personal config** (`config/personal/my-settings.json`):
-
+**Example personal config:**
 ```json
 {
   "rules": {
-    "ScriptConsoleLogRule": {
-      "enabled": false
-    },
+    "ScriptConsoleLogRule": { "enabled": false },
     "ScriptLongBlockRule": {
-      "custom_settings": {
-        "max_lines": 50,
-        "skip_comments": true,
-        "skip_blank_lines": true
-      }
+      "custom_settings": { "max_lines": 50, "skip_comments": true }
     }
   }
 }
 ```
 
-**Use custom config:**
-
+Use via CLI:
 ```bash
-uv run main.py review-app myapp.zip --config my-config
+ArcaneAuditorCLI.exe review-app myapp.zip --config my-config
 ```
 
-> 📖 **Full details:** See [Configuration Guide](config/README.md)
+### 🌐 Web Service Configuration
+
+The web interface supports configuration via `web_service_config.json`:
+
+**Executable users:** `%AppData%\ArcaneAuditor\config\web\web_service_config.json`  
+**Source users:** `config/web/web_service_config.json`
+
+```json
+{
+  "host": "127.0.0.1",
+  "port": 8080,
+  "open_browser": true,
+  "log_level": "info"
+}
+```
+
+> 📖 Full reference: [Configuration Guide](config/README.md)
 
 ---
 
-## 🔧 Validation Rules
+## 🧠 Validation Rules
 
-Arcane Auditor enforces **42 validation rules** across 2 categories:
+Arcane Auditor enforces **42 rules** across two realms:
 
-### 📜 Script Rules (23 rules)
+### 📜 Script Quality (23)
+Complexity limits • long-function checks • unused variables/functions • naming • magic numbers • descriptive parameters
 
-**Code Quality:**
-- Cyclomatic complexity limits
-- Function length restrictions
-- Nesting depth checks
-- Magic number detection
+### 🏗️ Structural Integrity (19)
+Widget IDs • endpoint failOnStatusCodes • naming conventions • file structure • security domain checks
 
-**Best Practices:**
-- Use `let`/`const` instead of `var`
-- Array method usage over manual loops
-- Template literals over string concatenation
-- Descriptive parameter names
-
-**Dead Code Detection:**
-- Unused functions (embedded scripts)
-- Unused variables
-- Dead code (standalone .script files)
-- Unused function parameters
-- Unused script includes
-
-### 🏗️ Structure Rules (19 rules)
-
-**Widget Validation:**
-- Required IDs on widgets
-- Naming convention enforcement
-- Footer pod structure
-
-**Endpoint Configuration:**
-- Error handling (failOnStatusCodes)
-- Naming conventions
-- Performance patterns (isCollection, bestEffort)
-
-**Security & Hardcoding:**
-- Security domain requirements
-- Hardcoded WIDs and application IDs
-- Workday API URL patterns
-
-**File Organization:**
-- File naming conventions
-- PMD section ordering
-- String interpolator patterns
-
-> 📖 **Complete rule details:** See [Rule Documentation](parser/rules/RULE_BREAKDOWN.md)
+> 📖 See full details: [Rule Documentation](parser/rules/RULE_BREAKDOWN.md)
 
 ---
 
-## 🚀 Advanced Usage
+## ⚡ Advanced Usage
 
 <details>
 <summary>🤖 CI/CD Integration</summary>
 
-### Exit Codes
+| Exit Code | Meaning | Use Case |
+|------------|----------|----------|
+| **0** | ✅ Clean | No ACTION issues |
+| **1** | ⚠️ Issues Found | ACTION issues present |
+| **2** | ❌ Usage Error | Invalid files/config |
+| **3** | 💥 Runtime Error | Analysis failure |
 
-| Code | Meaning | Use Case |
-|------|---------|----------|
-| **0** | ✅ Success | Clean code, or ADVICE issues only |
-| **1** | ⚠️ Quality Issues | ACTION issues found |
-| **2** | ❌ Usage Error | Invalid config/files |
-| **3** | 💥 Runtime Error | Analysis failed |
-
-### Pipeline Examples
-
+Example:
 ```bash
-# Standard: Fail on ACTION issues only
-uv run main.py review-app myapp.zip --format json --output report.json
-if [ $? -eq 1 ]; then
-    echo "❌ Code quality issues - review required"
-    exit 1
-fi
-
-# Strict: Fail on both ACTION and ADVICE
-uv run main.py review-app myapp.zip --fail-on-advice --quiet
-
-# Check exit code programmatically
-uv run main.py review-app myapp.zip
-case $? in
-    0) echo "✅ Clean" ;;
-    1) echo "⚠️ Issues found" ;;
-    2) echo "❌ Tool misconfigured" ;;
-    3) echo "💥 Analysis failed" ;;
-esac
+ArcaneAuditorCLI.exe review-app myapp.zip --format json --output report.json
+if %ERRORLEVEL% EQU 1 exit /b 1
 ```
-
-### CI Flags
-
-- `--fail-on-advice` - Fail on ADVICE issues (stricter)
-- `--quiet` - Minimal output for logs
-- `--format json --output report.json` - Machine-readable output for tooling
-- `--format excel --output report.xlsx` - Human-readable reports for review
-
 </details>
 
 <details>
-<summary>🧠 Context Awareness</summary>
+<summary>🧩 Context Awareness</summary>
 
-Arcane Auditor provides **intelligent context awareness**:
+Arcane Auditor detects missing files and adjusts validation scope automatically:
 
-### Complete Analysis ✅
-
-When all files are provided (PMD, AMD, SMD), runs **all enabled rules**.
-
-### Partial Analysis ⚠️
-
-When files of certain types are missing:
-- Runs available rules on provided files
-- Indicates which files are missing
-- Shows which rules couldn't execute
-- Provides guidance for complete validation
-
-### Supported Modes
-
-```bash
-# ZIP analysis (complete)
-uv run main.py review-app myapp.zip
-
-# Individual files (partial)
-uv run main.py review-app mypage.pmd
-
-# Multiple files
-uv run main.py review-app file1.pmd file2.pod file3.script
-```
-
-> 💡 The tool clearly shows analysis completeness in all output formats.
+- **Complete** when PMD + AMD + SMD provided  
+- **Partial** when some missing (rules skipped with clear indicators)  
+- Reports list skipped or partial rules and suggest required files.
 
 </details>
 
 ---
 
-## 🛠️ Development
+## 🧑‍💻 Developer Installation (Optional)
 
-<details>
-<summary>🛠️ Contributing & Development Setup</summary>
-
-### Quick Setup
+For those extending Arcane Auditor or building from source:
 
 ```bash
-# Clone repository
+# Clone and install dependencies
 git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git
 cd ArcaneAuditor
-
-# Install dependencies
 uv sync
 
 # Run tests
 uv run pytest
 ```
 
-### Project Structure
+**UV** automatically installs and manages Python — no manual setup required.  
+More details: [UV Installation Guide](https://docs.astral.sh/uv/getting-started/installation/)
 
-```
-web/              → Web interface (FastAPI + frontend)
-tests/            → Automated test suite
-config/           → Presets, team, and personal configs
-docs/             → Documentation
-parser/rules/     → Validation rules
-  ├── script/     → Script quality rules
-  ├── structure/  → Structure validation rules
-  └── custom/     → Custom rule support
-```
+---
 
-## 🤝 Contributing
+## 🧙 Contributing
 
-Contributions are welcome! Please submit pull requests against the `develop` branch.
+Contributions are welcome!  
+Submit pull requests against the **`develop`** branch.
 
-➡️ **See full guidelines here:** [CONTRIBUTING.md](CONTRIBUTING.md)
-
-
-### Custom Rules
-
-Create custom rules in `parser/rules/custom/user/`:
-
-```python
-from parser.rules.base import Rule, Finding
-from parser.models import ProjectContext
-from typing import Generator
-
-class MyCustomRule(Rule):
-    ID = "CUSTOM001"
-    DESCRIPTION = "My organization-specific rule"
-    SEVERITY = "ADVICE"
-    
-    def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
-        # Your validation logic
-        pass
-```
-
-> 📖 **Full guide:** See [Custom Rules Guide](parser/rules/custom/README.md)
-
-</details>
+> 📖 See [CONTRIBUTING.md](CONTRIBUTING.md) and [Custom Rules Guide](parser/rules/custom/README.md)
 
 ---
 
 ## 📚 Documentation
 
-- **[Rule Documentation](parser/rules/RULE_BREAKDOWN.md)** - All 42 rules with examples
-- **[Configuration Guide](config/README.md)** - Configuration options and presets
-- **[Custom Rules Guide](parser/rules/custom/README.md)** - Create your own rules
-- **[Web Service Scripts](WEB_SERVICE_SCRIPTS.md)** - Startup script documentation
+- [Rule Documentation](parser/rules/RULE_BREAKDOWN.md)  
+- [Configuration Guide](config/README.md)  
+- [Custom Rules Guide](parser/rules/custom/README.md)  
+- [Web Service Scripts](WEB_SERVICE_SCRIPTS.md)
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Licensed under the **MIT License** — see [LICENSE](LICENSE).
 
 ---
 
-⭐ **If Arcane Auditor helps you, star the repo and share the magic!**
-
-*May the Weave guide your code to perfection!* ✨
+⭐ **If Arcane Auditor helps you, star the repo and share the magic!**  
+*May the Weave guide your code to perfection.* ✨

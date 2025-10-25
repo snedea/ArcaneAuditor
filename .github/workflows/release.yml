@@ -1,0 +1,49 @@
+name: 🪄 Arcane Auditor Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    name: Build and publish release artifacts (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: 🪄 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: ⚙️ Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller typer click lark fastapi starlette uvicorn openpyxl python-multipart psutil
+
+      - name: 🧰 Build executables
+        run: |
+          powershell .\scripts\build.ps1
+
+      - name: 📦 Create ZIP packages
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist\ArcaneAuditorCLI.exe -DestinationPath ArcaneAuditor_Windows_CLI.zip
+          Compress-Archive -Path dist\ArcaneAuditorWeb.exe -DestinationPath ArcaneAuditor_Windows_Web.zip
+          Write-Host "Created ZIP packages ready for release."
+
+      - name: 🚀 Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ArcaneAuditor_Windows_CLI.zip
+            ArcaneAuditor_Windows_Web.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

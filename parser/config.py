@@ -7,6 +7,7 @@ file processing settings, and other tool behaviors.
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional, Any
 from enum import Enum
+import json
 
 
 class SeverityLevel(str, Enum):
@@ -119,9 +120,22 @@ class ArcaneAuditorConfig(BaseModel):
     quiet: bool = Field(default=False, description="Suppress non-essential output")
     
     @classmethod
+    def from_layers(cls) -> 'ArcaneAuditorConfig':
+        """
+        Load configuration from all config tiers using the centralized config manager.
+        
+        This method provides a standalone way to load layered configuration
+        for environments like CLI startup where the full config_manager isn't needed.
+        
+        Returns:
+            ArcaneAuditorConfig loaded from presets → teams → personal layers
+        """
+        from .config_manager import load_configuration
+        return load_configuration()
+
+    @classmethod
     def from_file(cls, config_path: str) -> 'ArcaneAuditorConfig':
         """Load configuration from a JSON file."""
-        import json
         with open(config_path, 'r', encoding='utf-8') as f:
             config_data = json.load(f)
         
@@ -133,17 +147,11 @@ class ArcaneAuditorConfig(BaseModel):
             # Start with default RulesConfig
             default_rules = RulesConfig()
             
-            # Update predefined rules with JSON config
+            # Update predefined rules with JSON config, preserving type safety
             for rule_name, rule_config in config_data['rules'].items():
                 if hasattr(default_rules, rule_name):
-                    # Update existing rule with JSON config
-                    existing_rule = getattr(default_rules, rule_name)
-                    if 'enabled' in rule_config:
-                        existing_rule.enabled = rule_config['enabled']
-                    if 'severity_override' in rule_config:
-                        existing_rule.severity_override = rule_config.get('severity_override')
-                    if 'custom_settings' in rule_config:
-                        existing_rule.custom_settings = rule_config['custom_settings']
+                    # Construct new RuleConfig instance to preserve type safety
+                    setattr(default_rules, rule_name, RuleConfig(**rule_config))
             
             config_data['rules'] = default_rules
         
