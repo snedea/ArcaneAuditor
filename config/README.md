@@ -109,6 +109,56 @@ ArcaneAuditorCLI.exe review-app myapp.zip --config debug-mode
 
 ---
 
+## 🌐 Web Service Configuration
+
+The web interface supports configuration via `web_service_config.json`:
+
+### 📁 Location
+
+| Install Type                            | Location                                      |
+| --------------------------------------- | --------------------------------------------- |
+| **Packaged Executable (Windows)** | `%AppData%\ArcaneAuditor\config\web\`     |
+| **Source / UV Installation**      | `./config/web/` in your project directory |
+
+### ⚙️ Configuration Options
+
+```json
+{
+  "host": "127.0.0.1",
+  "port": 8080,
+  "open_browser": true,
+  "log_level": "info"
+}
+```
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `host` | `127.0.0.1` | Server host address (use `0.0.0.0` for network access) |
+| `port` | `8080` | Server port number |
+| `open_browser` | `true` | Automatically open browser when server starts |
+| `log_level` | `info` | Logging level (`debug`, `info`, `warning`, `error`) |
+
+### 🔧 Override Methods
+
+**1. Command Line Arguments (Highest Priority)**
+```bash
+# Executable
+ArcaneAuditorWeb.exe --port 3000 --host 0.0.0.0 --no-browser
+
+# Source installation
+uv run web/server.py --port 3000 --host 0.0.0.0 --no-browser
+```
+
+**2. Configuration File**
+- Create `web_service_config.json` in the appropriate directory
+- Executable users: Automatically created on first run
+- Source users: Copy from `config/web/web_service_config.json.sample`
+
+**3. Built-in Defaults (Lowest Priority)**
+- Used when no config file exists and no CLI args provided
+
+---
+
 ## 📚 Additional Resources
 
 - [Rule Documentation](../parser/rules/RULE_BREAKDOWN.md) – Detailed rule descriptions
