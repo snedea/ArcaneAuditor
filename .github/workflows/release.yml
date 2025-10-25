@@ -1,5 +1,8 @@
 name: 🪄 Arcane Auditor Release
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
