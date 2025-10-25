@@ -36,6 +36,8 @@ It analyzes:
 **New in v1.1:** Arcane Auditor now ships as a self-contained executable.  
 No Python, no setup — just download and run.
 
+> 🍎 **macOS Users:** Executables are Windows-only for now. Use the [Developer Installation](#-developer-installation-optional) section below for macOS setup.
+
 ### 1. Download
 Get the latest build from [GitHub Releases](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases):
 
