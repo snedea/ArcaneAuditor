@@ -32,7 +32,7 @@ jobs:
       - name: 📦 Create ZIP packages
         shell: pwsh
         run: |
-          Compress-Archive -Path dist\ArcaneAuditor.exe -DestinationPath ArcaneAuditor_Windows_CLI.zip
+          Compress-Archive -Path dist\ArcaneAuditorCLI.exe -DestinationPath ArcaneAuditor_Windows_CLI.zip
           Compress-Archive -Path dist\ArcaneAuditorWeb.exe -DestinationPath ArcaneAuditor_Windows_Web.zip
           Write-Host "Created ZIP packages ready for release."
 
