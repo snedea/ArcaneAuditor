@@ -65,12 +65,12 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,  # Enable console temporarily for debugging
+    console=False,  # No console for desktop app
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
+    codesign_identity=os.environ.get('CODESIGN_IDENTITY'),
+    entitlements_file='entitlements.plist' if os.path.exists('entitlements.plist') else None,
     icon='assets/icons/aa-icon-windows.ico',
 )
 

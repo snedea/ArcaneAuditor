@@ -31,10 +31,44 @@ jobs:
         with:
           python-version: "3.12"
 
+      # macOS: Import code signing certificate
+      - name: 🔐 Import Code Signing Certificate (macOS)
+        if: matrix.os == 'macos-latest'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          
+          # Create and unlock keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          # Import certificate
+          echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+          security import certificate.p12 \
+            -k "$KEYCHAIN_PATH" \
+            -P "$MACOS_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+          
+          # Set keychain as default
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          # Clean up certificate file
+          rm certificate.p12
+          
+          echo "✅ Certificate imported successfully"
+
       - name: ⚙️ Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller typer click lark fastapi starlette uvicorn openpyxl python-multipart psutil
+          pip install pyinstaller typer click lark fastapi starlette uvicorn openpyxl python-multipart psutil pywebview requests
 
       - name: 🧰 Build executables (Windows)
         if: matrix.os == 'windows-latest'
@@ -42,7 +76,69 @@ jobs:
 
       - name: 🧰 Build executables (macOS)
         if: matrix.os == 'macos-latest'
+        env:
+          CODESIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: bash ./scripts/build.sh
+
+      # macOS: Notarize all executables
+      - name: 🔏 Notarize Executables (macOS)
+        if: matrix.os == 'macos-latest'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          echo "=== Notarizing CLI executable ==="
+          # Create ZIP for CLI
+          ditto -c -k --keepParent dist/ArcaneAuditorCLI dist/ArcaneAuditorCLI.zip
+          
+          # Submit for notarization
+          xcrun notarytool submit dist/ArcaneAuditorCLI.zip \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --wait
+          
+          # Staple ticket to executable (note: stapling may not work for non-.app executables, that's OK)
+          xcrun stapler staple dist/ArcaneAuditorCLI || echo "Note: Stapling skipped for CLI (expected for non-.app)"
+          
+          echo "✅ CLI notarized"
+          echo ""
+          
+          echo "=== Notarizing Web server executable ==="
+          # Create ZIP for Web
+          ditto -c -k --keepParent dist/ArcaneAuditorWeb dist/ArcaneAuditorWeb.zip
+          
+          # Submit for notarization
+          xcrun notarytool submit dist/ArcaneAuditorWeb.zip \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --wait
+          
+          # Staple ticket
+          xcrun stapler staple dist/ArcaneAuditorWeb || echo "Note: Stapling skipped for Web (expected for non-.app)"
+          
+          echo "✅ Web server notarized"
+          echo ""
+          
+          echo "=== Notarizing Desktop app ==="
+          # Create ZIP for .app
+          ditto -c -k --keepParent dist/ArcaneAuditor.app dist/ArcaneAuditor.zip
+          
+          # Submit for notarization
+          xcrun notarytool submit dist/ArcaneAuditor.zip \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --wait
+          
+          # Staple ticket to .app
+          xcrun stapler staple dist/ArcaneAuditor.app
+          
+          echo "✅ Desktop app notarized"
+          echo ""
+          echo "✅ All executables notarized successfully"
 
       - name: 📦 Create ZIP packages (Windows)
         if: matrix.os == 'windows-latest'
@@ -52,12 +148,28 @@ jobs:
           Compress-Archive -Path dist\ArcaneAuditorWeb.exe -DestinationPath ArcaneAuditor_Windows_Web.zip
           Write-Host "Created ZIP packages ready for release."
 
-      - name: 📦 Create tar.gz packages (macOS)
+      - name: 📦 Create packages (macOS)
         if: matrix.os == 'macos-latest'
         run: |
+          # CLI and Web as tar.gz
           tar -czf ArcaneAuditor_macOS_CLI.tar.gz -C dist ArcaneAuditorCLI
           tar -czf ArcaneAuditor_macOS_Web.tar.gz -C dist ArcaneAuditorWeb
-          echo "Created tar.gz packages ready for release."
+          
+          # Desktop app as DMG (signed and notarized)
+          # Create a temporary DMG directory
+          mkdir -p dmg_temp
+          cp -R dist/ArcaneAuditor.app dmg_temp/
+          
+          # Create DMG
+          hdiutil create -volname "Arcane Auditor" \
+            -srcfolder dmg_temp \
+            -ov -format UDZO \
+            ArcaneAuditor_macOS_Desktop.dmg
+          
+          # Clean up
+          rm -rf dmg_temp
+          
+          echo "Created packages ready for release."
 
       - name: 🚀 Publish GitHub Release (Windows)
         if: matrix.os == 'windows-latest'
@@ -76,5 +188,15 @@ jobs:
           files: |
             ArcaneAuditor_macOS_CLI.tar.gz
             ArcaneAuditor_macOS_Web.tar.gz
+            ArcaneAuditor_macOS_Desktop.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Cleanup keychain
+      - name: 🧹 Cleanup Keychain (macOS)
+        if: matrix.os == 'macos-latest' && always()
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          if [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH"
+          fi
