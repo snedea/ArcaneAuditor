@@ -130,20 +130,32 @@ export async function downloadResults(result) {
             throw new Error('No job ID available for download');
         }
 
-        const response = await fetch(`/api/download/${jobId}`);
-
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `arcane-auditor-results-${new Date().toISOString().split('T')[0]}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+        // Check if running in pywebview (desktop app)
+        if (window.pywebview) {
+            // Desktop app - use native file save dialog
+            const downloadResult = await window.pywebview.api.download_file(jobId);
+            if (downloadResult.success) {
+                alert(`File saved successfully to:\n${downloadResult.path}`);
+            } else {
+                throw new Error(downloadResult.error || 'Download failed');
+            }
         } else {
-            throw new Error('Download failed');
+            // Web browser - use normal download mechanism
+            const response = await fetch(`/api/download/${jobId}`);
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `arcane-auditor-results-${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                throw new Error('Download failed');
+            }
         }
     } catch (error) {
         console.error('Download failed:', error);
