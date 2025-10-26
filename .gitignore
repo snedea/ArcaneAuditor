@@ -34,6 +34,7 @@ MANIFEST
 
 # Exclude specific specs for our application specific specs
 !ArcaneAuditor.spec
+!ArcaneAuditorDesktop.spec
 !ArcaneAuditorWeb.spec
 
 # Installer logs
