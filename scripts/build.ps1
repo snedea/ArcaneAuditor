@@ -40,4 +40,4 @@ Write-Host "`n"
 Write-Host "Build complete!"
 Write-Host '   Final binary(CLI): dist\ArcaneAuditorCLI.exe'
 Write-Host '   Final binary(Web): dist\ArcaneAuditorWeb.exe'
-Write-Host '   Final binary(Desktop): dist\ArcaneAuditorDesktop.exe'
+Write-Host '   Final binary(Desktop): dist\ArcaneAuditor.exe'
