@@ -71,7 +71,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=os.environ.get('CODESIGN_IDENTITY'),
     entitlements_file='entitlements.plist' if os.path.exists('entitlements.plist') else None,
-    icon='assets/icons/aa-icon-windows.ico',
+    icon='assets/icons/aa-windows.ico',
 )
 
 # macOS: Create a .app bundle
@@ -79,7 +79,7 @@ if sys.platform == 'darwin':
     app = BUNDLE(
         exe,
         name='ArcaneAuditor.app',
-        # icon='assets/aa-icon-mac.icns',
+        icon='assets/aa-mac.icns',
         bundle_identifier='com.arcaneauditor.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',

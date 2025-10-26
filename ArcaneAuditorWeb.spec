@@ -62,6 +62,5 @@ exe = EXE(
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
-    codesign_identity=os.environ.get('CODESIGN_IDENTITY'),
-    entitlements_file='entitlements.plist' if os.path.exists('entitlements.plist') else None,
+    icon='assets/icons/aa-mac.icns' if sys.platform == 'darwin' else 'assets/icons/aa-windows.ico',
 )
