@@ -12,7 +12,8 @@ hidden_imports = (
     + collect_submodules("starlette")
     + collect_submodules("uvicorn")
     + collect_submodules("webview")  # Add pywebview
-    + ["requests"] 
+    + ["requests"]
+    + collect_submodules("tkinter")  # Add tkinter for screen size detection
 )
 
 a = Analysis(
@@ -20,6 +21,10 @@ a = Analysis(
     pathex=[os.path.abspath(".")],
     binaries=[],
     datas = [
+        # --- Assets (logos) ---
+        ("assets/arcane-auditor-splash.webp", "assets"),  # Splash screen image
+        ("assets/icons/aa-icon-windows.ico", "assets"),  # Application icon
+
         # --- Web service config (for AppData seeding) ---
         ("config/web/web_service_config.json.sample", "config/web"),
 
@@ -31,6 +36,7 @@ a = Analysis(
         ("parser/rules/structure", "parser/rules/structure"),
 
         # --- Frontend files (HTML, CSS, JS) ---
+        # Note: splash.html goes in web/frontend/ and is bundled here
         ("web/frontend", "web/frontend"),
 
         # --- Grammar for PMD parsing ---
@@ -59,15 +65,13 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,  # NO CONSOLE WINDOW - this is key for desktop app!
+    console=False,  # Enable console temporarily for debugging
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    # Uncomment when you have an icon:
-    # icon='assets/icon.ico',  # Windows
-    # icon='assets/icon.icns',  # macOS (PyInstaller picks the right one)
+    icon='assets/icons/aa-icon-windows.ico',
 )
 
 # macOS: Create a .app bundle
@@ -75,7 +79,7 @@ if sys.platform == 'darwin':
     app = BUNDLE(
         exe,
         name='ArcaneAuditor.app',
-        # icon='assets/icon.icns',  # Uncomment when you have an icon
+        # icon='assets/aa-icon-mac.icns',
         bundle_identifier='com.arcaneauditor.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',

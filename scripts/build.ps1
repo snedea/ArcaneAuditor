@@ -21,14 +21,14 @@ pip install -U pip
 pip install pyinstaller typer click pydantic lark-parser uvicorn fastapi starlette python-multipart openpyxl psutil pywebview requests
 
 # --- Build -------------------------------------------------------------------
-# Write-Host "📦 Building CLI version..."
-pyinstaller ArcaneAuditor.spec --clean
-
-# Write-Host "📦 Building Web version..."
-pyinstaller ArcaneAuditorWeb.spec --clean
-
 Write-Host "📦 Building Desktop version..."
 pyinstaller ArcaneAuditorDesktop.spec --clean
+
+Write-Host "📦 Building CLI version..."
+pyinstaller ArcaneAuditor.spec --clean
+
+Write-Host "📦 Building Web version..."
+pyinstaller ArcaneAuditorWeb.spec --clean
 
 # --- Cleanup -----------------------------------------------------------------
 deactivate
