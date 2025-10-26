@@ -34,45 +34,43 @@ except ImportError as e:
     print("Make sure web/server.py exists and all dependencies are installed.")
     sys.exit(1)
 
+# Default host and port for the web server
+DEFAULT_HOST = "127.0.0.1"
+DEFAULT_PORT = 8080
+
 
 class Api:
     """API class to expose Python functions to JavaScript in the desktop app"""
     
     def download_file(self, job_id):
-        """Handle file downloads using native save dialog"""
+        """Handle file downloads - auto-save to Downloads folder"""
         import requests
         from datetime import datetime
         
         # Load config to get the correct host/port
         cfg = load_web_config(cli_args=None)
-        host = cfg.get("host", "127.0.0.1")
-        port = cfg.get("port", 8080)
+        host = cfg.get("host", DEFAULT_HOST)
+        port = cfg.get("port", DEFAULT_PORT)
         
         try:
             # Download from the API using actual config
             response = requests.get(f'http://{host}:{port}/api/download/{job_id}')
             
             if response.status_code == 200:
-                # Get filename from Content-Disposition or use default
-                filename = f"arcane-auditor-results-{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+                # Auto-save to Downloads folder
+                downloads_folder = Path.home() / "Downloads"
+                downloads_folder.mkdir(parents=True, exist_ok=True)
                 
-                # Show native save dialog (using new constant name)
-                result = window.create_file_dialog(
-                    webview.FileDialog.SAVE,
-                    save_filename=filename,
-                    file_types=('Excel Files (*.xlsx)',)
-                )
+                # Include timestamp to avoid overwriting
+                timestamp = datetime.now().strftime('%Y-%m-%d-%H%M%S')
+                filename = f"arcane-auditor-results-{timestamp}.xlsx"
+                save_path = downloads_folder / filename
                 
-                if result:
-                    # result might be a list, get first item
-                    save_path = result[0] if isinstance(result, tuple) else result
-                    
-                    # Save the file
-                    with open(save_path, 'wb') as f:
-                        f.write(response.content)
-                    return {'success': True, 'path': str(save_path)}
-                else:
-                    return {'success': False, 'error': 'Save cancelled'}
+                # Save the file
+                with open(save_path, 'wb') as f:
+                    f.write(response.content)
+                
+                return {'success': True, 'path': str(save_path), 'filename': filename}
             else:
                 return {'success': False, 'error': f'Server returned status {response.status_code}'}
         
@@ -88,8 +86,8 @@ def run_server():
     # Load config (without CLI args, so uses defaults/config file)
     cfg = load_web_config(cli_args=None)
     
-    host = cfg.get("host", "127.0.0.1")
-    port = cfg.get("port", 8080)
+    host = cfg.get("host", DEFAULT_HOST)
+    port = cfg.get("port", DEFAULT_PORT)
     log_level = cfg.get("log_level", "info")
     
     # Ensure sample rule config is seeded (from server.py)
@@ -118,8 +116,8 @@ def main():
     
     # Load config to get host/port for window URL
     cfg = load_web_config(cli_args=None)
-    host = cfg.get("host", "127.0.0.1")
-    port = cfg.get("port", 8080)
+    host = cfg.get("host", DEFAULT_HOST)
+    port = cfg.get("port", DEFAULT_PORT)
     
     # Create API instance for JavaScript bridge
     api = Api()
