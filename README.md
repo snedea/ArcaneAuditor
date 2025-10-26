@@ -81,19 +81,19 @@ Results appear instantly — download Excel or JSON reports as needed.
 <summary>📸 Screenshots</summary>
 
 **Dark Mode:**  
-![Web Interface - Dark Mode](assets/results-dark.png)
+![Web Interface - Dark Mode](assets/screenshots/results-dark.png)
 
 **Light Mode:**
-![Web Interface - Light Mode](assets/results-light.png)
+![Web Interface - Light Mode](assets/screenshots/results-light.png)
 
 **Issues View:**
-![Issues View](assets/issues-dark.png)
+![Issues View](assets/screenshots/issues-dark.png)
 
 **Issues Breakdown:**
-![Issues Breakdown](assets/details-dark.png)
+![Issues Breakdown](assets/screenshots/details-dark.png)
 
 **Configuration View:**
-![Configuration View](assets/config-dark.png)
+![Configuration View](assets/screenshots/config-dark.png)
 </details>
 
 ---
