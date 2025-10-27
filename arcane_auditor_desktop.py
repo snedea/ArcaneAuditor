@@ -13,7 +13,8 @@ import time
 import sys
 import os
 from pathlib import Path
-from arcane_paths import is_frozen, resource_path
+from arcane_paths import is_frozen, resource_path, user_root
+
 def debug_log(message):
     """Debug logging - disabled for production"""
     pass
@@ -278,6 +279,9 @@ def main():
                 time.sleep(0.5)
                 if attempt == max_attempts - 1:
                     print("Warning: Server did not start in time, continuing anyway")
+
+        storage_dir = os.path.join(user_root(), 'webview_storage')
+        os.makedirs(storage_dir, exist_ok=True)
         
         # Create the native window (make it global so API can access it)
         global window
@@ -308,7 +312,11 @@ def main():
             confirm_close=False,
             
             # Expose API to JavaScript
-            js_api=api
+            js_api=api,
+
+            private_mode=False,
+            storage_path=storage_dir,
+            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         )
         
         # Wait a moment for window to be ready
