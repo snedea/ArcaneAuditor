@@ -81,6 +81,7 @@ def show_immediate_splash():
                 width: 100%; height: 100vh; display: flex;
                 justify-content: center; align-items: center; 
                 background: #0f172a;
+                overflow: hidden;
             }}
         </style>
     </head>
@@ -115,7 +116,7 @@ def show_immediate_splash():
         y=y_pos,
         frameless=True,
         on_top=True,
-        background_color='#0f172a'
+        background_color='#0f172a',
     )
     
     return splash
