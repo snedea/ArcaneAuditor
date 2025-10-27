@@ -23,7 +23,7 @@ a = Analysis(
     datas = [
         # --- Assets (logos) ---
         ("assets/arcane-auditor-splash.webp", "assets"),  # Splash screen image
-        ("assets/icons/aa-icon-windows.ico", "assets"),  # Application icon
+        ("assets/icons", "assets"),  # Application icon
 
         # --- Web service config (for AppData seeding) ---
         ("config/web/web_service_config.json.sample", "config/web"),
@@ -69,8 +69,6 @@ exe = EXE(
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
-    codesign_identity=os.environ.get('CODESIGN_IDENTITY'),
-    entitlements_file='entitlements.plist' if os.path.exists('entitlements.plist') else None,
     icon='assets/icons/aa-windows.ico',
 )
 

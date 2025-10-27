@@ -21,6 +21,7 @@ a = Analysis(
     datas = [
         # --- Web service config (for AppData seeding) ---
         ("config/web/web_service_config.json.sample", "config/web"),
+        ("assets/icons", "assets"),  # Application icon
 
         # --- Rule presets ---
         ("config/rules/presets", "config/rules/presets"),
