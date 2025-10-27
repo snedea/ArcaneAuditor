@@ -53,10 +53,9 @@ class Api:
 def show_immediate_splash():
     """Create and show a minimal splash screen with logo"""
     
-    # Default fallback logo
-    logo_html = '<div style="width: 250px; height: 250px; margin: 0 auto; background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 100px;">🧙</div>'
+    # Load logo
+    logo_html = '<div style="width: 500px; height: 500px; margin: 0 auto; background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 100px;">🧙</div>'
     
-    # Try to load actual logo
     try:
         from arcane_paths import resource_path
         import base64
@@ -66,11 +65,11 @@ def show_immediate_splash():
             with open(splash_logo_path, 'rb') as f:
                 img_data = f.read()
                 base64_data = base64.b64encode(img_data).decode('utf-8')
-            logo_html = f'<img src="data:image/webp;base64,{base64_data}" style="width: 250px; height: 250px;">'
+            logo_html = f'<img src="data:image/webp;base64,{base64_data}" style="width: 500px; height: 500px; object-fit: contain;">'
     except Exception as e:
         print(f"Could not load logo: {e}")
     
-    # Simple splash - just the logo centered on dark background
+    # Simple splash HTML
     splash_html = f'''
     <!DOCTYPE html>
     <html>
@@ -91,19 +90,35 @@ def show_immediate_splash():
     </html>
     '''
     
-    # Create splash window - let OS handle positioning
+    window_width = 500
+    window_height = 500
+    
+    # Windows: Calculate center position
+    # macOS: Omit x,y to let OS handle it (already works)
+    if sys.platform == 'win32':
+        import ctypes
+        user32 = ctypes.windll.user32
+        screen_width = user32.GetSystemMetrics(0)
+        screen_height = user32.GetSystemMetrics(1)
+        x_pos = (screen_width - window_width) // 2
+        y_pos = (screen_height - window_height) // 2
+    else:
+        x_pos = None
+        y_pos = None
+    
     splash = webview.create_window(
         title='Arcane Auditor',
         html=splash_html,
-        width=400,
-        height=400,
+        width=window_width,
+        height=window_height,
+        x=x_pos,
+        y=y_pos,
         frameless=True,
         on_top=True,
         background_color='#0f172a'
     )
     
     return splash
-
 
 def main():
     """
