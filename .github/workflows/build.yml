@@ -20,6 +20,7 @@ jobs:
             build_script: powershell .\scripts\build.ps1
             cli_artifact: dist/ArcaneAuditorCLI.exe
             web_artifact: dist/ArcaneAuditorWeb.exe
+            desktop_artifact: dist/ArcaneAuditor.exe
           
           - os: macos-latest
             platform_name: macOS
@@ -96,7 +97,6 @@ jobs:
           path: ${{ matrix.web_artifact }}
       
       - name: 📦 Upload Desktop build (macOS)
-        if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
           name: ArcaneAuditor_Desktop_${{ matrix.platform_name }}
