@@ -38,6 +38,6 @@ Remove-Item -Recurse -Force $BuildEnv -ErrorAction SilentlyContinue
 
 Write-Host "--------------------------------"
 Write-Host "Build complete!"
-Write-Host '   Final binary(CLI): dist\ArcaneAuditorCLI.exe'
-Write-Host '   Final binary(Web): dist\ArcaneAuditorWeb.exe'
-Write-Host '   Final binary(Desktop): dist\ArcaneAuditor.exe'
+Write-Host "   Final binary(CLI): dist\ArcaneAuditorCLI.exe"
+Write-Host "   Final binary(Web): dist\ArcaneAuditorWeb.exe"
+Write-Host "   Final binary(Desktop): dist\ArcaneAuditor.exe"
