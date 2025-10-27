@@ -77,7 +77,7 @@ if sys.platform == 'darwin':
     app = BUNDLE(
         exe,
         name='ArcaneAuditor.app',
-        icon='assets/aa-mac.icns',
+        icon='assets/icons/aa-mac.icns',
         bundle_identifier='com.arcaneauditor.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
