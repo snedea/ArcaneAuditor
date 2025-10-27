@@ -137,16 +137,14 @@ def run_server():
         access_log=False  # Reduce console spam
     )
 
-
 def main():
     """
     Main entry point for the desktop application.
     
-    Shows splash with logo IMMEDIATELY, then initializes everything in background.
+    Shows splash IMMEDIATELY, then initializes everything in background.
     """
     
-    # Load logo FIRST (fast - 83KB webp loads instantly)
-    logo_html = '<div class="logo-placeholder">🧙</div>'  # Fallback
+    # Load logo (should always exist in packaged app)
     try:
         import base64
         splash_logo_path = Path(resource_path("assets/arcane-auditor-splash.webp"))
@@ -155,7 +153,6 @@ def main():
             base64_data = base64.b64encode(img_data).decode('utf-8')
         logo_html = f'<img src="data:image/webp;base64,{base64_data}" alt="Arcane Auditor" class="logo-img">'
     except Exception as e:
-        # If logo missing, app is probably broken anyway, but fail gracefully
         print(f"Warning: Could not load splash logo: {e}")
         logo_html = '<div class="logo-placeholder">🧙</div>'
     
@@ -204,6 +201,18 @@ def main():
     </html>
     '''
     
+    # Load config
+    cfg = load_web_config(cli_args=None)
+    host = cfg.get("host", DEFAULT_HOST)
+    port = cfg.get("port", DEFAULT_PORT)
+    
+    # Create API instance
+    api = Api()
+    
+    # Prepare storage
+    storage_dir = os.path.join(user_root(), 'webview_storage')
+    os.makedirs(storage_dir, exist_ok=True)
+    
     # Get screen dimensions quickly
     try:
         import tkinter as tk
@@ -221,54 +230,44 @@ def main():
     x_pos = (screen_width - window_width) // 2
     y_pos = (screen_height - window_height) // 2
     
-    # CREATE SPLASH IMMEDIATELY with logo embedded
-    splash = webview.create_window(
-        title='Arcane Auditor',
-        html=splash_html,
-        width=window_width,
-        height=window_height,
-        x=x_pos,
-        y=y_pos,
-        frameless=True,
-        on_top=True,
-        background_color='#0f172a'
-    )
+    # Start server in background BEFORE creating any windows
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
     
-    # NOW do all the heavy initialization in background
-    def initialize_and_start():
-        # Load config
-        cfg = load_web_config(cli_args=None)
-        host = cfg.get("host", DEFAULT_HOST)
-        port = cfg.get("port", DEFAULT_PORT)
-        
-        # Create API instance
-        api = Api()
-        
-        # Start server
-        server_thread = threading.Thread(target=run_server, daemon=True)
-        server_thread.start()
-        
-        # Wait for server to be ready
-        time.sleep(3)  # Minimum splash time
-        
-        import urllib.request
-        import urllib.error
-        
-        max_attempts = 20
-        for attempt in range(max_attempts):
-            try:
-                urllib.request.urlopen(f'http://{host}:{port}/api/configs', timeout=1)
-                break
-            except urllib.error.URLError:
-                time.sleep(0.5)
-        
-        # Prepare storage
-        storage_dir = os.path.join(user_root(), 'webview_storage')
-        os.makedirs(storage_dir, exist_ok=True)
-        
-        # Create main window
-        global window
-        window = webview.create_window(
+    # Wait for server to start (do this BEFORE creating splash)
+    print("Waiting for server to start...")
+    time.sleep(2)
+    
+    import urllib.request
+    import urllib.error
+    
+    max_attempts = 20
+    for attempt in range(max_attempts):
+        try:
+            urllib.request.urlopen(f'http://{host}:{port}/api/configs', timeout=1)
+            print(f"Server ready after {attempt + 1} attempts")
+            break
+        except urllib.error.URLError:
+            time.sleep(0.5)
+            if attempt == max_attempts - 1:
+                print("Warning: Server did not start in time")
+    
+    # Now create windows in the correct order
+    windows = [
+        # Splash window first
+        webview.create_window(
+            title='Arcane Auditor',
+            html=splash_html,
+            width=window_width,
+            height=window_height,
+            x=x_pos,
+            y=y_pos,
+            frameless=True,
+            on_top=True,
+            background_color='#0f172a'
+        ),
+        # Main window second (hidden initially)
+        webview.create_window(
             title='Arcane Auditor',
             url=f'http://{host}:{port}',
             width=1400,
@@ -286,18 +285,25 @@ def main():
             storage_path=storage_dir,
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         )
-        
-        time.sleep(0.5)
-        window.show()
+    ]
+    
+    splash = windows[0]
+    main_window = windows[1]
+    
+    # Function to transition from splash to main window
+    def show_main_window():
+        time.sleep(3)  # Show splash for at least 3 seconds
+        main_window.show()
         splash.destroy()
     
-    # Start initialization in background thread
-    init_thread = threading.Thread(target=initialize_and_start, daemon=True)
-    init_thread.start()
+    # Start transition in background thread
+    transition_thread = threading.Thread(target=show_main_window, daemon=True)
+    transition_thread.start()
     
-    # Start GUI event loop - splash shows while initialization happens
+    # Start GUI event loop
     webview.start(debug=False, http_server=False)
     
     print("Arcane Auditor Desktop closed.")
+
 if __name__ == '__main__':
     main()
