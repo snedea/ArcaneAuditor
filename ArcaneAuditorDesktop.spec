@@ -11,17 +11,22 @@ hidden_imports = (
     + collect_submodules("fastapi")
     + collect_submodules("starlette")
     + collect_submodules("uvicorn")
+    + collect_submodules("webview")  # Add pywebview
+    + ["requests"]
+    + collect_submodules("tkinter")  # Add tkinter for screen size detection
 )
 
-
 a = Analysis(
-    ['web/server.py'],
-    pathex=[],
+    ['arcane_auditor_desktop.py'],  # The desktop launcher
+    pathex=[os.path.abspath(".")],
     binaries=[],
     datas = [
+        # --- Assets (logos) ---
+        ("assets/arcane-auditor-splash.webp", "assets"),  # Splash screen image
+        ("assets/icons", "assets"),  # Application icon
+
         # --- Web service config (for AppData seeding) ---
         ("config/web/web_service_config.json.sample", "config/web"),
-        ("assets/icons", "assets"),  # Application icon
 
         # --- Rule presets ---
         ("config/rules/presets", "config/rules/presets"),
@@ -31,6 +36,7 @@ a = Analysis(
         ("parser/rules/structure", "parser/rules/structure"),
 
         # --- Frontend files (HTML, CSS, JS) ---
+        # Note: splash.html goes in web/frontend/ and is bundled here
         ("web/frontend", "web/frontend"),
 
         # --- Grammar for PMD parsing ---
@@ -52,16 +58,31 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='ArcaneAuditorWeb',
+    name='ArcaneAuditor',  # Clean name without "CLI" or "Web" suffix
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True, # keep True for debug; set False later if you want silent mode
+    console=False,  # No console for desktop app
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
-    icon='assets/icons/aa-mac.icns' if sys.platform == 'darwin' else 'assets/icons/aa-windows.ico',
+    icon='assets/icons/aa-windows.ico',
 )
+
+# macOS: Create a .app bundle
+if sys.platform == 'darwin':
+    app = BUNDLE(
+        exe,
+        name='ArcaneAuditor.app',
+        icon='assets/aa-mac.icns',
+        bundle_identifier='com.arcaneauditor.desktop',
+        info_plist={
+            'NSHighResolutionCapable': 'True',
+            'CFBundleShortVersionString': '1.0.0',
+            'CFBundleVersion': '1.0.0',
+            'NSHumanReadableCopyright': 'Copyright © 2025',
+        },
+    )

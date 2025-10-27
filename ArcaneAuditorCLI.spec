@@ -22,6 +22,7 @@ a = Analysis(
     ("parser/rules/script", "parser/rules/script"),
     ("parser/rules/structure", "parser/rules/structure"),
     ("parser/pmd_script_grammar.lark", "parser"),
+    ("assets/icons", "assets"),  # Application icon
     ],
     hiddenimports=hidden_imports,
     hookspath=[],
@@ -50,6 +51,5 @@ exe = EXE(
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
+    icon='assets/icons/aa-mac.icns' if sys.platform == 'darwin' else 'assets/icons/aa-windows.ico'
 )

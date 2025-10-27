@@ -69,9 +69,9 @@ def load_web_config(cli_args=None):
             user_cfg.parent.mkdir(parents=True, exist_ok=True)
             try:
                 shutil.copy2(bundled_sample, user_cfg)
-                print(f"✨ Created new user web config at {user_cfg}")
+                print(f"Created new user web config at {user_cfg}")
             except Exception as e:
-                print(f"⚠️ Failed to copy bundled web config: {e}")
+                print(f"Failed to copy bundled web config: {e}")
 
         cfg_path = user_cfg
     else:
@@ -84,9 +84,9 @@ def load_web_config(cli_args=None):
         try:
             with open(cfg_path, "r", encoding="utf-8") as f:
                 config.update(json.load(f))
-            print(f"⚙️ Using web config: {cfg_path}")
+            print(f"Using web config: {cfg_path}")
         except Exception as e:
-            print(f"⚠️ Could not read {cfg_path} ({e}); using defaults.")
+            print(f"Could not read {cfg_path} ({e}); using defaults.")
 
     # Overlay CLI args if provided
     if cli_args:
