@@ -457,12 +457,20 @@ export class ResultsRenderer {
         
         // Configuration used
         if (this.app.currentResult && this.app.currentResult.config_name) {
+            const configSource = this.app.currentResult.config_source || 'presets';
+            const isBuiltIn = configSource === 'presets';
+            
+            // Only show path for non-built-in configs
+            const configDisplay = isBuiltIn ? 
+                this.app.currentResult.config_name.split(/[/\\]/).pop().replace('.json', '') : 
+                this.app.currentResult.config_name;
+            
             html += `
                 <div class="context-config">
                     <h4>⚙️ Configuration Used</h4>
                     <div class="context-config-item">
                         <span class="config-icon">🔧</span>
-                        <span class="config-name">${this.app.currentResult.config_name}</span>
+                        <span class="config-name">${configDisplay}</span>
                     </div>
                 </div>
             `;
