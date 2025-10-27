@@ -51,40 +51,41 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    [],  # Remove binaries and datas from EXE for onedir mode
-    exclude_binaries=True,  # Key change for onedir mode
-    name='ArcaneAuditor',  # Clean name without "CLI" or "Web" suffix
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=False,  # No console for desktop app
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    icon='assets/icons/aa-windows.ico',
-)
-
-# COLLECT creates the onedir structure
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name='ArcaneAuditor',
-)
-
-# macOS: Create a .app bundle
 if sys.platform == 'darwin':
+    # macOS: Use onedir mode (no extraction delay)
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],  # Remove binaries and datas from EXE for onedir mode
+        exclude_binaries=True,  # Key change for onedir mode
+        name='ArcaneAuditor',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        runtime_tmpdir=None,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        icon='assets/icons/aa-mac.icns',
+    )
+    
+    # COLLECT creates the onedir structure
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.datas,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        name='ArcaneAuditor',
+    )
+    
+    # Create .app bundle wrapping the onedir structure
     app = BUNDLE(
-        coll,  # Changed from 'exe' to 'coll' to wrap the onedir structure
+        coll,
         name='ArcaneAuditor.app',
         icon='assets/icons/aa-mac.icns',
         bundle_identifier='com.arcaneauditor.desktop',
@@ -94,4 +95,25 @@ if sys.platform == 'darwin':
             'CFBundleVersion': '1.0.0',
             'NSHumanReadableCopyright': 'Copyright © 2025',
         },
+    )
+else:
+    # Windows: Use onefile mode (single executable)
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.datas,
+        [],
+        name='ArcaneAuditor',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        runtime_tmpdir=None,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        icon='assets/icons/aa-windows.ico',
     )
