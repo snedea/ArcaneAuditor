@@ -13,7 +13,6 @@ hidden_imports = (
     + collect_submodules("uvicorn")
     + collect_submodules("webview")  # Add pywebview
     + ["requests"]
-    + collect_submodules("tkinter")  # Add tkinter for screen size detection
 )
 
 a = Analysis(
@@ -46,7 +45,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['matplotlib', 'PIL', 'numpy', 'pandas', 'scipy', 'wx'],  # Exclude unused heavy packages
     noarchive=False,
     optimize=0,
 )
@@ -55,9 +54,8 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
-    [],
+    [],  # Remove binaries and datas from EXE for onedir mode
+    exclude_binaries=True,  # Key change for onedir mode
     name='ArcaneAuditor',  # Clean name without "CLI" or "Web" suffix
     debug=False,
     bootloader_ignore_signals=False,
@@ -72,10 +70,21 @@ exe = EXE(
     icon='assets/icons/aa-windows.ico',
 )
 
+# COLLECT creates the onedir structure
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='ArcaneAuditor',
+)
+
 # macOS: Create a .app bundle
 if sys.platform == 'darwin':
     app = BUNDLE(
-        exe,
+        coll,  # Changed from 'exe' to 'coll' to wrap the onedir structure
         name='ArcaneAuditor.app',
         icon='assets/icons/aa-mac.icns',
         bundle_identifier='com.arcaneauditor.desktop',

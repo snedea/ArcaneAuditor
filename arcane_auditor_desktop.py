@@ -91,31 +91,12 @@ def show_immediate_splash():
     </html>
     '''
     
-    # Get screen size quickly
-    try:
-        import tkinter as tk
-        root = tk.Tk()
-        root.withdraw()
-        root.update_idletasks()
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
-        root.destroy()
-    except:
-        screen_width = 1920
-        screen_height = 1080
-    
-    window_width = 400
-    window_height = 400
-    x_pos = (screen_width - window_width) // 2
-    y_pos = (screen_height - window_height) // 2
-    
+    # Create splash window - let OS handle positioning
     splash = webview.create_window(
         title='Arcane Auditor',
         html=splash_html,
-        width=window_width,
-        height=window_height,
-        x=x_pos,
-        y=y_pos,
+        width=400,
+        height=400,
         frameless=True,
         on_top=True,
         background_color='#0f172a'
