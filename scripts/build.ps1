@@ -25,7 +25,7 @@ Write-Host "📦 Building Desktop version..."
 pyinstaller ArcaneAuditorDesktop.spec --clean
 
 Write-Host "📦 Building CLI version..."
-pyinstaller ArcaneAuditor.spec --clean
+pyinstaller ArcaneAuditorCLI.spec --clean
 
 Write-Host "📦 Building Web version..."
 pyinstaller ArcaneAuditorWeb.spec --clean
