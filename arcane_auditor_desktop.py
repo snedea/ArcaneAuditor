@@ -130,11 +130,11 @@ def main():
     
     # Show splash IMMEDIATELY before heavy imports
     splash = show_immediate_splash()
-    
+
     # NOW do heavy imports and initialization in background
     def initialize_app():
         # Heavy imports happen here (after splash is visible)
-        from arcane_paths import is_frozen, resource_path, user_root
+        from arcane_paths import is_frozen
         from web.server import app, load_web_config, ensure_sample_rule_config
         import uvicorn
         
@@ -177,9 +177,6 @@ def main():
                 if attempt == max_attempts - 1:
                     print("Warning: Server did not start in time, continuing anyway")
         
-        # Prepare storage directory
-        storage_dir = os.path.join(user_root(), 'webview_storage')
-        os.makedirs(storage_dir, exist_ok=True)
         
         # Create main window
         global window
@@ -209,9 +206,10 @@ def main():
     # Start initialization in background thread
     init_thread = threading.Thread(target=initialize_app, daemon=True)
     init_thread.start()
-    
-    # Prepare storage directory for webview
-    storage_dir = os.path.join(os.path.expanduser("~"), ".pywebview")
+
+    # Prepare storage directory
+    from arcane_paths import user_root
+    storage_dir = os.path.join(user_root(), 'webview_storage')
     os.makedirs(storage_dir, exist_ok=True)
     
     # Start GUI event loop - splash shows while initialization happens
