@@ -84,23 +84,32 @@ jobs:
           CODESIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: ${{ matrix.build_script }}
 
+      # Package macOS builds as tar.gz to preserve structure and permissions
+      - name: 📦 Package builds (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          cd dist
+          tar -czf ArcaneAuditorCLI.tar.gz ArcaneAuditorCLI
+          tar -czf ArcaneAuditorWeb.tar.gz ArcaneAuditorWeb
+          tar -czf ArcaneAuditor.app.tar.gz ArcaneAuditor.app
+
       - name: 📦 Upload CLI build
         uses: actions/upload-artifact@v4
         with:
           name: ArcaneAuditor_CLI_${{ matrix.platform_name }}
-          path: ${{ matrix.cli_artifact }}
+          path: ${{ matrix.os == 'macos-latest' && 'dist/ArcaneAuditorCLI.tar.gz' || matrix.cli_artifact }}
 
       - name: 📦 Upload Web build
         uses: actions/upload-artifact@v4
         with:
           name: ArcaneAuditor_Web_${{ matrix.platform_name }}
-          path: ${{ matrix.web_artifact }}
+          path: ${{ matrix.os == 'macos-latest' && 'dist/ArcaneAuditorWeb.tar.gz' || matrix.web_artifact }}
       
-      - name: 📦 Upload Desktop build (macOS)
+      - name: 📦 Upload Desktop build
         uses: actions/upload-artifact@v4
         with:
           name: ArcaneAuditor_Desktop_${{ matrix.platform_name }}
-          path: ${{ matrix.desktop_artifact }}
+          path: ${{ matrix.os == 'macos-latest' && 'dist/ArcaneAuditor.app.tar.gz' || matrix.desktop_artifact }}
 
       # Cleanup keychain
       - name: 🧹 Cleanup Keychain (macOS)
