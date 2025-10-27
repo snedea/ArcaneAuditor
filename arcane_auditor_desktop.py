@@ -126,11 +126,13 @@ def run_server():
     print(f"Starting Arcane Auditor server on http://{host}:{port}")
     
     # Start uvicorn server (without opening browser since we have pywebview)
+    # Use critical log level in frozen mode to avoid console output issues
+    uvicorn_log_level = "critical" if is_frozen() else log_level
     uvicorn.run(
         app,
         host=host,
         port=port,
-        log_level=log_level,
+        log_level=uvicorn_log_level,
         access_log=False  # Reduce console spam
     )
 
@@ -249,7 +251,7 @@ def main():
         y=y_pos,
         frameless=True,
         on_top=True,
-        background_color='#0f172a'
+        background_color='#ffffff'
     )
     
     # Start web server in a daemon thread
