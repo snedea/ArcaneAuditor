@@ -1,5 +1,5 @@
 # scripts/build.ps1
-# 🧙 Arcane Auditor build script (PowerShell version)
+# Arcane Auditor build script (PowerShell version)
 
 # --- Setup -------------------------------------------------------------------
 
@@ -21,23 +21,23 @@ pip install -U pip
 pip install pyinstaller typer click pydantic lark-parser uvicorn fastapi starlette python-multipart openpyxl psutil pywebview requests
 
 # --- Build -------------------------------------------------------------------
-Write-Host "📦 Building Desktop version..."
+Write-Host "Building Desktop version..."
 pyinstaller ArcaneAuditorDesktop.spec --clean
 
-Write-Host "📦 Building CLI version..."
+Write-Host "Building CLI version..."
 pyinstaller ArcaneAuditorCLI.spec --clean
 
-Write-Host "📦 Building Web version..."
+Write-Host "Building Web version..."
 pyinstaller ArcaneAuditorWeb.spec --clean
 
 # --- Cleanup -----------------------------------------------------------------
 deactivate
 
-Write-Host "🧹 Cleaning up temporary build environment..."
+Write-Host "Cleaning up temporary build environment..."
 Remove-Item -Recurse -Force $BuildEnv -ErrorAction SilentlyContinue
 
 Write-Host "--------------------------------"
 Write-Host "Build complete!"
-Write-Host "   Final binary(CLI): dist\ArcaneAuditorCLI.exe"
-Write-Host "   Final binary(Web): dist\ArcaneAuditorWeb.exe"
-Write-Host "   Final binary(Desktop): dist\ArcaneAuditor.exe"
+Write-Host "   Final binary (CLI): dist\ArcaneAuditorCLI.exe"
+Write-Host "   Final binary (Web): dist\ArcaneAuditorWeb.exe"
+Write-Host "   Final binary (Desktop): dist\ArcaneAuditor.exe"
