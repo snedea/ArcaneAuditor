@@ -2,7 +2,7 @@
 
 # Arcane Auditor Configuration Guide 📜
 
-[⬅️ Back to Main README](../README.md) | [🧠 Rules Overview](../parser/rules/RULE_BREAKDOWN.md)
+[⬅️ Back to Main README](../README.md) | [🧠 Rules Overview](RULES.md)
 
 All configuration files for Arcane Auditor live under `config/rules/`, organized for clarity and update safety.
 
@@ -161,7 +161,7 @@ uv run web/server.py --port 3000 --host 0.0.0.0 --no-browser
 
 ## 📚 Additional Resources
 
-- [Rule Documentation](../parser/rules/RULE_BREAKDOWN.md) – Detailed rule descriptions
-- [Custom Rules Guide](../parser/rules/custom/README.md) – Creating custom validation rules
+- [Rule Documentation](RULES.md) – Detailed rule descriptions
+- [Custom Rules Guide](CUSTOM_RULES.md) – Creating custom validation rules
 
 [⬆️ Back to Top](#configuration-guide)

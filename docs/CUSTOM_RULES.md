@@ -2,7 +2,7 @@
 
 *Create mystical validation rules for the Arcane Auditor*
 
-This document pairs with the [Arcane Auditor Rules Grimoire](../RULE_BREAKDOWN.md), which defines the official rule set — this guide empowers you to forge your own.
+This document pairs with the [Arcane Auditor Rules Grimoire](RULES.md), which defines the official rule set — this guide empowers you to forge your own.
 
 This directory allows you to create custom validation rules for the Arcane Auditor without modifying the official codebase. This is perfect for:
 

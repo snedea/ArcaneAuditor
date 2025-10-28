@@ -167,7 +167,7 @@ Use via CLI:
 ArcaneAuditorCLI review-app myapp.zip --config my-config
 ```
 
-> 📖 Full reference: [Configuration Guide](config/README.md)
+> 📖 Full reference: [Configuration Guide](docs/CONFIGURATION.md)
 
 ---
 
@@ -183,7 +183,7 @@ Complexity limits • long-function checks • unused variables/functions • na
 
 Widget IDs • endpoint failOnStatusCodes • naming conventions • file structure • security domain checks
 
-> 📖 See full details: [Rule Documentation](parser/rules/RULE_BREAKDOWN.md)
+> 📖 See full details: [Rule Documentation](docs/RULES.md)
 
 ---
 
@@ -244,15 +244,15 @@ uv run pytest
 
 Contributions are welcome!Submit pull requests against the **`develop`** branch.
 
-> 📖 See [CONTRIBUTING.md](CONTRIBUTING.md) and [Custom Rules Guide](parser/rules/custom/README.md)
+> 📖 See [CONTRIBUTING.md](CONTRIBUTING.md) and [Custom Rules Guide](docs/CUSTOM_RULES.md)
 
 ---
 
 ## 📚 Documentation
 
-- [Rule Documentation](parser/rules/RULE_BREAKDOWN.md)
-- [Configuration Guide](config/README.md)
-- [Custom Rules Guide](parser/rules/custom/README.md)
+- [Rule Documentation](docs/RULES.md)
+- [Configuration Guide](docs/CONFIGURATION.md)
+- [Custom Rules Guide](docs/CUSTOM_RULES.md)
 
 ---
 
