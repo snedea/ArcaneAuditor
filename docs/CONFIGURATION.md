@@ -10,38 +10,45 @@ All configuration files for Arcane Auditor live under `config/rules/`, organized
 
 ## 📁 Directory Overview
 
-| Install Type                            | Location                                      |
-| --------------------------------------- | --------------------------------------------- |
-| **Packaged Executable (Windows)** | `%AppData%\ArcaneAuditor\config\rules\`     |
-| **Source / UV Installation**      | `./config/rules/` in your project directory |
+| Install Type                       | Location                                                      |
+| ---------------------------------- | ------------------------------------------------------------- |
+| **Desktop App (Windows)**    | `%AppData%\ArcaneAuditor\config\rules\`                     |
+| **Desktop App (macOS)**      | `~/Library/Application Support/ArcaneAuditor/config/rules/` |
+| **Source / UV Installation** | `./config/rules/` in your project directory                 |
+
+### Desktop App Structure
 
 ```
-config/rules/
-├── presets/      → Built-in app defaults
+%AppData%\ArcaneAuditor\config\rules\  (Windows)
+~/Library/Application Support/ArcaneAuditor/config/rules/  (macOS)
 ├── teams/        → Shared team/project configs
 └── personal/     → Your private overrides
 ```
 
-> 🪄 **Upgrade Note (v1.0 → v1.1):**
-> UV users -> move configs from:
-> `config/personal/` → `config/rules/personal/`
-> and
-> `config/teams/` → `config/rules/teams/`.
+> **Note:** Desktop app includes built-in presets (`development`, `production-ready`) that are selectable in the UI but not user-editable files.
 
----
+### Source Installation Structure
+
+```
+./config/rules/
+├── presets/      → Built-in app defaults (editable)
+├── teams/        → Shared team/project configs
+└── personal/     → Your private overrides
+```
+
 
 ## 🎯 Configuration Layers
 
-| Layer              | Path                       | Purpose                                  | Priority   |
-| ------------------ | -------------------------- | ---------------------------------------- | ---------- |
-| **Preset**   | `config/rules/presets/`  | Default app-provided configurations      | 🔹 Lowest  |
-| **Team**     | `config/rules/teams/`    | Shared standards for your project        | 🔸 Medium  |
-| **Personal** | `config/rules/personal/` | Developer overrides and debugging tweaks | 🔺 Highest |
+| Layer              | Desktop App                | Source Installation        | Purpose                                  | Priority   |
+| ------------------ | -------------------------- | -------------------------- | ---------------------------------------- | ---------- |
+| **Preset**   | Built-in (UI only)         | `config/rules/presets/`  | Default app-provided configurations      | 🔹 Lowest  |
+| **Team**     | `config/rules/teams/`    | `config/rules/teams/`    | Shared standards for your project        | 🔸 Medium  |
+| **Personal** | `config/rules/personal/` | `config/rules/personal/` | Developer overrides and debugging tweaks | 🔺 Highest |
 
 ### Built-in Presets
 
-- **`development.json`** – lenient for daily work (allows console logs, unused code)
-- **`production-ready.json`** – strict for deployment and CI/CD validation
+- **`development`** – lenient for daily work (allows console logs, unused code)
+- **`production-ready`** – strict for deployment and CI/CD validation
 
 ---
 
@@ -51,15 +58,15 @@ config/rules/
 
 ```bash
 # Run with a built-in preset
-ArcaneAuditorCLI.exe review-app myapp.zip --config development
+ArcaneAuditorCLI review-app myapp.zip --config development
 
 # Run with a team or personal config
-ArcaneAuditorCLI.exe review-app myapp.zip --config my-team-config
+ArcaneAuditorCLI review-app myapp.zip --config my-team-config
 ```
 
-### 🌐 Web Interface
+### 💻 Desktop App Interface
 
-All available configurations are automatically detected and selectable under:
+All available configurations are automatically detected and selectable in the UI:
 
 - Built-in Presets
 - Team Configurations
@@ -69,13 +76,13 @@ All available configurations are automatically detected and selectable under:
 
 ## 🛡️ Update Safety
 
-| Directory     | Managed By  | Versioned | Overwritten on Update? | Notes                     |
-| ------------- | ----------- | --------- | ---------------------- | ------------------------- |
-| `presets/`  | Application | ✅        | ⚠️ Yes               | Updated with each release |
-| `teams/`    | Your team   | 🚫        | 🚫                     | Protected; gitignored     |
-| `personal/` | You         | 🚫        | 🚫                     | Private; never modified   |
+| Directory     | Managed By  | Desktop App    | Source Install | Overwritten on Update? | Notes                     |
+| ------------- | ----------- | -------------- | -------------- | ---------------------- | ------------------------- |
+| `presets/`  | Application | N/A (built-in) | ✅             | ⚠️ Yes               | Updated with each release |
+| `teams/`    | Your team   | ✅             | ✅             | 🚫                     | Protected; gitignored     |
+| `personal/` | You         | ✅             | ✅             | 🚫                     | Private; never modified   |
 
-> **Windows Note:** Executable versions store configs in `%AppData%\ArcaneAuditor\config\rules\` so your edits persist across updates.
+> **Desktop App Note:** Configs are stored in platform-specific locations (`%AppData%\ArcaneAuditor\` on Windows, `~/Library/Application Support/ArcaneAuditor/` on macOS) so your edits persist across updates.
 
 ---
 
@@ -83,15 +90,27 @@ All available configurations are automatically detected and selectable under:
 
 ### Team Configuration
 
+**Desktop App:**
+Create `%AppData%\ArcaneAuditor\config\rules\teams\my-team-config.json` (Windows)
+or `~/Library/Application Support/ArcaneAuditor/config/rules/teams/my-team-config.json` (macOS)
+
+**Source Installation:**
+
 ```bash
 # Copy a preset as a starting point
-cp config/rules/teams/teams.json.sample config/rules/teams/my-team-config.json
+cp config/rules/presets/production-ready.json config/rules/teams/my-team-config.json
 
 # Edit it to match your team's standards
-ArcaneAuditorCLI.exe review-app myapp.zip --config my-team-config
+ArcaneAuditorCLI review-app myapp.zip --config my-team-config
 ```
 
 ### Personal Configuration
+
+**Desktop App:**
+Create `%AppData%\ArcaneAuditor\config\rules\personal\debug-mode.json` (Windows)
+or `~/Library/Application Support/ArcaneAuditor/config/rules/personal/debug-mode.json` (macOS)
+
+**Source Installation:**
 
 ```bash
 # Create personal override
@@ -104,21 +123,24 @@ echo '{
 }' > config/rules/personal/debug-mode.json
 
 # Use it
-ArcaneAuditorCLI.exe review-app myapp.zip --config debug-mode
+ArcaneAuditorCLI review-app myapp.zip --config debug-mode
 ```
 
 ---
 
-## 🌐 Web Service Configuration
+## 🔧 Advanced: Port Configuration
 
-The web interface supports configuration via `web_service_config.json`:
+The desktop app runs a local server internally (default port 8080). If you experience port conflicts with other applications, you can configure the port via `web_service_config.json`:
+
+> **Note:** Most users never need to change this. The default port works fine unless you have another application already using port 8080.
 
 ### 📁 Location
 
-| Install Type                            | Location                                      |
-| --------------------------------------- | --------------------------------------------- |
-| **Packaged Executable (Windows)** | `%AppData%\ArcaneAuditor\config\web\`     |
-| **Source / UV Installation**      | `./config/web/` in your project directory |
+| Install Type                       | Location                                                    |
+| ---------------------------------- | ----------------------------------------------------------- |
+| **Desktop App (Windows)**    | `%AppData%\ArcaneAuditor\config\web\`                     |
+| **Desktop App (macOS)**      | `~/Library/Application Support/ArcaneAuditor/config/web/` |
+| **Source / UV Installation** | `./config/web/` in your project directory                 |
 
 ### ⚙️ Configuration Options
 
@@ -126,36 +148,28 @@ The web interface supports configuration via `web_service_config.json`:
 {
   "host": "127.0.0.1",
   "port": 8080,
-  "open_browser": true,
   "log_level": "info"
 }
 ```
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `host` | `127.0.0.1` | Server host address (use `0.0.0.0` for network access) |
-| `port` | `8080` | Server port number |
-| `open_browser` | `true` | Automatically open browser when server starts |
-| `log_level` | `info` | Logging level (`debug`, `info`, `warning`, `error`) |
+| Setting       | Default       | Description                                                 |
+| ------------- | ------------- | ----------------------------------------------------------- |
+| `host`      | `127.0.0.1` | Server host address                                         |
+| `port`      | `8080`      | Server port number                                          |
+| `log_level` | `info`      | Logging level (`debug`, `info`, `warning`, `error`) |
 
 ### 🔧 Override Methods
 
-**1. Command Line Arguments (Highest Priority)**
+**1. Configuration File**
+
+- Desktop App: Create `web_service_config.json` in the location above
+- Source: Copy from `config/web/web_service_config.json.sample` and edit
+
+**2. Command Line Arguments (Source Installation Only)**
+
 ```bash
-# Executable
-ArcaneAuditorWeb.exe --port 3000 --host 0.0.0.0 --no-browser
-
-# Source installation
-uv run web/server.py --port 3000 --host 0.0.0.0 --no-browser
+uv run web/server.py --port 3000 --host 0.0.0.0
 ```
-
-**2. Configuration File**
-- Create `web_service_config.json` in the appropriate directory
-- Executable users: Automatically created on first run
-- Source users: Copy from `config/web/web_service_config.json.sample`
-
-**3. Built-in Defaults (Lowest Priority)**
-- Used when no config file exists and no CLI args provided
 
 ---
 
