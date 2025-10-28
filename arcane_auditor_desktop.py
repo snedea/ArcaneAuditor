@@ -209,7 +209,7 @@ def main():
 
     # Prepare storage directory
     from arcane_paths import user_root
-    storage_dir = os.path.join(user_root(), 'webview_storage')
+    storage_dir = os.path.join(user_root(), '.user_preferences')
     os.makedirs(storage_dir, exist_ok=True)
     
     # Start GUI event loop - splash shows while initialization happens
