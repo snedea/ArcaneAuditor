@@ -4,8 +4,9 @@
 
 > ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.2.0-blue?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
+[![Support](https://img.shields.io/badge/⚡-Support_the_Weave-yellow?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
 
 ---
 
@@ -15,76 +16,77 @@ Arcane Auditor channels ancient wisdom through **42 validation rules** to reveal
 
 It analyzes:
 
-- **📄 PMD** – Page definitions with embedded scripts and endpoints  
-- **🧩 Pod** – Reusable widget components  
-- **📜 Script** – Function libraries and utilities  
-- **🏗️ AMD / 🔒 SMD** – Application and security manifests  
+- **📄 PMD** — Page definitions with embedded scripts and endpoints
+- **🧩 Pod** — Reusable widget components
+- **📜 Script** — Function libraries and utilities
+- **🗝️ AMD / 🔒 SMD** — Application and security manifests
 
 **Key Traits**
 
-- 🧙 Always-ready reviewer that understands Extend best practices  
-- 🔍 Precise line-level detection  
-- 🧠 Context-aware validation (cross-file and cross-field)  
-- ⚙️ Update-safe configuration layering  
-- 📊 Multiple output formats: Console, Excel, JSON, and Web
+- 🧙 Always-ready reviewer that understands Extend best practices
+- 🔍 Precise line-level detection
+- 🧠 Context-aware validation (cross-file and cross-field)
+- ⚙️ Update-safe configuration layering
+- 📊 Multiple output formats: Excel (desktop UI and CLI), JSON (CLI only)
 
----
+## 🚀 Quick Start — Desktop App
 
-## 🚀 Quick Start — *No Install Required (Windows Only — macOS coming soon!)*
-
-
-**New in v1.1:** Arcane Auditor now ships as a self-contained executable.  
-No Python, no setup — just download and run.
-
-> 🍎 **macOS Users:** Executables are Windows-only for now. Use the [Developer Installation](#-developer-installation-optional) section below for macOS setup.
+**New in v1.2:** Arcane Auditor now ships as a native desktop application for Windows and macOS.
+No Python, no browser, no setup — just download and run.
 
 ### 1. Download
+
 Get the latest build from [GitHub Releases](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases):
 
-- `ArcaneAuditorWeb.exe` → **Web Interface (Recommended)**
-- `ArcaneAuditorCLI.exe` → **Command Line Interface**
+- **Windows:** `ArcaneAuditor_Windows_Desktop.zip`
+- **macOS:** `ArcaneAuditor_macOS_Desktop.dmg`
 
-### 2. Run
+### 2. Install & Run
 
-- **Web:** double-click `ArcaneAuditorWeb.exe` → your browser opens automatically  
-- **CLI:**  
-  ```bash
-  ArcaneAuditorCLI.exe review-app myapp.zip
-  ```
+**Windows:**
 
-### 3. Review
-Upload a ZIP of your Extend app or drop individual `.pmd`, `.pod`, `.script`, `.amd`, `.smd` files.  
-Results appear instantly — download Excel or JSON reports as needed.
+1. Extract the ZIP file
+2. Double-click `ArcaneAuditor.exe`
+3. The app opens with a clean native interface
 
-**Includes:** all 42 rules, all configuration presets, Excel export, and web UI — fully self-contained.
+**macOS:**
 
-> 💡 **Windows SmartScreen Notice**<br>
-> When running Arcane Auditor for the first time, Windows may still show a “Windows protected your PC” warning.<br>
-> Even after code signing, SmartScreen continues to display this notice until Microsoft’s reputation system marks the app as trusted — based on successful downloads and launches over time.
+1. Open the DMG file
+2. Drag Arcane Auditor to Applications (optional)
+3. Double-click to launch
+
+### 3. Analyze
+
+Drag and drop your Extend app ZIP or individual files (`.pmd`, `.pod`, `.script`, `.amd`, `.smd`).
+Results appear faster than a polymorph spell — download Excel reports as needed.
+
+**Includes:** 42 rules, configuration presets, Excel export — fully self-contained.
+
+> 💡 **Windows SmartScreen Notice**
 >
-> ✅ Your safety is not at risk.<br>
-> Click More info → Run anyway to proceed.
+> Even with code signing, Windows SmartScreen may show "Windows protected your PC" until the app builds download reputation with Microsoft.
 >
-> Once enough users run the signed version without issues, SmartScreen will automatically stop showing this message.
+> This is normal for new/updated releases. Click **More info** → **Run anyway** to proceed.
+>
+> The warning will disappear as more users successfully run the signed app.
 
 ---
 
 ## 🧩 Interfaces at a Glance
 
-| Interface | Best For | Launch | Highlights |
-|------------|-----------|---------|-------------|
-| 🌐 **Web** | Most users | `ArcaneAuditorWeb.exe` | Drag-and-drop files, auto-browser, dark/light themes |
-| ⚔️ **CLI** | CI/CD and power users | `ArcaneAuditorCLI.exe review-app myapp.zip` | Scriptable, supports Excel/JSON output |
-| 🧰 **Source (optional)** | Developers extending rules | `uv run main.py ...` | Full source access and development setup |
+| Interface             | Best For             | Launch                                    | Highlights                             |
+| --------------------- | -------------------- | ----------------------------------------- | -------------------------------------- |
+| 🖥️**Desktop** | Everyone             | Native app                                | Clean UI, drag-and-drop, fast analysis |
+| ⚔️**CLI**     | CI/CD and automation | `ArcaneAuditorCLI review-app myapp.zip` | Scriptable, Excel/JSON output          |
 
 <details>
 <summary>📸 Screenshots</summary>
 
-**Dark Mode:**  
-![Web Interface - Dark Mode](assets/screenshots/results-dark.png)
+**Dark Mode:**
+![Desktop Interface - Dark Mode](assets/screenshots/results-dark.png)
 
 **Light Mode:**
-![Web Interface - Light Mode](assets/screenshots/results-light.png)
+![Desktop Interface - Light Mode](assets/screenshots/results-light.png)
 
 **Issues View:**
 ![Issues View](assets/screenshots/issues-dark.png)
@@ -94,7 +96,44 @@ Results appear instantly — download Excel or JSON reports as needed.
 
 **Configuration View:**
 ![Configuration View](assets/screenshots/config-dark.png)
+
 </details>
+
+---
+
+## ⚔️ Command Line Interface
+
+For automation, CI/CD pipelines, and power users who prefer the terminal:
+
+**Download:**
+
+- **Windows:** `ArcaneAuditor_Windows_CLI.zip`
+- **macOS:** `ArcaneAuditor_macOS_CLI.tar.gz`
+
+**Usage:**
+
+```bash
+# Analyze an app
+ArcaneAuditorCLI review-app myapp.zip
+
+# Use custom configuration
+ArcaneAuditorCLI review-app myapp.zip --config production-ready
+
+# Export to Excel
+ArcaneAuditorCLI review-app myapp.zip --format excel --output report.xlsx
+
+# Export to JSON for CI/CD
+ArcaneAuditorCLI review-app myapp.zip --format json --output report.json
+```
+
+**Exit Codes for CI/CD:**
+
+| Exit Code   | Meaning           | Use Case              |
+| ----------- | ----------------- | --------------------- |
+| **0** | ✅ Clean          | No ACTION issues      |
+| **1** | ⚠️ Issues Found | ACTION issues present |
+| **2** | ❌ Usage Error    | Invalid files/config  |
+| **3** | 💥 Runtime Error  | Analysis failure      |
 
 ---
 
@@ -103,13 +142,14 @@ Results appear instantly — download Excel or JSON reports as needed.
 Arcane Auditor uses a **layered, update-safe configuration** system:
 
 1. **Built-in Presets**
-   - `development` — lenient, allows console logs / work-in-progress code  
-   - `production-ready` — strict, deployment-grade validation  
-2. **Team Configuration** (`%AppData%\ArcaneAuditor\config\rules\teams\`)
-3. **Personal Configuration** (`%AppData%\ArcaneAuditor\config\rules\personal\`)
+   - `development` — lenient, allows console logs / work-in-progress code
+   - `production-ready` — strict, deployment-grade validation
+2. **Team Configuration** (Windows: `%AppData%\ArcaneAuditor\config\rules\teams\` | macOS: `~/Library/Application Support/ArcaneAuditor/config/rules/teams/`)
+3. **Personal Configuration** (Windows: `%AppData%\ArcaneAuditor\config\rules\personal\` | macOS: `~/Library/Application Support/ArcaneAuditor/config/rules/personal/`)
 4. **Command-line overrides** (highest priority)
 
 **Example personal config:**
+
 ```json
 {
   "rules": {
@@ -122,24 +162,9 @@ Arcane Auditor uses a **layered, update-safe configuration** system:
 ```
 
 Use via CLI:
+
 ```bash
-ArcaneAuditorCLI.exe review-app myapp.zip --config my-config
-```
-
-### 🌐 Web Service Configuration
-
-The web interface supports configuration via `web_service_config.json`:
-
-**Executable users:** `%AppData%\ArcaneAuditor\config\web\web_service_config.json`  
-**Source users:** `config/web/web_service_config.json`
-
-```json
-{
-  "host": "127.0.0.1",
-  "port": 8080,
-  "open_browser": true,
-  "log_level": "info"
-}
+ArcaneAuditorCLI review-app myapp.zip --config my-config
 ```
 
 > 📖 Full reference: [Configuration Guide](config/README.md)
@@ -151,9 +176,11 @@ The web interface supports configuration via `web_service_config.json`:
 Arcane Auditor enforces **42 rules** across two realms:
 
 ### 📜 Script Quality (23)
+
 Complexity limits • long-function checks • unused variables/functions • naming • magic numbers • descriptive parameters
 
-### 🏗️ Structural Integrity (19)
+### 🗝️ Structural Integrity (19)
+
 Widget IDs • endpoint failOnStatusCodes • naming conventions • file structure • security domain checks
 
 > 📖 See full details: [Rule Documentation](parser/rules/RULE_BREAKDOWN.md)
@@ -163,30 +190,31 @@ Widget IDs • endpoint failOnStatusCodes • naming conventions • file struct
 ## ⚡ Advanced Usage
 
 <details>
-<summary>🤖 CI/CD Integration</summary>
-
-| Exit Code | Meaning | Use Case |
-|------------|----------|----------|
-| **0** | ✅ Clean | No ACTION issues |
-| **1** | ⚠️ Issues Found | ACTION issues present |
-| **2** | ❌ Usage Error | Invalid files/config |
-| **3** | 💥 Runtime Error | Analysis failure |
-
-Example:
-```bash
-ArcaneAuditorCLI.exe review-app myapp.zip --format json --output report.json
-if %ERRORLEVEL% EQU 1 exit /b 1
-```
-</details>
-
-<details>
 <summary>🧩 Context Awareness</summary>
 
 Arcane Auditor detects missing files and adjusts validation scope automatically:
 
-- **Complete** when PMD + AMD + SMD provided  
-- **Partial** when some missing (rules skipped with clear indicators)  
+- **Complete** when PMD + AMD + SMD provided
+- **Partial** when some missing (rules skipped with clear indicators)
 - Reports list skipped or partial rules and suggest required files.
+
+</details>
+
+<details>
+<summary>🔧 Port Configuration (Desktop App)</summary>
+
+The desktop app runs a local server (default port 8080). If you have a port conflict, edit:
+
+**Windows:** `%AppData%\ArcaneAuditor\config\web\web_service_config.json`
+**macOS:** `~/Library/Application Support/ArcaneAuditor/config/web/web_service_config.json`
+
+```json
+{
+  "host": "127.0.0.1",
+  "port": 8081,
+  "log_level": "info"
+}
+```
 
 </details>
 
@@ -206,15 +234,15 @@ uv sync
 uv run pytest
 ```
 
-**UV** automatically installs and manages Python — no manual setup required.  
-More details: [UV Installation Guide](https://docs.astral.sh/uv/getting-started/installation/)
+**UV** automatically installs and manages Python — no manual setup required.More details: [UV Installation Guide](https://docs.astral.sh/uv/getting-started/installation/)
+
+> 📖 For development setup, building executables, and contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
 ## 🧙 Contributing
 
-Contributions are welcome!  
-Submit pull requests against the **`develop`** branch.
+Contributions are welcome!Submit pull requests against the **`develop`** branch.
 
 > 📖 See [CONTRIBUTING.md](CONTRIBUTING.md) and [Custom Rules Guide](parser/rules/custom/README.md)
 
@@ -222,10 +250,9 @@ Submit pull requests against the **`develop`** branch.
 
 ## 📚 Documentation
 
-- [Rule Documentation](parser/rules/RULE_BREAKDOWN.md)  
-- [Configuration Guide](config/README.md)  
-- [Custom Rules Guide](parser/rules/custom/README.md)  
-- [Web Service Scripts](WEB_SERVICE_SCRIPTS.md)
+- [Rule Documentation](parser/rules/RULE_BREAKDOWN.md)
+- [Configuration Guide](config/README.md)
+- [Custom Rules Guide](parser/rules/custom/README.md)
 
 ---
 
@@ -235,5 +262,6 @@ Licensed under the **MIT License** — see [LICENSE](LICENSE).
 
 ---
 
-⭐ **If Arcane Auditor helps you, star the repo and share the magic!**  
+⭐ **If Arcane Auditor helps you, star the repo and share the magic!**
+⚡ **Channel mana to the developer:** [Support the Weave](https://buymeacoffee.com/developersanddragons)
 *May the Weave guide your code to perfection.* ✨
