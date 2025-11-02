@@ -1,43 +1,28 @@
-# scripts/build.ps1
-# Arcane Auditor build script (PowerShell version)
+Write-Host "🧙 Arcane Auditor - Windows Build Script (pure uv mode)"
 
-# --- Setup -------------------------------------------------------------------
+# Create uv environment
+uv venv .venv
 
-# Move to the repo root (parent of this script directory)
-$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-Set-Location $RepoRoot
-Write-Host "Building Arcane Auditor from $RepoRoot"
+# Ensure uv Python exists (and pin)
+uv python install 3.12.6
+uv python pin 3.12.6
 
-# --- Clean old artifacts -----------------------------------------------------
-Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
+Write-Host "✅ uv Python detected"
 
-# --- Create clean build environment -----------------------------------------
-Write-Host "Creating isolated build environment..."
-$BuildEnv = Join-Path $RepoRoot ".buildenv"
-python -m venv $BuildEnv
+Write-Host "📥 Installing runtime deps into uv env"
+uv pip install -r requirements.txt
 
-& (Join-Path $BuildEnv "Scripts\activate.ps1")
-pip install -U pip
-pip install pyinstaller typer click pydantic lark-parser uvicorn fastapi starlette python-multipart openpyxl psutil pywebview requests
+Write-Host "🛠 Installing PyInstaller"
+uv pip install pyinstaller pyinstaller-hooks-contrib
 
-# --- Build -------------------------------------------------------------------
-Write-Host "Building Desktop version..."
-pyinstaller ArcaneAuditorDesktop.spec --clean
+Write-Host "🏗 Building Desktop"
+uv run pyinstaller ArcaneAuditorDesktop.spec --clean --noconfirm
 
-Write-Host "Building CLI version..."
-pyinstaller ArcaneAuditorCLI.spec --clean
+Write-Host "🏗 Building CLI"
+uv run pyinstaller ArcaneAuditorCLI.spec --clean --noconfirm
 
-Write-Host "Building Web version..."
-pyinstaller ArcaneAuditorWeb.spec --clean
+Write-Host "🏗 Building Web"
+uv run pyinstaller ArcaneAuditorWeb.spec --clean --noconfirm
 
-# --- Cleanup -----------------------------------------------------------------
-deactivate
-
-Write-Host "Cleaning up temporary build environment..."
-Remove-Item -Recurse -Force $BuildEnv -ErrorAction SilentlyContinue
-
-Write-Host "--------------------------------"
-Write-Host "Build complete!"
-Write-Host "   Final binary (CLI): dist\ArcaneAuditorCLI.exe"
-Write-Host "   Final binary (Web): dist\ArcaneAuditorWeb.exe"
-Write-Host "   Final binary (Desktop): dist\ArcaneAuditor.exe"
+Write-Host "✨ Build complete!"
+Get-ChildItem dist

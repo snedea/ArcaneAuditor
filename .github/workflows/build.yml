@@ -1,121 +1,71 @@
-name: 🧙 Arcane Auditor Build
+name: 🧪 Build (Unsigned Diagnostic)
 
 on:
   push:
-    branches:
-      - develop
+    branches: [develop]
   pull_request:
-    branches:
-      - develop
+    branches: [develop]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    name: Build CLI + Web Executables (${{ matrix.os }})
     strategy:
       matrix:
-        include:
-          - os: windows-latest
-            platform_name: Windows
-            build_script: powershell .\scripts\build.ps1
-            cli_artifact: dist/ArcaneAuditorCLI.exe
-            web_artifact: dist/ArcaneAuditorWeb.exe
-            desktop_artifact: dist/ArcaneAuditor.exe
-          
-          - os: macos-latest
-            platform_name: macOS
-            build_script: bash ./scripts/build.sh
-            cli_artifact: dist/ArcaneAuditorCLI
-            web_artifact: dist/ArcaneAuditorWeb
-            desktop_artifact: dist/ArcaneAuditor.app
-    
+        os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: 🪄 Checkout code
+      - name: 📥 Checkout source
         uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          fetch-depth: 0
 
-      # macOS: Import code signing certificate
-      - name: 🔐 Import Code Signing Certificate (macOS)
-        if: matrix.os == 'macos-latest'
-        env:
-          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
-          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      - name: 🧙 Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.6"
+
+      - name: 🧩 Install pinned Python
         run: |
-          # Create temporary keychain
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
-          
-          # Create and unlock keychain
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          
-          # Import certificate
-          echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
-          security import certificate.p12 \
-            -k "$KEYCHAIN_PATH" \
-            -P "$MACOS_CERTIFICATE_PASSWORD" \
-            -T /usr/bin/codesign \
-            -T /usr/bin/security
-          
-          # Set keychain as default
-          security list-keychain -d user -s "$KEYCHAIN_PATH"
-          security set-key-partition-list -S apple-tool:,apple:,codesign: \
-            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          
-          # Clean up certificate file
-          rm certificate.p12
-          
-          echo "✅ Certificate imported successfully"
+          echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') Installing Python via uv"
+          uv python install
+        shell: bash
 
-      - name: ⚙️ Install dependencies
+      - name: 🔍 Verify Python runtime
         run: |
-          python -m pip install --upgrade pip
-          pip install pyinstaller typer click lark fastapi starlette uvicorn openpyxl python-multipart psutil pywebview requests
+          uv --version
+          uv run python -V
+          uv run python -c "import sys, sysconfig, platform, os; print('Python exe:', sys.executable); print('LIBDIR:', sysconfig.get_config_var('LIBDIR')); print('Platform:', platform.platform()); print('CWD:', os.getcwd())"
+        shell: bash
 
-      - name: 🧰 Run build script
-        env:
-          CODESIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
-        run: ${{ matrix.build_script }}
-
-      # Package macOS builds as tar.gz to preserve structure and permissions
-      - name: 📦 Package builds (macOS)
-        if: matrix.os == 'macos-latest'
+      # 🪟 WINDOWS BUILD
+      - name: 🏗️ Build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          cd dist
-          tar -czf ArcaneAuditorCLI.tar.gz ArcaneAuditorCLI
-          tar -czf ArcaneAuditorWeb.tar.gz ArcaneAuditorWeb
-          tar -czf ArcaneAuditor.app.tar.gz ArcaneAuditor.app
+          echo "🕒 $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') Starting Windows build"
+          New-Item -ItemType Directory -Force -Path build-logs | Out-Null
+          pwsh ./scripts/build.ps1 2>&1 | Tee-Object -FilePath build-logs/build_Windows.log -Append
 
-      - name: 📦 Upload CLI build
+      # 🍎 MAC BUILD
+      - name: 🏗️ Build (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') Starting macOS build"
+          mkdir -p build-logs
+          bash ./scripts/build.sh 2>&1 | tee build-logs/build_macos.log
+
+      - name: 📦 Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ArcaneAuditor_CLI_${{ matrix.platform_name }}
-          path: ${{ matrix.os == 'macos-latest' && 'dist/ArcaneAuditorCLI.tar.gz' || matrix.cli_artifact }}
-
-      - name: 📦 Upload Web build
-        uses: actions/upload-artifact@v4
-        with:
-          name: ArcaneAuditor_Web_${{ matrix.platform_name }}
-          path: ${{ matrix.os == 'macos-latest' && 'dist/ArcaneAuditorWeb.tar.gz' || matrix.web_artifact }}
-      
-      - name: 📦 Upload Desktop build
-        uses: actions/upload-artifact@v4
-        with:
-          name: ArcaneAuditor_Desktop_${{ matrix.platform_name }}
-          path: ${{ matrix.os == 'macos-latest' && 'dist/ArcaneAuditor.app.tar.gz' || matrix.desktop_artifact }}
-
-      # Cleanup keychain
-      - name: 🧹 Cleanup Keychain (macOS)
-        if: matrix.os == 'macos-latest' && always()
-        run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          if [ -f "$KEYCHAIN_PATH" ]; then
-            security delete-keychain "$KEYCHAIN_PATH"
-          fi
+          name: arcane-auditor-${{ runner.os }}
+          path: |
+            dist/ArcaneAuditor*.exe
+            dist/ArcaneAuditor*.app*
+            dist/ArcaneAuditorCLI*
+            dist/ArcaneAuditorWeb.exe
+            build-logs/
