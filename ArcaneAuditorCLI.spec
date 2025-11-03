@@ -39,27 +39,29 @@ IS_WIN = sys.platform.startswith("win")
 
 ONEFILE_MODE = IS_WIN  # onefile for Windows, onedir for macOS
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    [],
-    exclude_binaries=True,
-    name='ArcaneAuditorCLI',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    console=True,
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    icon='assets/icons/aa-mac.icns' if IS_MAC else 'assets/icons/aa-windows.ico',
-    codesign_identity=os.environ.get('MAC_IDENTITY', None) if IS_MAC else None,
-    entitlements_file='entitlements.plist' if IS_MAC else None,
-    onefile=ONEFILE_MODE,
-)
+# ---------------------------------------------------------------------------
+# macOS build: onedir mode (signable)
+# ---------------------------------------------------------------------------
+if IS_MAC:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],
+        exclude_binaries=True,
+        name='ArcaneAuditorCLI',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        console=True,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        icon='assets/icons/aa-mac.icns',
+        codesign_identity=os.environ.get('MAC_IDENTITY', None),
+        entitlements_file='entitlements.plist',
+    )
 
-if not ONEFILE_MODE:
     coll = COLLECT(
         exe,
         a.binaries,
@@ -68,4 +70,28 @@ if not ONEFILE_MODE:
         strip=False,
         upx=True,
         name='ArcaneAuditorCLI',
+    )
+
+# ---------------------------------------------------------------------------
+# Windows build: onefile mode
+# ---------------------------------------------------------------------------
+else:
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.datas,
+        [],
+        name='ArcaneAuditorCLI',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        runtime_tmpdir=None,
+        console=True,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        icon='assets/icons/aa-windows.ico',
     )
