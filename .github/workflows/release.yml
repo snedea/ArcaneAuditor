@@ -654,118 +654,41 @@ jobs:
           MAC_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
           set -e
-          echo "========================================"
-          echo "📦 CREATING DMG FROM NOTARIZED .APP"
-          echo "========================================"
-          echo "📅 Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
-          
-          APP="dist/ArcaneAuditor.app"
+          echo "📦 Creating clean, signed DMG..."
           DMG_PATH="dist/ArcaneAuditor_macOS_Desktop.dmg"
-          TEMPLATE="assets/ArcaneAuditor_template.dmg"
-          
-          echo "🔍 Verifying .app is notarized and stapled..."
-          if ! stapler validate "$APP" 2>&1 | grep -q "The validate action worked"; then
-            echo "⚠️  WARNING: .app may not be properly stapled"
-            echo "   Continuing anyway, but DMG may have issues"
-          else
-            echo "✅ .app is properly notarized and stapled"
-          fi
-          
-          echo ""
-          
-          # Check if we have a pre-styled template
-          if [ -f "$TEMPLATE" ]; then
-            echo "📦 Using pre-styled DMG template..."
-            echo "   Template: $TEMPLATE"
+          APP_PATH="dist/ArcaneAuditor.app"
+          ICON_PATH="assets/icons/aa-mac.icns"
 
-            # Make a writable copy of the template
-            hdiutil convert "$TEMPLATE" -format UDRW -o "$DMG_PATH.temp" >/dev/null
-            echo "🔧 Resizing DMG to 200MB..."
-            hdiutil resize -size 200m "$DMG_PATH.temp.dmg" >/dev/null
+          # 1️⃣ Create a temporary staging folder
+          mkdir -p dmg
+          cp -R "$APP_PATH" dmg/
+          ln -s /Applications dmg/Applications
 
-            # Mount the writable image
-            echo "📂 Mounting template DMG..."
-            ATTACH_OUTPUT=$(hdiutil attach -nobrowse -noverify -readwrite "$DMG_PATH.temp.dmg")
-            MOUNT_POINT=$(echo "$ATTACH_OUTPUT" | grep Volumes | awk '{print $3}')
-            DISK_ID=$(echo "$ATTACH_OUTPUT" | grep Volumes | awk '{print $1}')
-            echo "   Mounted at: $MOUNT_POINT"
-            echo "   Disk ID: $DISK_ID"
-
-            echo "🔧 Enabling ownership on DMG volume..."
-            sudo /usr/sbin/diskutil enableOwnership "$DISK_ID" || true
-
-            # Re-resolve mount point in case ownership remounted it
-            MOUNT_POINT=$(hdiutil info | grep "$DISK_ID" | awk '{print $NF}' | grep Volumes | head -n 1)
-
-            if [ -z "$MOUNT_POINT" ] || [ ! -d "$MOUNT_POINT" ]; then
-              echo "⚠️ Could not resolve remounted volume, re-attaching..."
-              ATTACH_OUTPUT=$(hdiutil attach -nobrowse -noverify -readwrite "$DMG_PATH.temp.dmg")
-              MOUNT_POINT=$(echo "$ATTACH_OUTPUT" | grep Volumes | awk '{print $3}')
-            fi
-
-            echo "   Final mount point: $MOUNT_POINT"
-            sudo chmod -R u+w "$MOUNT_POINT"
-
-            echo "🔒 Locking .DS_Store to preserve layout/background..."
-            [ -f "$MOUNT_POINT/.DS_Store" ] && chmod 444 "$MOUNT_POINT/.DS_Store" || true
-
-            echo "📦 Updating app bundle in place (preserving layout)..."
-            if [ -d "$MOUNT_POINT/ArcaneAuditor.app" ]; then
-              # Safely sync new contents without touching Finder metadata
-              rsync -aE --delete "$APP/" "$MOUNT_POINT/ArcaneAuditor.app/"
-            else
-              echo "⚠️ No existing ArcaneAuditor.app in template — copying fresh"
-              cp -R "$APP" "$MOUNT_POINT/"
-            fi
-
-            echo "💤 Flushing writes..."
-            sync
-            sleep 2
-
-            echo "📤 Detaching DMG..."
-            hdiutil detach "$MOUNT_POINT" -quiet || { sleep 2 && hdiutil detach "$MOUNT_POINT" -quiet || true; }
-
-            echo "🗜️ Compressing final DMG..."
-            hdiutil convert "$DMG_PATH.temp.dmg" -format UDZO -imagekey zlib-level=9 -o "$DMG_PATH" >/dev/null
-            rm -f "$DMG_PATH.temp.dmg"
-
-            echo "✅ DMG finalized from template with layout preserved"
-          else
-            echo "⚠️ No pre-styled template found at $TEMPLATE"
-            echo "📦 Creating simple fallback DMG..."
-            mkdir -p dmg
-            cp -R "$APP" dmg/
-            hdiutil create -volname "Arcane Auditor" -srcfolder dmg -ov -format UDZO "$DMG_PATH" >/dev/null
-            rm -rf dmg
-            echo "✅ Simple DMG created"
+          # 2️⃣ Add a custom volume icon (survives signing)
+          if [ -f "$ICON_PATH" ]; then
+            echo "🎨 Adding volume icon..."
+            cp "$ICON_PATH" dmg/.VolumeIcon.icns
           fi
 
-          
-          echo "   Size: $(du -h "$DMG_PATH" | cut -f1)"
-          
-          echo ""
+          # 3️⃣ Build a compressed DMG (UDZO = zlib-compressed read-only)
+          hdiutil create -volname "Arcane Auditor" \
+            -srcfolder dmg \
+            -ov -format UDZO "$DMG_PATH"
+
+          # 4️⃣ Clean up staging folder
+          rm -rf dmg
+
+          # 5️⃣ Sign the DMG (not the background; this one’s layoutless)
           echo "🔏 Signing DMG..."
-          codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$DMG_PATH" 2>&1
-          if [ $? -ne 0 ]; then
-            echo "❌❌❌ FAILED TO SIGN DMG"
-            exit 1
-          fi
-          
-          echo ""
+          codesign --force --timestamp --sign "$MAC_IDENTITY" "$DMG_PATH"
+
+          # 6️⃣ Verify signature
           echo "🔍 Verifying DMG signature..."
-          codesign --verify --verbose=2 "$DMG_PATH" 2>&1
-          if [ $? -eq 0 ]; then
-            echo "✅ DMG signature verified"
-          else
-            echo "❌❌❌ DMG SIGNATURE VERIFICATION FAILED"
-            exit 1
-          fi
-          
-          echo ""
-          echo "========================================"
-          echo "✅ DMG CREATION AND SIGNING COMPLETE"
-          echo "========================================"
-          echo "📊 DMG ready for notarization"
+          codesign --verify --verbose=2 "$DMG_PATH"
+
+          # 7️⃣ Show final size
+          echo "✅ DMG ready: $(du -h "$DMG_PATH" | cut -f1)"
+
 
       - name: 🍏 Notarize DMG
         env:
