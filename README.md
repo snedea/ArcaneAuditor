@@ -29,6 +29,8 @@ It analyzes:
 - ⚙️ Update-safe configuration layering
 - 📊 Multiple output formats: Excel (desktop UI and CLI), JSON (CLI only)
 
+---
+
 ## 🚀 Quick Start — Desktop App
 
 **New in v1.2:** Arcane Auditor now ships as a native desktop application for Windows and macOS.
@@ -38,10 +40,17 @@ No Python, no browser, no setup — just download and run.
 
 Get the latest build from [GitHub Releases](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases):
 
-| Platform       | File                | Description                               |
-| -------------- | ------------------- | ----------------------------------------- |
-| 🪟 **Windows** | `ArcaneAuditor.exe` | Full desktop app — double-click to launch |
-| 🍎 **macOS**   | `ArcaneAuditor.dmg` | Drag to Applications and open normally    |
+| Platform                      | File                                | Description                                                        |
+| ----------------------------- | ----------------------------------- | ------------------------------------------------------------------ |
+| 🪟**Windows (Desktop)** | `ArcaneAuditor.exe`               | Full desktop app — double-click to launch                         |
+| 🍎**macOS (Desktop)**   | `ArcaneAuditor_macOS_Desktop.dmg` | Double click DMG, drag**Arcane Auditor.app** to Applications |
+| ⚙️**Windows (CLI)**   | `ArcaneAuditorCLI.exe`            | Command-line analyzer for automation and CI/CD                     |
+| ⚙️**macOS (CLI)**     | `ArcaneAuditor_macOS_CLI.zip`     | Unzip and run `ArcaneAuditorCLI` from Terminal                   |
+
+> 🧩 **Note for macOS users:**
+> The first time you open the app or CLI, macOS Gatekeeper may show
+> “App is from an unidentified developer.”
+> Right-click → **Open** once to approve; future launches will be trusted.
 
 ### 2. Install & Run
 
@@ -52,8 +61,8 @@ Get the latest build from [GitHub Releases](https://github.com/Developers-and-Dr
 
 **macOS**
 
-1. Open `ArcaneAuditor.dmg`
-2. Drag **Arcane Auditor** to Applications (optional)
+1. Open `ArcaneAuditor_macOS_Desktop.dmg`
+2. Drag **Arcane Auditor.app** to Applications
 3. Open from Launchpad or Finder
 
 ### 3. Analyze
@@ -64,11 +73,8 @@ Results appear faster than a polymorph spell — download Excel reports as neede
 **Includes:** 42 rules, configuration presets, Excel export — fully self-contained.
 
 > 💡 **Windows SmartScreen Notice**
->
-> Even with code signing, Windows SmartScreen may show "Windows protected your PC" until the app builds download reputation with Microsoft.
->
+> Even with code signing, Windows SmartScreen may show “Windows protected your PC” until the app builds download reputation with Microsoft.
 > This is normal for new/updated releases. Click **More info** → **Run anyway** to proceed.
->
 > The warning will disappear as more users successfully run the signed app.
 
 ---
@@ -109,7 +115,7 @@ For automation, CI/CD pipelines, and power users who prefer the terminal:
 **Download:**
 
 - **Windows:** `ArcaneAuditorCLI.exe`
-- **macOS:** `ArcaneAuditorCLI`
+- **macOS:** `ArcaneAuditor_macOS_CLI.zip` (unzip to get `ArcaneAuditorCLI`)
 
 **Usage:**
 
@@ -145,8 +151,12 @@ Arcane Auditor uses a **layered, update-safe configuration** system:
 1. **Built-in Presets**
    - `development` — lenient, allows console logs / work-in-progress code
    - `production-ready` — strict, deployment-grade validation
-2. **Team Configuration** (Windows: `%AppData%\ArcaneAuditor\config\rules\teams\` | macOS: `~/Library/Application Support/ArcaneAuditor/config/rules/teams/`)
-3. **Personal Configuration** (Windows: `%AppData%\ArcaneAuditor\config\rules\personal\` | macOS: `~/Library/Application Support/ArcaneAuditor/config/rules/personal/`)
+2. **Team Configuration**
+   - Windows: `%AppData%\ArcaneAuditor\config\rules\teams\`
+   - macOS: `~/Library/Application Support/ArcaneAuditor/config/rules/teams/`
+3. **Personal Configuration**
+   - Windows: `%AppData%\ArcaneAuditor\config\rules\personal\`
+   - macOS: `~/Library/Application Support/ArcaneAuditor/config/rules/personal/`
 4. **Command-line overrides** (highest priority)
 
 **Example personal config:**
@@ -204,7 +214,8 @@ Arcane Auditor detects missing files and adjusts validation scope automatically:
 <details>
 <summary>🔧 Port Configuration (Desktop App)</summary>
 
-The desktop app runs a local server (default port 8080). If you have a port conflict, edit:
+The desktop app runs a local server (default port 8080).
+If you have a port conflict, edit:
 
 **Windows:** `%AppData%\ArcaneAuditor\config\web\web_service_config.json`
 **macOS:** `~/Library/Application Support/ArcaneAuditor/config/web/web_service_config.json`
@@ -230,12 +241,9 @@ For those extending Arcane Auditor or building from source:
 git clone https://github.com/Developers-and-Dragons/ArcaneAuditor.git
 cd ArcaneAuditor
 uv sync
-
-# Run tests
-uv run pytest
 ```
 
-**UV** automatically installs and manages Python — no manual setup required.More details: [UV Installation Guide](https://docs.astral.sh/uv/getting-started/installation/)
+**UV** automatically installs and manages Python (tested with **Python 3.12.6**) — no manual setup required.More details: [UV Installation Guide](https://docs.astral.sh/uv/getting-started/installation/)
 
 > 📖 For development setup, building executables, and contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md)
 
@@ -243,7 +251,7 @@ uv run pytest
 
 ## 🧙 Contributing
 
-Contributions are welcome!Submit pull requests against the **`develop`** branch.
+Contributions are welcome! Submit pull requests against the **`develop`** branch.
 
 > 📖 See [CONTRIBUTING.md](CONTRIBUTING.md) and [Custom Rules Guide](docs/CUSTOM_RULES.md)
 
