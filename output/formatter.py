@@ -43,14 +43,15 @@ class OutputFormatter:
         self.format_type = format_type
     
     def format_results(self, findings: List[Finding], total_files: int = 0, total_rules: int = 0, 
-                      context: Optional['ProjectContext'] = None) -> str:
+                      context: Optional['ProjectContext'] = None, config_name: Optional[str] = None,
+                      config_source: Optional[str] = None) -> str:
         """Format analysis results based on the selected format."""
         if self.format_type == OutputFormat.JSON:
             return self._format_json(findings, total_files, total_rules, context)
         elif self.format_type == OutputFormat.SUMMARY:
             return self._format_summary(findings, total_files, total_rules)
         elif self.format_type == OutputFormat.EXCEL:
-            return self._format_excel(findings, total_files, total_rules, context)
+            return self._format_excel(findings, total_files, total_rules, context, config_name, config_source)
         else:
             return self._format_console(findings, total_files, total_rules, context)
     
@@ -251,13 +252,15 @@ class OutputFormatter:
         
         return "\n".join(lines)
     
-    def _add_context_sheet_excel(self, workbook, analysis_context):
+    def _add_context_sheet_excel(self, workbook, analysis_context, config_name=None, config_source=None):
         """
         Add a context awareness sheet to Excel workbook.
         
         Args:
             workbook: openpyxl Workbook instance
             analysis_context: AnalysisContext instance with file and check tracking
+            config_name: Configuration name/path used for analysis
+            config_source: Source of the configuration (presets, teams, personal)
         """
         from openpyxl.styles import Font, PatternFill, Alignment
         
@@ -268,12 +271,20 @@ class OutputFormatter:
         context_sheet['A1'].font = Font(bold=True, size=14)
         context_sheet.append([])
         
-        # Analysis Type - removed as not needed
+        # Configuration Used (if available)
+        if config_name:
+            is_built_in = config_source == 'presets'
+            # For built-in configs, show just the name without the path
+            config_display = config_name.split('/')[-1].split('\\')[-1].replace('.json', '') if is_built_in else config_name
+            context_sheet.append(["Configuration Used", config_display])
+            context_sheet['A3'].font = Font(bold=True)
+            context_sheet.append([])
         
         # Context Status
         status = "Complete" if analysis_context.is_complete else "Partial"
         context_sheet.append(["Context Status", status])
-        context_sheet['A3'].font = Font(bold=True)
+        row_idx = 5 if config_name else 3
+        context_sheet[f'A{row_idx}'].font = Font(bold=True)
         
         # Apply color based on status
         status_fill = PatternFill(
@@ -281,7 +292,7 @@ class OutputFormatter:
             end_color="C6EFCE" if analysis_context.is_complete else "FFC7CE",
             fill_type="solid"
         )
-        context_sheet['B3'].fill = status_fill
+        context_sheet[f'B{row_idx}'].fill = status_fill
         
         context_sheet.append([])
         
@@ -475,7 +486,8 @@ class OutputFormatter:
                 ws.row_dimensions[row_num].height = 25
     
     def _format_excel(self, findings: List[Finding], total_files: int, total_rules: int, 
-                     context: Optional['ProjectContext'] = None) -> str:
+                     context: Optional['ProjectContext'] = None, config_name: Optional[str] = None,
+                     config_source: Optional[str] = None) -> str:
         """Format results as Excel file with accessible, color-blind friendly styling."""
         try:
             import openpyxl
@@ -492,7 +504,7 @@ class OutputFormatter:
         
         # Add context awareness sheet if context available
         if context and context.analysis_context:
-            self._add_context_sheet_excel(wb, context.analysis_context)
+            self._add_context_sheet_excel(wb, context.analysis_context, config_name, config_source)
         
         # Group findings by file
         findings_by_file = self._group_findings_by_file(findings)

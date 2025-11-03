@@ -39,9 +39,7 @@ def ensure_sample_rule_config():
         if target_path.is_dir() and not any(f.endswith(".json") for f in os.listdir(target_path)):
             dst = target_path / f"{target_path.name}.json.sample"
             shutil.copy2(preset_src, dst)
-            print(f"✨ Refreshed sample config: {dst}")
-        else:
-            print(f"⚠️ {target_dir} is not a directory or is not empty")
+
 
 
 def is_developer_mode() -> bool:

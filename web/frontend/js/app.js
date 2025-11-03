@@ -376,7 +376,40 @@ class ArcaneAuditorApp {
 
     // Utility methods
     async downloadResults() {
-        await downloadResults(this.currentResult);
+        const result = await downloadResults(this.currentResult);
+        
+        // Show toast notification on success
+        if (result && result.success) {
+            if (window.pywebview) {
+                // Desktop app - show file path in toast
+                this.showToast(`✅ File saved to Downloads folder: ${result.filename}`, 'success');
+            } else {
+                // Web browser - generic success message
+                this.showToast('✅ Download complete!', 'success');
+            }
+        } else if (result && !result.success) {
+            // Show error toast if download failed
+            this.showToast('❌ Download failed. Please try again.', 'error');
+        }
+    }
+
+    showToast(message, type = 'info') {
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `arcane-toast ${type}`;
+        toast.textContent = message;
+        
+        // Add to body
+        document.body.appendChild(toast);
+        
+        // Trigger animation by adding 'show' class after a brief delay
+        setTimeout(() => toast.classList.add('show'), 10);
+        
+        // Remove after 4 seconds
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
     }
 
     // Filter and sort methods (delegated to results renderer)

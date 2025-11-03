@@ -69,9 +69,9 @@ def load_web_config(cli_args=None):
             user_cfg.parent.mkdir(parents=True, exist_ok=True)
             try:
                 shutil.copy2(bundled_sample, user_cfg)
-                print(f"✨ Created new user web config at {user_cfg}")
+                print(f"Created new user web config at {user_cfg}")
             except Exception as e:
-                print(f"⚠️ Failed to copy bundled web config: {e}")
+                print(f"Failed to copy bundled web config: {e}")
 
         cfg_path = user_cfg
     else:
@@ -84,9 +84,9 @@ def load_web_config(cli_args=None):
         try:
             with open(cfg_path, "r", encoding="utf-8") as f:
                 config.update(json.load(f))
-            print(f"⚙️ Using web config: {cfg_path}")
+            print(f"Using web config: {cfg_path}")
         except Exception as e:
-            print(f"⚠️ Could not read {cfg_path} ({e}); using defaults.")
+            print(f"Could not read {cfg_path} ({e}); using defaults.")
 
     # Overlay CLI args if provided
     if cli_args:
@@ -204,10 +204,11 @@ def cleanup_orphaned_files():
 
 class AnalysisJob:
     """Represents an analysis job with status tracking."""
-    def __init__(self, job_id: str, zip_path: Path = None, config: str = "default"):
+    def __init__(self, job_id: str, zip_path: Path = None, config: str = "default", config_source: str = "built-in"):
         self.job_id = job_id
         self.zip_path = zip_path
         self.config = config
+        self.config_source = config_source  # Track if config is built-in, personal, or team
         self.status = "queued"  # queued, running, completed, failed
         self.result = None
         self.error = None
@@ -398,7 +399,8 @@ def run_analysis_background(job: AnalysisJob):
                     "advice": len([f for f in findings if f.severity == "ADVICE"])
                 }
             },
-            "config_name": job.config  # Add config name to result
+            "config_name": job.config,  # Add config name to result
+            "config_source": job.config_source  # Add config source to result
         }
         
         # Add context awareness information if available
@@ -444,6 +446,7 @@ async def upload_file(
     # Get the actual config path from the selected config key
     selected_config_info = config_info[config]
     actual_config_path = selected_config_info["path"]
+    config_source = selected_config_info.get("source", "built-in")  # Get the source (presets, teams, personal)
     
     # Generate job ID
     job_id = str(uuid.uuid4())
@@ -469,7 +472,7 @@ async def upload_file(
                     buffer.write(chunk)
             
             # Create analysis job for ZIP
-            job = AnalysisJob(job_id, zip_path, actual_config_path)
+            job = AnalysisJob(job_id, zip_path, actual_config_path, config_source)
             job.is_zip = True
         
         else:
@@ -495,7 +498,7 @@ async def upload_file(
                 saved_files.append(file_path)
             
             # Create analysis job for individual files
-            job = AnalysisJob(job_id, None, actual_config_path)
+            job = AnalysisJob(job_id, None, actual_config_path, config_source)
             job.is_zip = False
             job.individual_files = saved_files
         
@@ -637,8 +640,10 @@ async def download_excel(job_id: str):
             total_files = len(set(finding.file_path for finding in findings if finding.file_path))
             total_rules = job.result["summary"]["rules_executed"]
             context = MockProjectContext(job.result.get("context"))
+            config_name = job.result.get("config_name")
+            config_source = job.result.get("config_source")
             
-            excel_file_path = formatter.format_results(findings, total_files, total_rules, context)
+            excel_file_path = formatter.format_results(findings, total_files, total_rules, context, config_name, config_source)
             
             # Generate filename
             timestamp = datetime.now().strftime("%Y-%m-%d")

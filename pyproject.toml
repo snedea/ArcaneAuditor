@@ -1,6 +1,6 @@
 [project]
 name = "arcane-auditor"
-version = "1.1.0"
+version = "1.2.0"
 description = "A mystical code review tool for Workday Extend applications - part of Developers and Dragons"
 license = "MIT"
 readme = "README.md"
@@ -11,8 +11,8 @@ dependencies = [
     "lark>=1.2.2",
     "openpyxl>=3.1.5",
     "psutil>=7.1.0",
-    "pytest>=8.4.1",
     "python-multipart>=0.0.20",
+    "pywebview>=6.1",
     "requests>=2.32.5",
     "typer[all]>=0.16.1",
     "uvicorn[standard]>=0.35.0",

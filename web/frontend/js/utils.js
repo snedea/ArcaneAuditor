@@ -117,10 +117,19 @@ export function sortFileGroups(fileGroups, sortFilesBy = 'alphabetical') {
     return Object.fromEntries(entries);
 }
 
-export async function downloadResults(result) {
+export async function downloadResults(result, options = {}) {
+    // Auto-enable silent mode for desktop app unless explicitly overridden
+    const defaultOptions = {
+        silent: window.pywebview ? true : false,
+        ...options
+    };
+
     if (!result) {
-        alert('No results to download');
-        return;
+        console.error('No results to download');
+        if (!defaultOptions.silent) {
+            alert('No results to download');
+        }
+        return { success: false, error: 'No results to download' };
     }
     
     try {
@@ -130,24 +139,46 @@ export async function downloadResults(result) {
             throw new Error('No job ID available for download');
         }
 
-        const response = await fetch(`/api/download/${jobId}`);
-
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `arcane-auditor-results-${new Date().toISOString().split('T')[0]}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+        // Check if running in pywebview (desktop app)
+        if (window.pywebview) {
+            // Desktop app - auto-save to Downloads folder
+            const downloadResult = await window.pywebview.api.download_file(jobId);
+            if (downloadResult.success) {
+                console.log(`File auto-saved to: ${downloadResult.path}`);
+                // Only show alert if not in silent mode
+                if (!defaultOptions.silent) {
+                    alert(`File saved successfully to:\n${downloadResult.path}`);
+                }
+                return { success: true, path: downloadResult.path, filename: downloadResult.filename };
+            } else {
+                throw new Error(downloadResult.error || 'Download failed');
+            }
         } else {
-            throw new Error('Download failed');
+            // Web browser - use normal download mechanism
+            const response = await fetch(`/api/download/${jobId}`);
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `arcane-auditor-results-${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                console.log('File downloaded successfully');
+                return { success: true };
+            } else {
+                throw new Error('Download failed');
+            }
         }
     } catch (error) {
         console.error('Download failed:', error);
-        alert('Download failed. Please try again.');
+        if (!defaultOptions.silent) {
+            alert('Download failed. Please try again.');
+        }
+        return { success: false, error: error.message };
     }
 }
 

@@ -21,6 +21,7 @@ a = Analysis(
     datas = [
         # --- Web service config (for AppData seeding) ---
         ("config/web/web_service_config.json.sample", "config/web"),
+        ("assets/icons", "assets"),  # Application icon
 
         # --- Rule presets ---
         ("config/rules/presets", "config/rules/presets"),
@@ -62,6 +63,5 @@ exe = EXE(
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
+    icon='assets/icons/aa-mac.icns' if sys.platform == 'darwin' else 'assets/icons/aa-windows.ico',
 )
