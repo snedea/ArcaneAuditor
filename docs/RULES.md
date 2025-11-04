@@ -2067,7 +2067,7 @@ While the backend may gracefully cast string values, this “magic conversion”
 
 **Severity:** ℹ️ADVICE
 **Description:** Ensures all file names follow lowerCamelCase naming convention
-**Applies to:** All files (PMD, POD, AMD, SMD, Script)
+**Applies to:** All files (PMD, POD, Script)
 
 **Why This Matters:**
 
@@ -2083,7 +2083,6 @@ LowerCamelCase is the Workday Extend standard, and following it ensures files ar
 **Valid naming patterns:**
 
 - **Pure lowerCamelCase**: `myPage.pmd`, `helperFunctions.script`
-- **App ID format**: `myApp_abcdef.amd`, `template_nkhlsq.smd` (name_postfix where postfix is 6 lowercase letters)
 
 **Example violations:**
 
@@ -2101,13 +2100,11 @@ helper_functions.script // ❌ snake_case - should be: helperFunctions.script
 myPage.pmd              // ✅ lowerCamelCase
 helperFunctions.script  // ✅ lowerCamelCase
 footer.pod              // ✅ lowerCamelCase
-myApp_abcdef.amd        // ✅ App ID format
-template_nkhlsq.smd     // ✅ App ID format
 ```
 
 **Fix:**
 
-Rename files to follow lowerCamelCase convention. For app-level files (AMD, SMD), the app ID format `name_postfix` is allowed.
+Rename files to follow lowerCamelCase convention.
 
 ---
 
