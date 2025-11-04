@@ -10,6 +10,7 @@ from typing import Generator
 
 from ...base import Finding, Rule
 from ....models import ProjectContext
+from utils.file_path_utils import strip_uuid_prefix
 
 
 class FileNameLowerCamelCaseRule(Rule):
@@ -72,9 +73,8 @@ class FileNameLowerCamelCaseRule(Rule):
         filename_with_ext = os.path.basename(file_path)
         
         # Strip job ID prefix if present (format: uuid_filename.ext)
-        # Job IDs are UUIDs with dashes in format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-        # Only match actual UUIDs (8-4-4-4-12 hex digits), not arbitrary hex sequences
-        filename_with_ext = re.sub(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_', '', filename_with_ext)
+        # Uses utility function to ensure consistent UUID detection
+        filename_with_ext = os.path.basename(strip_uuid_prefix(file_path))
         
         filename, ext = os.path.splitext(filename_with_ext)
         

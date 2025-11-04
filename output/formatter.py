@@ -5,10 +5,11 @@ Provides various output formats with emojis and better formatting.
 from typing import List, Dict, Optional, TYPE_CHECKING
 from pathlib import Path
 import json
-import re
+import os
 from enum import Enum
 
 from parser.rules.base import Finding
+from utils.file_path_utils import strip_uuid_prefix
 
 if TYPE_CHECKING:
     from parser.models import ProjectContext
@@ -90,7 +91,7 @@ class OutputFormatter:
         output.append("")
         
         for file_path, file_findings in findings_by_file.items():
-            # File header with emoji
+            # File header with emoji (file_path is already cleaned by _group_findings_by_file)
             output.append(f"📄 **{file_path}**")
             output.append("-" * (len(file_path) + 4))
             
@@ -108,7 +109,7 @@ class OutputFormatter:
                     # Format the finding with file path
                     file_display = finding.file_path.split('\\')[-1] if finding.file_path else "Unknown"
                     # Clean file path by removing job ID prefix
-                    file_display = re.sub(r'^[a-f0-9-]+_', '', file_display)
+                    file_display = os.path.basename(strip_uuid_prefix(finding.file_path)) if finding.file_path else "Unknown"
                     output.append(f"    {severity_emoji} [{finding.rule_id}:{finding.line}] in `{file_display}`: {finding.message}")
                     output.append("")  # Add spacing between findings
             
@@ -161,7 +162,7 @@ class OutputFormatter:
                     "rule_id": finding.rule_id,
                     "severity": finding.severity,
                     "message": finding.message,
-                    "file_path": finding.file_path,
+                    "file_path": strip_uuid_prefix(finding.file_path) if finding.file_path else "",
                     "line": finding.line
                 }
                 for finding in findings
@@ -180,7 +181,7 @@ class OutputFormatter:
         for finding in findings:
             file_path = finding.file_path or "Unknown"
             # Clean file path by removing job ID prefix
-            clean_file_path = re.sub(r'^[a-f0-9-]+_', '', file_path)
+            clean_file_path = strip_uuid_prefix(file_path)
             if clean_file_path not in groups:
                 groups[clean_file_path] = []
             groups[clean_file_path].append(finding)
@@ -217,7 +218,7 @@ class OutputFormatter:
         lines.append(f"📁 Files Analyzed ({len(analysis_context.files_analyzed)})")
         for file_path in analysis_context.files_analyzed:
             # Remove job ID prefix if present (format: uuid_filename.ext)
-            clean_file_name = re.sub(r'^[a-f0-9-]+_', '', file_path)
+            clean_file_name = strip_uuid_prefix(file_path)
             lines.append(f"   ✓ {clean_file_name}")
         lines.append("")
         
@@ -301,7 +302,7 @@ class OutputFormatter:
         context_sheet[f'A{context_sheet.max_row}'].font = Font(bold=True)
         for file_path in analysis_context.files_analyzed:
             # Remove job ID prefix if present (format: uuid_filename.ext)
-            clean_file_name = re.sub(r'^[a-f0-9-]+_', '', file_path)
+            clean_file_name = strip_uuid_prefix(file_path)
             context_sheet.append([clean_file_name])
         
         context_sheet.append([])
@@ -527,6 +528,7 @@ class OutputFormatter:
         
         # Create sheets for each file with accessible styling
         for file_path, file_findings in findings_by_file.items():
+            # file_path is already cleaned by _group_findings_by_file
             # Clean sheet name (Excel has restrictions)
             sheet_name = Path(file_path).stem[:31]  # Excel sheet name limit
             sheet_name = "".join(c for c in sheet_name if c.isalnum() or c in (' ', '-', '_')).strip()
@@ -603,6 +605,7 @@ class OutputFormatter:
             ws.conditional_formatting.add(f"E2:E{ws.max_row}", todo_rule)
             
             # Update summary sheet
+            # file_path is already cleaned by _group_findings_by_file
             action_count = len([f for f in file_findings if f.severity == "ACTION"])
             advice_count = len([f for f in file_findings if f.severity == "ADVICE"])
             summary_sheet.append([file_path, len(file_findings), action_count, advice_count])
