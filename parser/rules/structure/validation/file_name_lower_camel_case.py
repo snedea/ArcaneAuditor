@@ -19,12 +19,10 @@ class FileNameLowerCamelCaseRule(Rule):
     This rule checks:
     - PMD files
     - POD files
-    - AMD files
-    - SMD files
     - Script files
     
     Valid pattern: starts with lowercase letter, followed by letters/numbers
-    Examples: myPage.pmd, helperFunctions.script, myApp_abcdef.amd
+    Examples: myPage.pmd, helperFunctions.script
     """
     
     ID = "FileNameLowerCamelCaseRule"
@@ -52,15 +50,7 @@ class FileNameLowerCamelCaseRule(Rule):
         # Check POD files
         for pod_model in context.pods.values():
             yield from self._check_filename(pod_model.file_path)
-        
-        # Check AMD file
-        if context.amd:
-            yield from self._check_filename(context.amd.file_path)
-        
-        # Check SMD file
-        if context.smd:
-            yield from self._check_filename(context.smd.file_path)
-        
+
         # Check Script files
         for script_model in context.scripts.values():
             yield from self._check_filename(script_model.file_path)
@@ -88,21 +78,17 @@ class FileNameLowerCamelCaseRule(Rule):
         filename, ext = os.path.splitext(filename_with_ext)
         
         # Pattern: must start with lowercase letter, followed by letters/numbers
-        # Special case: Allow app ID format (name_postfix where postfix is 6 lowercase letters)
-        # Valid: myPage, helperFunctions, myApp_abcdef, template_nkhlsq
+        # Valid: myPage, helperFunctions
         # Invalid: MyPage, my_page, MYPAGE, 2myPage, helper_functions
         
         # Pure lowerCamelCase (no underscores)
         pure_camel_case = re.compile(r'^[a-z][a-zA-Z0-9]*$')
-        
-        # App ID format: name_postfix (postfix is 6 lowercase letters)
-        app_id_format = re.compile(r'^[a-z][a-zA-Z0-9]*_[a-z]{6}$')
-        
+
         # Check if it matches either pattern
-        if not (pure_camel_case.match(filename) or app_id_format.match(filename)):
+        if not (pure_camel_case.match(filename)):
             yield Finding(
                 rule=self,
-                message=f"File '{filename_with_ext}' doesn't follow lowerCamelCase naming convention. Should start with lowercase letter and use camelCase (e.g., 'myPage.pmd', 'helperFunctions.script'). App ID format is also allowed (e.g., 'myApp_abcdef.amd').",
+                message=f"File '{filename_with_ext}' doesn't follow lowerCamelCase naming convention. Should start with lowercase letter and use camelCase (e.g., 'myPage.pmd', 'helperFunctions.script').",
                 file_path=file_path,
                 line=1
             )

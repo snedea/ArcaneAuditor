@@ -1,7 +1,7 @@
 """Unit tests for FileNameLowerCamelCaseRule."""
 
 from parser.rules.structure.validation.file_name_lower_camel_case import FileNameLowerCamelCaseRule
-from parser.models import PMDModel, PodModel, AMDModel, SMDModel, ScriptModel, ProjectContext
+from parser.models import PMDModel, PodModel, ScriptModel, ProjectContext
 
 
 class TestFileNameLowerCamelCaseRule:
@@ -117,70 +117,6 @@ class TestFileNameLowerCamelCaseRule:
         findings = list(rule.analyze(context))
         assert len(findings) == 1
         assert "Footer_Pod.pod" in findings[0].message
-
-    def test_valid_amd_filename(self):
-        """Test that valid lowerCamelCase AMD filenames pass."""
-        rule = FileNameLowerCamelCaseRule()
-        context = ProjectContext()
-        
-        amd_data = {
-            "routes": {},
-            "file_path": "myApp_abcdef.amd"
-        }
-        amd_model = AMDModel(**amd_data)
-        context.amd = amd_model
-        
-        findings = list(rule.analyze(context))
-        assert len(findings) == 0
-
-    def test_invalid_amd_filename(self):
-        """Test that invalid AMD filenames are flagged."""
-        rule = FileNameLowerCamelCaseRule()
-        context = ProjectContext()
-        
-        amd_data = {
-            "routes": {},
-            "file_path": "MyApp_abcdef.amd"
-        }
-        amd_model = AMDModel(**amd_data)
-        context.amd = amd_model
-        
-        findings = list(rule.analyze(context))
-        assert len(findings) == 1
-        assert "MyApp_abcdef.amd" in findings[0].message
-
-    def test_valid_smd_filename(self):
-        """Test that valid lowerCamelCase SMD filenames pass."""
-        rule = FileNameLowerCamelCaseRule()
-        context = ProjectContext()
-        
-        smd_model = SMDModel(
-            id="site1",
-            applicationId="myApp_abcdef",
-            siteId="site1",
-            file_path="myApp_abcdef.smd"
-        )
-        context.smd = smd_model
-        
-        findings = list(rule.analyze(context))
-        assert len(findings) == 0
-
-    def test_invalid_smd_filename(self):
-        """Test that invalid SMD filenames are flagged."""
-        rule = FileNameLowerCamelCaseRule()
-        context = ProjectContext()
-        
-        smd_model = SMDModel(
-            id="site1",
-            applicationId="MyApp_abcdef",
-            siteId="site1",
-            file_path="MyApp_abcdef.smd"
-        )
-        context.smd = smd_model
-        
-        findings = list(rule.analyze(context))
-        assert len(findings) == 1
-        assert "MyApp_abcdef.smd" in findings[0].message
 
     def test_valid_script_filename(self):
         """Test that valid lowerCamelCase Script filenames pass."""
