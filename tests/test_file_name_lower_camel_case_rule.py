@@ -237,3 +237,38 @@ class TestFileNameLowerCamelCaseRule:
         assert len(findings) == 1
         assert "MyPage.pmd" in findings[0].message
 
+    def test_filename_with_underscore_prefix_not_stripped(self):
+        """Test that single-letter or short prefixes with underscores are not stripped as UUIDs."""
+        rule = FileNameLowerCamelCaseRule()
+        context = ProjectContext()
+        
+        # e_TestArrayNesting.pmd should NOT have 'e_' stripped (it's not a UUID)
+        # It should be flagged because it contains an underscore and doesn't follow lowerCamelCase
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "e_TestArrayNesting.pmd"
+        }
+        pmd_model = PMDModel(**pmd_data)
+        context.pmds = {"testPage": pmd_model}
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1, "Should flag e_TestArrayNesting.pmd as invalid (contains underscore)"
+        assert "e_TestArrayNesting.pmd" in findings[0].message, "Error message should contain the original filename"
+        assert "lowerCamelCase" in findings[0].message
+
+    def test_uuid_prefix_stripped_correctly(self):
+        """Test that actual UUID prefixes are correctly stripped before validation."""
+        rule = FileNameLowerCamelCaseRule()
+        context = ProjectContext()
+        
+        # Valid UUID prefix should be stripped, leaving valid lowerCamelCase filename
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "50356922-5e0c-454f-a39a-2b8ca88c379c_myPage.pmd"
+        }
+        pmd_model = PMDModel(**pmd_data)
+        context.pmds = {"testPage": pmd_model}
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 0, "UUID prefix should be stripped, leaving valid lowerCamelCase filename"
+
