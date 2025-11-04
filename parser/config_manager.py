@@ -14,7 +14,7 @@ This ensures user customizations survive application updates.
 from pathlib import Path
 from typing import Dict, Optional
 from .config import ArcaneAuditorConfig
-from arcane_paths import get_config_dirs
+from utils.arcane_paths import get_config_dirs
 
 
 class ConfigurationManager:

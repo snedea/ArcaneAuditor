@@ -61,7 +61,8 @@ def resource_path(rel: str) -> str:
     """
     if is_frozen():
         return os.path.normpath(os.path.join(sys._MEIPASS, rel))
-    return os.path.normpath(os.path.join(os.path.dirname(__file__), rel))
+    # When not frozen, go up one level from utils/ to project root
+    return os.path.normpath(os.path.join(os.path.dirname(os.path.dirname(__file__)), rel))
 
 
 def user_root() -> str:
@@ -107,7 +108,9 @@ def get_rule_dirs():
     
     # Use local custom rules directory in developer mode, AppData in frozen mode
     if is_developer_mode():
-        user_rules = os.path.join(os.path.dirname(__file__), "parser", "rules", "custom", "user")
+        # Go up one level from utils/ to project root
+        project_root = os.path.dirname(os.path.dirname(__file__))
+        user_rules = os.path.join(project_root, "parser", "rules", "custom", "user")
     else:
         user_rules = os.path.join(user_root(), "parser", "rules", "custom", "user")
     
@@ -130,7 +133,9 @@ def get_config_dirs():
         dict: Dictionary with 'presets', 'teams', and 'personal' directory paths
     """
     root = user_root()
-    local_base = os.path.join(os.path.dirname(__file__), "config")
+    # Go up one level from utils/ to project root
+    project_root = os.path.dirname(os.path.dirname(__file__))
+    local_base = os.path.join(project_root, "config")
 
     # Developer mode: prefer local repo structure
     if is_developer_mode():

@@ -10,7 +10,7 @@ from .models import ProjectContext
 from . import rules
 from .rules.base import Rule, Finding
 from .config import ArcaneAuditorConfig
-from arcane_paths import get_rule_dirs
+from utils.arcane_paths import get_rule_dirs
 
 class RulesEngine:
     """Discovers, loads, and runs all analysis rules."""

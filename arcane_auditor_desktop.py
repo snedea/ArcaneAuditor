@@ -57,7 +57,7 @@ def show_immediate_splash():
     logo_html = '<div style="width: 500px; height: 500px; margin: 0 auto; background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 100px;">🧙</div>'
     
     try:
-        from arcane_paths import resource_path
+        from utils.arcane_paths import resource_path
         import base64
         
         splash_logo_path = Path(resource_path("assets/arcane-auditor-splash.webp"))
@@ -134,7 +134,7 @@ def main():
     # NOW do heavy imports and initialization in background
     def initialize_app():
         # Heavy imports happen here (after splash is visible)
-        from arcane_paths import is_frozen
+        from utils.arcane_paths import is_frozen
         from web.server import app, load_web_config, ensure_sample_rule_config
         import uvicorn
         
@@ -208,7 +208,7 @@ def main():
     init_thread.start()
 
     # Prepare storage directory
-    from arcane_paths import user_root
+    from utils.arcane_paths import user_root
     storage_dir = os.path.join(user_root(), '.user_preferences')
     os.makedirs(storage_dir, exist_ok=True)
     

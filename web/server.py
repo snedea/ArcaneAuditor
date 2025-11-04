@@ -30,7 +30,7 @@ from pydantic import BaseModel
 import uvicorn
 
 # Arcane paths for path resolution
-from arcane_paths import (
+from utils.arcane_paths import (
     get_config_dirs,
     resource_path,
     ensure_sample_rule_config,

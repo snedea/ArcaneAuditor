@@ -7,7 +7,7 @@ from parser.app_parser import ModelParser
 from parser.config import ArcaneAuditorConfig
 from parser.config_manager import load_configuration, get_config_manager
 from output.formatter import OutputFormatter, OutputFormat
-from arcane_paths import ensure_sample_rule_config
+from utils.arcane_paths import ensure_sample_rule_config
 
 app = typer.Typer(add_completion=False, help="Arcane Auditor CLI: A mystical code review tool for Workday Extend applications - part of Developers and Dragons")
 
