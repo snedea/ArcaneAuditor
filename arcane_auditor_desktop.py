@@ -125,8 +125,18 @@ def main():
     """
     Main entry point for the desktop application.
     
-    Shows splash immediately, then loads everything else in background.
-    """
+    Check for read-only location, shows splash immediately, then loads everything else in background.
+    """ 
+    
+    # ========================================================================
+    # CRITICAL: Check for read-only location BEFORE showing splash
+    # This handles DMGs with no write access due to mounting as read-only.
+    # ========================================================================
+    from utils.dmg_detector import check_and_warn_if_dmg
+    
+    if not check_and_warn_if_dmg():
+        # DMG detected - exit cleanly
+        sys.exit(0)
     
     # Show splash IMMEDIATELY before heavy imports
     splash = show_immediate_splash()
