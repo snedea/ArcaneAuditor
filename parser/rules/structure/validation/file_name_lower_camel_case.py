@@ -21,9 +21,11 @@ class FileNameLowerCamelCaseRule(Rule):
     - PMD files
     - POD files
     - Script files
+    - AMD file
+    - SMD file
     
     Valid pattern: starts with lowercase letter, followed by letters/numbers
-    Examples: myPage.pmd, helperFunctions.script
+    Examples: myPage.pmd, helperFunctions.script, myApp_abcdef.amd, myApp_abcdef.smd
     """
     
     ID = "FileNameLowerCamelCaseRule"
@@ -55,6 +57,14 @@ class FileNameLowerCamelCaseRule(Rule):
         # Check Script files
         for script_model in context.scripts.values():
             yield from self._check_filename(script_model.file_path)
+        
+        # Check AMD file
+        if context.amd:
+            yield from self._check_filename(context.amd.file_path)
+        
+        # Check SMD file
+        if context.smd:
+            yield from self._check_filename(context.smd.file_path)
     
     def _check_filename(self, file_path: str) -> Generator[Finding, None, None]:
         """
@@ -85,8 +95,11 @@ class FileNameLowerCamelCaseRule(Rule):
         # Pure lowerCamelCase (no underscores)
         pure_camel_case = re.compile(r'^[a-z][a-zA-Z0-9]*$')
 
+        # AMD/SMD may have _<app_id>, which is a 6 letter suffix
+        amd_smd_pattern = re.compile(r'^[a-z][a-zA-Z0-9]*_[a-zA-Z]{6}$')
+
         # Check if it matches either pattern
-        if not (pure_camel_case.match(filename)):
+        if not (pure_camel_case.match(filename) or amd_smd_pattern.match(filename)):
             yield Finding(
                 rule=self,
                 message=f"File '{filename_with_ext}' doesn't follow lowerCamelCase naming convention. Should start with lowercase letter and use camelCase (e.g., 'myPage.pmd', 'helperFunctions.script').",

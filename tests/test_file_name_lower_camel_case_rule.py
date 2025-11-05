@@ -1,7 +1,7 @@
 """Unit tests for FileNameLowerCamelCaseRule."""
 
 from parser.rules.structure.validation.file_name_lower_camel_case import FileNameLowerCamelCaseRule
-from parser.models import PMDModel, PodModel, ScriptModel, ProjectContext
+from parser.models import PMDModel, PodModel, ScriptModel, AMDModel, SMDModel, ProjectContext
 
 
 class TestFileNameLowerCamelCaseRule:
@@ -271,4 +271,90 @@ class TestFileNameLowerCamelCaseRule:
         
         findings = list(rule.analyze(context))
         assert len(findings) == 0, "UUID prefix should be stripped, leaving valid lowerCamelCase filename"
+
+    def test_valid_amd_filename(self):
+        """Test that valid lowerCamelCase AMD filenames pass."""
+        rule = FileNameLowerCamelCaseRule()
+        context = ProjectContext()
+        
+        amd_data = {
+            "routes": {},
+            "file_path": "myApp.amd"
+        }
+        amd_model = AMDModel(**amd_data)
+        context.amd = amd_model
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 0
+
+    def test_invalid_amd_filename(self):
+        """Test that invalid AMD filenames are flagged."""
+        rule = FileNameLowerCamelCaseRule()
+        context = ProjectContext()
+        
+        amd_data = {
+            "routes": {},
+            "file_path": "My_App.amd"
+        }
+        amd_model = AMDModel(**amd_data)
+        context.amd = amd_model
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert "My_App.amd" in findings[0].message
+        assert "lowerCamelCase" in findings[0].message
+
+    def test_valid_smd_filename(self):
+        """Test that valid lowerCamelCase SMD filenames pass."""
+        rule = FileNameLowerCamelCaseRule()
+        context = ProjectContext()
+        
+        smd_data = {
+            "id": "testSite",
+            "applicationId": "testApp",
+            "siteId": "testSite",
+            "file_path": "mySite.smd"
+        }
+        smd_model = SMDModel(**smd_data)
+        context.smd = smd_model
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 0
+
+    def test_invalid_smd_filename(self):
+        """Test that invalid SMD filenames are flagged."""
+        rule = FileNameLowerCamelCaseRule()
+        context = ProjectContext()
+        
+        smd_data = {
+            "id": "testSite",
+            "applicationId": "testApp",
+            "siteId": "testSite",
+            "file_path": "My_Site.smd"
+        }
+        smd_model = SMDModel(**smd_data)
+        context.smd = smd_model
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert "My_Site.smd" in findings[0].message
+        assert "lowerCamelCase" in findings[0].message
+
+    def test_amd_and_smd_missing_no_error(self):
+        """Test that missing AMD and SMD files don't cause errors."""
+        rule = FileNameLowerCamelCaseRule()
+        context = ProjectContext()
+        
+        # Add a PMD file
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "myPage.pmd"
+        }
+        pmd_model = PMDModel(**pmd_data)
+        context.pmds = {"testPage": pmd_model}
+        
+        # Don't set context.amd or context.smd (they remain None)
+        findings = list(rule.analyze(context))
+        # Should only check PMD, no errors for missing AMD/SMD
+        assert len(findings) == 0
 
