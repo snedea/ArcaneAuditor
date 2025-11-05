@@ -57,11 +57,8 @@ def is_running_from_dmg() -> bool:
     # Ask macOS what mounts this path
     try:
         df_output = subprocess.check_output(["/bin/df", root_path], text=True).lower()
-        # DMG mounts show /dev/disk* AND usually include 'image'
-        if "disk" in df_output and "image" in df_output:
-            return True
-        # Secondary safety: must be read-only AND under Volumes
-        if "read-only" in df_output:
+        # DMG mounts show /dev/disk* AND usually include 'read-only'
+        if "disk" in df_output and "read-only" in df_output:
             return True
     except Exception:
         pass
@@ -103,11 +100,11 @@ def show_dmg_warning_and_exit() -> None:
 def check_and_exit_if_dmg() -> bool:
     """
     Call at program start.
-    Returns False if running from DMG and exits after showing warning.
-    Returns True otherwise.
+    Returns True if running from DMG and exits after showing warning.
+    Returns False otherwise.
     """
     if is_running_from_dmg():
         show_dmg_warning_and_exit()
-        return False  # unreachable after exit, but semantically clear
+        return True
     
-    return True
+    return False
