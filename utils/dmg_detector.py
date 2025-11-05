@@ -100,10 +100,14 @@ def show_dmg_warning_and_exit() -> None:
 # Entry helper
 # -----------------------------------------------------------------------------
 
-def check_and_exit_if_dmg() -> None:
+def check_and_exit_if_dmg() -> bool:
     """
     Call at program start.
-    If running from DMG, show dialog and exit.
+    Returns False if running from DMG and exits after showing warning.
+    Returns True otherwise.
     """
     if is_running_from_dmg():
         show_dmg_warning_and_exit()
+        return False  # unreachable after exit, but semantically clear
+    
+    return True
