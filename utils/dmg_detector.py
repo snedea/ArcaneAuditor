@@ -76,13 +76,11 @@ def is_running_from_dmg() -> bool:
 def _show_osx_alert(title: str, message: str) -> None:
     """Display a blocking macOS dialog via osascript."""
     try:
-        open("/tmp/aa_dialog_attempt.log", "a").write("Tried to show dialog\n")
         subprocess.run([
             "/usr/bin/osascript", "-e",
             f'display alert "{title}" message "{message}" as critical buttons {{"OK"}}'
         ])
     except Exception:
-        open("/tmp/aa_dialog_attempt.log", "a").write("Failed to show dialog\n")
         pass
 
 
