@@ -159,6 +159,100 @@ class TestWidgetIdLowerCamelCaseRule:
         assert not self.rule._is_lower_camel_case("my-field")
         assert not self.rule._is_lower_camel_case("123field")
 
+    def test_widget_id_in_tabs_invalid_naming_flagged(self):
+        """Test that widget IDs in tabs with invalid naming are flagged."""
+        from parser.models import PMDModel
+        
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "source_content": '''{
+  "presentation": {
+    "body": {},
+    "tabs": [
+      {
+        "type": "section",
+        "children": [
+          {
+            "type": "text",
+            "id": "MyField",
+            "value": "Hello"
+          }
+        ]
+      }
+    ]
+  }
+}''',
+            "presentation": {
+                "body": {},
+                "tabs": [
+                    {
+                        "type": "section",
+                        "children": [
+                            {
+                                "type": "text",
+                                "id": "MyField",
+                                "value": "Hello"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 1
+        assert "MyField" in findings[0].message
+        assert "lowercamelcase" in findings[0].message.lower() or "camelcase" in findings[0].message.lower()
+
+    def test_widget_id_in_tabs_valid_naming_not_flagged(self):
+        """Test that widget IDs in tabs with valid naming are not flagged."""
+        from parser.models import PMDModel
+        
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "source_content": '''{
+  "presentation": {
+    "body": {},
+    "tabs": [
+      {
+        "type": "section",
+        "children": [
+          {
+            "type": "text",
+            "id": "myField",
+            "value": "Hello"
+          }
+        ]
+      }
+    ]
+  }
+}''',
+            "presentation": {
+                "body": {},
+                "tabs": [
+                    {
+                        "type": "section",
+                        "children": [
+                            {
+                                "type": "text",
+                                "id": "myField",
+                                "value": "Hello"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

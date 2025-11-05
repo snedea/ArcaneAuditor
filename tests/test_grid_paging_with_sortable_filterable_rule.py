@@ -343,3 +343,96 @@ class TestGridPagingWithSortableFilterableRule:
         findings = list(rule.analyze(context))
         assert len(findings) == 0
 
+    def test_grid_in_tabs_with_paging_and_sortable(self):
+        """Test that grid in tabs section with paging and sortableAndFilterable is flagged."""
+        rule = GridPagingWithSortableFilterableRule()
+        context = ProjectContext()
+        
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "presentation": {
+                "body": {},
+                "tabs": [
+                    {
+                        "type": "section",
+                        "children": [
+                            {
+                                "type": "grid",
+                                "id": "workersGrid",
+                                "autoPaging": True,
+                                "columns": [
+                                    {
+                                        "columnId": "workerName",
+                                        "sortableAndFilterable": True
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        context.pmds = {"testPage": pmd_model}
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 1
+        assert "workersGrid" in findings[0].message or "grid" in findings[0].message.lower()
+        assert "paging" in findings[0].message.lower()
+        assert "sortableAndFilterable" in findings[0].message
+
+    def test_grid_in_multiple_tabs_analyzed(self):
+        """Test that grids in multiple tabs are all analyzed."""
+        rule = GridPagingWithSortableFilterableRule()
+        context = ProjectContext()
+        
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "presentation": {
+                "body": {},
+                "tabs": [
+                    {
+                        "type": "section",
+                        "children": [
+                            {
+                                "type": "grid",
+                                "id": "grid1",
+                                "autoPaging": True,
+                                "columns": [
+                                    {
+                                        "columnId": "col1",
+                                        "sortableAndFilterable": True
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "section",
+                        "children": [
+                            {
+                                "type": "grid",
+                                "id": "grid2",
+                                "autoPaging": True,
+                                "columns": [
+                                    {
+                                        "columnId": "col2",
+                                        "sortableAndFilterable": True
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        context.pmds = {"testPage": pmd_model}
+        
+        findings = list(rule.analyze(context))
+        assert len(findings) == 2
+        assert any("grid1" in f.message or "col1" in f.message for f in findings)
+        assert any("grid2" in f.message or "col2" in f.message for f in findings)
+

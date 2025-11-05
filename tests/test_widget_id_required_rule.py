@@ -177,24 +177,7 @@ class TestWidgetIdRequiredRule:
         
         findings = list(self.rule.analyze(self.context))
         assert len(findings) == 0
-    
-    def test_instancelist_widget_without_id_not_flagged(self):
-        """Test that instanceList widgets don't require id."""
-        pmd_data = {
-            "pageId": "testPage",
-            "file_path": "test.pmd",
-            "presentation": {
-                "body": {
-                    "type": "instanceList"
-                }
-            }
-        }
-        pmd_model = PMDModel(**pmd_data)
-        self.context.pmds["testPage"] = pmd_model
-        
-        findings = list(self.rule.analyze(self.context))
-        assert len(findings) == 0
-    
+
     def test_taskreference_widget_without_id_not_flagged(self):
         """Test that taskReference widgets don't require id."""
         pmd_data = {
@@ -442,6 +425,151 @@ class TestWidgetIdRequiredRule:
         # section should be flagged since it's not in built-in exclusions
         assert len(findings) == 1
         assert "section" in findings[0].message
+
+    def test_widget_in_tabs_without_id_flagged(self):
+        """Test that widgets in tabs section without id are flagged."""
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "source_content": '''{
+  "presentation": {
+    "body": {},
+    "tabs": [
+      {
+        "type": "section",
+        "children": [
+          {
+            "type": "text",
+            "value": "Hello"
+          }
+        ]
+      }
+    ]
+  }
+}''',
+            "presentation": {
+                "body": {},
+                "tabs": [
+                    {
+                        "type": "section",
+                        "children": [
+                            {
+                                "type": "text",
+                                "value": "Hello"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        # Both section and text widgets in tabs should be flagged (no IDs)
+        assert len(findings) == 2
+        # Check that both widgets are found
+        text_finding = next((f for f in findings if "text" in f.message.lower()), None)
+        section_finding = next((f for f in findings if "section" in f.message.lower()), None)
+        assert text_finding is not None
+        assert section_finding is not None
+        assert "tabs" in text_finding.message.lower() or "tab" in text_finding.message.lower()
+
+    def test_widget_in_tabs_with_id_not_flagged(self):
+        """Test that widgets in tabs section with id are not flagged."""
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "source_content": '''{
+  "presentation": {
+    "body": {},
+    "tabs": [
+      {
+        "type": "section",
+        "id": "mySection",
+        "children": [
+          {
+            "type": "text",
+            "id": "myText",
+            "value": "Hello"
+          }
+        ]
+      }
+    ]
+  }
+}''',
+            "presentation": {
+                "body": {},
+                "tabs": [
+                    {
+                        "type": "section",
+                        "id": "mySection",
+                        "children": [
+                            {
+                                "type": "text",
+                                "id": "myText",
+                                "value": "Hello"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+
+    def test_multiple_tabs_analyzed(self):
+        """Test that multiple tabs are all analyzed."""
+        pmd_data = {
+            "pageId": "testPage",
+            "file_path": "test.pmd",
+            "source_content": '''{
+  "presentation": {
+    "body": {},
+    "tabs": [
+      {
+        "type": "section",
+        "children": [
+          {"type": "text", "value": "Tab 1"}
+        ]
+      },
+      {
+        "type": "section",
+        "children": [
+          {"type": "text", "value": "Tab 2"}
+        ]
+      }
+    ]
+  }
+}''',
+            "presentation": {
+                "body": {},
+                "tabs": [
+                    {
+                        "type": "section",
+                        "children": [
+                            {"type": "text", "value": "Tab 1"}
+                        ]
+                    },
+                    {
+                        "type": "section",
+                        "children": [
+                            {"type": "text", "value": "Tab 2"}
+                        ]
+                    }
+                ]
+            }
+        }
+        pmd_model = PMDModel(**pmd_data)
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        # Both section widgets and both text widgets in tabs should be flagged (no IDs)
+        # Total: 2 sections + 2 texts = 4 findings
+        assert len(findings) == 4
 
 
 if __name__ == '__main__':

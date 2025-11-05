@@ -47,6 +47,14 @@ class GridPagingWithSortableFilterableRule(StructureRuleBase):
                 for widget, path, index, parent_type, container_name in self.traverse_presentation_structure(section_data, section_name):
                     if isinstance(widget, dict) and widget.get('type') == 'grid':
                         yield from self._check_grid_paging_and_sortable(widget, pmd_model, section_name, path)
+            elif isinstance(section_data, list):
+                # Handle tabs list (tabs is a list of section widgets)
+                for i, tab_item in enumerate(section_data):
+                    if isinstance(tab_item, dict):
+                        tab_path = f"{section_name}.{i}"
+                        for widget, path, index, parent_type, container_name in self.traverse_presentation_structure(tab_item, tab_path):
+                            if isinstance(widget, dict) and widget.get('type') == 'grid':
+                                yield from self._check_grid_paging_and_sortable(widget, pmd_model, section_name, path)
     
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze POD model for grids with paging and sortableAndFilterable columns."""
