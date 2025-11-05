@@ -136,6 +136,9 @@ def main():
     
     if not check_and_warn_if_dmg():
         # DMG detected - exit cleanly
+        open("/tmp/aa_dmg_triggered.log", "a").write("DMG path hit\n")
+        open("/tmp/aa_dmg_triggered.log", "a").write(f"DMG path: {os.getcwd()}\n")
+    
         sys.exit(0)
     
     # Show splash IMMEDIATELY before heavy imports
