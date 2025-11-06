@@ -8,8 +8,19 @@ from parser.config import ArcaneAuditorConfig
 from parser.config_manager import load_configuration, get_config_manager
 from output.formatter import OutputFormatter, OutputFormat
 from utils.arcane_paths import ensure_sample_rule_config
+from __version__ import __version__
 
 app = typer.Typer(add_completion=False, help="Arcane Auditor CLI: A mystical code review tool for Workday Extend applications - part of Developers and Dragons")
+
+@app.callback(invoke_without_command=True)
+def main_callback(
+    ctx: typer.Context,
+    version: bool = typer.Option(False, "--version", "-v", help="Show version and exit", is_eager=True)
+):
+    """Arcane Auditor CLI: A mystical code review tool for Workday Extend applications."""
+    if version:
+        typer.echo(f"Arcane Auditor v{__version__}")
+        raise typer.Exit()
 
 # Ensure sample rule config is seeded
 ensure_sample_rule_config()
