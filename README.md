@@ -43,7 +43,7 @@ Get the latest build from [GitHub Releases](https://github.com/Developers-and-Dr
 | Platform                      | File                                | Description                                                        |
 | ----------------------------- | ----------------------------------- | ------------------------------------------------------------------ |
 | 🪟**Windows (Desktop)** | `ArcaneAuditor.exe`               | Full desktop app — double-click to launch                         |
-| 🍎**macOS (Desktop)**   | `ArcaneAuditor_macOS_Desktop.dmg` | Double click DMG, drag**Arcane Auditor.app** to Applications |
+| 🍎**macOS (Desktop)**   | `ArcaneAuditor_macOS_Desktop.dmg` | Double click DMG, drag **Arcane Auditor.app** to Applications |
 | ⚙️**Windows (CLI)**   | `ArcaneAuditorCLI.exe`            | Command-line analyzer for automation and CI/CD                     |
 | ⚙️**macOS (CLI)**     | `ArcaneAuditor_macOS_CLI.zip`     | Unzip and run `ArcaneAuditorCLI` from Terminal                   |
 
