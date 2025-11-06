@@ -26,7 +26,8 @@ class ArcaneAuditorApp {
         this.initializeEventListeners();
         this.configManager.initializeTheme();
         this.configManager.loadConfigurations();
-        this.loadVersion();
+        // Load version asynchronously after initialization
+        this.loadVersion().catch(err => console.error('Failed to load version:', err));
     }
 
     initializeEventListeners() {
@@ -460,6 +461,28 @@ class ArcaneAuditorApp {
         // Re-render configurations to ensure selected config appears at top
         this.configManager.renderConfigurations();
     }
+
+    async loadVersion() {
+        try {
+            const response = await fetch('/api/health');
+            const data = await response.json();
+            if (data.version) {
+                const versionElement = document.getElementById('version-info');
+                if (versionElement) {
+                    versionElement.textContent = `v${data.version}`;
+                    versionElement.title = `Arcane Auditor version ${data.version}`;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load version:', error);
+            // If fetch fails, show "v?" to indicate version unavailable
+            const versionElement = document.getElementById('version-info');
+            if (versionElement) {
+                versionElement.textContent = 'v?';
+                versionElement.title = 'Version unavailable';
+            }
+        }
+    }
 }
 
 // Initialize the app
@@ -506,29 +529,6 @@ window.updateSortBy = function(value) {
 
 window.updateSortFilesBy = function(value) {
     app.resultsRenderer.updateSortFilesBy(value);
-};
-
-// Load version from API
-ArcaneAuditorApp.prototype.loadVersion = async function() {
-    try {
-        const response = await fetch('/api/health');
-        const data = await response.json();
-        if (data.version) {
-            const versionElement = document.getElementById('version-info');
-            if (versionElement) {
-                versionElement.textContent = `v${data.version}`;
-                versionElement.title = `Arcane Auditor version ${data.version}`;
-            }
-        }
-    } catch (error) {
-        console.error('Failed to load version:', error);
-        // If fetch fails, show "v?" to indicate version unavailable
-        const versionElement = document.getElementById('version-info');
-        if (versionElement) {
-            versionElement.textContent = 'v?';
-            versionElement.title = 'Version unavailable';
-        }
-    }
 };
 
 export default app;
