@@ -1,5 +1,11 @@
 """
-Utility to detect if the application is running from a DMG on macOS.
+Detect and warn if Arcane Auditor is running from a DMG on macOS.
+
+This version strikes a balance between simplicity and reliability:
+- Checks if the app resides under /Volumes (case-insensitive)
+- Uses statvfs() to verify the volume is actually read-only
+- Avoids brittle parsing of 'mount' or 'df' output
+- Uses only Python stdlib and osascript (no PyObjC)
 """
 
 import os
@@ -7,59 +13,42 @@ import sys
 import subprocess
 from pathlib import Path
 
-# -----------------------------------------------------------------------------
-# Location resolution (works inside PyInstaller bundle)
-# -----------------------------------------------------------------------------
-
-def _get_app_root() -> Path:
-    """
-    Return the .app bundle root when frozen, otherwise script directory.
-    Example bundle path:
-      /Applications/ArcaneAuditor.app/Contents/MacOS/ArcaneAuditor
-    """
-    exe = Path(sys.executable).resolve()
-
-    # Walk up to .app if bundled
-    parents = list(exe.parents)
-    for idx, p in enumerate(parents):
-        if p.name == "Contents" and idx + 1 < len(parents) and parents[idx + 1].suffix == ".app":
-            return parents[idx + 1]  # the .app dir
-
-    # Not bundled — return working dir
-    return Path.cwd()
-
 
 # -----------------------------------------------------------------------------
-# DMG detection logic
+# Core Detection
 # -----------------------------------------------------------------------------
 
 def is_running_from_dmg() -> bool:
     """
-    Returns True if app is running directly from a DMG volume.
-    Handles APFS sealed system false positives.
+    Returns True if the application is running from a DMG or another read-only
+    /Volumes/ mount. This works reliably across macOS versions and APFS setups.
     """
-
-    # Not macOS? Never a DMG.
     if sys.platform != "darwin":
         return False
 
-    # Developer override
-    if os.getenv("AA_DEV_NO_DMG"):
-        return False
-
-    app_root = _get_app_root()
-    root_path = str(app_root)
-
-    # Must be under /Volumes to even be considered a DMG
-    if not root_path.startswith("/Volumes/"):
-        return False
-
-    # Ask macOS what mounts this path
     try:
-        df_output = subprocess.check_output(["/bin/df", root_path], text=True).lower()
-        # DMG mounts show /dev/disk* AND usually include 'read-only'
-        if "disk" in df_output and "read-only" in df_output:
+        # Determine executable or script path
+        app_path = Path(sys.executable if getattr(sys, "frozen", False) else __file__).resolve()
+
+        # Must live under /Volumes/<something> (case-insensitive)
+        parts_lower = [p.lower() for p in app_path.parts]
+        if len(parts_lower) >= 3 and parts_lower[1] == "volumes":
+            # Use original-case volume name for statvfs
+            volume = f"/Volumes/{app_path.parts[2]}"
+
+            # Check if the mount is read-only
+            try:
+                stats = os.statvfs(volume)
+                if not (stats.f_flag & getattr(os, "ST_RDONLY", 1)):
+                    # Volume is writable → probably external drive, not DMG
+                    return False
+            except Exception:
+                # If statvfs fails, err on the side of caution
+                pass
+
+            # Under /Volumes/ and read-only → treat as DMG
             return True
+
     except Exception:
         pass
 
@@ -67,44 +56,43 @@ def is_running_from_dmg() -> bool:
 
 
 # -----------------------------------------------------------------------------
-# UI / Exit
+# User Dialog + Exit
 # -----------------------------------------------------------------------------
 
-def _show_osx_alert(title: str, message: str) -> None:
-    """Display a blocking macOS dialog via osascript."""
-    try:
-        subprocess.run([
-            "/usr/bin/osascript", "-e",
-            f'display alert "{title}" message "{message}" as critical buttons {{"OK"}}'
-        ])
-    except Exception:
-        pass
-
-
 def show_dmg_warning_and_exit() -> None:
-    """Notify the user and quit."""
+    """
+    Show a blocking macOS alert via osascript and exit immediately.
+    """
     title = "Arcane Auditor"
     message = (
         "Arcane Auditor cannot run directly from a DMG.\n\n"
-        "Please drag it to your Applications folder or a personal folder, and run it from there."
+        "Please drag it to your Applications folder or another writable location, "
+        "then run it from there."
     )
 
-    _show_osx_alert(title, message)
+    try:
+        subprocess.run(
+            [
+                "/usr/bin/osascript",
+                "-e",
+                f'display alert "{title}" message "{message}" as critical buttons {{"OK"}}',
+            ],
+            check=False,
+        )
+    except Exception:
+        # If AppleScript fails silently (e.g., unsigned CI build), we still exit
+        pass
+
     sys.exit(1)
 
 
 # -----------------------------------------------------------------------------
-# Entry helper
+# Entry Helper
 # -----------------------------------------------------------------------------
 
-def check_and_exit_if_dmg() -> bool:
+def check_and_exit_if_dmg() -> None:
     """
-    Call at program start.
-    Returns True if running from DMG and exits after showing warning.
-    Returns False otherwise.
+    Call at application startup. If running from DMG, show warning and quit.
     """
     if is_running_from_dmg():
         show_dmg_warning_and_exit()
-        return True
-    
-    return False

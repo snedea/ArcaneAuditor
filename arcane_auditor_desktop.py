@@ -134,9 +134,8 @@ def main():
     # ========================================================================
     from utils.dmg_detector import check_and_exit_if_dmg
     
-    if not check_and_exit_if_dmg():
-        # DMG detected - exit cleanly
-        sys.exit(0)
+    # Check for DMG and exit if found
+    check_and_exit_if_dmg()
     
     # Show splash IMMEDIATELY before heavy imports
     splash = show_immediate_splash()
