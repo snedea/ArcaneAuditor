@@ -255,11 +255,14 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(periodic_cleanup())
     yield
 
+# Import version from centralized module
+from __version__ import __version__
+
 # Initialize FastAPI app
 app = FastAPI(
     title="Arcane Auditor API",
     description="Workday Extend Code Review Tool API",
-    version="0.4.0",
+    version=__version__,
     lifespan=lifespan
 )
 
@@ -672,7 +675,7 @@ async def serve_index():
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "version": "0.1.3"}
+    return {"status": "healthy", "version": __version__}
 
 # Mount static files at /static to avoid conflicts with API routes
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
