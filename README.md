@@ -6,7 +6,7 @@
 
 ![Version](https://img.shields.io/badge/version-1.2.0-blue?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
-[![Support](https://img.shields.io/badge/🪄-Support_This_Project-yellow?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
+[![Support](https://img.shields.io/badge/🪄-Support_This_Project-purple?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
 
 ---
 
