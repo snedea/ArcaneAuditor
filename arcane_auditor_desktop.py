@@ -107,8 +107,11 @@ def show_immediate_splash():
         x_pos = None
         y_pos = None
     
+    # Import version for window title
+    from __version__ import __version__
+    
     splash = webview.create_window(
-        title='Arcane Auditor',
+        title=f'Arcane Auditor v{__version__}',
         html=splash_html,
         width=window_width,
         height=window_height,
@@ -189,8 +192,9 @@ def main():
         
         # Create main window
         global window
+        from __version__ import __version__
         window = webview.create_window(
-            title='Arcane Auditor',
+            title=f'Arcane Auditor v{__version__}',
             url=f'http://{host}:{port}',
             width=1400,
             height=900,
