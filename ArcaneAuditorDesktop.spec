@@ -40,6 +40,9 @@ datas = [
         # --- Frontend files (HTML, CSS, JS) ---
         ("web/frontend", "web/frontend"),
 
+        # --- Metadata for versioning ---
+        ("pyproject.toml", "."),
+
         # --- Grammar for PMD parsing ---
         ("parser/pmd_script_grammar.lark", "parser"),
     ]
