@@ -23,7 +23,7 @@ sys.path.insert(0, str(project_root))
 
 # FastAPI imports
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Response
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -37,6 +37,7 @@ from utils.arcane_paths import (
     is_frozen,
     user_root,
 )
+from utils.preferences_manager import get_update_prefs
 
 
 # Configuration constants
@@ -676,6 +677,29 @@ async def serve_index():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "version": __version__}
+
+@app.get("/api/check-updates")
+async def check_updates():
+    """Check for available updates from GitHub."""
+    try:
+        from utils.update_checker import check_for_updates
+        info = check_for_updates(force=True)  # Bypass cache for manual check
+        return JSONResponse(info)
+    except Exception as e:
+        return JSONResponse({"error": str(e), "update_available": False})
+
+
+@app.get("/api/update-preferences")
+async def get_update_preferences_api():
+    """Return the current update detection preferences."""
+    try:
+        prefs = get_update_prefs()
+        return {
+            "enabled": prefs.get("enabled", False),
+            "first_run_completed": prefs.get("first_run_completed", False)
+        }
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 # Mount static files at /static to avoid conflicts with API routes
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
