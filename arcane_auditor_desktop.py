@@ -3,13 +3,11 @@ Arcane Auditor Desktop Application
 
 Runs the FastAPI web server in a background thread and displays the UI
 in a native desktop window using pywebview.
-
-No browser, no console - just a clean desktop application.
 """
 
 # MINIMAL imports first - only what we need for splash
+# This prevents heavy imports from slowing down the splash screen
 import webview
-from webview.menu import Menu, MenuAction
 import threading
 import time
 import sys
@@ -258,46 +256,6 @@ def main():
         global window
         from __version__ import __version__
         
-        # Helper functions for menu callbacks
-        def check_updates_callback():
-            """Menu callback for checking updates."""
-            try:
-                result = api.check_for_updates()
-                if result.get('success'):
-                    if result.get('update_available'):
-                        latest = result.get('latest_version', '')
-                        current = result.get('current_version', '')
-                        _show_alert(
-                            window,
-                            f"Update available!\n\n"
-                            f"Current version: {current}\n"
-                            f"Latest version: {latest}\n\n"
-                            f"Visit GitHub Releases to download."
-                        )
-                    else:
-                        _show_alert(window, "You are running the latest version!")
-                else:
-                    error = result.get('error', 'Unknown error')
-                    _show_alert(window, f"Update check failed: {error}")
-            except Exception as e:
-                _show_alert(window, f"Error checking for updates: {e}")
-        
-        def toggle_update_detection_callback():
-            """Menu callback for toggling update detection."""
-            _toggle_update_detection(window, api)
-        
-        # Create menu bar using pywebview Menu API
-        menu = [
-            Menu('File', [
-                Menu('About', [
-                    MenuAction('Check for Updates', check_updates_callback)
-                ])
-            ]),
-            Menu('Options', [
-                MenuAction('Enable Update Detection', toggle_update_detection_callback)
-            ])
-        ]
-        
         window = webview.create_window(
             title=f'Arcane Auditor v{__version__}',
             url=f'http://{host}:{port}',
@@ -311,8 +269,7 @@ def main():
             hidden=True,
             on_top=False,
             confirm_close=False,
-            js_api=api,
-            menu=menu
+            js_api=api
         )
         
         # Wait for window to be ready
@@ -470,24 +427,6 @@ def _show_confirmation(window, title, message):
                 window.set_on_top(False)
             except Exception:
                 pass
-
-
-def _toggle_update_detection(window, api):
-    """Toggle update detection preference."""
-    try:
-        from utils.preferences_manager import get_update_prefs, set_update_prefs
-        updates = get_update_prefs()
-        current_state = updates.get('enabled', False)
-        new_state = not current_state
-        
-        updates['enabled'] = new_state
-        if set_update_prefs(updates):
-            status = "enabled" if new_state else "disabled"
-            _show_alert(window, f"Update detection {status}")
-        else:
-            _show_alert(window, "Failed to save preference")
-    except Exception as e:
-        print(f"Error toggling update detection: {e}")
 
 
 def _handle_first_run_and_updates(window, api):
