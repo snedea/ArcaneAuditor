@@ -4,6 +4,7 @@ import { ConfigManager } from './config-manager.js';
 import { ResultsRenderer } from './results-renderer.js';
 import { downloadResults, getLastSortBy, getLastSortFilesBy } from './utils.js';
 import { showMagicalAnalysisComplete } from './magic-mode.js';
+import { DialogManager } from './dialog-manager.js';
 
 class ArcaneAuditorApp {
     constructor() {
@@ -19,6 +20,12 @@ class ArcaneAuditorApp {
             sortFilesBy: getLastSortFilesBy()
         };
         
+        this.updatePreferences = {
+            enabled: false,
+            first_run_completed: false
+        };
+        this.updatePreferencesPromise = null;
+
         // Initialize managers
         this.configManager = new ConfigManager(this);
         this.resultsRenderer = new ResultsRenderer(this);
@@ -26,7 +33,9 @@ class ArcaneAuditorApp {
         this.initializeEventListeners();
         this.configManager.initializeTheme();
         this.configManager.loadConfigurations();
-        // Load version asynchronously after initialization
+        // Load update preferences then version asynchronously after initialization
+        this.updatePreferencesPromise = this.loadUpdatePreferences();
+        this.updatePreferencesPromise.catch(err => console.error('Failed to load update preferences:', err));
         this.loadVersion().catch(err => console.error('Failed to load version:', err));
     }
 
@@ -122,6 +131,46 @@ class ArcaneAuditorApp {
         const errorMessage = document.getElementById('error-message');
         errorMessage.textContent = message;
         errorSection.style.display = 'block';
+    }
+
+    async ensureUpdatePreferencesLoaded() {
+        if (this.updatePreferencesPromise) {
+            try {
+                await this.updatePreferencesPromise;
+            } catch (error) {
+                console.error('Failed waiting for update preferences:', error);
+            } finally {
+                this.updatePreferencesPromise = null;
+            }
+        }
+    }
+
+    async loadUpdatePreferences() {
+        try {
+            const response = await fetch('/api/update-preferences');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+            if (typeof data.enabled === 'boolean') {
+                this.updatePreferences.enabled = data.enabled;
+            }
+            if (typeof data.first_run_completed === 'boolean') {
+                this.updatePreferences.first_run_completed = data.first_run_completed;
+            }
+        } catch (error) {
+            console.error('Failed to load update preferences:', error);
+            // Keep defaults (disabled) if we can't load preferences
+            this.updatePreferences.enabled = false;
+        }
+    }
+
+    resetVersionIndicator() {
+        const versionElement = document.getElementById('version-info');
+        if (!versionElement) return;
+        versionElement.classList.remove('update-available', 'pulse');
+        versionElement.style.cursor = 'default';
+        versionElement.onclick = null;
     }
 
     hideAllSections() {
@@ -284,12 +333,22 @@ class ArcaneAuditorApp {
 
     async uploadAndAnalyze() {
         if (this.selectedFiles.length === 0) {
-            alert('Please select a file or files to analyze');
+            const message = 'Please select a file or files to analyze';
+            if (DialogManager && typeof DialogManager.showAlert === 'function') {
+                DialogManager.showAlert(message);
+            } else {
+                alert(message);
+            }
             return;
         }
 
         if (!this.configManager.selectedConfig) {
-            alert('Please select a configuration');
+            const message = 'Please select a configuration';
+            if (DialogManager && typeof DialogManager.showAlert === 'function') {
+                DialogManager.showAlert(message);
+            } else {
+                alert(message);
+            }
             return;
         }
 
@@ -463,6 +522,7 @@ class ArcaneAuditorApp {
     }
 
     async loadVersion() {
+        await this.ensureUpdatePreferencesLoaded();
         try {
             const response = await fetch('/api/health');
             const data = await response.json();
@@ -471,6 +531,12 @@ class ArcaneAuditorApp {
                 if (versionElement) {
                     versionElement.textContent = `v${data.version}`;
                     versionElement.title = `Arcane Auditor version ${data.version}`;
+                    this.resetVersionIndicator();
+                }
+                
+                // Check for updates only if user has enabled detection
+                if (this.updatePreferences?.enabled) {
+                    this.checkForUpdates();
                 }
             }
         } catch (error) {
@@ -480,7 +546,69 @@ class ArcaneAuditorApp {
             if (versionElement) {
                 versionElement.textContent = 'v?';
                 versionElement.title = 'Version unavailable';
+                this.resetVersionIndicator();
             }
+        }
+    }
+    
+    async checkForUpdates() {
+        // Check for updates and update version display
+        if (!this.updatePreferences?.enabled) {
+            return;
+        }
+        try {
+            const response = await fetch('/api/check-updates');
+            const data = await response.json();
+            
+            if (data.update_available) {
+                this.updateVersionDisplay(data);
+            }
+        } catch (error) {
+            // Silent failure - don't show errors to user
+            console.error('Update check failed:', error);
+        }
+    }
+    
+    updateVersionDisplay(updateInfo) {
+        // Update version indicator to show update available
+        const versionElement = document.getElementById('version-info');
+        if (!versionElement) return;
+        
+        const latestVersion = updateInfo.latest_version || '';
+        const currentVersion = updateInfo.current_version || '';
+        
+        // Update display
+        versionElement.textContent = `v${latestVersion} available ⚡`;
+        versionElement.title = `Update available! Current: ${currentVersion}, Latest: ${latestVersion}. Click to check for updates.`;
+        
+        // Add classes for styling and interaction
+        versionElement.classList.add('update-available', 'pulse');
+        versionElement.style.cursor = 'pointer';
+        
+        // Add click handler
+        versionElement.onclick = () => {
+            // Show update notification or trigger manual check
+            this.showUpdateNotification(updateInfo);
+        };
+    }
+    
+    showUpdateNotification(updateInfo) {
+        // Show update notification dialog
+        const latest = updateInfo.latest_version || '';
+        const current = updateInfo.current_version || '';
+        const lines = [
+            `Current version: ${current}`,
+            `Latest version: ${latest}`,
+            'Visit GitHub Releases to download.'
+        ];
+        const fallbackMessage = `Update available!\n\n${lines.join('\n')}`;
+
+        if (DialogManager && typeof DialogManager.showUpdatePrompt === 'function') {
+            DialogManager.showUpdatePrompt('Update available! ⚡', lines).catch(() => {
+                alert(fallbackMessage);
+            });
+        } else {
+            alert(fallbackMessage);
         }
     }
 }
@@ -488,6 +616,7 @@ class ArcaneAuditorApp {
 // Initialize the app
 const app = new ArcaneAuditorApp();
 window.app = app; // Make app globally accessible
+window.DialogManager = window.DialogManager || DialogManager;
 
 // Global functions for HTML onclick handlers
 window.resetInterface = function() {
