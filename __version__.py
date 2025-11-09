@@ -8,22 +8,32 @@ and finally to a hardcoded value if all else fails.
 
 from pathlib import Path
 
-try:
-    # Primary: Try to get version from installed package metadata
-    from importlib.metadata import version
-    
-    __version__ = version("arcane-auditor")
-except Exception:
-    # Fallback for development or if not installed
+
+def _version_from_pyproject() -> str | None:
+    """Attempt to read version from pyproject.toml (works in frozen builds)."""
     try:
         import tomllib  # Python 3.11+
-        
-        # Read from pyproject.toml
-        pyproject_path = Path(__file__).parent / "pyproject.toml"
+        from utils.arcane_paths import resource_path
+
+        pyproject_path = Path(resource_path("pyproject.toml"))
         with open(pyproject_path, "rb") as f:
             pyproject_data = tomllib.load(f)
-            __version__ = pyproject_data["project"]["version"]
+        return pyproject_data["project"]["version"]
     except Exception:
-        # Final fallback: hardcoded version
-        __version__ = "1.2.0"
+        return None
+
+
+# Prefer pyproject.toml when available (source or bundled)
+_pyproject_version = _version_from_pyproject()
+
+if _pyproject_version:
+    __version__ = _pyproject_version
+else:
+    try:
+        # Fallback: Try to get version from installed package metadata
+        from importlib.metadata import version as metadata_version
+
+        __version__ = metadata_version("arcane-auditor")
+    except Exception:
+        pass # failed to get version from installed package metadata
 
