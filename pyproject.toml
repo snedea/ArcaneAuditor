@@ -10,6 +10,7 @@ dependencies = [
     "fastapi>=0.116.1",
     "lark>=1.2.2",
     "openpyxl>=3.1.5",
+    "packaging>=24.0",
     "psutil>=7.1.0",
     "python-multipart>=0.0.20",
     "pywebview>=6.1",
