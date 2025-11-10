@@ -298,7 +298,9 @@ def main():
                 if window is not None and desktop_api is not None:
                     _handle_first_run_and_updates(window, desktop_api)
                 else:
-                    threading.Timer(0.5, try_handle_first_run).start()
+                    timer = threading.Timer(0.5, try_handle_first_run)
+                    timer.daemon = True
+                    timer.start()
             except Exception as e:
                 print(f"Error running first-run/update handler: {e}")
 
@@ -320,13 +322,37 @@ def main():
 def _show_confirmation(window, title, message):
     """Show a confirmation dialog using the shared frontend helper."""
 
+    def cleanup_dialog():
+        try:
+            window.evaluate_js(
+                "(() => {"
+                "if (window.DialogManager && typeof window.DialogManager.closeAll === 'function') { window.DialogManager.closeAll(); }"
+                "window.__aaUpdatePromptState = null;"
+                "})()"
+            )
+        except Exception:
+            pass
+
+    def should_abort():
+        if getattr(window, "closed", False):
+            return True
+        try:
+            window.evaluate_js("true")
+            return False
+        except Exception:
+            return True
+
     def native_confirmation():
+        if should_abort():
+            return False
         try:
             return bool(window.create_confirmation_dialog(title, message))
         except Exception as native_error:
             print(f"Native confirmation dialog unavailable: {native_error}. Falling back to basic JS confirm.")
             script = f"confirm({json.dumps(f'{title}\\n\\n{message} (OK = Enable, Cancel = Disable)')});"
             try:
+                if should_abort():
+                    return False
                 result = window.evaluate_js(script)
                 if isinstance(result, str):
                     return result.lower() == 'true'
@@ -370,7 +396,18 @@ def _show_confirmation(window, title, message):
             raise RuntimeError('DialogManager unavailable')
 
         while True:
-            state_json = window.evaluate_js("JSON.stringify(window.__aaUpdatePromptState)")
+            if getattr(window, "closed", False):
+                print("Window closed during update dialog; cancelling prompt.")
+                cleanup_dialog()
+                return False
+
+            try:
+                state_json = window.evaluate_js("JSON.stringify(window.__aaUpdatePromptState)")
+            except Exception as eval_error:
+                print(f"Lost connection to DialogManager: {eval_error}")
+                cleanup_dialog()
+                return False
+
             if state_json and state_json != 'null':
                 try:
                     state = json.loads(state_json)
@@ -378,12 +415,7 @@ def _show_confirmation(window, title, message):
                     state = None
                 if isinstance(state, dict) and state.get('ready'):
                     value = bool(state.get('value', False))
-                    window.evaluate_js(
-                        "(() => {"
-                        "if (window.DialogManager && typeof window.DialogManager.closeAll === 'function') { window.DialogManager.closeAll(); }"
-                        "window.__aaUpdatePromptState = null;"
-                        "})()"
-                    )
+                    cleanup_dialog()
                     return value
             time.sleep(0.1)
 
@@ -402,6 +434,9 @@ def _handle_first_run_and_updates(window, api):
     """Handle first-run dialog for update detection preference."""
     try:
         from utils.preferences_manager import get_update_prefs, set_update_prefs
+        
+        if getattr(window, "closed", False):
+            return
         
         updates = get_update_prefs()
         first_run_completed = updates.get('first_run_completed', False)
