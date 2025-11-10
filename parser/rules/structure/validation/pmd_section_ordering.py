@@ -52,7 +52,10 @@ class PMDSectionOrderingRule(Rule):
         try:
             # The Workday Extend compiler ensures valid JSON structure
             pmd_data = json.loads(pmd_model.source_content)
-            return list(pmd_data.keys())
+
+            # Exclude keys that start with underscore
+            filtered_pmd_data = {k: v for k, v in pmd_data.items() if not k.startswith('_')}
+            return list(filtered_pmd_data.keys())
         except json.JSONDecodeError as e:
             # Handle false positive control character errors
             # Some JSON parsers incorrectly flag valid characters in strings
