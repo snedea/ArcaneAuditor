@@ -25,6 +25,8 @@ class ArcaneAuditorApp {
             first_run_completed: false
         };
         this.updatePreferencesPromise = null;
+        this.versionRetryAttempts = 0;
+        this.versionRetryTimer = null;
 
         // Initialize managers
         this.configManager = new ConfigManager(this);
@@ -37,6 +39,21 @@ class ArcaneAuditorApp {
         this.updatePreferencesPromise = this.loadUpdatePreferences();
         this.updatePreferencesPromise.catch(err => console.error('Failed to load update preferences:', err));
         this.loadVersion().catch(err => console.error('Failed to load version:', err));
+
+        if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+            window.addEventListener('pywebviewready', () => {
+                try {
+                    this.updatePreferencesPromise = this.loadUpdatePreferences();
+                    this.updatePreferencesPromise
+                        .catch(err => console.error('Failed to refresh update preferences:', err))
+                        .finally(() => {
+                            this.loadVersion().catch(err => console.error('Failed to refresh version:', err));
+                        });
+                } catch (error) {
+                    console.error('pywebviewready handler error:', error);
+                }
+            }, { once: false });
+        }
     }
 
     initializeEventListeners() {
@@ -147,11 +164,27 @@ class ArcaneAuditorApp {
 
     async loadUpdatePreferences() {
         try {
-            const response = await fetch('/api/update-preferences');
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+            let data = null;
+            const hasDesktopBridge = (
+                window.pywebview &&
+                window.pywebview.api &&
+                typeof window.pywebview.api.get_update_preferences === 'function'
+            );
+
+            if (hasDesktopBridge) {
+                data = await window.pywebview.api.get_update_preferences();
+            } else {
+                const response = await fetch('/api/update-preferences');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                data = await response.json();
             }
-            const data = await response.json();
+
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid update preferences payload');
+            }
+
             if (typeof data.enabled === 'boolean') {
                 this.updatePreferences.enabled = data.enabled;
             }
@@ -523,9 +556,30 @@ class ArcaneAuditorApp {
 
     async loadVersion() {
         await this.ensureUpdatePreferencesLoaded();
+        if (this.versionRetryTimer) {
+            clearTimeout(this.versionRetryTimer);
+            this.versionRetryTimer = null;
+        }
+
         try {
-            const response = await fetch('/api/health');
-            const data = await response.json();
+            let data = null;
+            const hasDesktopBridge = (
+                window.pywebview &&
+                window.pywebview.api &&
+                typeof window.pywebview.api.get_health_status === 'function'
+            );
+
+            if (hasDesktopBridge) {
+                data = await window.pywebview.api.get_health_status();
+            } else {
+                const response = await fetch('/api/health');
+                data = await response.json();
+            }
+
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid health payload');
+            }
+
             if (data.version) {
                 const versionElement = document.getElementById('version-info');
                 if (versionElement) {
@@ -533,14 +587,30 @@ class ArcaneAuditorApp {
                     versionElement.title = `Arcane Auditor version ${data.version}`;
                     this.resetVersionIndicator();
                 }
-                
-                // Check for updates only if user has enabled detection
-                if (this.updatePreferences?.enabled) {
-                    this.checkForUpdates();
+
+                const updateInfo = data.update_info;
+                if (updateInfo && updateInfo.update_available) {
+                    this.updateVersionDisplay(updateInfo);
+                    this.versionRetryAttempts = 0;
+                } else if (hasDesktopBridge && !updateInfo) {
+                    if (this.scheduleVersionRetry()) {
+                        return;
+                    }
+                    this.versionRetryAttempts = 0;
+                } else {
+                    this.versionRetryAttempts = 0;
                 }
             }
         } catch (error) {
             console.error('Failed to load version:', error);
+            const hasDesktopBridge = (
+                window.pywebview &&
+                window.pywebview.api &&
+                typeof window.pywebview.api.get_health_status === 'function'
+            );
+            if (hasDesktopBridge && this.scheduleVersionRetry()) {
+                return;
+            }
             // If fetch fails, show "v?" to indicate version unavailable
             const versionElement = document.getElementById('version-info');
             if (versionElement) {
@@ -551,24 +621,25 @@ class ArcaneAuditorApp {
         }
     }
     
-    async checkForUpdates() {
-        // Check for updates and update version display
-        if (!this.updatePreferences?.enabled) {
-            return;
+    scheduleVersionRetry() {
+        const maxAttempts = 5;
+        if (this.versionRetryAttempts >= maxAttempts) {
+            return false;
         }
-        try {
-            const response = await fetch('/api/check-updates');
-            const data = await response.json();
-            
-            if (data.update_available) {
-                this.updateVersionDisplay(data);
-            }
-        } catch (error) {
-            // Silent failure - don't show errors to user
-            console.error('Update check failed:', error);
-        }
+
+        this.versionRetryAttempts += 1;
+
+        const delay = 1000 * this.versionRetryAttempts;
+        this.versionRetryTimer = setTimeout(() => {
+            this.versionRetryTimer = null;
+            this.loadVersion().catch(err => {
+                console.error('Retrying loadVersion failed:', err);
+            });
+        }, delay);
+
+        return true;
     }
-    
+
     updateVersionDisplay(updateInfo) {
         // Update version indicator to show update available
         const versionElement = document.getElementById('version-info');
@@ -579,17 +650,12 @@ class ArcaneAuditorApp {
         
         // Update display
         versionElement.textContent = `v${latestVersion} available ⚡`;
-        versionElement.title = `Update available! Current: ${currentVersion}, Latest: ${latestVersion}. Click to check for updates.`;
+        versionElement.title = `Update available! Current: ${currentVersion}, Latest: ${latestVersion}.`;
         
         // Add classes for styling and interaction
         versionElement.classList.add('update-available', 'pulse');
-        versionElement.style.cursor = 'pointer';
-        
-        // Add click handler
-        versionElement.onclick = () => {
-            // Show update notification or trigger manual check
-            this.showUpdateNotification(updateInfo);
-        };
+        versionElement.style.cursor = 'default';
+        versionElement.onclick = null;
     }
     
     showUpdateNotification(updateInfo) {

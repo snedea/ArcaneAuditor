@@ -20,8 +20,7 @@ DEFAULT_PREFS = {
     },
     "updates": {
         "enabled": False,
-        "first_run_completed": False,
-        "last_check_timestamp": None
+        "first_run_completed": False
     },
     "configs": {}
 }
@@ -139,7 +138,6 @@ def migrate_preferences(prefs: Dict[str, Any]) -> Dict[str, Any]:
                 elif "update_check_enabled" in old_updates:
                     migrated["updates"]["enabled"] = old_updates.get("update_check_enabled", False)
                     migrated["updates"]["first_run_completed"] = old_updates.get("first_run_completed", False)
-                    migrated["updates"]["last_check_timestamp"] = old_updates.get("last_check_timestamp")
             except (json.JSONDecodeError, IOError):
                 pass  # Ignore errors reading old file
     

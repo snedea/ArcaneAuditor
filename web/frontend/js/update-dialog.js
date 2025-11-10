@@ -63,7 +63,6 @@ function createDialog({ title, lines }) {
   });
 
   const hint = doc.createElement('p');
-  hint.textContent = 'This check is read-only and never uploads your code.';
   hint.style.cssText = 'margin: 12px 0 20px; font-size: 0.9rem; color: #94a3b8;';
   modal.appendChild(hint);
 

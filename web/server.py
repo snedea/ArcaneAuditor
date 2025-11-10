@@ -38,6 +38,7 @@ from utils.arcane_paths import (
     user_root,
 )
 from utils.preferences_manager import get_update_prefs
+from utils.update_checker import check_for_updates
 
 
 # Configuration constants
@@ -676,17 +677,14 @@ async def serve_index():
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "version": __version__}
-
-@app.get("/api/check-updates")
-async def check_updates():
-    """Check for available updates from GitHub."""
+    payload = {"status": "healthy", "version": __version__}
     try:
-        from utils.update_checker import check_for_updates
-        info = check_for_updates(force=True)  # Bypass cache for manual check
-        return JSONResponse(info)
-    except Exception as e:
-        return JSONResponse({"error": str(e), "update_available": False})
+        prefs = get_update_prefs()
+        if prefs.get("enabled", False):
+            payload["update_info"] = check_for_updates()
+    except Exception as exc:
+        payload["update_error"] = str(exc)
+    return payload
 
 
 @app.get("/api/update-preferences")

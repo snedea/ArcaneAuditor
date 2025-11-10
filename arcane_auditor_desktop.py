@@ -67,22 +67,7 @@ class Api:
         
         except Exception as e:
             return {'success': False, 'error': str(e)}
-    
-    def check_for_updates(self):
-        """Manual check for updates triggered from menu."""
-        try:
-            from utils.update_checker import check_for_updates
-            result = check_for_updates(force=True)
-            return {
-                'success': True,
-                'update_available': result.get('update_available', False),
-                'latest_version': result.get('latest_version', ''),
-                'current_version': result.get('current_version', ''),
-                'error': result.get('error')
-            }
-        except Exception as e:
-            return {'success': False, 'error': str(e), 'update_available': False}
-    
+
     def get_update_preferences(self):
         """Get current update preferences."""
         try:
@@ -108,6 +93,24 @@ class Api:
                 return {'success': False, 'error': 'Failed to save preferences'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
+
+    def get_health_status(self):
+        """Return current health and update availability information."""
+        from __version__ import __version__
+
+        payload = {'status': 'healthy', 'version': __version__}
+
+        try:
+            from utils.preferences_manager import get_update_prefs
+            from utils.update_checker import check_for_updates
+
+            prefs = get_update_prefs()
+            if prefs.get('enabled', False):
+                payload['update_info'] = check_for_updates()
+        except Exception as exc:
+            payload['update_error'] = str(exc)
+
+        return payload
 
 
 def show_immediate_splash():
@@ -314,30 +317,6 @@ def main():
     print("Arcane Auditor Desktop closed.")
 
 
-def _show_alert(window, message):
-    """Show an alert dialog using JavaScript."""
-    js_message = json.dumps(str(message))
-    try:
-        if _wait_for_js_ready(window):
-            script = (
-                "(() => {"
-                "const manager = window.DialogManager;"
-                f"if (!manager || typeof manager.showAlert !== 'function') {{ return window.alert({js_message}); }}"
-                f"return manager.showAlert({js_message});"
-                "})()"
-            )
-            window.evaluate_js(script)
-            return
-    except Exception as e:
-        print(f"Error showing alert via DialogManager: {e}")
-
-    try:
-        window.evaluate_js(f"alert({js_message});")
-    except Exception as e:
-        print(f"Error showing alert: {e}")
-        print(f"Message: {message}")
-
-
 def _show_confirmation(window, title, message):
     """Show a confirmation dialog using the shared frontend helper."""
 
@@ -390,7 +369,7 @@ def _show_confirmation(window, title, message):
         if status != 'started':
             raise RuntimeError('DialogManager unavailable')
 
-        for _ in range(200):  # polling up to ~20 seconds
+        while True:
             state_json = window.evaluate_js("JSON.stringify(window.__aaUpdatePromptState)")
             if state_json and state_json != 'null':
                 try:
@@ -408,16 +387,6 @@ def _show_confirmation(window, title, message):
                     return value
             time.sleep(0.1)
 
-        # Timed out - close dialog and fall back
-        window.evaluate_js(
-            "(() => {"
-            "if (window.DialogManager && typeof window.DialogManager.closeAll === 'function') { window.DialogManager.closeAll(); }"
-            "window.__aaUpdatePromptState = null;"
-            "})()"
-        )
-        print("Timed out waiting for DialogManager response; falling back to native dialog.")
-        return native_confirmation()
-
     except Exception as helper_error:
         print(f"Custom update dialog unavailable: {helper_error}")
         return native_confirmation()
@@ -430,56 +399,35 @@ def _show_confirmation(window, title, message):
 
 
 def _handle_first_run_and_updates(window, api):
-    """Handle first-run dialog and background update check."""
+    """Handle first-run dialog for update detection preference."""
     try:
         from utils.preferences_manager import get_update_prefs, set_update_prefs
-        from utils.update_checker import check_for_updates
         
         updates = get_update_prefs()
         first_run_completed = updates.get('first_run_completed', False)
-        update_enabled = updates.get('enabled', False)
         
-        # Show first-run dialog if needed
-        if not first_run_completed:
-            message = (
-                "Would you like Arcane Auditor to occasionally check for new versions?\n\n"
-                "This is a read-only check that calls the GitHub API."
-            )
-            result = _show_confirmation(
-                window,
-                "Enable Update Detection?",
-                message
-            )
-            
-            updates['enabled'] = result
-            updates['first_run_completed'] = True
-            set_update_prefs(updates)
-            update_enabled = result
+        if first_run_completed:
+            return
         
-        # Background update check if enabled
-        if update_enabled:
-            def background_update_check():
-                """Background thread function for update checking."""
-                try:
-                    result = check_for_updates(force=False)
-                    if result.get('update_available'):
-                        latest = result.get('latest_version', '')
-                        current = result.get('current_version', '')
-                        _show_alert(
-                            window,
-                            f"Update available!\n\n"
-                            f"Current version: {current}\n"
-                            f"Latest version: {latest}\n\n"
-                            f"Visit GitHub Releases to download."
-                        )
-                except Exception as e:
-                    # Silent failure - don't bother user with errors
-                    print(f"Background update check failed: {e}")
-            
-            # Spawn background thread (non-blocking)
-            threading.Thread(target=background_update_check, daemon=True).start()
+        message = (
+            "Would you like Arcane Auditor to occasionally check for new versions?\n\n"
+            "This is a read-only check that calls the GitHub API."
+        )
+        result = _show_confirmation(
+            window,
+            "Enable Update Detection?",
+            message
+        )
+        
+        updates['enabled'] = result
+        updates['first_run_completed'] = True
+        set_update_prefs(updates)
+
+        try:
+            window.evaluate_js("window.app && window.app.loadVersion && window.app.loadVersion();")
+        except Exception:
+            pass
     except Exception as e:
-        # Silent failure - don't block app startup
         print(f"Error in first-run/update handling: {e}")
 
 
