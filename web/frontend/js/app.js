@@ -585,6 +585,7 @@ class ArcaneAuditorApp {
                 if (versionElement) {
                     versionElement.textContent = `v${data.version}`;
                     versionElement.title = `Arcane Auditor version ${data.version}`;
+                    versionElement.removeAttribute('data-loading');
                     this.resetVersionIndicator();
                 }
 
@@ -616,6 +617,7 @@ class ArcaneAuditorApp {
             if (versionElement) {
                 versionElement.textContent = 'v?';
                 versionElement.title = 'Version unavailable';
+                versionElement.removeAttribute('data-loading');
                 this.resetVersionIndicator();
             }
         }
@@ -649,8 +651,9 @@ class ArcaneAuditorApp {
         const currentVersion = updateInfo.current_version || '';
         
         // Update display
-        versionElement.textContent = `v${latestVersion} available ⚡`;
-        versionElement.title = `Update available! Current: ${currentVersion}, Latest: ${latestVersion}.`;
+        versionElement.textContent = `v${latestVersion} now available! ⚡`;
+        versionElement.title = `Update available! Current: v${currentVersion}, Latest: v${latestVersion}.`;
+        versionElement.removeAttribute('data-loading');
         
         // Add classes for styling and interaction
         versionElement.classList.add('update-available', 'pulse');
@@ -663,8 +666,8 @@ class ArcaneAuditorApp {
         const latest = updateInfo.latest_version || '';
         const current = updateInfo.current_version || '';
         const lines = [
-            `Current version: ${current}`,
-            `Latest version: ${latest}`,
+            `Current version: v${current}`,
+            `Latest version: v${latest}`,
             'Visit GitHub Releases to download.'
         ];
         const fallbackMessage = `Update available!\n\n${lines.join('\n')}`;
