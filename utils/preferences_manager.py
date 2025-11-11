@@ -13,16 +13,17 @@ from .arcane_paths import user_root
 
 # Default preferences schema
 DEFAULT_PREFS = {
-    "schema_version": 2,
+    "schema_version": 1,
     "ui": {
-        "theme": "system",
-        "sort_mode": "default"
+        "theme": "dark",
+        "file_sort_mode": "alphabetical",
+        "finding_sort_mode": "severity"
     },
     "updates": {
         "enabled": False,
         "first_run_completed": False
     },
-    "configs": {}
+    "selected_config": None
 }
 
 # Preferences file path
@@ -114,33 +115,23 @@ def migrate_preferences(prefs: Dict[str, Any]) -> Dict[str, Any]:
     
     # Always ensure we have the latest schema version
     migrated["schema_version"] = DEFAULT_PREFS["schema_version"]
-    
-    # Migrate from schema v1 to v2 (if needed)
-    if schema_version < 2:
-        # Ensure all default keys exist
-        if "ui" not in migrated:
-            migrated["ui"] = DEFAULT_PREFS["ui"].copy()
-        if "updates" not in migrated:
-            migrated["updates"] = DEFAULT_PREFS["updates"].copy()
-        if "configs" not in migrated:
-            migrated["configs"] = DEFAULT_PREFS["configs"].copy()
-        
-        # Migrate old update_preferences.json structure if it exists
-        # (for backward compatibility with old update_preferences.py if it existed)
-        old_update_file = PREFERENCES_DIR / "update_preferences.json"
-        if old_update_file.exists():
-            try:
-                with open(old_update_file, 'r', encoding='utf-8') as f:
-                    old_updates = json.load(f)
-                # Merge old update preferences into new structure
-                if "updates" in old_updates:
-                    migrated["updates"].update(old_updates["updates"])
-                elif "update_check_enabled" in old_updates:
-                    migrated["updates"]["enabled"] = old_updates.get("update_check_enabled", False)
-                    migrated["updates"]["first_run_completed"] = old_updates.get("first_run_completed", False)
-            except (json.JSONDecodeError, IOError):
-                pass  # Ignore errors reading old file
-    
+
+    # If any UI preferences exist from an earlier draft, normalise them.
+    ui_prefs = migrated.get("ui", {})
+    if isinstance(ui_prefs, dict):
+        if ui_prefs.get("theme") == "system":
+            ui_prefs["theme"] = "dark"
+        # Promote legacy sort_mode into new fields
+        if "sort_mode" in ui_prefs and "file_sort_mode" not in ui_prefs:
+            legacy_sort = ui_prefs.get("sort_mode", "default")
+            ui_prefs["file_sort_mode"] = "alphabetical" if legacy_sort == "default" else legacy_sort
+        if "finding_sort_mode" not in ui_prefs:
+            # Default to severity unless an explicit legacy value was provided elsewhere
+            ui_prefs.setdefault("finding_sort_mode", "severity")
+        # Clean up legacy sort_mode
+        ui_prefs.pop("sort_mode", None)
+        migrated["ui"] = ui_prefs
+ 
     # Ensure all default keys exist (defensive programming)
     for key, default_value in DEFAULT_PREFS.items():
         if key not in migrated:
@@ -182,15 +173,15 @@ def set_ui_prefs(ui: Dict[str, Any]) -> bool:
     return save_preferences(prefs)
 
 
-def get_config_prefs() -> Dict[str, Any]:
-    """Get config preferences."""
+def get_selected_config() -> Optional[str]:
+    """Return the last selected configuration identifier, if any."""
     prefs = load_preferences()
-    return prefs.get("configs", DEFAULT_PREFS["configs"].copy())
+    return prefs.get("selected_config")
 
 
-def set_config_prefs(configs: Dict[str, Any]) -> bool:
-    """Set config preferences."""
+def set_selected_config(config_id: Optional[str]) -> bool:
+    """Persist the selected configuration identifier."""
     prefs = load_preferences()
-    prefs["configs"] = configs
+    prefs["selected_config"] = config_id
     return save_preferences(prefs)
 
