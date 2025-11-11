@@ -183,45 +183,83 @@ header p {
     position: relative;
 }
 
-.theme-toggle-fixed .btn {
+.theme-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    height: 52px;
+    padding: 0;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    font-weight: 600;
+    gap: 0;
+}
+
+.theme-button .theme-emoji {
+    font-size: 1.6rem;
+    transition: transform 0.3s ease;
+}
+
+.theme-button .theme-label {
+    font-size: 0.95rem;
+    opacity: 0;
+    max-width: 0;
+    margin-left: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.3s ease, opacity 0.3s ease, margin-left 0.3s ease, color 0.3s ease;
+}
+
+.theme-button:hover,
+.theme-button:focus-visible {
+    padding: 0 18px;
+    border-radius: 28px;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.theme-button:hover .theme-label,
+.theme-button:focus-visible .theme-label {
+    opacity: 1;
+    max-width: 160px;
+    margin-left: 12px;
+}
+
+[data-theme="light"] .theme-button {
     background: rgba(255, 255, 255, 0.95);
     color: #1e293b;
     border: 2px solid var(--accent);
-    backdrop-filter: blur(10px);
-    border-radius: 50px;
-    padding: 12px 16px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s ease;
-    font-weight: 600;
 }
 
-[data-theme="dark"] .theme-toggle-fixed .btn {
+[data-theme="light"] .theme-button:hover,
+[data-theme="light"] .theme-button:focus-visible {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border-color: #667eea;
+}
+
+[data-theme="dark"] .theme-button {
     background: rgba(30, 41, 59, 0.95);
     color: #f1f5f9;
     border: 2px solid var(--accent);
     box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4), 0 0 30px rgba(124, 58, 237, 0.2);
 }
 
-.theme-toggle-fixed .btn:hover {
-    background: var(--accent);
-    color: var(--text-primary);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-    border: 2px solid var(--accent);
-}
-
-[data-theme="light"] .theme-toggle-fixed .btn:hover {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6), 0 0 30px rgba(102, 126, 234, 0.3);
-    border: 2px solid #667eea;
-}
-
-[data-theme="dark"] .theme-toggle-fixed .btn:hover {
+[data-theme="dark"] .theme-button:hover,
+[data-theme="dark"] .theme-button:focus-visible {
     background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     color: #1e293b;
-    box-shadow: 0 8px 25px rgba(248, 250, 252, 0.6), 0 0 30px rgba(248, 250, 252, 0.3);
-    border: 2px solid #f8fafc;
+    border-color: #f8fafc;
 }
 
 .settings-button {
@@ -370,12 +408,12 @@ header p {
     pointer-events: none;
 }
 
-.theme-toggle-fixed .btn,
+.theme-button,
 .settings-button {
     outline: none;
 }
 
-.theme-toggle-fixed .btn:focus-visible,
+.theme-button:focus-visible,
 .settings-button:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.35), 0 8px 25px rgba(0, 0, 0, 0.4);
