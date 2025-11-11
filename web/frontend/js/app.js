@@ -182,6 +182,13 @@ class ArcaneAuditorApp {
         // Ensure panel starts hidden
         closePanel();
         this.syncUpdatePreferenceUI();
+
+        // Prevent initial focus outline on load unless the user tabs to the control
+        setTimeout(() => {
+            if (settingsButton === document.activeElement) {
+                settingsButton.blur();
+            }
+        }, 50);
     }
 
     syncUpdatePreferenceUI() {
@@ -296,10 +303,10 @@ class ArcaneAuditorApp {
             if (hasDesktopBridge) {
                 data = await window.pywebview.api.get_update_preferences();
             } else {
-                const response = await fetch('/api/update-preferences');
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
+            const response = await fetch('/api/update-preferences');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
                 data = await response.json();
             }
 
@@ -696,7 +703,7 @@ class ArcaneAuditorApp {
             if (hasDesktopBridge) {
                 data = await window.pywebview.api.get_health_status();
             } else {
-                const response = await fetch('/api/health');
+            const response = await fetch('/api/health');
                 data = await response.json();
             }
 
@@ -765,7 +772,7 @@ class ArcaneAuditorApp {
 
         return true;
     }
-
+    
     updateVersionDisplay(updateInfo) {
         // Update version indicator to show update available
         const versionElement = document.getElementById('version-info');

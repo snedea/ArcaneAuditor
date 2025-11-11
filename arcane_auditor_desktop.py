@@ -459,7 +459,12 @@ def _handle_first_run_and_updates(window, api):
         set_update_prefs(updates)
 
         try:
-            window.evaluate_js("window.app && window.app.loadVersion && window.app.loadVersion();")
+            window.evaluate_js(
+                "(function(){"
+                "if (window.app && typeof window.app.loadUpdatePreferences === 'function') { window.app.loadUpdatePreferences(); }"
+                "if (window.app && typeof window.app.loadVersion === 'function') { window.app.loadVersion(); }"
+                "})();"
+            )
         except Exception:
             pass
     except Exception as e:
