@@ -30,12 +30,30 @@
             </div>
         </header>
 
-        <!-- Fixed theme toggle in bottom corner -->
+        <!-- Fixed theme toggle and settings in bottom corner -->
         <div class="theme-toggle-fixed">
-            <button id="theme-toggle" class="btn btn-secondary" onclick="toggleTheme()">
-                <span id="theme-icon">🌙</span>
-                <span id="theme-text">Dark</span>
-            </button>
+            <div class="quick-controls">
+                <button id="theme-toggle" class="btn btn-secondary" onclick="toggleTheme()">
+                    <span id="theme-icon">🌙</span>
+                    <span id="theme-text">Dark</span>
+                </button>
+                <button id="settings-toggle" class="btn btn-icon" aria-expanded="false" aria-controls="settings-panel" title="App settings">
+                    <span class="icon icon-tome" aria-hidden="true">📖</span>
+                    <span class="icon icon-close" aria-hidden="true">✖️</span>
+                    <span class="visually-hidden">App settings</span>
+                </button>
+            </div>
+            <div id="settings-panel" class="settings-panel" role="dialog" aria-labelledby="settings-panel-title" hidden>
+                <div class="settings-panel-header">
+                    <h3 id="settings-panel-title">App Settings</h3>
+                </div>
+                <div class="settings-panel-body">
+                    <label class="settings-option">
+                        <input type="checkbox" id="settings-update-checkbox">
+                        <span>Enable Update Checks</span>
+                    </label>
+                </div>
+            </div>
         </div>
 
         <main>

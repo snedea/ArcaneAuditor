@@ -97,3 +97,24 @@ def test_show_confirmation_falls_back_on_eval_failure():
     assert result is False
     assert window.eval_calls >= 1
 
+
+def test_api_set_update_preferences(monkeypatch):
+    captured = {}
+
+    monkeypatch.setattr(
+        "utils.preferences_manager.get_update_prefs",
+        lambda: {"enabled": False, "first_run_completed": True},
+    )
+
+    def fake_set(prefs):
+        captured.update(prefs)
+        return True
+
+    monkeypatch.setattr("utils.preferences_manager.set_update_prefs", fake_set)
+
+    api = Api("127.0.0.1", 8080)
+    result = api.set_update_preferences(True)
+
+    assert result["success"] is True
+    assert captured["enabled"] is True
+

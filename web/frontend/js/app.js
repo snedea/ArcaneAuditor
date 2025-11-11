@@ -27,6 +27,7 @@ class ArcaneAuditorApp {
         this.updatePreferencesPromise = null;
         this.versionRetryAttempts = 0;
         this.versionRetryTimer = null;
+        this.settingsPanelElements = null;
 
         // Initialize managers
         this.configManager = new ConfigManager(this);
@@ -39,6 +40,8 @@ class ArcaneAuditorApp {
         this.updatePreferencesPromise = this.loadUpdatePreferences();
         this.updatePreferencesPromise.catch(err => console.error('Failed to load update preferences:', err));
         this.loadVersion().catch(err => console.error('Failed to load version:', err));
+
+        this.initializeSettingsPanel();
 
         if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
             window.addEventListener('pywebviewready', () => {
@@ -109,6 +112,125 @@ class ArcaneAuditorApp {
                 }
             }
         });
+    }
+
+    initializeSettingsPanel() {
+        const settingsButton = document.getElementById('settings-toggle');
+        const settingsPanel = document.getElementById('settings-panel');
+        const updateCheckbox = document.getElementById('settings-update-checkbox');
+
+        if (!settingsButton || !settingsPanel) {
+            return;
+        }
+
+        const openPanel = () => {
+            settingsButton.setAttribute('aria-expanded', 'true');
+            settingsPanel.hidden = false;
+            settingsPanel.setAttribute('aria-hidden', 'false');
+        };
+
+        const closePanel = () => {
+            settingsButton.setAttribute('aria-expanded', 'false');
+            settingsPanel.hidden = true;
+            settingsPanel.setAttribute('aria-hidden', 'true');
+        };
+
+        const isOpen = () => settingsButton.getAttribute('aria-expanded') === 'true';
+
+        settingsButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (isOpen()) {
+                closePanel();
+            } else {
+                openPanel();
+            }
+        });
+
+        settingsPanel.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+
+        const handleDocumentClick = (event) => {
+            if (!settingsPanel.contains(event.target) && !settingsButton.contains(event.target) && isOpen()) {
+                closePanel();
+            }
+        };
+
+        document.addEventListener('click', handleDocumentClick);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && isOpen()) {
+                closePanel();
+                settingsButton.focus();
+            }
+        });
+
+        if (updateCheckbox) {
+            updateCheckbox.addEventListener('change', (event) => {
+                const { checked } = event.target;
+                this.persistUpdatePreference(checked);
+            });
+        }
+
+        this.settingsPanelElements = {
+            button: settingsButton,
+            panel: settingsPanel,
+            updateCheckbox
+        };
+
+        // Ensure panel starts hidden
+        closePanel();
+        this.syncUpdatePreferenceUI();
+    }
+
+    syncUpdatePreferenceUI() {
+        const checkbox = this.settingsPanelElements?.updateCheckbox || document.getElementById('settings-update-checkbox');
+        if (!checkbox) {
+            return;
+        }
+        checkbox.checked = Boolean(this.updatePreferences.enabled);
+    }
+
+    async persistUpdatePreference(enabled) {
+        const checkbox = this.settingsPanelElements?.updateCheckbox || document.getElementById('settings-update-checkbox');
+        const previous = this.updatePreferences.enabled;
+        this.updatePreferences.enabled = Boolean(enabled);
+
+        if (checkbox) {
+            checkbox.disabled = true;
+        }
+
+        try {
+            if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_update_preferences === 'function') {
+                const result = await window.pywebview.api.set_update_preferences(enabled);
+                if (result && result.success === false) {
+                    throw new Error(result.error || 'Failed to save preferences');
+                }
+            } else {
+                const response = await fetch('/api/update-preferences', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ enabled })
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to update preferences:', error);
+            this.updatePreferences.enabled = previous;
+            if (checkbox) {
+                checkbox.checked = previous;
+            }
+            this.showToast('❌ Failed to update settings. Please try again.', 'error');
+        } finally {
+            if (checkbox) {
+                checkbox.disabled = false;
+            }
+        }
     }
 
     // Navigation methods
@@ -191,10 +313,12 @@ class ArcaneAuditorApp {
             if (typeof data.first_run_completed === 'boolean') {
                 this.updatePreferences.first_run_completed = data.first_run_completed;
             }
+            this.syncUpdatePreferenceUI();
         } catch (error) {
             console.error('Failed to load update preferences:', error);
             // Keep defaults (disabled) if we can't load preferences
             this.updatePreferences.enabled = false;
+            this.syncUpdatePreferenceUI();
         }
     }
 

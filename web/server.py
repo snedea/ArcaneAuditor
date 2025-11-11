@@ -37,7 +37,7 @@ from utils.arcane_paths import (
     is_frozen,
     user_root,
 )
-from utils.preferences_manager import get_update_prefs
+from utils.preferences_manager import get_update_prefs, set_update_prefs
 from utils.update_checker import check_for_updates
 
 
@@ -245,6 +245,11 @@ class JobStatusResponse(BaseModel):
 class AnalysisRequest(BaseModel):
     """Request model for analysis."""
     job_id: str
+
+
+class UpdatePreferencesPayload(BaseModel):
+    """Payload for updating user preferences."""
+    enabled: bool
 
 
 @asynccontextmanager
@@ -698,6 +703,18 @@ async def get_update_preferences_api():
         }
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/update-preferences")
+async def set_update_preferences_api(payload: UpdatePreferencesPayload):
+    """Persist update detection preference changes."""
+    try:
+        prefs = get_update_prefs()
+        prefs["enabled"] = bool(payload.enabled)
+        set_update_prefs(prefs)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Mount static files at /static to avoid conflicts with API routes
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
