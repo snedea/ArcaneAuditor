@@ -8,7 +8,9 @@ from a single schema-versioned JSON file in the user data directory.
 import json
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any
+from datetime import datetime
+import threading
 from .arcane_paths import user_root
 
 # Default preferences schema
@@ -21,15 +23,17 @@ DEFAULT_PREFS = {
     },
     "updates": {
         "enabled": False,
-        "first_run_completed": False
-    },
-    "selected_config": None
+        "first_run_completed": False,
+        "last_checked": 0,
+        "latest_version_cache": ""
+    }
 }
 
 # Preferences file path
 PREFERENCES_DIR = Path(user_root()) / ".user_preferences"
 PREFERENCES_FILE = PREFERENCES_DIR / "preferences.json"
 PREFERENCES_TMP = PREFERENCES_DIR / "preferences.json.tmp"
+PREFERENCES_LOCK = threading.Lock()
 
 
 def _ensure_preferences_dir():
@@ -44,22 +48,23 @@ def load_preferences() -> Dict[str, Any]:
     Returns:
         Dict containing user preferences or defaults if file doesn't exist or is corrupted
     """
-    _ensure_preferences_dir()
-    
-    if not PREFERENCES_FILE.exists():
-        return DEFAULT_PREFS.copy()
-    
-    try:
-        with open(PREFERENCES_FILE, 'r', encoding='utf-8') as f:
-            prefs = json.load(f)
+    with PREFERENCES_LOCK:
+        _ensure_preferences_dir()
         
-        # Migrate preferences if schema version is outdated
-        prefs = migrate_preferences(prefs)
-        return prefs
-    except (json.JSONDecodeError, IOError, OSError) as e:
-        # If file is corrupted or unreadable, return defaults
-        print(f"Warning: Could not load preferences ({e}), using defaults")
-        return DEFAULT_PREFS.copy()
+        if not PREFERENCES_FILE.exists():
+            return DEFAULT_PREFS.copy()
+        
+        try:
+            with open(PREFERENCES_FILE, 'r', encoding='utf-8') as f:
+                prefs = json.load(f)
+            
+            # Migrate preferences if schema version is outdated
+            prefs = migrate_preferences(prefs)
+            return prefs
+        except (json.JSONDecodeError, IOError, OSError) as e:
+            # If file is corrupted or unreadable, return defaults
+            print(f"Warning: Could not load preferences ({e}), using defaults")
+            return DEFAULT_PREFS.copy()
 
 
 def save_preferences(prefs: Dict[str, Any]) -> bool:
@@ -73,30 +78,31 @@ def save_preferences(prefs: Dict[str, Any]) -> bool:
     Returns:
         True if save succeeded, False otherwise
     """
-    _ensure_preferences_dir()
-    
-    try:
-        # Ensure schema_version is present
-        if "schema_version" not in prefs:
-            prefs["schema_version"] = DEFAULT_PREFS["schema_version"]
+    with PREFERENCES_LOCK:
+        _ensure_preferences_dir()
         
-        # Write to temporary file first
-        with open(PREFERENCES_TMP, 'w', encoding='utf-8') as f:
-            json.dump(prefs, f, indent=2, ensure_ascii=False)
-        
-        # Atomic replace: rename temp file to actual file
-        # This prevents partial writes if crash occurs mid-save
-        PREFERENCES_TMP.replace(PREFERENCES_FILE)
-        return True
-    except (IOError, OSError) as e:
-        print(f"Error saving preferences: {e}")
-        # Clean up temp file if it exists
-        if PREFERENCES_TMP.exists():
-            try:
-                PREFERENCES_TMP.unlink()
-            except OSError:
-                pass
-        return False
+        try:
+            # Ensure schema_version is present
+            if "schema_version" not in prefs:
+                prefs["schema_version"] = DEFAULT_PREFS["schema_version"]
+            
+            # Write to temporary file first
+            with open(PREFERENCES_TMP, 'w', encoding='utf-8') as f:
+                json.dump(prefs, f, indent=2, ensure_ascii=False)
+            
+            # Atomic replace: rename temp file to actual file
+            # This prevents partial writes if crash occurs mid-save
+            PREFERENCES_TMP.replace(PREFERENCES_FILE)
+            return True
+        except (IOError, OSError) as e:
+            print(f"Error saving preferences: {e}")
+            # Clean up temp file if it exists
+            if PREFERENCES_TMP.exists():
+                try:
+                    PREFERENCES_TMP.unlink()
+                except OSError:
+                    pass
+            return False
 
 
 def migrate_preferences(prefs: Dict[str, Any]) -> Dict[str, Any]:
@@ -132,6 +138,18 @@ def migrate_preferences(prefs: Dict[str, Any]) -> Dict[str, Any]:
         ui_prefs.pop("sort_mode", None)
         migrated["ui"] = ui_prefs
  
+    # Normalise update section
+    updates = migrated.get("updates", {})
+    if isinstance(updates, dict):
+        if isinstance(updates.get("last_checked"), str):
+            try:
+                updates["last_checked"] = int(datetime.fromisoformat(updates["last_checked"]).timestamp())
+            except ValueError:
+                updates["last_checked"] = 0
+        updates.setdefault("last_checked", 0)
+        updates.setdefault("latest_version_cache", "")
+        migrated["updates"] = updates
+
     # Ensure all default keys exist (defensive programming)
     for key, default_value in DEFAULT_PREFS.items():
         if key not in migrated:
@@ -160,28 +178,30 @@ def set_update_prefs(updates: Dict[str, Any]) -> bool:
     return save_preferences(prefs)
 
 
-def get_ui_prefs() -> Dict[str, Any]:
-    """Get UI preferences."""
-    prefs = load_preferences()
-    return prefs.get("ui", DEFAULT_PREFS["ui"].copy())
+def get_update_last_checked() -> int:
+    """Return the epoch seconds of the last GitHub update check."""
+    updates = get_update_prefs()
+    last_checked = updates.get("last_checked", 0)
+    return int(last_checked) if isinstance(last_checked, (int, float)) else 0
 
 
-def set_ui_prefs(ui: Dict[str, Any]) -> bool:
-    """Set UI preferences."""
+def set_update_last_checked(epoch_seconds: int) -> bool:
+    """Persist the epoch seconds of the last GitHub update check."""
     prefs = load_preferences()
-    prefs["ui"] = ui
+    prefs.setdefault("updates", DEFAULT_PREFS["updates"].copy())
+    prefs["updates"]["last_checked"] = int(epoch_seconds)
     return save_preferences(prefs)
 
 
-def get_selected_config() -> Optional[str]:
-    """Return the last selected configuration identifier, if any."""
-    prefs = load_preferences()
-    return prefs.get("selected_config")
+def get_cached_latest_version() -> str:
+    updates = get_update_prefs()
+    value = updates.get("latest_version_cache", "")
+    return str(value) if value else ""
 
 
-def set_selected_config(config_id: Optional[str]) -> bool:
-    """Persist the selected configuration identifier."""
+def set_cached_latest_version(version: str) -> bool:
     prefs = load_preferences()
-    prefs["selected_config"] = config_id
+    prefs.setdefault("updates", DEFAULT_PREFS["updates"].copy())
+    prefs["updates"]["latest_version_cache"] = version or ""
     return save_preferences(prefs)
 

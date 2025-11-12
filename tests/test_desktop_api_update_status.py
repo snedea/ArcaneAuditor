@@ -4,29 +4,30 @@ from __version__ import __version__
 from arcane_auditor_desktop import Api, _show_confirmation
 
 
+class DummyResponse:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def raise_for_status(self):
+        return None
+
+    def json(self):
+        return self._payload
+
+
 def test_get_health_status_disabled_updates(monkeypatch):
     api = Api("127.0.0.1", 8080)
 
-    monkeypatch.setattr(
-        "utils.preferences_manager.get_update_prefs",
-        lambda: {"enabled": False, "first_run_completed": True},
-    )
+    payload = {"status": "healthy", "version": __version__}
+    monkeypatch.setattr("requests.get", lambda url, timeout=3: DummyResponse(payload))
 
     result = api.get_health_status()
 
-    assert result["status"] == "healthy"
-    assert result["version"] == __version__
-    assert "update_info" not in result
-    assert "update_error" not in result
+    assert result == payload
 
 
 def test_get_health_status_with_update(monkeypatch):
     api = Api("127.0.0.1", 8080)
-
-    monkeypatch.setattr(
-        "utils.preferences_manager.get_update_prefs",
-        lambda: {"enabled": True, "first_run_completed": True},
-    )
 
     update_payload = {
         "update_available": True,
@@ -35,16 +36,29 @@ def test_get_health_status_with_update(monkeypatch):
         "error": None,
     }
 
-    monkeypatch.setattr(
-        "utils.update_checker.check_for_updates",
-        lambda force=False: update_payload,
-    )
+    payload = {
+        "status": "healthy",
+        "version": __version__,
+        "update_info": update_payload,
+    }
+
+    monkeypatch.setattr("requests.get", lambda url, timeout=3: DummyResponse(payload))
 
     result = api.get_health_status()
 
-    assert result["status"] == "healthy"
-    assert result["version"] == __version__
-    assert result["update_info"] == update_payload
+    assert result == payload
+
+
+def test_get_health_status_first_run_not_completed(monkeypatch):
+    api = Api("127.0.0.1", 8080)
+
+    payload = {"status": "healthy", "version": __version__}
+
+    monkeypatch.setattr("requests.get", lambda url, timeout=3: DummyResponse(payload))
+
+    result = api.get_health_status()
+
+    assert result == payload
 
 
 def test_show_confirmation_handles_closed_window():

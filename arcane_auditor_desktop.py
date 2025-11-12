@@ -96,6 +96,17 @@ class Api:
 
     def get_health_status(self):
         """Return current health and update availability information."""
+        try:
+            import requests
+
+            response = requests.get(f"http://{self.host}:{self.port}/api/health", timeout=3)
+            response.raise_for_status()
+            data = response.json()
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass
+
         from __version__ import __version__
 
         payload = {'status': 'healthy', 'version': __version__}
@@ -105,8 +116,8 @@ class Api:
             from utils.update_checker import check_for_updates
 
             prefs = get_update_prefs()
-            if prefs.get('enabled', False):
-                payload['update_info'] = check_for_updates()
+            if prefs.get('enabled', False) and prefs.get('first_run_completed', False):
+                payload['update_info'] = check_for_updates(force=True)
         except Exception as exc:
             payload['update_error'] = str(exc)
 

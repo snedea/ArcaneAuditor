@@ -8,6 +8,13 @@ import requests
 from typing import Any, Dict, Optional
 from packaging import version as packaging_version
 from __version__ import __version__
+from datetime import datetime, timedelta, timezone
+from utils.preferences_manager import (
+    get_update_last_checked,
+    set_update_last_checked,
+    get_cached_latest_version,
+    set_cached_latest_version,
+)
 
 # GitHub API endpoint
 GITHUB_API_URL = "https://api.github.com/repos/Developers-and-Dragons/ArcaneAuditor/releases/latest"
@@ -88,16 +95,34 @@ def check_for_updates(force: bool = False) -> Dict[str, Any]:
         "error": None
     }
 
+    cached_latest = get_cached_latest_version()
+
+    if not force:
+        last_checked_epoch = get_update_last_checked()
+        if last_checked_epoch:
+            last_dt = datetime.fromtimestamp(last_checked_epoch, tz=timezone.utc)
+            if datetime.now(timezone.utc) - last_dt < timedelta(minutes=5):
+                if cached_latest:
+                    result["latest_version"] = cached_latest
+                    result["update_available"] = compare_versions(current_version, cached_latest)
+                return result
+
     latest_version = get_latest_version()
 
     if latest_version is None:
         result["error"] = "Could not fetch latest version"
+        if cached_latest:
+            result["latest_version"] = cached_latest
+            result["update_available"] = compare_versions(current_version, cached_latest)
         return result
 
     result["latest_version"] = latest_version
 
     if compare_versions(current_version, latest_version):
         result["update_available"] = True
+
+    set_cached_latest_version(latest_version)
+    set_update_last_checked(int(datetime.now(timezone.utc).timestamp()))
 
     return result
 

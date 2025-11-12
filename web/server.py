@@ -11,7 +11,7 @@ import time
 import uuid
 import asyncio
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 import webbrowser
 import json
 import shutil
@@ -38,7 +38,59 @@ from utils.arcane_paths import (
     user_root,
 )
 from utils.preferences_manager import get_update_prefs, set_update_prefs
-from utils.update_checker import check_for_updates
+from utils.update_checker import check_for_updates, compare_versions
+
+_HEALTH_CACHE_LOCK = threading.Lock()
+_HEALTH_CACHE: Dict[str, Any] = {
+    "latest_version": None,
+    "error": None,
+    "timestamp": 0.0,
+}
+
+
+def _refresh_latest_version(force: bool = False) -> None:
+    now = time.time()
+    cache_valid = (
+        not force
+        and _HEALTH_CACHE["latest_version"] is not None
+        and now - _HEALTH_CACHE["timestamp"] < 5 * 60
+    )
+    if cache_valid:
+        return
+ 
+    prefs = get_update_prefs()
+    if not (prefs.get("enabled", False) and prefs.get("first_run_completed", False)):
+        _HEALTH_CACHE["latest_version"] = None
+        _HEALTH_CACHE["error"] = None
+        _HEALTH_CACHE["timestamp"] = now
+        return
+
+    result = check_for_updates()
+    _HEALTH_CACHE["latest_version"] = result.get("latest_version")
+    _HEALTH_CACHE["error"] = result.get("error")
+    _HEALTH_CACHE["timestamp"] = now
+
+
+def get_cached_health(force: bool = False) -> Dict[str, Any]:
+    with _HEALTH_CACHE_LOCK:
+        _refresh_latest_version(force=force)
+        latest = _HEALTH_CACHE.get("latest_version")
+        error = _HEALTH_CACHE.get("error")
+
+    payload: Dict[str, Any] = {"status": "healthy", "version": __version__}
+
+    if error:
+        payload["update_error"] = error
+
+    if latest:
+        payload["update_info"] = {
+            "latest_version": latest,
+            "current_version": __version__,
+            "update_available": compare_versions(__version__, latest),
+            "error": error,
+        }
+
+    return payload
 
 
 # Configuration constants
@@ -682,14 +734,7 @@ async def serve_index():
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint."""
-    payload = {"status": "healthy", "version": __version__}
-    try:
-        prefs = get_update_prefs()
-        if prefs.get("enabled", False):
-            payload["update_info"] = check_for_updates()
-    except Exception as exc:
-        payload["update_error"] = str(exc)
-    return payload
+    return get_cached_health()
 
 
 @app.get("/api/update-preferences")
