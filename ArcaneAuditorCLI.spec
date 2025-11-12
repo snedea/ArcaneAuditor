@@ -23,6 +23,7 @@ a = Analysis(
     ("parser/rules/structure", "parser/rules/structure"),
     ("parser/pmd_script_grammar.lark", "parser"),
     ("assets/icons", "assets"),  # Application icon
+    ("pyproject.toml", "."),     # Version metadata for __version__
     ],
     hiddenimports=hidden_imports,
     hookspath=[],
