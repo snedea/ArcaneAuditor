@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v1.3.0] - 2025-11-11
+
+### Added
+
+- **Version Awareness Everywhere** - Packaging-driven source of truth now surfaces through the `__version__` module, CLI `--version` flag, desktop splash/title, and the web UI badge.
+- **Automated Update Detection** - Full update checker stack with FastAPI endpoints, desktop bridge, and web wiring backed by a preferences manager with opt-in, timestamp, and cache fields.
+- **In-App Settings Panel** - Hover-expanding settings orb lets users toggle automated update checks without leaving the primary workflow.
+
+### Changed
+
+- **Preferences Schema & Storage** - Atomic writes, schema migrations, and normalized legacy keys safeguard future settings expansions.
+- **Frontend Controls & Layout** - Theme toggle restyled as a hover orb with modularized CSS bundles for maintainability and responsiveness.
+- **Update Caching Strategy** - Server and desktop health checks reuse GitHub responses for five minutes to respect external rate limits.
+
+### Fixed
+
+- **macOS DMG Detection** - Correctly recognizes mounted volumes, prevents premature exits, and improves relocation guidance.
+- **Structure Rule Reliability** - PMD section ordering and string-boolean checks ignore underscore-prefixed (commented) keys, resolving issue #46.
+- **Script Rule Accuracy** - Stops flagging top-level constants as unused and consistently detects magic numbers in simple return statements.
+- **Manifest Naming Expectations** - AMD/SMD naming enforcement skips platform-generated files and tabbed PMD sections evaluate correctly.
+
+----------------------------------------------------------------------------------------------------------------------------
+
 ## [v1.2.0] - 2025-10-30
 
 ### Added
