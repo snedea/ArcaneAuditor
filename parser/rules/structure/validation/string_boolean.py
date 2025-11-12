@@ -45,6 +45,10 @@ class StringBooleanRule(StructureRuleBase):
                 field_name = match.group(1)
                 string_value = match.group(2)
                 
+                # Skip fields that start with underscore (commented out)
+                if field_name.startswith('_'):
+                    continue
+                
                 yield self._create_finding(
                     message=f"Field '{field_name}' has string value '{string_value}' instead of boolean {string_value}. Use boolean {string_value} instead of string '{string_value}'.",
                     file_path=model.file_path,

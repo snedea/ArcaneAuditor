@@ -266,13 +266,20 @@ export class ConfigManager {
         document.documentElement.setAttribute('data-theme', theme);
         const themeIcon = document.getElementById('theme-icon');
         const themeText = document.getElementById('theme-text');
+        const themeButton = document.getElementById('theme-toggle');
         
         if (theme === 'dark') {
             themeIcon.textContent = '☀️';
             themeText.textContent = 'Cast Light';
+            if (themeButton) {
+                themeButton.setAttribute('aria-label', 'Cast Light');
+            }
         } else {
             themeIcon.textContent = '🌙';
             themeText.textContent = 'Cast Darkness';
+            if (themeButton) {
+                themeButton.setAttribute('aria-label', 'Cast Darkness');
+            }
         }
         
         // Save preference

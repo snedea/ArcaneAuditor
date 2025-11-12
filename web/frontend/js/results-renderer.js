@@ -127,8 +127,10 @@ export class ResultsRenderer {
                 ${Object.entries(sortedGroupedFindings).map(([filePath, fileFindings]) => {
                     const isExpanded = this.app.expandedFiles.has(filePath);
                     // Strip job ID prefix from filename (format: uuid_filename.ext)
+                    // UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (8-4-4-4-12 hex digits)
+                    // Only match actual UUIDs, not arbitrary hex sequences
                     const rawFileName = filePath.split(/[/\\]/).pop() || filePath;
-                    const fileName = rawFileName.replace(/^[a-f0-9-]+_/, '');
+                    const fileName = rawFileName.replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_/, '');
                     const severityCounts = getSeverityCounts(fileFindings);
                     
                     return `

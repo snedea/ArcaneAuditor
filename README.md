@@ -4,9 +4,9 @@
 
 > ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.3.0-blue?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
-[![Support](https://img.shields.io/badge/🪄-Support_This_Project-yellow?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
+[![Support](https://img.shields.io/badge/🪄-Support_This_Project-purple?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
 
 ---
 
@@ -43,7 +43,7 @@ Get the latest build from [GitHub Releases](https://github.com/Developers-and-Dr
 | Platform                      | File                                | Description                                                        |
 | ----------------------------- | ----------------------------------- | ------------------------------------------------------------------ |
 | 🪟**Windows (Desktop)** | `ArcaneAuditor.exe`               | Full desktop app — double-click to launch                         |
-| 🍎**macOS (Desktop)**   | `ArcaneAuditor_macOS_Desktop.dmg` | Double click DMG, drag**Arcane Auditor.app** to Applications |
+| 🍎**macOS (Desktop)**   | `ArcaneAuditor_macOS_Desktop.dmg` | Double click DMG, drag **Arcane Auditor.app** to Applications |
 | ⚙️**Windows (CLI)**   | `ArcaneAuditorCLI.exe`            | Command-line analyzer for automation and CI/CD                     |
 | ⚙️**macOS (CLI)**     | `ArcaneAuditor_macOS_CLI.zip`     | Unzip and run `ArcaneAuditorCLI` from Terminal                   |
 

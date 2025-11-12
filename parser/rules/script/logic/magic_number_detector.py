@@ -177,6 +177,8 @@ class MagicNumberDetector(ScriptDetector):
         Rejects: 
         - multiplicative_expression: 70 * 2
         - additive_expression: 70 + x
+        - function_expression: function() { return 42; }  <- Literal inside function is NOT a direct const assignment
+        - arrow_function_expression: () => { return 42; }
         """
         if not hasattr(initializer, 'data'):
             return False
@@ -184,6 +186,11 @@ class MagicNumberDetector(ScriptDetector):
         # If this IS our literal node, it's definitely simple
         if initializer is literal_node:
             return True
+        
+        # If we're inside a function, the literal is NOT a direct const assignment
+        # Examples: const foo = function() { return 42; } - the 42 is magic, not a const value
+        if initializer.data in ['function_expression', 'arrow_function_expression']:
+            return False
         
         # These are "wrapper" nodes that don't change the value - recurse into them
         if initializer.data in ['literal_expression', 'arguments_expression', 'parenthesized_expression']:

@@ -4,7 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arcane Auditor - Simple Interface</title>
-    <link rel="stylesheet" href="/static/style.css">
+    
+    <!-- Split stylesheets for better maintainability -->
+    <link rel="stylesheet" href="/static/styles/base.css">
+    <link rel="stylesheet" href="/static/styles/layout.css">
+    <link rel="stylesheet" href="/static/styles/components.css">
+    <link rel="stylesheet" href="/static/styles/results.css">
+    <link rel="stylesheet" href="/static/styles/config-modals.css">
+    
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 </head>
 <body>
@@ -12,18 +19,41 @@
         <header>
             <div class="header-content">
                 <div class="header-text">
-                    <h1>🔮 Arcane Auditor</h1>
+                    <div class="header-title-row">
+                        <h1>🔮 Arcane Auditor</h1>
+                        <div class="header-version">
+                            <span class="version-info" id="version-info" title="Application version" data-loading="true"></span>
+                        </div>
+                    </div>
                     <p>Cast mystical spells to reveal code quality issues in your Workday Extend applications</p>
                 </div>
             </div>
         </header>
 
-        <!-- Fixed theme toggle in bottom corner -->
+        <!-- Fixed theme toggle and settings in bottom corner -->
         <div class="theme-toggle-fixed">
-            <button id="theme-toggle" class="btn btn-secondary" onclick="toggleTheme()">
-                <span id="theme-icon">🌙</span>
-                <span id="theme-text">Dark</span>
-            </button>
+            <div class="quick-controls">
+                <button id="settings-toggle" class="settings-button" aria-expanded="false" aria-controls="settings-panel" aria-label="App settings" data-tooltip="App settings">
+                    <span class="icon icon-tome" aria-hidden="true">🔮</span>
+                    <span class="icon icon-close" aria-hidden="true">✖️</span>
+                    <span class="visually-hidden">App settings</span>
+                </button>
+                <button id="theme-toggle" class="theme-button" type="button" onclick="toggleTheme()" aria-label="Cast Darkness">
+                    <span class="theme-emoji" id="theme-icon" aria-hidden="true">🌙</span>
+                    <span class="theme-label" id="theme-text">Cast Darkness</span>
+                </button>
+            </div>
+            <div id="settings-panel" class="settings-panel" role="dialog" aria-labelledby="settings-panel-title" hidden>
+                <div class="settings-panel-header">
+                    <h3 id="settings-panel-title">App Settings</h3>
+                </div>
+                <div class="settings-panel-body">
+                    <label class="settings-option">
+                        <input type="checkbox" id="settings-update-checkbox">
+                        <span>Enable App Update Detection</span>
+                    </label>
+                </div>
+            </div>
         </div>
 
         <main>
@@ -139,6 +169,7 @@
         </main>
     </div>
 
+    <script type="module" src="/static/js/dialog-manager.js"></script>
     <script type="module" src="/static/js/magic-mode.js"></script>
     <script type="module" src="/static/js/app.js"></script>
 </body>

@@ -4,6 +4,7 @@ import { ConfigManager } from './config-manager.js';
 import { ResultsRenderer } from './results-renderer.js';
 import { downloadResults, getLastSortBy, getLastSortFilesBy } from './utils.js';
 import { showMagicalAnalysisComplete } from './magic-mode.js';
+import { DialogManager } from './dialog-manager.js';
 
 class ArcaneAuditorApp {
     constructor() {
@@ -19,6 +20,15 @@ class ArcaneAuditorApp {
             sortFilesBy: getLastSortFilesBy()
         };
         
+        this.updatePreferences = {
+            enabled: false,
+            first_run_completed: false
+        };
+        this.updatePreferencesPromise = null;
+        this.versionRetryAttempts = 0;
+        this.versionRetryTimer = null;
+        this.settingsPanelElements = null;
+
         // Initialize managers
         this.configManager = new ConfigManager(this);
         this.resultsRenderer = new ResultsRenderer(this);
@@ -26,6 +36,27 @@ class ArcaneAuditorApp {
         this.initializeEventListeners();
         this.configManager.initializeTheme();
         this.configManager.loadConfigurations();
+        // Load update preferences then version asynchronously after initialization
+        this.updatePreferencesPromise = this.loadUpdatePreferences();
+        this.updatePreferencesPromise.catch(err => console.error('Failed to load update preferences:', err));
+        this.loadVersion().catch(err => console.error('Failed to load version:', err));
+
+        this.initializeSettingsPanel();
+
+        if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+            window.addEventListener('pywebviewready', () => {
+                try {
+                    this.updatePreferencesPromise = this.loadUpdatePreferences();
+                    this.updatePreferencesPromise
+                        .catch(err => console.error('Failed to refresh update preferences:', err))
+                        .finally(() => {
+                            this.loadVersion().catch(err => console.error('Failed to refresh version:', err));
+                        });
+                } catch (error) {
+                    console.error('pywebviewready handler error:', error);
+                }
+            }, { once: false });
+        }
     }
 
     initializeEventListeners() {
@@ -83,6 +114,132 @@ class ArcaneAuditorApp {
         });
     }
 
+    initializeSettingsPanel() {
+        const settingsButton = document.getElementById('settings-toggle');
+        const settingsPanel = document.getElementById('settings-panel');
+        const updateCheckbox = document.getElementById('settings-update-checkbox');
+
+        if (!settingsButton || !settingsPanel) {
+            return;
+        }
+
+        const openPanel = () => {
+            settingsButton.setAttribute('aria-expanded', 'true');
+            settingsPanel.hidden = false;
+            settingsPanel.setAttribute('aria-hidden', 'false');
+        };
+
+        const closePanel = () => {
+            settingsButton.setAttribute('aria-expanded', 'false');
+            settingsPanel.hidden = true;
+            settingsPanel.setAttribute('aria-hidden', 'true');
+        };
+
+        const isOpen = () => settingsButton.getAttribute('aria-expanded') === 'true';
+
+        settingsButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (isOpen()) {
+                closePanel();
+            } else {
+                openPanel();
+            }
+        });
+
+        settingsPanel.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+
+        const handleDocumentClick = (event) => {
+            if (!settingsPanel.contains(event.target) && !settingsButton.contains(event.target) && isOpen()) {
+                closePanel();
+            }
+        };
+
+        document.addEventListener('click', handleDocumentClick);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && isOpen()) {
+                closePanel();
+                settingsButton.focus();
+            }
+        });
+
+        if (updateCheckbox) {
+            updateCheckbox.addEventListener('change', (event) => {
+                const { checked } = event.target;
+                this.persistUpdatePreference(checked);
+            });
+        }
+
+        this.settingsPanelElements = {
+            button: settingsButton,
+            panel: settingsPanel,
+            updateCheckbox
+        };
+
+        // Ensure panel starts hidden
+        closePanel();
+        this.syncUpdatePreferenceUI();
+
+        // Prevent initial focus outline on load unless the user tabs to the control
+        setTimeout(() => {
+            if (settingsButton === document.activeElement) {
+                settingsButton.blur();
+            }
+        }, 50);
+    }
+
+    syncUpdatePreferenceUI() {
+        const checkbox = this.settingsPanelElements?.updateCheckbox || document.getElementById('settings-update-checkbox');
+        if (!checkbox) {
+            return;
+        }
+        checkbox.checked = Boolean(this.updatePreferences.enabled);
+    }
+
+    async persistUpdatePreference(enabled) {
+        const checkbox = this.settingsPanelElements?.updateCheckbox || document.getElementById('settings-update-checkbox');
+        const previous = this.updatePreferences.enabled;
+        this.updatePreferences.enabled = Boolean(enabled);
+
+        if (checkbox) {
+            checkbox.disabled = true;
+        }
+
+        try {
+            if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_update_preferences === 'function') {
+                const result = await window.pywebview.api.set_update_preferences(enabled);
+                if (result && result.success === false) {
+                    throw new Error(result.error || 'Failed to save preferences');
+                }
+            } else {
+                const response = await fetch('/api/update-preferences', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ enabled })
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to update preferences:', error);
+            this.updatePreferences.enabled = previous;
+            if (checkbox) {
+                checkbox.checked = previous;
+            }
+            this.showToast('❌ Failed to update settings. Please try again.', 'error');
+        } finally {
+            if (checkbox) {
+                checkbox.disabled = false;
+            }
+        }
+    }
+
     // Navigation methods
     showUpload() {
         this.hideAllSections();
@@ -120,6 +277,64 @@ class ArcaneAuditorApp {
         const errorMessage = document.getElementById('error-message');
         errorMessage.textContent = message;
         errorSection.style.display = 'block';
+    }
+
+    async ensureUpdatePreferencesLoaded() {
+        if (this.updatePreferencesPromise) {
+            try {
+                await this.updatePreferencesPromise;
+            } catch (error) {
+                console.error('Failed waiting for update preferences:', error);
+            } finally {
+                this.updatePreferencesPromise = null;
+            }
+        }
+    }
+
+    async loadUpdatePreferences() {
+        try {
+            let data = null;
+            const hasDesktopBridge = (
+                window.pywebview &&
+                window.pywebview.api &&
+                typeof window.pywebview.api.get_update_preferences === 'function'
+            );
+
+            if (hasDesktopBridge) {
+                data = await window.pywebview.api.get_update_preferences();
+            } else {
+            const response = await fetch('/api/update-preferences');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+                data = await response.json();
+            }
+
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid update preferences payload');
+            }
+
+            if (typeof data.enabled === 'boolean') {
+                this.updatePreferences.enabled = data.enabled;
+            }
+            if (typeof data.first_run_completed === 'boolean') {
+                this.updatePreferences.first_run_completed = data.first_run_completed;
+            }
+            this.syncUpdatePreferenceUI();
+        } catch (error) {
+            console.error('Failed to load update preferences:', error);
+            // Keep defaults (disabled) if we can't load preferences
+            this.updatePreferences.enabled = false;
+            this.syncUpdatePreferenceUI();
+        }
+    }
+
+    resetVersionIndicator() {
+        const versionElement = document.getElementById('version-info');
+        if (!versionElement) return;
+        versionElement.classList.remove('update-available', 'pulse');
+        versionElement.style.cursor = 'default';
+        versionElement.onclick = null;
     }
 
     hideAllSections() {
@@ -282,12 +497,22 @@ class ArcaneAuditorApp {
 
     async uploadAndAnalyze() {
         if (this.selectedFiles.length === 0) {
-            alert('Please select a file or files to analyze');
+            const message = 'Please select a file or files to analyze';
+            if (DialogManager && typeof DialogManager.showAlert === 'function') {
+                DialogManager.showAlert(message);
+            } else {
+                alert(message);
+            }
             return;
         }
 
         if (!this.configManager.selectedConfig) {
-            alert('Please select a configuration');
+            const message = 'Please select a configuration';
+            if (DialogManager && typeof DialogManager.showAlert === 'function') {
+                DialogManager.showAlert(message);
+            } else {
+                alert(message);
+            }
             return;
         }
 
@@ -459,11 +684,139 @@ class ArcaneAuditorApp {
         // Re-render configurations to ensure selected config appears at top
         this.configManager.renderConfigurations();
     }
+
+    async loadVersion() {
+        await this.ensureUpdatePreferencesLoaded();
+        if (this.versionRetryTimer) {
+            clearTimeout(this.versionRetryTimer);
+            this.versionRetryTimer = null;
+        }
+
+        try {
+            let data = null;
+            const hasDesktopBridge = (
+                window.pywebview &&
+                window.pywebview.api &&
+                typeof window.pywebview.api.get_health_status === 'function'
+            );
+
+            if (hasDesktopBridge) {
+                data = await window.pywebview.api.get_health_status();
+            } else {
+            const response = await fetch('/api/health');
+                data = await response.json();
+            }
+
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid health payload');
+            }
+
+            if (data.version) {
+                const versionElement = document.getElementById('version-info');
+                if (versionElement) {
+                    versionElement.textContent = `v${data.version}`;
+                    versionElement.title = `Arcane Auditor version ${data.version}`;
+                    versionElement.removeAttribute('data-loading');
+                    this.resetVersionIndicator();
+                }
+
+                const updateInfo = data.update_info;
+                if (updateInfo && updateInfo.update_available) {
+                    this.updateVersionDisplay(updateInfo);
+                    this.versionRetryAttempts = 0;
+                } else if (hasDesktopBridge && !updateInfo) {
+                    if (this.scheduleVersionRetry()) {
+                        return;
+                    }
+                    this.versionRetryAttempts = 0;
+                } else {
+                    this.versionRetryAttempts = 0;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load version:', error);
+            const hasDesktopBridge = (
+                window.pywebview &&
+                window.pywebview.api &&
+                typeof window.pywebview.api.get_health_status === 'function'
+            );
+            if (hasDesktopBridge && this.scheduleVersionRetry()) {
+                return;
+            }
+            // If fetch fails, show "v?" to indicate version unavailable
+            const versionElement = document.getElementById('version-info');
+            if (versionElement) {
+                versionElement.textContent = 'v?';
+                versionElement.title = 'Version unavailable';
+                versionElement.removeAttribute('data-loading');
+                this.resetVersionIndicator();
+            }
+        }
+    }
+    
+    scheduleVersionRetry() {
+        const maxAttempts = 5;
+        if (this.versionRetryAttempts >= maxAttempts) {
+            return false;
+        }
+
+        this.versionRetryAttempts += 1;
+
+        const delay = 1000 * this.versionRetryAttempts;
+        this.versionRetryTimer = setTimeout(() => {
+            this.versionRetryTimer = null;
+            this.loadVersion().catch(err => {
+                console.error('Retrying loadVersion failed:', err);
+            });
+        }, delay);
+
+        return true;
+    }
+    
+    updateVersionDisplay(updateInfo) {
+        // Update version indicator to show update available
+        const versionElement = document.getElementById('version-info');
+        if (!versionElement) return;
+        
+        const latestVersion = updateInfo.latest_version || '';
+        const currentVersion = updateInfo.current_version || '';
+        
+        // Update display
+        versionElement.textContent = `v${latestVersion} now available! ⚡`;
+        versionElement.title = `Update available! Current: v${currentVersion}, Latest: v${latestVersion}.`;
+        versionElement.removeAttribute('data-loading');
+        
+        // Add classes for styling and interaction
+        versionElement.classList.add('update-available', 'pulse');
+        versionElement.style.cursor = 'default';
+        versionElement.onclick = null;
+    }
+    
+    showUpdateNotification(updateInfo) {
+        // Show update notification dialog
+        const latest = updateInfo.latest_version || '';
+        const current = updateInfo.current_version || '';
+        const lines = [
+            `Current version: v${current}`,
+            `Latest version: v${latest}`,
+            'Visit GitHub Releases to download.'
+        ];
+        const fallbackMessage = `Update available!\n\n${lines.join('\n')}`;
+
+        if (DialogManager && typeof DialogManager.showUpdatePrompt === 'function') {
+            DialogManager.showUpdatePrompt('Update available! ⚡', lines).catch(() => {
+                alert(fallbackMessage);
+            });
+        } else {
+            alert(fallbackMessage);
+        }
+    }
 }
 
 // Initialize the app
 const app = new ArcaneAuditorApp();
 window.app = app; // Make app globally accessible
+window.DialogManager = window.DialogManager || DialogManager;
 
 // Global functions for HTML onclick handlers
 window.resetInterface = function() {

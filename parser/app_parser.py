@@ -2,6 +2,7 @@
 Parser to convert source files into PMD models for analysis.
 """
 import json
+import os
 from pathlib import Path
 from typing import Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -200,7 +201,10 @@ class ModelParser:
                 pmd_model.set_hash_to_lines_mapping(hash_to_lines)
                 
                 context.pmds[pmd_model.pageId] = pmd_model
-                print(f"Parsed PMD: {pmd_model.pageId}")
+                # Show cleaned filename for consistency with "Parsed Script" messages
+                from utils.file_path_utils import strip_uuid_prefix
+                cleaned_filename = os.path.basename(strip_uuid_prefix(file_path))
+                print(f"Parsed PMD: {cleaned_filename}")
                 
             except json.JSONDecodeError as e:
                 print(f"JSON parsing failed for {file_path}: {e}")
@@ -219,7 +223,10 @@ class ModelParser:
             )
             # Use the full filename (including extension) as the key since that's how it's referenced in PMD files
             context.scripts[Path(file_path).name] = script_model
-            print(f"Parsed Script: {Path(file_path).name}")
+            # Show cleaned filename without UUID prefix for consistency
+            from utils.file_path_utils import strip_uuid_prefix
+            cleaned_filename = os.path.basename(strip_uuid_prefix(file_path))
+            print(f"Parsed Script: {cleaned_filename}")
             
         except Exception as e:
             print(f"Failed to parse script file {file_path}: {e}")
