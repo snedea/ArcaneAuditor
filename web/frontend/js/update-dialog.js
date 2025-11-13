@@ -55,10 +55,23 @@ function createDialog({ title, lines }) {
   modal.setAttribute('aria-labelledby', heading.id);
   modal.appendChild(heading);
 
-  lines.forEach((text) => {
+  lines.forEach((entry) => {
+    const text = String(entry);
     const paragraph = doc.createElement('p');
-    paragraph.textContent = text;
     paragraph.style.cssText = 'margin: 12px 0; line-height: 1.5; color: #cbd5f5;';
+
+    if (text.startsWith('http')) {
+      const link = doc.createElement('a');
+      link.href = text;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = 'View release notes';
+      link.style.cssText = 'color: inherit; text-decoration: underline;';
+      paragraph.appendChild(link);
+    } else {
+      paragraph.textContent = text;
+    }
+
     modal.appendChild(paragraph);
   });
 
