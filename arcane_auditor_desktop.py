@@ -103,6 +103,16 @@ class Api:
             response.raise_for_status()
             data = response.json()
             if isinstance(data, dict):
+                update_info = data.get("update_info")
+                if isinstance(update_info, dict):
+                    from utils.update_checker import GITHUB_RELEASES_BASE
+
+                    latest = update_info.get("latest_version")
+                    release_url = update_info.get("release_url")
+                    if not release_url:
+                        data["update_info"]["release_url"] = (
+                            f"{GITHUB_RELEASES_BASE}/tag/v{latest}" if latest else GITHUB_RELEASES_BASE
+                        )
                 return data
         except Exception:
             pass
@@ -113,11 +123,19 @@ class Api:
 
         try:
             from utils.preferences_manager import get_update_prefs
-            from utils.update_checker import check_for_updates
+            from utils.update_checker import check_for_updates, GITHUB_RELEASES_BASE
 
             prefs = get_update_prefs()
             if prefs.get('enabled', False) and prefs.get('first_run_completed', False):
-                payload['update_info'] = check_for_updates(force=True)
+                update_info = check_for_updates(force=True)
+                if isinstance(update_info, dict):
+                    latest = update_info.get("latest_version")
+                    release_url = update_info.get("release_url")
+                    if not release_url:
+                        update_info["release_url"] = (
+                            f"{GITHUB_RELEASES_BASE}/tag/v{latest}" if latest else GITHUB_RELEASES_BASE
+                        )
+                    payload['update_info'] = update_info
         except Exception as exc:
             payload['update_error'] = str(exc)
 
