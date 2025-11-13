@@ -4,6 +4,9 @@ from __version__ import __version__
 from arcane_auditor_desktop import Api, _show_confirmation
 
 
+RELEASES_BASE = "https://github.com/Developers-and-Dragons/ArcaneAuditor/releases"
+
+
 class DummyResponse:
     def __init__(self, payload):
         self._payload = payload
@@ -34,6 +37,7 @@ def test_get_health_status_with_update(monkeypatch):
         "latest_version": "9.9.9",
         "current_version": "1.2.3",
         "error": None,
+        "release_url": f"{RELEASES_BASE}/tag/v9.9.9",
     }
 
     payload = {
@@ -47,6 +51,35 @@ def test_get_health_status_with_update(monkeypatch):
     result = api.get_health_status()
 
     assert result == payload
+
+
+def test_get_health_status_offline_adds_release_url(monkeypatch):
+    api = Api("127.0.0.1", 8080)
+
+    def _raise_offline(url, timeout=3):
+        raise RuntimeError("offline")
+
+    monkeypatch.setattr("requests.get", _raise_offline)
+    monkeypatch.setattr(
+        "utils.preferences_manager.get_update_prefs",
+        lambda: {"enabled": True, "first_run_completed": True},
+    )
+
+    update_info_without_url = {
+        "update_available": True,
+        "latest_version": "4.5.6",
+        "current_version": "4.5.0",
+        "error": None,
+    }
+
+    monkeypatch.setattr(
+        "utils.update_checker.check_for_updates",
+        lambda force=True: update_info_without_url,
+    )
+
+    result = api.get_health_status()
+
+    assert result["update_info"]["release_url"] == f"{RELEASES_BASE}/tag/v4.5.6"
 
 
 def test_get_health_status_first_run_not_completed(monkeypatch):

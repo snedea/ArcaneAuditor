@@ -6,6 +6,8 @@ from web.server import UpdatePreferencesPayload, set_update_preferences_api
 import web.server as server
 from __version__ import __version__
 
+RELEASES_BASE = "https://github.com/Developers-and-Dragons/ArcaneAuditor/releases"
+
 
 def test_update_preferences_post(monkeypatch):
     stored = {"enabled": False, "first_run_completed": False}
@@ -33,7 +35,13 @@ def test_get_cached_health_respects_caching(monkeypatch):
 
     def fake_check(force=False):
         call_count["value"] += 1
-        return {"update_available": False, "latest_version": "2.0.0", "current_version": __version__, "error": None}
+        return {
+            "update_available": False,
+            "latest_version": "2.0.0",
+            "current_version": __version__,
+            "error": None,
+            "release_url": f"{RELEASES_BASE}/tag/v2.0.0",
+        }
 
     monkeypatch.setattr(server, "check_for_updates", fake_check)
     monkeypatch.setattr(server.time, "time", lambda: 1000.0)
@@ -44,12 +52,14 @@ def test_get_cached_health_respects_caching(monkeypatch):
     assert call_count["value"] == 1
     assert payload1["update_info"]["latest_version"] == "2.0.0"
     assert payload1["update_info"]["update_available"] is True
+    assert payload1["update_info"]["release_url"] == f"{RELEASES_BASE}/tag/v2.0.0"
 
     monkeypatch.setattr(server.time, "time", lambda: 1001.0)
     payload2 = server.get_cached_health()
 
     assert call_count["value"] == 1
     assert payload2["update_info"]["latest_version"] == "2.0.0"
+    assert payload2["update_info"]["release_url"] == f"{RELEASES_BASE}/tag/v2.0.0"
 
     monkeypatch.setattr(server, "__version__", "2.0.0")
     payload3 = server.get_cached_health()

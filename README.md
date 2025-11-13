@@ -4,7 +4,7 @@
 
 > ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
 
-![Version](https://img.shields.io/badge/version-1.3.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.3.1-blue?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
 [![Support](https://img.shields.io/badge/🪄-Support_This_Project-purple?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
 

@@ -18,6 +18,7 @@ from utils.preferences_manager import (
 
 # GitHub API endpoint
 GITHUB_API_URL = "https://api.github.com/repos/Developers-and-Dragons/ArcaneAuditor/releases/latest"
+GITHUB_RELEASES_BASE = "https://github.com/Developers-and-Dragons/ArcaneAuditor/releases"
 REQUEST_TIMEOUT = 2  # seconds
 
 
@@ -76,7 +77,7 @@ def check_for_updates(force: bool = False) -> Dict[str, Any]:
     Main function to check for updates.
 
     Args:
-        force: Retained for API compatibility (ignored).
+        force: If True, bypasses the 5-minute cache and always calls GitHub.
 
     Returns:
         Dict with update information:
@@ -92,6 +93,7 @@ def check_for_updates(force: bool = False) -> Dict[str, Any]:
         "update_available": False,
         "latest_version": current_version,
         "current_version": current_version,
+        "release_url": GITHUB_RELEASES_BASE,
         "error": None
     }
 
@@ -105,6 +107,7 @@ def check_for_updates(force: bool = False) -> Dict[str, Any]:
                 if cached_latest:
                     result["latest_version"] = cached_latest
                     result["update_available"] = compare_versions(current_version, cached_latest)
+                    result["release_url"] = f"{GITHUB_RELEASES_BASE}/tag/v{cached_latest}"
                 return result
 
     latest_version = get_latest_version()
@@ -114,9 +117,11 @@ def check_for_updates(force: bool = False) -> Dict[str, Any]:
         if cached_latest:
             result["latest_version"] = cached_latest
             result["update_available"] = compare_versions(current_version, cached_latest)
+            result["release_url"] = f"{GITHUB_RELEASES_BASE}/tag/v{cached_latest}"
         return result
 
     result["latest_version"] = latest_version
+    result["release_url"] = f"{GITHUB_RELEASES_BASE}/tag/v{latest_version}"
 
     if compare_versions(current_version, latest_version):
         result["update_available"] = True

@@ -780,26 +780,28 @@ class ArcaneAuditorApp {
         
         const latestVersion = updateInfo.latest_version || '';
         const currentVersion = updateInfo.current_version || '';
+        const releaseUrl = updateInfo.release_url || 'https://github.com/Developers-and-Dragons/ArcaneAuditor/releases';
         
         // Update display
-        versionElement.textContent = `v${latestVersion} now available! ⚡`;
+        const linkLabel = latestVersion ? `v${latestVersion} now available! ⚡` : 'New version available! ⚡';
+        versionElement.innerHTML = `<a href="${releaseUrl}" target="_blank" rel="noopener noreferrer">${linkLabel}</a>`;
         versionElement.title = `Update available! Current: v${currentVersion}, Latest: v${latestVersion}.`;
         versionElement.removeAttribute('data-loading');
         
         // Add classes for styling and interaction
         versionElement.classList.add('update-available', 'pulse');
-        versionElement.style.cursor = 'default';
-        versionElement.onclick = null;
+        versionElement.style.cursor = 'pointer';
     }
     
     showUpdateNotification(updateInfo) {
         // Show update notification dialog
         const latest = updateInfo.latest_version || '';
         const current = updateInfo.current_version || '';
+        const releaseUrl = updateInfo.release_url || 'https://github.com/Developers-and-Dragons/ArcaneAuditor/releases';
         const lines = [
-            `Current version: v${current}`,
-            `Latest version: v${latest}`,
-            'Visit GitHub Releases to download.'
+            `Current: v${current}`,
+            `Latest: v${latest}`,
+            releaseUrl
         ];
         const fallbackMessage = `Update available!\n\n${lines.join('\n')}`;
 

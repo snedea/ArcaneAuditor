@@ -123,6 +123,16 @@ header {
     visibility: hidden;
 }
 
+
+.version-info a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+.version-info a:hover {
+    text-decoration: none;
+}
+
 /* Better contrast for light mode */
 [data-theme="light"] .header-version .version-info {
     background: rgba(0, 0, 0, 0.15);
