@@ -253,6 +253,98 @@ def get_dynamic_config_info():
     
     return config_info
 
+
+def _get_config_entry(config_id: str) -> Dict[str, Any]:
+    entry = get_dynamic_config_info().get(config_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail=f"Configuration '{config_id}' not found")
+    return entry
+
+
+def _read_config_document(path: Path) -> Dict[str, Any]:
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Configuration file missing")
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail=f"Configuration JSON malformed: {exc}")
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="Configuration document must be a JSON object")
+    return data
+
+
+def _normalize_document(document: Dict[str, Any]) -> Dict[str, Any]:
+    normalized = deepcopy(document or {})
+    rules = normalized.get("rules", {})
+    normalized["rules"] = normalize_config_rules(
+        rules,
+        default_enabled=get_new_rule_default_enabled(),
+        production_rules=get_production_rules(),
+    )
+    return normalized
+
+
+def _ensure_writable(entry: Dict[str, Any]) -> None:
+    if entry.get("source") == "presets":
+        raise HTTPException(status_code=403, detail="Built-in presets cannot be modified")
+
+
+def _allowed_roots() -> Dict[str, Path]:
+    dirs = get_config_dirs()
+    return {key: Path(path) for key, path in dirs.items()}
+
+
+def _ensure_path_within(path: Path) -> None:
+    resolved = path.resolve()
+    roots = _allowed_roots()
+    if not any(resolved.is_relative_to(root.resolve()) for root in roots.values()):
+        raise HTTPException(status_code=400, detail="Configuration path is outside allowed directories")
+
+
+def _build_config_response(config_id: str) -> Dict[str, Any]:
+    entry = _get_config_entry(config_id)
+    document = _read_config_document(Path(entry["path"]))
+    normalized = _normalize_document(document)
+    rules = normalized.get("rules", {})
+
+    return {
+        "id": config_id,
+        "name": entry.get("name"),
+        "description": entry.get("description"),
+        "source": entry.get("source"),
+        "type": entry.get("type"),
+        "path": entry.get("path"),
+        "rules_count": entry.get("rules_count", sum(1 for rule in rules.values() if rule.get("enabled", True))),
+        "total_rules": entry.get("total_rules", len(rules)),
+        "config": normalized,
+    }
+
+
+def _sanitize_config_name(name: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_\-]+", "_", name.strip())
+    cleaned = re.sub(r"_{2,}", "_", cleaned)
+    cleaned = re.sub(r"-{2,}", "-", cleaned)
+    cleaned = cleaned.strip("_-")
+    if not cleaned:
+        raise HTTPException(status_code=400, detail="Configuration name is invalid")
+    return cleaned.lower()
+
+
+def _resolve_target_directory(target: str) -> tuple[str, Path]:
+    normalized = (target or "").strip().lower()
+    if normalized in ("personal", "user"):
+        key = "personal"
+    elif normalized in ("team", "teams"):
+        key = "teams"
+    else:
+        raise HTTPException(status_code=400, detail="Target must be 'personal' or 'team'")
+
+    dirs = get_config_dirs()
+    directory = Path(dirs[key])
+    directory.mkdir(parents=True, exist_ok=True)
+    return key, directory
+
 def cleanup_orphaned_files():
     """Clean up orphaned files from previous server runs."""
     uploads_dir = Path(__file__).parent / "uploads"
@@ -324,6 +416,19 @@ class AnalysisRequest(BaseModel):
 class UpdatePreferencesPayload(BaseModel):
     """Payload for updating user preferences."""
     enabled: bool
+
+
+class ConfigSaveRequest(BaseModel):
+    """Request payload for saving a configuration document."""
+    config: Dict[str, Any]
+
+
+class ConfigCreateRequest(BaseModel):
+    """Request payload for creating a new configuration document."""
+    name: str
+    target: str
+    base_id: Optional[str] = None
+    config: Optional[Dict[str, Any]] = None
 
 
 @asynccontextmanager
@@ -659,6 +764,78 @@ async def get_available_configs(response: Response):
         available_configs.append(config_data)
     
     return {"configs": available_configs}
+
+
+@app.get("/api/config/{config_id}")
+async def get_configuration(config_id: str):
+    """Fetch a normalized configuration document."""
+    return _build_config_response(config_id)
+
+
+@app.post("/api/config/{config_id}/save")
+async def save_configuration(config_id: str, payload: ConfigSaveRequest):
+    """Persist configuration changes with normalization and atomic write safety."""
+    entry = _get_config_entry(config_id)
+    _ensure_writable(entry)
+    path = Path(entry["path"])
+    _ensure_path_within(path)
+
+    normalized = _normalize_document(payload.config)
+
+    try:
+        atomic_write_json(path, normalized)
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to save configuration: {exc}")
+
+    return _build_config_response(config_id)
+
+
+@app.post("/api/config/create")
+async def create_configuration(request: ConfigCreateRequest):
+    """Create a new configuration, optionally duplicating from an existing one."""
+    key, directory = _resolve_target_directory(request.target)
+    config_name = _sanitize_config_name(request.name)
+    target_path = directory / f"{config_name}.json"
+
+    if target_path.exists():
+        raise HTTPException(status_code=409, detail="A configuration with that name already exists")
+
+    if request.base_id:
+        base_entry = _get_config_entry(request.base_id)
+        base_document = _read_config_document(Path(base_entry["path"]))
+    elif request.config is not None:
+        base_document = request.config
+    else:
+        base_document = {}
+
+    normalized = _normalize_document(base_document)
+
+    try:
+        atomic_write_json(target_path, normalized)
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to create configuration: {exc}")
+
+    new_id = f"{config_name}_{key}"
+    return _build_config_response(new_id)
+
+
+@app.delete("/api/config/{config_id}")
+async def delete_configuration(config_id: str):
+    """Delete a writable configuration."""
+    entry = _get_config_entry(config_id)
+    _ensure_writable(entry)
+    path = Path(entry["path"])
+    _ensure_path_within(path)
+
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to delete configuration: {exc}")
+
+    return {"id": config_id, "status": "deleted"}
+
 
 @app.get("/api/job/{job_id}", response_model=JobStatusResponse)
 async def get_job_status(job_id: str):
