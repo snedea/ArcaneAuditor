@@ -138,35 +138,44 @@ export class ConfigManager {
                 configElement.appendChild(nameDiv);
                 configElement.appendChild(descDiv);
                 configElement.appendChild(metaDiv);
+                
+                // --- Bottom Action Bar ---
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'config-footer-actions';
 
-                // Actions (only show when selected, matching old behavior)
+                const detailsBtn = document.createElement('button');
+                detailsBtn.className = 'btn btn-secondary config-details-btn';
+                detailsBtn.textContent = '📋 Details';
+                detailsBtn.onclick = (e) => { e.stopPropagation(); this.showConfigBreakdown(); };
+                actionsDiv.appendChild(detailsBtn);
+
+                if (config.source !== 'presets') {
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'btn btn-secondary config-edit-btn';
+                    editBtn.textContent = '✏️ Edit';
+                    editBtn.onclick = (e) => { e.stopPropagation(); this.editConfiguration(config.id); };
+                    actionsDiv.appendChild(editBtn);
+
+                    const dupBtn = document.createElement('button');
+                    dupBtn.className = 'btn btn-secondary config-duplicate-btn';
+                    dupBtn.textContent = '📄 Copy';
+                    dupBtn.onclick = (e) => { e.stopPropagation(); this.duplicateConfiguration(config.id); };
+                    actionsDiv.appendChild(dupBtn);
+
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'btn btn-secondary config-delete-btn arcane-danger';
+                    delBtn.textContent = '🗑️ Delete';
+                    delBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        this.requestDeleteConfiguration(config);
+                    };
+                    actionsDiv.appendChild(delBtn);
+                }
+
+                configElement.appendChild(actionsDiv);
+
                 if (isSelected) {
-                    const actionsDiv = document.createElement('div');
-                    actionsDiv.className = 'config-actions';
-
-                    const detailsBtn = document.createElement('button');
-                    detailsBtn.className = 'btn btn-secondary config-details-btn';
-                    detailsBtn.textContent = '📋 View Details';
-                    detailsBtn.onclick = () => this.showConfigBreakdown();
-
-                    actionsDiv.appendChild(detailsBtn);
-
-                    if (config.source !== 'presets') {
-                        const editBtn = document.createElement('button');
-                        editBtn.className = 'btn btn-secondary config-edit-btn';
-                        editBtn.textContent = '✏️ Edit';
-                        editBtn.onclick = () => this.editConfiguration(config.id);
-
-                        const dupBtn = document.createElement('button');
-                        dupBtn.className = 'btn btn-secondary config-duplicate-btn';
-                        dupBtn.textContent = '📋 Duplicate';
-                        dupBtn.onclick = () => this.duplicateConfiguration(config.id);
-
-                        actionsDiv.appendChild(editBtn);
-                        actionsDiv.appendChild(dupBtn);
-                    }
-
-                    configElement.appendChild(actionsDiv);
+                    configElement.classList.add('show-actions');
                 }
 
                 // Click handler for card selection (buttons have their own onclick handlers)
@@ -209,11 +218,7 @@ export class ConfigManager {
         
         configElements.forEach(element => {
             element.classList.remove('selected');
-            // Remove any existing config-actions
-            const existingActions = element.querySelector('.config-actions');
-            if (existingActions) {
-                existingActions.remove();
-            }
+            element.classList.remove('show-actions');
         });
 
         // Find and select the clicked config using unique ID
@@ -224,28 +229,7 @@ export class ConfigManager {
 
         if (selectedElement) {
             selectedElement.classList.add('selected');
-            
-            // Add config actions to selected element
-            const selectedConfig = this.availableConfigs.find(c => c.id === this.selectedConfig);
-            if (selectedConfig) {
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'config-actions';
-                const canEdit = selectedConfig.source !== 'presets';
-                actionsDiv.innerHTML = `
-                    <button class="btn btn-secondary config-details-btn" onclick="showConfigBreakdown()">
-                        📋 View Details
-                    </button>
-                    ${canEdit ? `
-                        <button class="btn btn-secondary config-edit-btn" onclick="app.configManager.editConfiguration('${selectedConfig.id}')">
-                            ✏️ Edit
-                        </button>
-                        <button class="btn btn-secondary config-duplicate-btn" onclick="app.configManager.duplicateConfiguration('${selectedConfig.id}')">
-                            📋 Duplicate
-                        </button>
-                    ` : ''}
-                `;
-                selectedElement.appendChild(actionsDiv);
-            }
+            selectedElement.classList.add('show-actions');
         }
     }
 
@@ -435,6 +419,65 @@ export class ConfigManager {
         } catch (error) {
             console.error('Failed to duplicate configuration:', error);
             this.app.showToast(`❌ Failed to duplicate configuration: ${error.message}`, 'error');
+        }
+    }
+
+    requestDeleteConfiguration(config) {
+        const modal = document.getElementById('config-delete-modal');
+        const message = document.getElementById('config-delete-message');
+        const confirmBtn = document.getElementById('config-delete-confirm');
+        const cancelBtn = document.getElementById('config-delete-cancel');
+        const closeBtn = document.getElementById('config-delete-close');
+
+        if (!modal || !message || !confirmBtn || !cancelBtn || !closeBtn) {
+            console.error('Delete modal elements not found');
+            return;
+        }
+
+        message.textContent = `Are you sure you want to delete "${config.name}"?`;
+
+        const cleanup = () => {
+            confirmBtn.removeEventListener('click', confirmHandler);
+            cancelBtn.onclick = null;
+            closeBtn.onclick = null;
+        };
+
+        const confirmHandler = async () => {
+            cleanup();
+            modal.hidden = true;
+            await this.deleteConfiguration(config.id);
+        };
+
+        confirmBtn.addEventListener('click', confirmHandler);
+
+        cancelBtn.onclick = () => {
+            cleanup();
+            modal.hidden = true;
+        };
+        closeBtn.onclick = () => {
+            cleanup();
+            modal.hidden = true;
+        };
+
+        modal.hidden = false;
+    }
+
+    async deleteConfiguration(configId) {
+        try {
+            const response = await fetch(`/api/config/${configId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const err = await response.json().catch(() => null);
+                throw new Error(err?.detail || `HTTP ${response.status}`);
+            }
+
+            await this.loadConfigurations();
+            this.app.showToast('🗑️ Configuration deleted', 'success');
+        } catch (error) {
+            console.error(error);
+            this.app.showToast(`❌ Delete failed: ${error.message}`, 'error');
         }
     }
 

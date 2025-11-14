@@ -355,3 +355,84 @@
 [data-theme="dark"] .app-footer {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* === Arcane Delete Modal (Matches Settings / Breakdown Modals) === */
+
+.arcane-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    padding: 20px;
+    backdrop-filter: blur(6px);
+}
+
+.arcane-modal[hidden] {
+    display: none;
+}
+
+.arcane-modal-content {
+    background: var(--bg-secondary);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.arcane-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-tertiary);
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.arcane-modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+}
+
+.arcane-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.arcane-modal-close:hover {
+    color: var(--text-primary);
+}
+
+.arcane-modal-body {
+    padding: 22px;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.arcane-modal-footer {
+    padding: 16px 22px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+}
+
+/* Subtle arcane danger button (non-neon) */
+.arcane-danger {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+.arcane-danger:hover {
+    background: rgba(239, 68, 68, 0.25);
+}
