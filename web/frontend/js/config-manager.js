@@ -90,6 +90,14 @@ export class ConfigManager {
                             <button class="btn btn-secondary config-details-btn" onclick="showConfigBreakdown()">
                                 📋 View Details
                             </button>
+                            ${config.source !== 'presets' ? `
+                                <button class="btn btn-secondary config-edit-btn" onclick="app.configManager.editConfiguration('${config.id}')">
+                                    ✏️ Edit
+                                </button>
+                                <button class="btn btn-secondary config-duplicate-btn" onclick="app.configManager.duplicateConfiguration('${config.id}')">
+                                    📋 Duplicate
+                                </button>
+                            ` : ''}
                         </div>
                     ` : ''}
                 `;
@@ -138,10 +146,19 @@ export class ConfigManager {
             if (selectedConfig) {
                 const actionsDiv = document.createElement('div');
                 actionsDiv.className = 'config-actions';
+                const canEdit = selectedConfig.source !== 'presets';
                 actionsDiv.innerHTML = `
                     <button class="btn btn-secondary config-details-btn" onclick="showConfigBreakdown()">
                         📋 View Details
                     </button>
+                    ${canEdit ? `
+                        <button class="btn btn-secondary config-edit-btn" onclick="app.configManager.editConfiguration('${selectedConfig.id}')">
+                            ✏️ Edit
+                        </button>
+                        <button class="btn btn-secondary config-duplicate-btn" onclick="app.configManager.duplicateConfiguration('${selectedConfig.id}')">
+                            📋 Duplicate
+                        </button>
+                    ` : ''}
                 `;
                 selectedElement.appendChild(actionsDiv);
             }
@@ -290,6 +307,57 @@ export class ConfigManager {
         const currentTheme = document.documentElement.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         this.setTheme(newTheme);
+    }
+
+    async duplicateConfiguration(configId) {
+        try {
+            const config = this.availableConfigs.find(c => c.id === configId);
+            if (!config) {
+                this.app.showToast('Configuration not found', 'error');
+                return;
+            }
+
+            // Determine target directory (personal or team)
+            const target = config.source === 'teams' ? 'team' : 'personal';
+            
+            // Prompt for new name
+            const baseName = config.name || config.id.split('_')[0];
+            const newName = prompt(`Enter a name for the duplicate configuration:`, `${baseName} copy`);
+            if (!newName || !newName.trim()) {
+                return;
+            }
+
+            // Call API to create duplicate
+            const response = await fetch('/api/config/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: newName.trim(),
+                    target: target,
+                    base_id: configId
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || `HTTP ${response.status}`);
+            }
+
+            // Reload configurations to show the new one
+            await this.loadConfigurations();
+            this.app.showToast('✅ Configuration duplicated successfully', 'success');
+        } catch (error) {
+            console.error('Failed to duplicate configuration:', error);
+            this.app.showToast(`❌ Failed to duplicate configuration: ${error.message}`, 'error');
+        }
+    }
+
+    async editConfiguration(configId) {
+        // Stub for Phase 4 - will be implemented when editor modal is built
+        this.app.showToast('Configuration editor will be available in Phase 4', 'info');
+        console.log('Edit configuration:', configId);
     }
 }
 

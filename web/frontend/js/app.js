@@ -24,7 +24,11 @@ class ArcaneAuditorApp {
             enabled: false,
             first_run_completed: false
         };
+        this.ruleEvolutionPreferences = {
+            new_rule_default_enabled: true
+        };
         this.updatePreferencesPromise = null;
+        this.ruleEvolutionPreferencesPromise = null;
         this.versionRetryAttempts = 0;
         this.versionRetryTimer = null;
         this.settingsPanelElements = null;
@@ -39,9 +43,16 @@ class ArcaneAuditorApp {
         // Load update preferences then version asynchronously after initialization
         this.updatePreferencesPromise = this.loadUpdatePreferences();
         this.updatePreferencesPromise.catch(err => console.error('Failed to load update preferences:', err));
+        this.ruleEvolutionPreferencesPromise = this.loadRuleEvolutionPreferences();
+        this.ruleEvolutionPreferencesPromise.catch(err => console.error('Failed to load rule evolution preferences:', err));
         this.loadVersion().catch(err => console.error('Failed to load version:', err));
 
-        this.initializeSettingsPanel();
+        // Initialize settings panel after DOM is loaded
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', () => this.initializeSettingsPanel());
+        } else {
+            this.initializeSettingsPanel();
+        }
 
         if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
             window.addEventListener('pywebviewready', () => {
@@ -118,6 +129,7 @@ class ArcaneAuditorApp {
         const settingsButton = document.getElementById('settings-toggle');
         const settingsPanel = document.getElementById('settings-panel');
         const updateCheckbox = document.getElementById('settings-update-checkbox');
+        const newRuleDefaultCheckbox = document.getElementById('settings-new-rule-default-checkbox');
 
         if (!settingsButton || !settingsPanel) {
             return;
@@ -173,15 +185,24 @@ class ArcaneAuditorApp {
             });
         }
 
+        if (newRuleDefaultCheckbox) {
+            newRuleDefaultCheckbox.addEventListener('change', (event) => {
+                const { checked } = event.target;
+                this.persistRuleEvolutionPreference(checked);
+            });
+        }
+
         this.settingsPanelElements = {
             button: settingsButton,
             panel: settingsPanel,
-            updateCheckbox
+            updateCheckbox,
+            newRuleDefaultCheckbox
         };
 
         // Ensure panel starts hidden
         closePanel();
         this.syncUpdatePreferenceUI();
+        this.syncRuleEvolutionPreferenceUI();
 
         // Prevent initial focus outline on load unless the user tabs to the control
         setTimeout(() => {
@@ -191,22 +212,28 @@ class ArcaneAuditorApp {
         }, 50);
     }
 
-    syncUpdatePreferenceUI() {
-        const checkbox = this.settingsPanelElements?.updateCheckbox || document.getElementById('settings-update-checkbox');
+    syncPreferenceUI(key, value) {
+        const checkbox = this.settingsPanelElements[key];
         if (!checkbox) {
             return;
         }
-        checkbox.checked = Boolean(this.updatePreferences.enabled);
+        checkbox.checked = Boolean(value);
+    }
+
+    syncUpdatePreferenceUI() {
+        this.syncPreferenceUI('updateCheckbox', this.updatePreferences.enabled);
+    }
+
+    syncRuleEvolutionPreferenceUI() {
+        this.syncPreferenceUI('newRuleDefaultCheckbox', this.ruleEvolutionPreferences.new_rule_default_enabled);
     }
 
     async persistUpdatePreference(enabled) {
-        const checkbox = this.settingsPanelElements?.updateCheckbox || document.getElementById('settings-update-checkbox');
+        const checkbox = this.settingsPanelElements.updateCheckbox;
         const previous = this.updatePreferences.enabled;
         this.updatePreferences.enabled = Boolean(enabled);
 
-        if (checkbox) {
-            checkbox.disabled = true;
-        }
+        checkbox.disabled = true;
 
         try {
             if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_update_preferences === 'function') {
@@ -229,14 +256,10 @@ class ArcaneAuditorApp {
         } catch (error) {
             console.error('Failed to update preferences:', error);
             this.updatePreferences.enabled = previous;
-            if (checkbox) {
-                checkbox.checked = previous;
-            }
+            this.syncUpdatePreferenceUI();
             this.showToast('❌ Failed to update settings. Please try again.', 'error');
         } finally {
-            if (checkbox) {
-                checkbox.disabled = false;
-            }
+            checkbox.disabled = false;
         }
     }
 
@@ -326,6 +349,70 @@ class ArcaneAuditorApp {
             // Keep defaults (disabled) if we can't load preferences
             this.updatePreferences.enabled = false;
             this.syncUpdatePreferenceUI();
+        }
+    }
+
+    async loadRuleEvolutionPreferences() {
+        try {
+            const response = await fetch('/api/rule-evolution-preferences');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid rule evolution preferences payload');
+            }
+
+            if (typeof data.new_rule_default_enabled === 'boolean') {
+                this.ruleEvolutionPreferences.new_rule_default_enabled = data.new_rule_default_enabled;
+            }
+            this.syncRuleEvolutionPreferenceUI();
+        } catch (error) {
+            console.error('Failed to load rule evolution preferences:', error);
+            // Keep defaults (enabled) if we can't load preferences
+            this.ruleEvolutionPreferences.new_rule_default_enabled = true;
+            this.syncRuleEvolutionPreferenceUI();
+        }
+    }
+
+    async persistRuleEvolutionPreference(enabled) {
+        const checkbox = this.settingsPanelElements.newRuleDefaultCheckbox;
+        const previous = this.ruleEvolutionPreferences.new_rule_default_enabled;
+        this.ruleEvolutionPreferences.new_rule_default_enabled = Boolean(enabled);
+
+        checkbox.disabled = true;
+
+        try {
+            const response = await fetch('/api/rule-evolution-preferences', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ new_rule_default_enabled: enabled })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || `HTTP ${response.status}`);
+            }
+            
+            if (data.success !== true) {
+                throw new Error('Save operation did not return success');
+            }
+            
+            // Ensure UI is in sync after successful save
+            this.syncRuleEvolutionPreferenceUI();
+            console.log('Rule evolution preference saved:', enabled);
+            this.showToast('✅ Settings saved successfully', 'success');
+        } catch (error) {
+            console.error('Failed to update rule evolution preferences:', error);
+            this.ruleEvolutionPreferences.new_rule_default_enabled = previous;
+            this.syncRuleEvolutionPreferenceUI();
+            this.showToast(`❌ Failed to update settings: ${error.message}`, 'error');
+        } finally {
+            checkbox.disabled = false;
         }
     }
 

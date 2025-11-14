@@ -42,6 +42,7 @@ from utils.arcane_paths import (
 )
 from utils.preferences_manager import (
     get_new_rule_default_enabled,
+    set_new_rule_default_enabled,
     get_update_prefs,
     set_update_prefs,
 )
@@ -416,6 +417,11 @@ class AnalysisRequest(BaseModel):
 class UpdatePreferencesPayload(BaseModel):
     """Payload for updating user preferences."""
     enabled: bool
+
+
+class RuleEvolutionPreferencesPayload(BaseModel):
+    """Payload for updating rule evolution preferences."""
+    new_rule_default_enabled: bool
 
 
 class ConfigSaveRequest(BaseModel):
@@ -955,6 +961,32 @@ async def set_update_preferences_api(payload: UpdatePreferencesPayload):
         prefs["enabled"] = bool(payload.enabled)
         set_update_prefs(prefs)
         return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/rule-evolution-preferences")
+async def get_rule_evolution_preferences_api():
+    """Return the current rule evolution preferences."""
+    try:
+        enabled = get_new_rule_default_enabled()
+        return {
+            "new_rule_default_enabled": enabled
+        }
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/rule-evolution-preferences")
+async def set_rule_evolution_preferences_api(payload: RuleEvolutionPreferencesPayload):
+    """Persist rule evolution preference changes."""
+    try:
+        success = set_new_rule_default_enabled(bool(payload.new_rule_default_enabled))
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to save preferences")
+        return {"success": True}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
