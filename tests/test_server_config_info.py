@@ -1,11 +1,11 @@
 import importlib
 import json
 
-import web.server as server
+from web.services import config_loader
 
 
 def test_get_dynamic_config_info_normalizes_rules(monkeypatch, tmp_path):
-    server_module = importlib.reload(server)
+    config_loader_module = importlib.reload(config_loader)
 
     personal_dir = tmp_path / "personal"
     teams_dir = tmp_path / "teams"
@@ -31,7 +31,7 @@ def test_get_dynamic_config_info_normalizes_rules(monkeypatch, tmp_path):
     }
 
     monkeypatch.setattr(
-        server_module,
+        config_loader_module,
         "get_config_dirs",
         lambda: {
             "personal": str(personal_dir),
@@ -39,10 +39,10 @@ def test_get_dynamic_config_info_normalizes_rules(monkeypatch, tmp_path):
             "presets": str(presets_dir),
         },
     )
-    monkeypatch.setattr(server_module, "get_new_rule_default_enabled", lambda: False)
-    monkeypatch.setattr(server_module, "get_production_rules", lambda: production_rules)
+    monkeypatch.setattr(config_loader_module, "get_new_rule_default_enabled", lambda: False)
+    monkeypatch.setattr(config_loader_module, "get_production_rules", lambda: production_rules)
 
-    config_info = server_module.get_dynamic_config_info()
+    config_info = config_loader_module.get_dynamic_config_info()
 
     key = "my-config_personal"
     assert key in config_info

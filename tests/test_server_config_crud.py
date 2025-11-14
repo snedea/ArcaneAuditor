@@ -6,12 +6,14 @@ import pytest
 from fastapi.testclient import TestClient
 
 import web.server as server
+from web.services import config_loader
+from utils import arcane_paths
+from utils.preferences_manager import get_new_rule_default_enabled
+from utils.config_normalizer import get_production_rules
 
 
 @pytest.fixture
 def server_ctx(monkeypatch, tmp_path):
-    server_module = importlib.reload(server)
-
     personal_dir = tmp_path / "personal"
     teams_dir = tmp_path / "teams"
     presets_dir = tmp_path / "presets"
@@ -30,9 +32,23 @@ def server_ctx(monkeypatch, tmp_path):
             "presets": str(presets_dir),
         }
 
-    monkeypatch.setattr(server_module, "get_config_dirs", fake_config_dirs)
-    monkeypatch.setattr(server_module, "get_new_rule_default_enabled", lambda: False)
-    monkeypatch.setattr(server_module, "get_production_rules", lambda: production_rules)
+    # Patch in the modules BEFORE reloading so the reloaded modules pick up the patches
+    monkeypatch.setattr(arcane_paths, "get_config_dirs", fake_config_dirs)
+    monkeypatch.setattr("utils.preferences_manager.get_new_rule_default_enabled", lambda: False)
+    monkeypatch.setattr("utils.config_normalizer.get_production_rules", lambda: production_rules)
+    
+    # Clear cache first
+    from utils import config_normalizer
+    if hasattr(config_normalizer, '_load_production_rules'):
+        config_normalizer._load_production_rules.cache_clear()
+    
+    # Now reload modules so they pick up the patched functions
+    # Reload in order: config_loader first (bottom), then routes (middle), then server (top)
+    config_loader_module = importlib.reload(config_loader)
+    from web.routes import configs
+    importlib.reload(configs)
+    # Reload server last - when it reloads, it will re-include the routers
+    server_module = importlib.reload(server)
 
     # Seed configs
     with (personal_dir / "alpha.json").open("w", encoding="utf-8") as handle:

@@ -2,28 +2,25 @@ import asyncio
 import importlib
 import pytest
 
-from web.server import RuleEvolutionPreferencesPayload, set_rule_evolution_preferences_api, get_rule_evolution_preferences_api
-import web.server as server
+import web.routes.preferences as preferences_module
 
 
 def test_get_rule_evolution_preferences(monkeypatch):
     """Test GET endpoint for rule evolution preferences."""
-    importlib.reload(server)
+    monkeypatch.setattr("utils.preferences_manager.get_new_rule_default_enabled", lambda: True)
+    importlib.reload(preferences_module)
     
-    monkeypatch.setattr(server, "get_new_rule_default_enabled", lambda: True)
-    
-    response = asyncio.run(get_rule_evolution_preferences_api())
+    response = asyncio.run(preferences_module.get_rule_evolution_preferences_api())
     
     assert response["new_rule_default_enabled"] is True
 
 
 def test_get_rule_evolution_preferences_default_false(monkeypatch):
     """Test GET endpoint with default enabled set to False."""
-    importlib.reload(server)
+    monkeypatch.setattr("utils.preferences_manager.get_new_rule_default_enabled", lambda: False)
+    importlib.reload(preferences_module)
     
-    monkeypatch.setattr(server, "get_new_rule_default_enabled", lambda: False)
-    
-    response = asyncio.run(get_rule_evolution_preferences_api())
+    response = asyncio.run(preferences_module.get_rule_evolution_preferences_api())
     
     assert response["new_rule_default_enabled"] is False
 
@@ -36,10 +33,11 @@ def test_set_rule_evolution_preferences(monkeypatch):
         stored["value"] = enabled
         return True
     
-    monkeypatch.setattr(server, "set_new_rule_default_enabled", fake_set)
+    monkeypatch.setattr("utils.preferences_manager.set_new_rule_default_enabled", fake_set)
+    importlib.reload(preferences_module)
     
-    response = asyncio.run(set_rule_evolution_preferences_api(
-        RuleEvolutionPreferencesPayload(new_rule_default_enabled=True)
+    response = asyncio.run(preferences_module.set_rule_evolution_preferences_api(
+        preferences_module.RuleEvolutionPreferencesPayload(new_rule_default_enabled=True)
     ))
     
     assert response["success"] is True
@@ -54,10 +52,11 @@ def test_set_rule_evolution_preferences_disabled(monkeypatch):
         stored["value"] = enabled
         return True
     
-    monkeypatch.setattr(server, "set_new_rule_default_enabled", fake_set)
+    monkeypatch.setattr("utils.preferences_manager.set_new_rule_default_enabled", fake_set)
+    importlib.reload(preferences_module)
     
-    response = asyncio.run(set_rule_evolution_preferences_api(
-        RuleEvolutionPreferencesPayload(new_rule_default_enabled=False)
+    response = asyncio.run(preferences_module.set_rule_evolution_preferences_api(
+        preferences_module.RuleEvolutionPreferencesPayload(new_rule_default_enabled=False)
     ))
     
     assert response["success"] is True
