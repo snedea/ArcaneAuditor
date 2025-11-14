@@ -121,67 +121,60 @@ export class ConfigManager {
                 descDiv.className = 'config-description';
                 descDiv.textContent = config.description || '';
 
-                // Counts container
-                const countsDiv = document.createElement('div');
-                countsDiv.className = 'config-counts';
-                const enabledSpan = document.createElement('span');
-                enabledSpan.className = 'count enabled';
-                enabledSpan.textContent = `${config.rules_count} enabled`;
-                const totalSpan = document.createElement('span');
-                totalSpan.className = 'count total';
-                totalSpan.textContent = `${config.total_rules}`;
-
-                // Separator
-                const slashText = document.createTextNode(' / ');
-
-                countsDiv.appendChild(enabledSpan);
-                countsDiv.appendChild(slashText);
-                countsDiv.appendChild(totalSpan);
-
-                // Performance
-                const perfDiv = document.createElement('div');
-                perfDiv.className = 'config-performance';
-                perfDiv.textContent = config.performance;
-
-                // Actions
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'config-actions';
-
-                const editBtn = document.createElement('button');
-                editBtn.className = 'wt-btn secondary small';
-                editBtn.dataset.action = 'edit';
-                editBtn.textContent = 'Edit';
-
-                const dupBtn = document.createElement('button');
-                dupBtn.className = 'wt-btn secondary small';
-                dupBtn.dataset.action = 'duplicate';
-                dupBtn.textContent = 'Duplicate';
-
-                actionsDiv.appendChild(editBtn);
-                actionsDiv.appendChild(dupBtn);
+                // Meta container (matches CSS structure)
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'config-meta';
+                const rulesCountSpan = document.createElement('span');
+                rulesCountSpan.className = 'config-rules-count';
+                rulesCountSpan.textContent = `${config.rules_count} rules`;
+                const perfSpan = document.createElement('span');
+                perfSpan.className = `config-performance ${config.performance.toLowerCase()}`;
+                perfSpan.textContent = config.performance;
+                metaDiv.appendChild(rulesCountSpan);
+                metaDiv.appendChild(perfSpan);
 
                 // Append everything
                 configElement.appendChild(typeDiv);
                 configElement.appendChild(nameDiv);
                 configElement.appendChild(descDiv);
-                configElement.appendChild(countsDiv);
-                configElement.appendChild(perfDiv);
-                configElement.appendChild(actionsDiv);
+                configElement.appendChild(metaDiv);
 
-                // Click handlers remain unchanged
+                // Actions (only show when selected, matching old behavior)
+                if (isSelected) {
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'config-actions';
+
+                    const detailsBtn = document.createElement('button');
+                    detailsBtn.className = 'btn btn-secondary config-details-btn';
+                    detailsBtn.textContent = '📋 View Details';
+                    detailsBtn.onclick = () => this.showConfigBreakdown();
+
+                    actionsDiv.appendChild(detailsBtn);
+
+                    if (config.source !== 'presets') {
+                        const editBtn = document.createElement('button');
+                        editBtn.className = 'btn btn-secondary config-edit-btn';
+                        editBtn.textContent = '✏️ Edit';
+                        editBtn.onclick = () => this.editConfiguration(config.id);
+
+                        const dupBtn = document.createElement('button');
+                        dupBtn.className = 'btn btn-secondary config-duplicate-btn';
+                        dupBtn.textContent = '📋 Duplicate';
+                        dupBtn.onclick = () => this.duplicateConfiguration(config.id);
+
+                        actionsDiv.appendChild(editBtn);
+                        actionsDiv.appendChild(dupBtn);
+                    }
+
+                    configElement.appendChild(actionsDiv);
+                }
+
+                // Click handler for card selection (buttons have their own onclick handlers)
                 configElement.addEventListener('click', (event) => {
-                    if (event.target.dataset.action === 'edit') {
-                        this.editConfiguration(config.id);
-                        event.stopPropagation();
+                    // Don't select if clicking on a button (buttons have onclick handlers)
+                    if (event.target.tagName === 'BUTTON') {
                         return;
                     }
-
-                    if (event.target.dataset.action === 'duplicate') {
-                        this.duplicateConfiguration(config.id);
-                        event.stopPropagation();
-                        return;
-                    }
-
                     this.selectConfiguration(config.id);
                 });
 
