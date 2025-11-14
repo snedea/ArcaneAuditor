@@ -10,12 +10,15 @@ import threading
 import time
 import uuid
 import asyncio
+
+from copy import deepcopy
 from pathlib import Path
 from typing import Dict, Optional, Any
 import webbrowser
 import json
 import shutil
 import argparse
+import re
 
 # Add the project root to Python path
 project_root = Path(__file__).parent.parent
@@ -37,8 +40,14 @@ from utils.arcane_paths import (
     is_frozen,
     user_root,
 )
-from utils.preferences_manager import get_update_prefs, set_update_prefs
+from utils.preferences_manager import (
+    get_new_rule_default_enabled,
+    get_update_prefs,
+    set_update_prefs,
+)
 from utils.update_checker import check_for_updates, compare_versions, GITHUB_RELEASES_BASE
+from utils.config_normalizer import get_production_rules, normalize_config_rules
+from utils.json_io import atomic_write_json
 
 _HEALTH_CACHE_LOCK = threading.Lock()
 _HEALTH_CACHE: Dict[str, Any] = {
@@ -174,6 +183,8 @@ def get_dynamic_config_info():
         Path(dirs["presets"])
     ]
 
+    default_enabled = get_new_rule_default_enabled()
+    production_rules = get_production_rules()
     
     for config_dir in config_dirs:
         if not config_dir.exists():
@@ -187,15 +198,20 @@ def get_dynamic_config_info():
                 import json
                 with open(config_file, 'r', encoding='utf-8') as f:
                     config_data = json.load(f)
-                
+
+                normalized_rules = normalize_config_rules(
+                    config_data.get('rules', {}),
+                    default_enabled=default_enabled,
+                    production_rules=production_rules,
+                )
+
                 # Count enabled rules
                 enabled_rules = 0
-                if 'rules' in config_data:
-                    for rule_name, rule_config in config_data['rules'].items():
-                        # Check if rule is explicitly enabled (defaults to True if not present)
-                        is_enabled = rule_config.get('enabled', True)
-                        if is_enabled:
-                            enabled_rules += 1
+                for rule_config in normalized_rules.values():
+                    # Check if rule is explicitly enabled (defaults to True if not present)
+                    is_enabled = rule_config.get('enabled', True)
+                    if is_enabled:
+                        enabled_rules += 1
                 
                 # Determine performance level based on rule count
                 if enabled_rules <= 10:
@@ -223,12 +239,13 @@ def get_dynamic_config_info():
                     "name": config_name.replace('_', ' ').title(),
                     "description": description,
                     "rules_count": enabled_rules,
+                    "total_rules": len(normalized_rules),
                     "performance": performance,
                     "type": config_type,
                     "path": str(config_file),
                     "id": config_name,  # Original name for API compatibility
                     "source": config_dir.name,  # Track which directory it came from
-                    "rules": config_data.get('rules', {})  # Include actual rules data
+                    "rules": normalized_rules,  # Include normalized rules data
                 }
                 
             except Exception as e:
@@ -672,8 +689,6 @@ async def download_excel(job_id: str):
             # Use shared OutputFormatter logic for Excel generation
             from output.formatter import OutputFormatter, OutputFormat
             from datetime import datetime
-            import tempfile
-            from pathlib import Path
             
             # Convert web service findings to CLI format for compatibility
             findings = []
@@ -790,7 +805,6 @@ def main():
     host = cfg.get("host", "127.0.0.1")
     port = cfg.get("port", 8080)
     open_browser = cfg.get("open_browser", True)
-    log_level = cfg.get("log_level", "info")
   
     if open_browser:
         # Open browser after a short delay
