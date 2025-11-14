@@ -5,7 +5,6 @@ Provides backend logic for discovering and processing configuration files.
 """
 
 from pathlib import Path
-from typing import Dict, Any
 
 from utils.arcane_paths import get_config_dirs
 from utils.preferences_manager import get_new_rule_default_enabled

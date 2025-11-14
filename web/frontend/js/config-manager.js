@@ -6,16 +6,40 @@ export class ConfigManager {
     constructor(app) {
         this.app = app;
         this.availableConfigs = [];
-        this.selectedConfig = getLastSelectedConfig();
+        // Don't load from localStorage in constructor - wait until configs are loaded
+        // This ensures localStorage is ready (important for pywebview)
+        this.selectedConfig = null;
     }
 
     async loadConfigurations() {
         try {
-            const response = await fetch('/api/configs');
+            // Add cache-busting query parameter to prevent browser caching
+            const cacheBuster = `?t=${Date.now()}`;
+            const response = await fetch(`/api/configs${cacheBuster}`);
             const data = await response.json();
             this.availableConfigs = data.configs;
             
-            // If no config is selected, select the first available one
+            // NOW load from localStorage (after configs are loaded, ensuring localStorage is ready)
+            // This is important for pywebview which may not have localStorage ready immediately
+            if (!this.selectedConfig) {
+                try {
+                    const savedConfig = getLastSelectedConfig();
+                    this.selectedConfig = savedConfig;
+                } catch (e) {
+                    this.selectedConfig = null;
+                }
+            }
+            
+            // Validate that the saved config ID exists in available configs
+            // If not, clear it and select the first available one
+            if (this.selectedConfig) {
+                const configExists = this.availableConfigs.some(c => c.id === this.selectedConfig);
+                if (!configExists) {
+                    this.selectedConfig = null;
+                }
+            }
+            
+            // If no config is selected (or was invalid), select the first available one
             if (!this.selectedConfig && this.availableConfigs.length > 0) {
                 this.selectedConfig = this.availableConfigs[0].id;
                 saveSelectedConfig(this.selectedConfig);
@@ -72,37 +96,95 @@ export class ConfigManager {
             configs.forEach(config => {
                 const configElement = document.createElement('div');
                 configElement.className = 'config-option';
-                if (config.id === this.selectedConfig) {
+                const isSelected = config.id === this.selectedConfig;
+                configElement.dataset.configId = config.id;
+
+                // Selected styling
+                if (isSelected) {
                     configElement.classList.add('selected');
                 }
-                
-                const isSelected = config.id === this.selectedConfig;
-                configElement.innerHTML = `
-                    <div class="config-type ${config.type?.toLowerCase() || 'built-in'}">${config.type || 'Built-in'}</div>
-                    <div class="config-name">${config.name}</div>
-                    <div class="config-description">${config.description}</div>
-                    <div class="config-meta">
-                        <span class="config-rules-count">${config.rules_count} rules</span>
-                        <span class="config-performance ${config.performance.toLowerCase()}">${config.performance}</span>
-                    </div>
-                    ${isSelected ? `
-                        <div class="config-actions">
-                            <button class="btn btn-secondary config-details-btn" onclick="showConfigBreakdown()">
-                                📋 View Details
-                            </button>
-                            ${config.source !== 'presets' ? `
-                                <button class="btn btn-secondary config-edit-btn" onclick="app.configManager.editConfiguration('${config.id}')">
-                                    ✏️ Edit
-                                </button>
-                                <button class="btn btn-secondary config-duplicate-btn" onclick="app.configManager.duplicateConfiguration('${config.id}')">
-                                    📋 Duplicate
-                                </button>
-                            ` : ''}
-                        </div>
-                    ` : ''}
-                `;
-                
-                configElement.addEventListener('click', () => this.selectConfiguration(config.id));
+
+                // --- Build DOM nodes manually (fixes PyWebView dataset bug) ---
+
+                // Type
+                const typeDiv = document.createElement('div');
+                typeDiv.className = `config-type ${config.type?.toLowerCase() || 'built-in'}`;
+                typeDiv.textContent = config.type || 'Built-in';
+
+                // Name
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'config-name';
+                nameDiv.textContent = config.name;
+
+                // Description
+                const descDiv = document.createElement('div');
+                descDiv.className = 'config-description';
+                descDiv.textContent = config.description || '';
+
+                // Counts container
+                const countsDiv = document.createElement('div');
+                countsDiv.className = 'config-counts';
+                const enabledSpan = document.createElement('span');
+                enabledSpan.className = 'count enabled';
+                enabledSpan.textContent = `${config.rules_count} enabled`;
+                const totalSpan = document.createElement('span');
+                totalSpan.className = 'count total';
+                totalSpan.textContent = `${config.total_rules}`;
+
+                // Separator
+                const slashText = document.createTextNode(' / ');
+
+                countsDiv.appendChild(enabledSpan);
+                countsDiv.appendChild(slashText);
+                countsDiv.appendChild(totalSpan);
+
+                // Performance
+                const perfDiv = document.createElement('div');
+                perfDiv.className = 'config-performance';
+                perfDiv.textContent = config.performance;
+
+                // Actions
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'config-actions';
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'wt-btn secondary small';
+                editBtn.dataset.action = 'edit';
+                editBtn.textContent = 'Edit';
+
+                const dupBtn = document.createElement('button');
+                dupBtn.className = 'wt-btn secondary small';
+                dupBtn.dataset.action = 'duplicate';
+                dupBtn.textContent = 'Duplicate';
+
+                actionsDiv.appendChild(editBtn);
+                actionsDiv.appendChild(dupBtn);
+
+                // Append everything
+                configElement.appendChild(typeDiv);
+                configElement.appendChild(nameDiv);
+                configElement.appendChild(descDiv);
+                configElement.appendChild(countsDiv);
+                configElement.appendChild(perfDiv);
+                configElement.appendChild(actionsDiv);
+
+                // Click handlers remain unchanged
+                configElement.addEventListener('click', (event) => {
+                    if (event.target.dataset.action === 'edit') {
+                        this.editConfiguration(config.id);
+                        event.stopPropagation();
+                        return;
+                    }
+
+                    if (event.target.dataset.action === 'duplicate') {
+                        this.duplicateConfiguration(config.id);
+                        event.stopPropagation();
+                        return;
+                    }
+
+                    this.selectConfiguration(config.id);
+                });
+
                 groupGrid.appendChild(configElement);
             });
 
@@ -112,8 +194,17 @@ export class ConfigManager {
     }
 
     selectConfiguration(configId) {
+        // Validate that the config ID exists in available configs
+        const configExists = this.availableConfigs.some(c => c.id === configId);
+        if (!configExists) {
+            console.error(`Config ID "${configId}" not found in available configs`);
+            this.app.showToast(`Configuration not found: ${configId}`, 'error');
+            return;
+        }
+        
         this.selectedConfig = configId;
         saveSelectedConfig(configId);
+        
         // Don't re-render configurations to avoid jumping behavior
         // Just update the visual selection state
         this.updateConfigSelection();
@@ -122,6 +213,7 @@ export class ConfigManager {
     updateConfigSelection() {
         // Update visual selection without re-rendering the entire grid
         const configElements = document.querySelectorAll('.config-option');
+        
         configElements.forEach(element => {
             element.classList.remove('selected');
             // Remove any existing config-actions
@@ -131,11 +223,10 @@ export class ConfigManager {
             }
         });
 
-        // Find and select the clicked config
+        // Find and select the clicked config using unique ID
         const selectedElement = Array.from(configElements).find(element => {
-            const configName = element.querySelector('.config-name').textContent;
-            const config = this.availableConfigs.find(c => c.name === configName);
-            return config && config.id === this.selectedConfig;
+            const configId = element.dataset.configId;
+            return configId === this.selectedConfig;
         });
 
         if (selectedElement) {
