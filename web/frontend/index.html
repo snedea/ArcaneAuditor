@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="/static/styles/components.css">
     <link rel="stylesheet" href="/static/styles/results.css">
     <link rel="stylesheet" href="/static/styles/config-modals.css">
+    <link rel="stylesheet" href="/static/styles/config-cards.css">
     
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 </head>
@@ -91,13 +92,58 @@
                     </div>
                 </div>
                 
-                <!-- Configuration Selection -->
-                <div class="config-selection">
-                    <h3>⚙️ Analysis Configuration</h3>
-                    <div class="config-grid" id="config-grid">
-                        <!-- Configuration options will be populated by JavaScript -->
+                <section class="analysis-config-container">
+                    <h3 class="section-title">
+                        <span class="icon">⚙️</span> Analysis Configuration
+                    </h3>
+                
+                    <div id="config-card-container" class="config-card-container config-grid">
+                        <div class="config-column" data-category="built-in">
+                            <h4>Built-in</h4>
+                            <div class="config-column-body" id="config-column-built-in"></div>
+                        </div>
+                        <div class="config-column" data-category="team">
+                            <h4>Team</h4>
+                            <div class="config-column-body" id="config-column-team"></div>
+                        </div>
+                        <div class="config-column" data-category="personal">
+                            <h4>Personal</h4>
+                            <div class="config-column-body" id="config-column-personal"></div>
+                        </div>
+                    </div>
+                    
+                </section>
+
+                <!-- Duplicate Configuration Modal -->
+                <div id="duplicate-config-modal" class="modal-overlay hidden">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h2>Duplicate Configuration</h2>
+                            <button class="modal-close-btn" id="duplicate-close-btn">×</button>
+                        </div>
+
+                        <div class="modal-body">
+                            <label class="modal-label">New Configuration Name</label>
+                            <input id="duplicate-config-name"
+                                class="modal-input"
+                                type="text"
+                                placeholder="Enter new name">
+
+                            <label class="modal-label">Category</label>
+                            <div class="modal-radio-group">
+                                <label><input type="radio" name="duplicate-category" value="Personal" checked> Personal</label>
+                                <label><input type="radio" name="duplicate-category" value="Team"> Team</label>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button class="btn" id="duplicate-cancel-btn">Cancel</button>
+                            <button class="btn primary" id="duplicate-confirm-btn">Copy</button>
+                        </div>
                     </div>
                 </div>
+
+                
                 
                 <!-- Configuration Breakdown Modal -->
                 <div id="config-breakdown-modal" class="modal" style="display: none;">

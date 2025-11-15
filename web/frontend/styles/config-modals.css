@@ -436,3 +436,116 @@
 .arcane-danger:hover {
     background: rgba(239, 68, 68, 0.25);
 }
+
+/* GENERIC OVERLAY (config manager, duplicate modal, etc.) */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    z-index: 2000;
+}
+
+.modal-overlay.hidden {
+    display: none !important;
+}
+
+.modal-overlay .modal {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: min(420px, 90vw);
+    max-height: 85vh;
+    height: auto;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+#duplicate-config-modal .modal {
+    width: min(420px, 80vw);
+    padding: 20px 24px 24px;
+    gap: 12px;
+}
+
+.modal-overlay .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 0;
+    border: none;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 6px 10px;
+    margin-left: auto;
+    border-radius: 50%;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.modal-close-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.1);
+}
+
+.modal-overlay .modal-body {
+    overflow-y: auto;
+    flex: 1 1 auto;
+}
+
+.modal-overlay .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* TITLE */
+.modal h2 {
+    margin: 0 0 16px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* FORM INPUTS */
+.modal input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+/* CATEGORY OPTIONS */
+.modal .category-group {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-secondary);
+}
+
+/* BUTTON ROW */
+.modal .button-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}

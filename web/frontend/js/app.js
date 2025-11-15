@@ -768,8 +768,6 @@ class ArcaneAuditorApp {
         // Reset renderers
         this.resultsRenderer.resetForNewUpload();
         
-        // Re-render configurations to ensure selected config appears at top
-        this.configManager.renderConfigurations();
     }
 
     async loadVersion() {

@@ -3,12 +3,143 @@
 import { getLastSelectedConfig, saveSelectedConfig } from './utils.js';
 
 export class ConfigManager {
+    pendingDuplicateId = null;
+
     constructor(app) {
         this.app = app;
         this.availableConfigs = [];
         // Don't load from localStorage in constructor - wait until configs are loaded
         // This ensures localStorage is ready (important for pywebview)
         this.selectedConfig = null;
+        this.activeCardMenuCleanup = null;
+
+        this.bindGlobalConfigControls();
+
+    }
+
+    updateMetadataLine() {
+        const metaDiv = document.getElementById('config-meta-line');
+        if (!metaDiv) return;
+    
+        const config = this.availableConfigs.find(c => c.id === this.selectedConfig);
+        if (!config || !config.rules) {
+            metaDiv.textContent = '';
+            return;
+        }
+    
+        const rules = config.rules;
+        const enabled = Object.values(rules).filter(r => r.enabled).length;
+        const disabled = Object.values(rules).filter(r => !r.enabled).length;
+    
+        const perf = config.performance || '';
+    
+        metaDiv.textContent = `${enabled} enabled • ${disabled} disabled${perf ? ' • ' + perf : ''}`;
+    }
+    
+
+    openDuplicateModal(configId) {
+        this.pendingDuplicateId = configId;
+    
+        const modal = document.getElementById("duplicate-config-modal");
+        const nameInput = document.getElementById("duplicate-config-name");
+    
+        nameInput.value = "";
+        modal.classList.remove("hidden");
+    }
+    
+    closeDuplicateModal() {
+        const modal = document.getElementById("duplicate-config-modal");
+        modal.classList.add("hidden");
+    }
+    
+
+    bindGlobalConfigControls() {
+        // Duplicate Modal Buttons
+        document.getElementById("duplicate-close-btn").onclick =
+        document.getElementById("duplicate-cancel-btn").onclick = () => {
+            this.closeDuplicateModal();
+        };
+
+        document.getElementById("duplicate-confirm-btn").onclick = () => {
+            const newName = document.getElementById("duplicate-config-name").value.trim();
+            const category = document.querySelector("input[name='duplicate-category']:checked").value;
+
+            if (!newName) {
+                this.app.showToast("Please enter a name.", "info");
+                return;
+            }
+
+            this.duplicateConfiguration(
+                this.pendingDuplicateId,
+                newName,
+                category
+            );
+
+            this.closeDuplicateModal();
+        };
+
+        // --- TOP BAR BUTTONS ---
+        const editBtn = document.getElementById('config-edit-btn');
+        const copyBtn = document.getElementById('config-copy-btn');
+        const deleteBtn = document.getElementById('config-delete-btn');
+    
+        if (editBtn) {
+            editBtn.addEventListener('click', () => {
+                if (!this.selectedConfig) {
+                    this.app.showToast('Select a configuration first', 'info');
+                    return;
+                }
+                this.editConfiguration(this.selectedConfig);
+            });
+        }
+    
+        if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+                if (!this.selectedConfig) {
+                    this.app.showToast('Select a configuration first', 'info');
+                    return;
+                }
+                this.openDuplicateModal(this.selectedConfig);
+            });
+        }
+    
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                if (!this.selectedConfig) {
+                    this.app.showToast('Select a configuration first', 'info');
+                    return;
+                }
+                const cfg = this.availableConfigs.find(c => c.id === this.selectedConfig);
+                this.requestDeleteConfiguration(cfg);
+            });
+        }
+    
+        // --- DUPLICATE MODAL ---
+        const duplicateModal = document.getElementById("duplicate-config-modal");
+        const duplicateCloseBtn = document.getElementById("duplicate-close-btn");
+        const duplicateCancelBtn = document.getElementById("duplicate-cancel-btn");
+        const duplicateConfirmBtn = document.getElementById("duplicate-confirm-btn");
+    
+        if (duplicateCloseBtn) {
+            duplicateCloseBtn.onclick = () => this.closeDuplicateModal();
+        }
+        if (duplicateCancelBtn) {
+            duplicateCancelBtn.onclick = () => this.closeDuplicateModal();
+        }
+        if (duplicateConfirmBtn) {
+            duplicateConfirmBtn.onclick = () => {
+                const name = document.getElementById("duplicate-config-name").value.trim();
+                const category = document.querySelector("input[name='duplicate-category']:checked").value;
+    
+                if (!name) {
+                    this.app.showToast("Please enter a name.", "info");
+                    return;
+                }
+    
+                this.duplicateConfiguration(this.pendingDuplicateId, name, category);
+                this.closeDuplicateModal();
+            };
+        }
     }
 
     async loadConfigurations() {
@@ -45,156 +176,266 @@ export class ConfigManager {
                 saveSelectedConfig(this.selectedConfig);
             }
             
-            this.renderConfigurations();
+            this.renderConfigCards();
+            this.updateMetadataLine();
+
         } catch (error) {
             console.error('Failed to load configurations:', error);
             this.app.showError('Failed to load configurations. Please refresh the page.');
         }
     }
-
-    renderConfigurations() {
-        const configGrid = document.getElementById('config-grid');
-        configGrid.innerHTML = '';
-
-        // Group configurations by type
-        const configGroups = {
-            'Built-in': [],
-            'Team': [],
-            'Personal': []
+    
+    
+    renderConfigCards() {
+        const container = document.getElementById('config-card-container');
+        const columns = {
+            builtIn: document.getElementById('config-column-built-in'),
+            team: document.getElementById('config-column-team'),
+            personal: document.getElementById('config-column-personal')
         };
 
-        this.availableConfigs.forEach(config => {
-            const configType = config.type || 'Built-in';
-            if (configGroups[configType]) {
-                configGroups[configType].push(config);
+        if (!container || !columns.builtIn || !columns.team || !columns.personal) {
+            return;
+        }
+
+        this.closeActiveCardMenu();
+        Object.values(columns).forEach(column => {
+            if (column) {
+                column.innerHTML = '';
             }
         });
 
-        // Sort each group to put selected config first
-        Object.keys(configGroups).forEach(groupName => {
-            configGroups[groupName].sort((a, b) => {
+        if (!Array.isArray(this.availableConfigs) || this.availableConfigs.length === 0) {
+            return;
+        }
+
+        const sortedConfigs = [...this.availableConfigs];
+        if (this.selectedConfig) {
+            sortedConfigs.sort((a, b) => {
                 if (a.id === this.selectedConfig) return -1;
                 if (b.id === this.selectedConfig) return 1;
                 return 0;
             });
-        });
+        }
 
-        // Render each group in original order
-        Object.entries(configGroups).forEach(([groupName, configs]) => {
-            if (configs.length === 0) return;
+        sortedConfigs.forEach(config => {
+            const card = document.createElement('div');
+            card.className = 'config-option config-card';
+            card.dataset.configId = config.id;
 
-            const sectionDiv = document.createElement('div');
-            sectionDiv.className = 'config-section';
-            
-            const sectionTitle = document.createElement('h4');
-            sectionTitle.textContent = groupName;
-            sectionDiv.appendChild(sectionTitle);
+            if (config.id === this.selectedConfig) {
+                card.classList.add('selected');
+            }
 
-            const groupGrid = document.createElement('div');
-            groupGrid.className = 'config-grid';
+            const menuBtn = document.createElement('div');
+            menuBtn.className = 'card-menu';
+            menuBtn.dataset.id = config.id;
+            menuBtn.setAttribute('role', 'button');
+            menuBtn.setAttribute('tabindex', '0');
+            menuBtn.setAttribute('aria-label', `Configuration actions for ${config.name}`);
+            menuBtn.textContent = '⋮';
 
-            configs.forEach(config => {
-                const configElement = document.createElement('div');
-                configElement.className = 'config-option';
-                const isSelected = config.id === this.selectedConfig;
-                configElement.dataset.configId = config.id;
+            const typeDiv = document.createElement('div');
+            typeDiv.className = `config-type ${config.type?.toLowerCase() || 'built-in'}`;
+            typeDiv.textContent = config.type || 'Built-in';
 
-                // Selected styling
-                if (isSelected) {
-                    configElement.classList.add('selected');
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'config-name';
+            nameDiv.textContent = config.name;
+
+            const metaDiv = document.createElement('div');
+            metaDiv.className = 'config-meta';
+            const ruleCounts = this.getRuleCounts(config);
+            metaDiv.textContent = `${ruleCounts.enabled} enabled • ${ruleCounts.disabled} disabled`;
+
+            card.appendChild(menuBtn);
+            card.appendChild(typeDiv);
+            card.appendChild(nameDiv);
+            card.appendChild(metaDiv);
+
+            card.addEventListener('click', (event) => {
+                if (event.target.closest('.card-menu')) {
+                    return;
                 }
-
-                // --- Build DOM nodes manually (fixes PyWebView dataset bug) ---
-
-                // Type
-                const typeDiv = document.createElement('div');
-                typeDiv.className = `config-type ${config.type?.toLowerCase() || 'built-in'}`;
-                typeDiv.textContent = config.type || 'Built-in';
-
-                // Name
-                const nameDiv = document.createElement('div');
-                nameDiv.className = 'config-name';
-                nameDiv.textContent = config.name;
-
-                // Description
-                const descDiv = document.createElement('div');
-                descDiv.className = 'config-description';
-                descDiv.textContent = config.description || '';
-
-                // Meta container (matches CSS structure)
-                const metaDiv = document.createElement('div');
-                metaDiv.className = 'config-meta';
-                const rulesCountSpan = document.createElement('span');
-                rulesCountSpan.className = 'config-rules-count';
-                rulesCountSpan.textContent = `${config.rules_count} rules`;
-                const perfSpan = document.createElement('span');
-                perfSpan.className = `config-performance ${config.performance.toLowerCase()}`;
-                perfSpan.textContent = config.performance;
-                metaDiv.appendChild(rulesCountSpan);
-                metaDiv.appendChild(perfSpan);
-
-                // Append everything
-                configElement.appendChild(typeDiv);
-                configElement.appendChild(nameDiv);
-                configElement.appendChild(descDiv);
-                configElement.appendChild(metaDiv);
-                
-                // --- Bottom Action Bar ---
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'config-footer-actions';
-
-                const detailsBtn = document.createElement('button');
-                detailsBtn.className = 'btn btn-secondary config-details-btn';
-                detailsBtn.textContent = '📋 Details';
-                detailsBtn.onclick = (e) => { e.stopPropagation(); this.showConfigBreakdown(); };
-                actionsDiv.appendChild(detailsBtn);
-
-                if (config.source !== 'presets') {
-                    const editBtn = document.createElement('button');
-                    editBtn.className = 'btn btn-secondary config-edit-btn';
-                    editBtn.textContent = '✏️ Edit';
-                    editBtn.onclick = (e) => { e.stopPropagation(); this.editConfiguration(config.id); };
-                    actionsDiv.appendChild(editBtn);
-
-                    const dupBtn = document.createElement('button');
-                    dupBtn.className = 'btn btn-secondary config-duplicate-btn';
-                    dupBtn.textContent = '📄 Copy';
-                    dupBtn.onclick = (e) => { e.stopPropagation(); this.duplicateConfiguration(config.id); };
-                    actionsDiv.appendChild(dupBtn);
-
-                    const delBtn = document.createElement('button');
-                    delBtn.className = 'btn btn-secondary config-delete-btn arcane-danger';
-                    delBtn.textContent = '🗑️ Delete';
-                    delBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        this.requestDeleteConfiguration(config);
-                    };
-                    actionsDiv.appendChild(delBtn);
-                }
-
-                configElement.appendChild(actionsDiv);
-
-                if (isSelected) {
-                    configElement.classList.add('show-actions');
-                }
-
-                // Click handler for card selection (buttons have their own onclick handlers)
-                configElement.addEventListener('click', (event) => {
-                    // Don't select if clicking on a button (buttons have onclick handlers)
-                    if (event.target.tagName === 'BUTTON') {
-                        return;
-                    }
-                    this.selectConfiguration(config.id);
-                });
-
-                groupGrid.appendChild(configElement);
+                this.selectConfiguration(config.id);
             });
 
-            sectionDiv.appendChild(groupGrid);
-            configGrid.appendChild(sectionDiv);
+            menuBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                this.showCardMenu(config.id, menuBtn);
+            });
+            menuBtn.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.showCardMenu(config.id, menuBtn);
+                }
+            });
+
+            const typeKey = (config.type || 'built-in').toLowerCase();
+            const targetColumn =
+                typeKey === 'team' ? columns.team :
+                typeKey === 'personal' ? columns.personal :
+                columns.builtIn;
+
+            targetColumn.appendChild(card);
         });
     }
 
+    getRuleCounts(config) {
+        const rulesArray = config?.rules && typeof config.rules === 'object'
+            ? Object.values(config.rules)
+            : [];
+
+        let enabled = 0;
+        let disabled = 0;
+
+        if (rulesArray.length > 0) {
+            enabled = rulesArray.filter(rule => rule && rule.enabled).length;
+            disabled = rulesArray.filter(rule => rule && rule.enabled === false).length;
+        } else {
+            const total = typeof config.rules_count === 'number' ? config.rules_count : 0;
+            const disabledMeta = typeof config.disabled_rules === 'number'
+                ? config.disabled_rules
+                : (typeof config.rules_disabled === 'number' ? config.rules_disabled : 0);
+            const enabledMeta = typeof config.enabled_rules === 'number'
+                ? config.enabled_rules
+                : total - disabledMeta;
+            enabled = Math.max(enabledMeta, 0);
+            disabled = Math.max(total - enabled, 0);
+        }
+
+        return { enabled, disabled };
+    }
+
+    updateCardSelection() {
+        const cards = document.querySelectorAll('.config-card');
+        cards.forEach(card => {
+            const configId = card.dataset.configId;
+            card.classList.toggle('selected', configId === this.selectedConfig);
+        });
+    }
+
+    closeActiveCardMenu() {
+        if (this.activeCardMenuCleanup) {
+            this.activeCardMenuCleanup();
+            this.activeCardMenuCleanup = null;
+        }
+    }
+
+    showCardMenu(configId, triggerElement) {
+        const targetConfig = this.availableConfigs.find(cfg => cfg.id === configId);
+        if (!targetConfig || !triggerElement) {
+            return;
+        }
+
+        this.closeActiveCardMenu();
+
+        const menu = document.createElement('div');
+        menu.className = 'config-card-menu-popover';
+        menu.style.position = 'absolute';
+        menu.style.visibility = 'hidden';
+
+        const configType = (targetConfig.type || 'built-in').toLowerCase();
+        const isBuiltIn = configType === 'built-in';
+        const actions = [];
+
+        if (!isBuiltIn) {
+            actions.push({ action: 'edit', label: 'Edit' });
+        }
+
+        actions.push({ action: 'copy', label: 'Copy' });
+
+        if (!isBuiltIn) {
+            actions.push({ action: 'delete', label: 'Delete', danger: true });
+        }
+
+        actions.forEach(({ action, label, danger }) => {
+            const item = document.createElement('div');
+            item.className = 'menu-item';
+            if (danger) {
+                item.classList.add('danger');
+            }
+            item.dataset.action = action;
+            item.textContent = label;
+            menu.appendChild(item);
+        });
+
+        document.body.appendChild(menu);
+
+        const triggerRect = triggerElement.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        const top = triggerRect.bottom + window.scrollY + 8;
+        const minLeft = 8 + window.scrollX;
+        const maxLeft = window.scrollX + document.documentElement.clientWidth - menuRect.width - 8;
+        let left = triggerRect.right + window.scrollX - menuRect.width;
+        left = Math.min(Math.max(left, minLeft), maxLeft);
+
+        menu.style.top = `${top}px`;
+        menu.style.left = `${left}px`;
+        menu.style.visibility = 'visible';
+
+        const handleAction = (action) => {
+            if (isBuiltIn && (action === 'edit' || action === 'delete')) {
+                return;
+            }
+            switch (action) {
+                case 'edit':
+                    this.editConfiguration(configId);
+                    break;
+                case 'copy':
+                    this.openDuplicateModal(configId);
+                    break;
+                case 'delete':
+                    this.requestDeleteConfiguration(targetConfig);
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        const handleMenuClick = (event) => {
+            const target = event.target.closest('.menu-item');
+            if (!target) {
+                return;
+            }
+            const action = target.dataset.action;
+            handleAction(action);
+            closeMenu();
+        };
+
+        const handleClickOutside = (event) => {
+            if (menu.contains(event.target) || triggerElement.contains(event.target)) {
+                return;
+            }
+            closeMenu();
+        };
+
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') {
+                closeMenu();
+            }
+        };
+
+        const closeMenu = () => {
+            menu.removeEventListener('click', handleMenuClick);
+            document.removeEventListener('click', handleClickOutside);
+            document.removeEventListener('keydown', handleEscape);
+            if (menu.parentNode) {
+                menu.parentNode.removeChild(menu);
+            }
+            this.activeCardMenuCleanup = null;
+        };
+
+        menu.addEventListener('click', handleMenuClick);
+        setTimeout(() => {
+            document.addEventListener('click', handleClickOutside);
+        }, 0);
+        document.addEventListener('keydown', handleEscape);
+
+        this.activeCardMenuCleanup = closeMenu;
+    }
+    
     selectConfiguration(configId) {
         // Validate that the config ID exists in available configs
         const configExists = this.availableConfigs.some(c => c.id === configId);
@@ -209,29 +450,52 @@ export class ConfigManager {
         
         // Don't re-render configurations to avoid jumping behavior
         // Just update the visual selection state
+        this.closeActiveCardMenu();
         this.updateConfigSelection();
+        this.updateCardSelection();
+        this.updateMetadataLine();
     }
 
     updateConfigSelection() {
-        // Update visual selection without re-rendering the entire grid
         const configElements = document.querySelectorAll('.config-option');
-        
+        const selectEl = document.getElementById('config-select');
+    
         configElements.forEach(element => {
             element.classList.remove('selected');
             element.classList.remove('show-actions');
         });
-
-        // Find and select the clicked config using unique ID
+    
         const selectedElement = Array.from(configElements).find(element => {
             const configId = element.dataset.configId;
             return configId === this.selectedConfig;
         });
-
+    
         if (selectedElement) {
             selectedElement.classList.add('selected');
             selectedElement.classList.add('show-actions');
         }
+    
+        if (selectEl && this.selectedConfig) {
+            selectEl.value = this.selectedConfig;
+        }
     }
+
+    openDuplicateModal(configId) {
+        const modal = document.getElementById("duplicate-config-modal");
+        const nameInput = document.getElementById("duplicate-config-name");
+        const categoryInput = document.querySelector("input[name='duplicate-category']:checked");
+        this.pendingDuplicateId = configId;
+        nameInput.value = "";
+        categoryInput.checked = true;
+        modal.classList.remove("hidden");
+    }
+    
+    closeDuplicateModal() {
+        const modal = document.getElementById("duplicate-config-modal");
+        modal.classList.add("hidden");
+    }
+    
+    
 
     showConfigBreakdown() {
         const modal = document.getElementById('config-breakdown-modal');
@@ -377,50 +641,29 @@ export class ConfigManager {
         this.setTheme(newTheme);
     }
 
-    async duplicateConfiguration(configId) {
+    async duplicateConfiguration(configId, newName, category) {
         try {
-            const config = this.availableConfigs.find(c => c.id === configId);
-            if (!config) {
-                this.app.showToast('Configuration not found', 'error');
-                return;
-            }
-
-            // Determine target directory (personal or team)
-            const target = config.source === 'teams' ? 'team' : 'personal';
-            
-            // Prompt for new name
-            const baseName = config.name || config.id.split('_')[0];
-            const newName = prompt(`Enter a name for the duplicate configuration:`, `${baseName} copy`);
-            if (!newName || !newName.trim()) {
-                return;
-            }
-
-            // Call API to create duplicate
-            const response = await fetch('/api/config/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+            const response = await fetch(`/api/config/${configId}/duplicate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name: newName.trim(),
-                    target: target,
-                    base_id: configId
+                    name: newName,
+                    category: category.toLowerCase()
                 })
             });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || `HTTP ${response.status}`);
-            }
-
-            // Reload configurations to show the new one
+    
+            if (!response.ok) throw new Error("Failed to duplicate configuration");
+    
+            this.app.showToast("Configuration duplicated!", "success");
+    
+            // Refresh list
             await this.loadConfigurations();
-            this.app.showToast('✅ Configuration duplicated successfully', 'success');
-        } catch (error) {
-            console.error('Failed to duplicate configuration:', error);
-            this.app.showToast(`❌ Failed to duplicate configuration: ${error.message}`, 'error');
+    
+        } catch (err) {
+            this.app.showToast(err.message, "error");
         }
     }
+    
 
     requestDeleteConfiguration(config) {
         const modal = document.getElementById('config-delete-modal');
@@ -487,6 +730,8 @@ export class ConfigManager {
         console.log('Edit configuration:', configId);
     }
 }
+
+
 
 // Global function for HTML onclick handlers
 window.showConfigBreakdown = function() {
