@@ -333,7 +333,9 @@ export class ConfigManager {
 
         const configType = (targetConfig.type || 'built-in').toLowerCase();
         const isBuiltIn = configType === 'built-in';
-        const actions = [];
+        const actions = [
+            { action: 'view', label: 'View Details' }
+        ];
 
         if (!isBuiltIn) {
             actions.push({ action: 'edit', label: 'Edit' });
@@ -375,6 +377,9 @@ export class ConfigManager {
                 return;
             }
             switch (action) {
+                case 'view':
+                    this.showConfigBreakdown();
+                    break;
                 case 'edit':
                     this.editConfiguration(configId);
                     break;
