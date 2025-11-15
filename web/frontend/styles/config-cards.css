@@ -346,6 +346,17 @@
     padding: 10px 12px 12px;
     padding-top: 18px;
     border-radius: 10px;
+    background: linear-gradient(145deg, #162330, #101820);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="light"] .config-option.config-card {
+    background: linear-gradient(140deg, #f2f4ff 0%, #e4e8ff 45%, #d2dbff 100%) !important;
+    border: 1px solid rgba(90, 105, 255, 0.15) !important;
+    box-shadow:
+        0 3px 10px rgba(90, 105, 255, 0.15),
+        0 0 2px rgba(0, 0, 0, 0.05) !important;
 }
 
 .config-option.config-card.selected {
@@ -377,6 +388,10 @@
     font-size: 0.85rem;
 }
 
+[data-theme="light"] .config-option.config-card .config-name {
+    color: #2f2f4a !important;
+}
+
 .config-option.config-card .config-type {
     top: 6px;
     right: 8px;
@@ -388,6 +403,10 @@
     justify-content: flex-start;
     gap: 6px;
     font-size: 0.75rem;
+}
+
+[data-theme="light"] .config-option.config-card .config-meta {
+    color: #565670 !important;
 }
 
 .config-option.config-card .config-meta .config-rules-count {
