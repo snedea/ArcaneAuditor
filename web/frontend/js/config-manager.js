@@ -235,10 +235,6 @@ export class ConfigManager {
             menuBtn.setAttribute('aria-label', `Configuration actions for ${config.name}`);
             menuBtn.textContent = '⋮';
 
-            const typeDiv = document.createElement('div');
-            typeDiv.className = `config-type ${config.type?.toLowerCase() || 'built-in'}`;
-            typeDiv.textContent = config.type || 'Built-in';
-
             const nameDiv = document.createElement('div');
             nameDiv.className = 'config-name';
             nameDiv.textContent = config.name;
@@ -249,7 +245,6 @@ export class ConfigManager {
             metaDiv.textContent = `${ruleCounts.enabled} enabled • ${ruleCounts.disabled} disabled`;
 
             card.appendChild(menuBtn);
-            card.appendChild(typeDiv);
             card.appendChild(nameDiv);
             card.appendChild(metaDiv);
 
