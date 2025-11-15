@@ -69,13 +69,13 @@
 .config-column-body {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 12px;
 }
 
 .config-column-body .config-card {
     width: 100%;
-    max-width: none;
-    margin: 0;
+    max-width: 220px;
 }
 
 .config-card {
