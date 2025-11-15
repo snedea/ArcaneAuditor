@@ -116,11 +116,8 @@
 
                 <!-- Duplicate Configuration Modal -->
                 <div id="duplicate-config-modal" class="modal-overlay hidden">
-                    <div class="modal">
-                        <div class="modal-header">
-                            <h2>Duplicate Configuration</h2>
-                            <button class="modal-close-btn" id="duplicate-close-btn">×</button>
-                        </div>
+                    <div class="modal duplicate-modal config-dialog">
+                        <button class="modal-close-btn floating" id="duplicate-close-btn">×</button>
 
                         <div class="modal-body">
                             <label class="modal-label">New Configuration Name</label>
@@ -137,8 +134,8 @@
                         </div>
 
                         <div class="modal-footer">
-                            <button class="btn" id="duplicate-cancel-btn">Cancel</button>
-                            <button class="btn primary" id="duplicate-confirm-btn">Copy</button>
+                            <button class="modal-btn ghost" id="duplicate-cancel-btn">Cancel</button>
+                            <button class="modal-btn primary" id="duplicate-confirm-btn">Create</button>
                         </div>
                     </div>
                 </div>
