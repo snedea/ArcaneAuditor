@@ -4,6 +4,7 @@ import { getLastSelectedConfig, saveSelectedConfig } from './utils.js';
 
 export class ConfigManager {
     pendingDuplicateId = null;
+    productionTemplateId = null;
 
     constructor(app) {
         this.app = app;
@@ -180,6 +181,18 @@ export class ConfigManager {
             this.renderConfigCards();
             this.updateMetadataLine();
 
+            this.productionTemplateId = null;
+            const productionTemplate = this.availableConfigs.find(cfg => (cfg.name || '').toLowerCase() === 'production-ready');
+            if (productionTemplate) {
+                this.productionTemplateId = productionTemplate.id;
+            }
+            if (!this.productionTemplateId) {
+                const fallbackTemplate = this.availableConfigs.find(cfg => (cfg.type || '').toLowerCase() === 'built-in');
+                if (fallbackTemplate) {
+                    this.productionTemplateId = fallbackTemplate.id;
+                }
+            }
+
         } catch (error) {
             console.error('Failed to load configurations:', error);
             this.app.showError('Failed to load configurations. Please refresh the page.');
@@ -275,6 +288,15 @@ export class ConfigManager {
                 columns.builtIn;
 
             targetColumn.appendChild(card);
+        });
+
+        this.attachColumnButtons();
+    }
+
+    attachColumnButtons() {
+        const buttons = document.querySelectorAll('.column-action-btn');
+        buttons.forEach(btn => {
+            btn.onclick = () => this.openCreateFromTemplate(btn.dataset.category);
         });
     }
 
@@ -390,7 +412,7 @@ export class ConfigManager {
                     this.editConfiguration(configId);
                     break;
                 case 'copy':
-                    this.openDuplicateModal(configId);
+                    this.openDuplicateModal(configId, configType);
                     break;
                 case 'delete':
                     this.requestDeleteConfiguration(targetConfig);
@@ -488,14 +510,25 @@ export class ConfigManager {
         }
     }
 
-    openDuplicateModal(configId) {
+    openDuplicateModal(configId, defaultCategory = 'Personal') {
         const modal = document.getElementById("duplicate-config-modal");
         const nameInput = document.getElementById("duplicate-config-name");
-        const categoryInput = document.querySelector("input[name='duplicate-category']:checked");
         this.pendingDuplicateId = configId;
         nameInput.value = "";
-        categoryInput.checked = true;
+        const normalizedCategory = (defaultCategory || 'Personal').toLowerCase();
+        const categoryInputs = document.querySelectorAll("input[name='duplicate-category']");
+        categoryInputs.forEach(input => {
+            input.checked = input.value.toLowerCase() === normalizedCategory;
+        });
         modal.classList.remove("hidden");
+    }
+    
+    openCreateFromTemplate(categoryLabel) {
+        if (!this.productionTemplateId) {
+            this.app.showToast('Production template not available.', 'error');
+            return;
+        }
+        this.openDuplicateModal(this.productionTemplateId, categoryLabel);
     }
     
     closeDuplicateModal() {
