@@ -12,6 +12,7 @@ export class ConfigManager {
         // This ensures localStorage is ready (important for pywebview)
         this.selectedConfig = null;
         this.activeCardMenuCleanup = null;
+        this.activeCardMenuTrigger = null;
 
         this.bindGlobalConfigControls();
 
@@ -324,6 +325,11 @@ export class ConfigManager {
             return;
         }
 
+        if (this.activeCardMenuTrigger === triggerElement) {
+            this.closeActiveCardMenu();
+            return;
+        }
+
         this.closeActiveCardMenu();
 
         const menu = document.createElement('div');
@@ -425,6 +431,7 @@ export class ConfigManager {
                 menu.parentNode.removeChild(menu);
             }
             this.activeCardMenuCleanup = null;
+            this.activeCardMenuTrigger = null;
         };
 
         menu.addEventListener('click', handleMenuClick);
@@ -434,6 +441,7 @@ export class ConfigManager {
         document.addEventListener('keydown', handleEscape);
 
         this.activeCardMenuCleanup = closeMenu;
+        this.activeCardMenuTrigger = triggerElement;
     }
     
     selectConfiguration(configId) {
