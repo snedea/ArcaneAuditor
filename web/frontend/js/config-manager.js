@@ -651,15 +651,16 @@ export class ConfigManager {
 
     async duplicateConfiguration(configId, newName, category) {
         try {
-            const response = await fetch(`/api/config/${configId}/duplicate`, {
+            const response = await fetch(`/api/config/create`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     name: newName,
-                    category: category.toLowerCase()
+                    target: category.toLowerCase(),
+                    base_id: configId
                 })
             });
-    
+
             if (!response.ok) throw new Error("Failed to duplicate configuration");
     
             this.app.showToast("Configuration duplicated!", "success");
