@@ -5,6 +5,19 @@ export class ConfigBreakdownUI {
     constructor(manager) {
         this.manager = manager;
         this.app = manager.app;
+
+        // Escape key functionality
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') this.hide();
+        });
+    }
+
+    /**
+     * Helper to close the modal
+     */
+    hide() {
+        const modal = document.getElementById('config-breakdown-modal');
+        if (modal) modal.style.display = 'none';
     }
 
     /**
@@ -60,7 +73,7 @@ export class ConfigBreakdownUI {
             }
             
             actionButtons += `<div class="modal-action-separator"></div>`;
-            actionButtons += `<button class="modal-close" onclick="hideConfigBreakdown()" title="Close">×</button>`;
+            actionButtons += `<button id="close-config" class="modal-close" title="Close">×</button>`;
             
             rightSide.innerHTML = actionButtons;
             header.appendChild(leftSide);
@@ -70,6 +83,7 @@ export class ConfigBreakdownUI {
             const delBtn = header.querySelector('#delete-config');
             const dupBtn = header.querySelector('#duplicate-config');
             const saveBtn = header.querySelector('#save-config');
+            const closeBtn = header.querySelector('#close-config');
 
             if (delBtn) delBtn.onclick = () => {
                 this.manager.requestDeleteConfiguration(config);
@@ -82,14 +96,26 @@ export class ConfigBreakdownUI {
             if (saveBtn) saveBtn.onclick = () => {
                 this.manager.saveCurrentConfigChanges(config);
             };
+            if (closeBtn) closeBtn.onclick = () => this.hide();
         }
         
         // --- 2. RENDER BODY (Rules) ---
+        this.renderBody(config, isBuiltIn, content);
+        
+        // --- 3. BIND EVENTS (Only if not built-in) ---
+        if (!isBuiltIn) {
+            this.bindRuleEvents(content, config);
+        }
+        
+        modal.style.display = 'flex';
+    }
+
+    renderBody(config, isBuiltIn, content) {
         const rules = config.rules || {};
         const enabledRules = Object.entries(rules).filter(([_, r]) => r.enabled && !r._is_ghost).length;
         const disabledRules = Object.entries(rules).filter(([_, r]) => !r.enabled && !r._is_ghost).length;
         const allRules = Object.entries(rules).sort(([a], [b]) => a.localeCompare(b));
-        
+
         let html = `
             <div class="config-breakdown-section">
                 <div class="config-summary-grid">
@@ -102,21 +128,21 @@ export class ConfigBreakdownUI {
                 <h4>📋 Rules</h4>
                 <div class="rule-breakdown">
         `;
-        
+
         allRules.forEach(([ruleName, ruleConfig]) => {
             const isEnabled = ruleConfig.enabled;
             const severity = ruleConfig.severity_override || 'ADVICE';
             const customSettings = ruleConfig.custom_settings || {};
             const settingsText = Object.keys(customSettings).length > 0 ? JSON.stringify(customSettings, null, 2) : '';
             const isGhost = ruleConfig._is_ghost === true;
-            
+
             const enabledClass = isEnabled ? 'enabled' : 'disabled';
             const ghostClass = isGhost ? 'ghost-rule' : '';
-            
+
             const hasCustomSettings = Object.keys(customSettings).length > 0;
             const configureIcon = hasCustomSettings ? '🛠️' : '⚙️';
             const configureText = hasCustomSettings ? 'Customized' : 'Configure';
-            
+
             html += `
                 <div class="rule-item ${enabledClass} ${ghostClass}" data-rule="${ruleName}">
                     <div class="rule-row-header">
@@ -153,16 +179,9 @@ export class ConfigBreakdownUI {
                 </div>
             `;
         });
-        
+
         html += `</div></div>`;
         content.innerHTML = html;
-        
-        // --- 3. BIND EVENTS (Only if not built-in) ---
-        if (!isBuiltIn) {
-            this.bindRuleEvents(content, config);
-        }
-        
-        modal.style.display = 'flex';
     }
 
     bindRuleEvents(content, config) {
