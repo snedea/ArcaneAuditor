@@ -46,7 +46,7 @@ export class ConfigManager {
         saveSelectedConfig(configId);
         
         // Update UI partials
-        this.mainUI.updateCardSelection();
+        //this.mainUI.updateCardSelection();
         this.mainUI.updateToolbar();
         this.mainUI.updateMetadataLine();
     }
@@ -161,11 +161,7 @@ export class ConfigManager {
         const prod = this.availableConfigs.find(c => (c.name||'').toLowerCase() === 'production-ready');
         this.productionTemplateId = prod ? prod.id : (this.availableConfigs[0]?.id || null);
     }
-    
-    editConfiguration(id) {
-        this.app.showToast('Editor available in next release', 'info');
-    }
-    
+
     saveCurrentConfigChanges(config) {
         // This was used by breakdown UI save button
         this.app.showToast('Save not implemented yet', 'info');

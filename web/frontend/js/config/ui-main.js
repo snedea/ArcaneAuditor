@@ -4,111 +4,17 @@ export class ConfigMainUI {
         this.manager = manager;
         this.app = manager.app;
         
-        // State for the popups
-        this.activeCardMenuCleanup = null;
-        this.activeCardMenuTrigger = null;
+        // Toolbar state
         this.toolbarListenersInitialized = false;
-        this.toolbarClickHandler = null;
-        this.toolbarManageHandler = null;
-        this.toolbarClickOutsideHandler = null;
     }
 
     /**
      * Master render method to update everything
      */
     refreshAll() {
-        this.renderCards();
         this.updateToolbar();
         this.buildDropdown();
         this.updateMetadataLine();
-    }
-
-    // --- CARD RENDERING ---
-    
-    renderCards() {
-        const container = document.getElementById('config-card-container');
-        const columns = {
-            builtIn: document.getElementById('config-column-built-in'),
-            team: document.getElementById('config-column-team'),
-            personal: document.getElementById('config-column-personal')
-        };
-
-        if (!container || !columns.builtIn) return;
-
-        this.closeActiveCardMenu();
-        Object.values(columns).forEach(col => { if(col) col.innerHTML = ''; });
-
-        if (!this.manager.availableConfigs.length) return;
-
-        // Sort: Selected first, then others
-        const sortedConfigs = [...this.manager.availableConfigs];
-        if (this.manager.selectedConfig) {
-            sortedConfigs.sort((a, b) => {
-                if (a.id === this.manager.selectedConfig) return -1;
-                if (b.id === this.manager.selectedConfig) return 1;
-                return 0;
-            });
-        }
-
-        sortedConfigs.forEach(config => {
-            const card = this.createCardElement(config);
-            
-            const typeKey = (config.type || 'built-in').toLowerCase();
-            const targetColumn =
-                typeKey === 'team' ? columns.team :
-                typeKey === 'personal' ? columns.personal :
-                columns.builtIn;
-
-            if (targetColumn) targetColumn.appendChild(card);
-        });
-
-        this.attachColumnButtons();
-    }
-
-    createCardElement(config) {
-        const card = document.createElement('div');
-        card.className = 'config-option config-card';
-        card.dataset.configId = config.id;
-
-        if (config.id === this.manager.selectedConfig) {
-            card.classList.add('selected');
-        }
-
-        // Menu Button (⋮)
-        const menuBtn = document.createElement('div');
-        menuBtn.className = 'card-menu';
-        menuBtn.textContent = '⋮';
-        menuBtn.onclick = (e) => {
-            e.stopPropagation();
-            this.showCardMenu(config.id, menuBtn);
-        };
-
-        // Content
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'config-name';
-        nameDiv.textContent = config.name;
-
-        const metaDiv = document.createElement('div');
-        metaDiv.className = 'config-meta';
-        const counts = this.getRuleCounts(config);
-        metaDiv.textContent = `${counts.enabled} enabled • ${counts.disabled} disabled`;
-
-        card.append(menuBtn, nameDiv, metaDiv);
-
-        // Click Selection
-        card.onclick = (e) => {
-            if (!e.target.closest('.card-menu')) {
-                this.manager.selectConfiguration(config.id);
-            }
-        };
-
-        return card;
-    }
-
-    attachColumnButtons() {
-        document.querySelectorAll('.column-action-btn').forEach(btn => {
-            btn.onclick = () => this.manager.openCreateFromTemplate(btn.dataset.category);
-        });
     }
 
     getRuleCounts(config) {
@@ -247,68 +153,8 @@ export class ConfigMainUI {
         }
     }
 
-    updateCardSelection() {
-        document.querySelectorAll('.config-card').forEach(card => {
-            card.classList.toggle('selected', card.dataset.configId === this.manager.selectedConfig);
-        });
-    }
-
     // --- CONTEXT MENUS ---
 
-    showCardMenu(configId, trigger) {
-        this.closeActiveCardMenu();
-        const config = this.manager.availableConfigs.find(c => c.id === configId);
-        if (!config) return;
-
-        const isBuiltIn = ['built-in', 'builtin'].includes((config.type||'').toLowerCase());
-        
-        // Build Menu
-        const menu = document.createElement('div');
-        menu.className = 'config-card-menu-popover';
-        menu.style.position = 'absolute';
-        
-        const addItem = (label, action, danger = false) => {
-            const item = document.createElement('div');
-            item.className = `menu-item ${danger ? 'danger' : ''}`;
-            item.textContent = label;
-            item.onclick = () => {
-                this.closeActiveCardMenu();
-                if(action === 'view') this.manager.showConfigBreakdown();
-                if(action === 'edit') this.manager.editConfiguration(configId);
-                if(action === 'copy') this.manager.openDuplicateModal(configId);
-                if(action === 'delete') this.manager.requestDeleteConfiguration(config);
-            };
-            menu.appendChild(item);
-        };
-
-        addItem('View Details', 'view');
-        if (!isBuiltIn) addItem('Edit', 'edit');
-        addItem('Copy', 'copy');
-        if (!isBuiltIn) addItem('Delete', 'delete', true);
-
-        // Position & Show
-        document.body.appendChild(menu);
-        const rect = trigger.getBoundingClientRect();
-        menu.style.top = `${rect.bottom + window.scrollY + 5}px`;
-        menu.style.left = `${rect.right + window.scrollX - 150}px`; // Align right-ish
-
-        // Cleanup Logic
-        const close = () => {
-            menu.remove();
-            document.removeEventListener('click', close);
-            this.activeCardMenuCleanup = null;
-        };
-        
-        // Defer listener so immediate click doesn't close it
-        setTimeout(() => document.addEventListener('click', close), 0);
-        this.activeCardMenuCleanup = close;
-    }
-
-    closeActiveCardMenu() {
-        if (this.activeCardMenuCleanup) this.activeCardMenuCleanup();
-    }
-
-    
     showDeleteConfigurationModal(config, onConfirm) {
         const modal = document.getElementById('config-delete-modal');
         const message = document.getElementById('config-delete-message');
