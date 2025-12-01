@@ -267,16 +267,34 @@ class ArcaneAuditorApp {
     showUpload() {
         this.hideAllSections();
         document.getElementById('upload-section').style.display = 'block';
+        
+        // Show config toolbar on analyze page
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'flex';
+        }
     }
 
     showLoading() {
         this.hideAllSections();
         document.getElementById('loading-section').style.display = 'block';
+        
+        // Hide config toolbar when analysis is running
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'none';
+        }
     }
 
     showResults() {
         this.hideAllSections();
         document.getElementById('results-section').style.display = 'block';
+        
+        // Hide config toolbar on results page
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'none';
+        }
         
         // Initialize filtered findings with current result findings
         if (this.currentResult) {
@@ -300,6 +318,12 @@ class ArcaneAuditorApp {
         const errorMessage = document.getElementById('error-message');
         errorMessage.textContent = message;
         errorSection.style.display = 'block';
+        
+        // Show config toolbar on analyze page (error is part of analyze flow)
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'flex';
+        }
     }
 
     async ensureUpdatePreferencesLoaded() {
@@ -751,6 +775,12 @@ class ArcaneAuditorApp {
 
     resetForNewUpload() {
         this.hideAllSections();
+        
+        // Show config toolbar when returning to analyze page
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'flex';
+        }
         document.getElementById('upload-section').style.display = 'block';
         this.currentResult = null;
         this.uploadedFileName = null;
