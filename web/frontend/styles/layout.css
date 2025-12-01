@@ -37,7 +37,15 @@
 
 /* Upload Section */
 .upload-section {
+    margin-top: 0;
     margin-bottom: 40px;
+    padding: 24px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 10px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
 }
 
 .upload-area {
