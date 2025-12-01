@@ -2,8 +2,9 @@
 
 /* Analysis config strip */
 .analysis-config-container {
-    margin-top: 24px;
-    padding: 16px 20px;
+    margin-top: 8px;
+    margin-bottom: 20px;
+    padding: 0.85rem 1.2rem;
     background: var(--bg-secondary);
     border-radius: 10px;
     border: 1px solid var(--border-color);
@@ -689,4 +690,156 @@
 
 [data-theme="dark"] .config-option.config-card .card-menu {
     color: rgba(255, 255, 255, 0.85);
+}
+
+/* --- CENTERED HEADER LAYOUT --- */
+#analysis-config-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.2rem 0 0.35rem;
+}
+
+#analysis-config-header-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-grow: 1;
+}
+
+/* Summary appears only when not expanded */
+#analysis-config-section.expanded #analysis-config-summary {
+    display: none;
+}
+
+#analysis-config-summary {
+    padding: 18px 24px;
+    min-height: 64px;
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- Animation applies ONLY to #analysis-config-content --- */
+#analysis-config-content {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition:
+        max-height 0.35s ease,
+        opacity 0.25s ease 0.1s,
+        transform 0.25s ease 0.1s;
+}
+
+#analysis-config-section.expanded #analysis-config-content {
+    opacity: 1;
+    max-height: 2000px; /* large enough */
+    transform: translateY(0);
+}
+
+/* --- Larger, more prominent collapse/expand button --- */
+.config-toggle-btn {
+    background: #a78bfa; /* purple-400 */
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.config-toggle-btn:hover {
+    background: #c4b5fd; /* purple-300 */
+}
+
+/* SVG visibility and clarity */
+.config-toggle-btn svg {
+    display: block;
+    pointer-events: none;
+    stroke: var(--text-primary);
+    opacity: 0.92;
+}
+
+/* Better dark-mode clarity */
+[data-theme="dark"] .config-toggle-btn svg {
+    stroke: #fff;
+    opacity: 0.9;
+}
+
+/* Light-mode clarity */
+[data-theme="light"] .config-toggle-btn svg {
+    stroke: #333;
+    opacity: 0.95;
+}
+
+/* Hide/show chevrons */
+/* Default state: collapsed - show right, hide down */
+#analysis-config-chevron-right {
+    display: block;
+}
+
+#analysis-config-chevron-down {
+    display: none;
+}
+
+/* When expanded: hide right, show down */
+#analysis-config-section.expanded #analysis-config-chevron-right {
+    display: none !important;
+}
+
+#analysis-config-section.expanded #analysis-config-chevron-down {
+    display: block !important;
+}
+
+/* Summary row typography cleanup */
+#analysis-config-summary-details {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 0.95rem;
+}
+
+/* Label ("Selected Config:") */
+.summary-label {
+    font-weight: 600;
+    opacity: 0.7;
+}
+
+/* Bold config name */
+.summary-name {
+    font-weight: 700;
+}
+
+/* Unified monochrome category badge */
+.summary-category {
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border: 1px solid currentColor;
+    font-weight: 600;
+    opacity: 0.75;
+    text-transform: uppercase;
+}
+
+/* Light mode color */
+[data-theme="light"] #analysis-config-summary-details {
+    color: #4a4a4a; /* neutral dark gray */
+}
+
+/* Dark mode color */
+[data-theme="dark"] #analysis-config-summary-details {
+    color: #d0d0d0; /* soft light gray */
+}
+
+/* Rules text */
+.summary-rules {
+    opacity: 0.7;
 }
