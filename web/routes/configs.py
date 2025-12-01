@@ -18,6 +18,8 @@ from utils.preferences_manager import get_new_rule_default_enabled
 from utils.config_normalizer import get_production_rules, normalize_config_rules
 from utils.json_io import atomic_write_json
 from web.services.config_loader import get_dynamic_config_info
+from parser.rules_engine import RulesEngine
+from parser.config import ArcaneAuditorConfig
 
 router = APIRouter()
 
@@ -55,12 +57,26 @@ def _read_config_document(path: Path) -> Dict[str, Any]:
     return data
 
 
+def _get_runtime_rules_list() -> list[str]:
+    """
+    Instantiate RulesEngine (lightweight) and return a list of all rule class names.
+    
+    Returns:
+        list[str]: List of rule class names discovered at runtime.
+    """
+    config = ArcaneAuditorConfig()
+    engine = RulesEngine(config)
+    return [rule.__class__.__name__ for rule in engine.rules]
+
+
 def _normalize_document(document: Dict[str, Any]) -> Dict[str, Any]:
     normalized = deepcopy(document or {})
     rules = normalized.get("rules", {})
+    runtime_rule_names = _get_runtime_rules_list()
     normalized["rules"] = normalize_config_rules(
         rules,
         default_enabled=get_new_rule_default_enabled(),
+        runtime_rule_names=runtime_rule_names,
         production_rules=get_production_rules(),
     )
     return normalized

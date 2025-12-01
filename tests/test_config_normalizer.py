@@ -26,7 +26,10 @@ def test_normalize_injects_missing_rules():
     }
 
     normalized = normalize_config_rules(
-        existing, default_enabled=True, production_rules=deepcopy(PRODUCTION_SAMPLE)
+        existing,
+        default_enabled=True,
+        runtime_rule_names=["RuleA", "RuleB"],
+        production_rules=deepcopy(PRODUCTION_SAMPLE)
     )
 
     assert normalized["RuleA"]["enabled"] is False
@@ -46,6 +49,7 @@ def test_normalize_respects_default_disabled():
     normalized = normalize_config_rules(
         {},
         default_enabled=False,
+        runtime_rule_names=["RuleA", "RuleB"],
         production_rules=deepcopy(PRODUCTION_SAMPLE),
     )
 
@@ -65,9 +69,36 @@ def test_normalize_preserves_custom_rules():
     normalized = normalize_config_rules(
         existing,
         default_enabled=True,
+        runtime_rule_names=["RuleA", "RuleB"],
         production_rules=deepcopy(PRODUCTION_SAMPLE),
     )
 
     assert "CustomRule" in normalized
     assert normalized["CustomRule"]["custom_settings"]["foo"] == "bar"
+    # CustomRule should be marked as ghost since it's not in runtime_rule_names
+    assert normalized["CustomRule"].get("_is_ghost") is True
+
+
+def test_normalize_identifies_ghost_rules():
+    """Test that rules in config but not in runtime are marked as ghost rules."""
+    existing = {
+        "RuleA": {"enabled": True},
+        "GhostRule": {"enabled": True, "custom_settings": {"foo": "bar"}},
+    }
+
+    normalized = normalize_config_rules(
+        existing,
+        default_enabled=True,
+        runtime_rule_names=["RuleA", "RuleB"],  # GhostRule is not in runtime
+        production_rules=deepcopy(PRODUCTION_SAMPLE),
+    )
+
+    # RuleA should be normal (in runtime)
+    assert "RuleA" in normalized
+    assert normalized["RuleA"].get("_is_ghost") is not True
+
+    # GhostRule should be marked as ghost
+    assert "GhostRule" in normalized
+    assert normalized["GhostRule"].get("_is_ghost") is True
+    assert normalized["GhostRule"]["custom_settings"]["foo"] == "bar"
 

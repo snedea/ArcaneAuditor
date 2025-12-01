@@ -9,11 +9,18 @@ from pathlib import Path
 from utils.arcane_paths import get_config_dirs
 from utils.preferences_manager import get_new_rule_default_enabled
 from utils.config_normalizer import get_production_rules, normalize_config_rules
+from parser.rules_engine import RulesEngine
+from parser.config import ArcaneAuditorConfig
 
 
 def get_dynamic_config_info():
     """Dynamically discover configuration information from all config directories."""
     config_info = {}
+    
+    # Instantiate RulesEngine once at the top to get runtime rule names
+    config = ArcaneAuditorConfig()
+    engine = RulesEngine(config)
+    runtime_rule_names = [rule.__class__.__name__ for rule in engine.rules]
     
     # Search in priority order: personal, teams, presets
     dirs = get_config_dirs()
@@ -42,6 +49,7 @@ def get_dynamic_config_info():
                 normalized_rules = normalize_config_rules(
                     config_data.get('rules', {}),
                     default_enabled=default_enabled,
+                    runtime_rule_names=runtime_rule_names,
                     production_rules=production_rules,
                 )
 
