@@ -350,6 +350,8 @@
     background-position: right 6px center;
     padding-right: 24px;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+    width: 100px; /* Widen to 100px for better proportionality */
+    text-align: left; /* Consistent text alignment */
 }
 
 /* Dark mode background for dropdown options menu */
@@ -454,53 +456,63 @@
     color: var(--text-secondary);
 }
 
-/* Configure Button - in bottom controls row */
+/* Configure Button - Strict Shared Geometry (MUST apply to BOTH states) */
 .rule-configure-btn {
-    background: transparent;
-    border: none;
-    color: #94a3b8; /* slate-400 - text-xs equivalent */
+    /* Base Geometry - MUST be identical for both states */
+    height: 32px; /* h-8 - Fixed height */
+    width: 140px; /* Widen to 140px to prevent text wrapping */
+    padding: 0 12px; /* px-3 - Fixed horizontal padding */
+    border: 0; /* No borders */
+    border-radius: 6px; /* rounded-md */
     font-size: 0.75rem; /* text-xs */
-    padding: 4px 8px;
+    font-weight: 600; /* font-semibold */
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition: all 0.2s ease; /* transition-all */
     display: flex;
-    align-items: center;
-    gap: 4px;
+    align-items: center; /* items-center */
+    justify-content: flex-start; /* Consistent alignment */
+    gap: 8px; /* gap-2 */
     position: relative;
     flex-shrink: 0;
+    white-space: nowrap; /* Force text onto one line */
+}
+
+/* State A: Default ('Configure') */
+.rule-configure-btn {
+    color: #64748b; /* text-slate-500 */
+    background: transparent; /* bg-transparent */
 }
 
 .rule-configure-btn:hover {
-    color: #9333ea; /* purple-600 */
+    color: #cbd5e1; /* hover:text-slate-300 */
+    background: #1e293b; /* hover:bg-slate-800 */
 }
 
-[data-theme="light"] .rule-configure-btn {
-    color: #64748b; /* slate-500 */
+/* State B: Modified ('Customized') */
+.rule-configure-btn.modified {
+    color: #c084fc; /* text-purple-300 - Dark Mode */
+    background: rgba(168, 85, 247, 0.2); /* bg-purple-500/20 - Dark Mode */
 }
 
-[data-theme="light"] .rule-configure-btn:hover {
-    color: #9333ea; /* purple-600 */
+.rule-configure-btn.modified:hover {
+    background: rgba(168, 85, 247, 0.3); /* hover:bg-purple-500/30 - Dark Mode */
+}
+
+/* Light Mode for Modified state */
+[data-theme="light"] .rule-configure-btn.modified {
+    color: #9333ea; /* text-purple-600 - Light Mode */
+    background: #f3e8ff; /* bg-purple-100 - Light Mode */
+}
+
+[data-theme="light"] .rule-configure-btn.modified:hover {
+    background: #e9d5ff; /* Slightly darker purple on hover - Light Mode */
 }
 
 /* Chevron icon */
 .configure-chevron {
     font-size: 0.75rem;
     transition: transform 0.3s ease;
-    margin-left: 8px;
-}
-
-/* Modified button state - prominent purple text */
-.rule-configure-btn.modified {
-    color: #a78bfa; /* purple-400 - brand purple */
-    font-weight: 500; /* font-medium */
-}
-
-[data-theme="light"] .rule-configure-btn.modified {
-    color: #9333ea; /* purple-600 for light mode */
-}
-
-[data-theme="dark"] .rule-configure-btn.modified {
-    color: #a78bfa; /* purple-400 for dark mode */
+    margin-left: 0; /* Gap is handled by parent gap */
 }
 
 /* Settings Panel (Expandable with slide animation) */
