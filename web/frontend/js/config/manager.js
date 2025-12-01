@@ -162,8 +162,27 @@ export class ConfigManager {
         this.productionTemplateId = prod ? prod.id : (this.availableConfigs[0]?.id || null);
     }
 
-    saveCurrentConfigChanges(config) {
-        // This was used by breakdown UI save button
-        this.app.showToast('Save not implemented yet', 'info');
+    async saveCurrentConfigChanges(config) {
+        try {
+            // Create a payload with ONLY the rules data
+            // We need 'id' for the API route
+            const payload = {
+                id: config.id,
+                rules: config.rules
+            };
+
+            // This will send: { config: { id: "...", rules: { ... } } }
+            await ConfigAPI.save(payload); 
+            
+            this.app.showToast('Rules saved successfully!', 'success');
+            
+            // Reload to ensure the UI reflects the server state
+            await this.loadConfigurations();
+            this.showConfigBreakdown(config.id);
+            
+        } catch (error) {
+            console.error('Save failed:', error);
+            this.app.showToast(`Failed to save: ${error.message}`, 'error');
+        }
     }
 }

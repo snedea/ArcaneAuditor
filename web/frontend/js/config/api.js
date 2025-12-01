@@ -57,7 +57,7 @@ export const ConfigAPI = {
         const response = await fetch(`/api/config/${config.id}/save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ config: config })
+            body: JSON.stringify({ config: { rules: config.rules } })
         });
 
         if (!response.ok) {
