@@ -1,6 +1,6 @@
 // Main application orchestration for Arcane Auditor web interface
 
-import { ConfigManager } from './config-manager.js';
+import { ConfigManager } from './config/manager.js';
 import { ThemeManager } from './theme-manager.js';
 import { ResultsRenderer } from './results-renderer.js';
 import { downloadResults, getLastSortBy, getLastSortFilesBy } from './utils.js';

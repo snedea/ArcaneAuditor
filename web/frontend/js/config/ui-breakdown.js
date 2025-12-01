@@ -1,5 +1,5 @@
 // config-ui-breakdown.js
-import { ConfigAPI } from './config-api.js';
+import { ConfigAPI } from './api.js';
 
 export class ConfigBreakdownUI {
     constructor(manager) {

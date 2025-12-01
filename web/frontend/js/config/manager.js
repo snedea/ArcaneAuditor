@@ -1,8 +1,8 @@
 // Configuration management for Arcane Auditor web interface
 
-import { getLastSelectedConfig, saveSelectedConfig } from './utils.js';
+import { getLastSelectedConfig, saveSelectedConfig } from '../utils.js';
 import { ConfigAPI } from './config-api.js';
-import { ConfigBreakdownUI } from './config-ui-breakdown.js';
+import { ConfigBreakdownUI } from './ui-breakdown.js';
 
 export class ConfigManager {
     pendingDuplicateId = null;
