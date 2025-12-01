@@ -5,6 +5,10 @@ import { getLastSelectedConfig, saveSelectedConfig } from './utils.js';
 export class ConfigManager {
     pendingDuplicateId = null;
     productionTemplateId = null;
+    toolbarListenersInitialized = false;
+    toolbarClickHandler = null;
+    toolbarManageHandler = null;
+    toolbarClickOutsideHandler = null;
 
     constructor(app) {
         this.app = app;
@@ -1066,12 +1070,17 @@ export class ConfigManager {
     }
 
     initializeToolbarListeners() {
+        // Remove old listeners if they exist
+        if (this.toolbarListenersInitialized) {
+            this.removeToolbarListeners();
+        }
+
         const selectedButton = document.getElementById('config-selected-button');
         const manageBtn = document.getElementById('config-manage-btn');
         const dropdown = document.getElementById('config-dropdown');
 
         if (selectedButton) {
-            selectedButton.addEventListener('click', (e) => {
+            this.toolbarClickHandler = (e) => {
                 e.stopPropagation();
                 const dropdownEl = document.getElementById('config-dropdown');
                 if (dropdownEl) {
@@ -1079,17 +1088,19 @@ export class ConfigManager {
                     this.buildConfigDropdown();
                     dropdownEl.classList.toggle('visible');
                 }
-            });
+            };
+            selectedButton.addEventListener('click', this.toolbarClickHandler);
         }
 
         if (manageBtn) {
-            manageBtn.addEventListener('click', () => {
+            this.toolbarManageHandler = () => {
                 this.showConfigBreakdown();
-            });
+            };
+            manageBtn.addEventListener('click', this.toolbarManageHandler);
         }
 
         // Close dropdown when clicking outside
-        const handleClickOutside = (e) => {
+        this.toolbarClickOutsideHandler = (e) => {
             const dropdownEl = document.getElementById('config-dropdown');
             const buttonEl = document.getElementById('config-selected-button');
             if (dropdownEl && 
@@ -1101,7 +1112,31 @@ export class ConfigManager {
         };
         
         // Use capture phase to ensure we catch the click
-        document.addEventListener('click', handleClickOutside, true);
+        document.addEventListener('click', this.toolbarClickOutsideHandler, true);
+        
+        this.toolbarListenersInitialized = true;
+    }
+
+    removeToolbarListeners() {
+        const selectedButton = document.getElementById('config-selected-button');
+        const manageBtn = document.getElementById('config-manage-btn');
+
+        if (selectedButton && this.toolbarClickHandler) {
+            selectedButton.removeEventListener('click', this.toolbarClickHandler);
+            this.toolbarClickHandler = null;
+        }
+
+        if (manageBtn && this.toolbarManageHandler) {
+            manageBtn.removeEventListener('click', this.toolbarManageHandler);
+            this.toolbarManageHandler = null;
+        }
+
+        if (this.toolbarClickOutsideHandler) {
+            document.removeEventListener('click', this.toolbarClickOutsideHandler, true);
+            this.toolbarClickOutsideHandler = null;
+        }
+
+        this.toolbarListenersInitialized = false;
     }
 
     showCreateConfigModal() {
