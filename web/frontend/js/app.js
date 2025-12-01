@@ -1,6 +1,7 @@
 // Main application orchestration for Arcane Auditor web interface
 
 import { ConfigManager } from './config-manager.js';
+import { ThemeManager } from './theme-manager.js';
 import { ResultsRenderer } from './results-renderer.js';
 import { downloadResults, getLastSortBy, getLastSortFilesBy } from './utils.js';
 import { showMagicalAnalysisComplete } from './magic-mode.js';
@@ -38,8 +39,14 @@ class ArcaneAuditorApp {
         this.resultsRenderer = new ResultsRenderer(this);
         
         this.initializeEventListeners();
-        this.configManager.initializeTheme();
+
+        // Initialize theme manager
+        this.themeManager = new ThemeManager();
+        this.themeManager.initialize();
+
+        // Load configurations
         this.configManager.loadConfigurations();
+
         // Load update preferences then version asynchronously after initialization
         this.updatePreferencesPromise = this.loadUpdatePreferences();
         this.updatePreferencesPromise.catch(err => console.error('Failed to load update preferences:', err));
@@ -945,7 +952,7 @@ window.downloadResults = function() {
 };
 
 window.toggleTheme = function() {
-    app.configManager.toggleTheme();
+    app.themeManager.toggleTheme();
 };
 
 window.toggleContextPanel = function() {

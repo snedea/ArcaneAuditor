@@ -1,6 +1,7 @@
 // Configuration management for Arcane Auditor web interface
 
 import { getLastSelectedConfig, saveSelectedConfig } from './utils.js';
+import { ConfigAPI } from './config-api.js';
 
 export class ConfigManager {
     pendingDuplicateId = null;
@@ -20,7 +21,6 @@ export class ConfigManager {
         this.activeCardMenuTrigger = null;
 
         this.bindGlobalConfigControls();
-
     }
 
     updateMetadataLine() {
@@ -181,10 +181,10 @@ export class ConfigManager {
     async loadConfigurations() {
         try {
             // Add cache-busting query parameter to prevent browser caching
-            const cacheBuster = `?t=${Date.now()}`;
-            const response = await fetch(`/api/configs${cacheBuster}`);
-            const data = await response.json();
-            this.availableConfigs = data.configs;
+            // const cacheBuster = `?t=${Date.now()}`;
+            // const response = await fetch(`/api/configs${cacheBuster}`);
+            const configData = await ConfigAPI.getAll();
+            this.availableConfigs = configData.configs;
             
             // NOW load from localStorage (after configs are loaded, ensuring localStorage is ready)
             // This is important for pywebview which may not have localStorage ready immediately
@@ -805,15 +805,7 @@ export class ConfigManager {
                             }
                             
                             // Save the config via API
-                            const response = await fetch(`/api/config/${config.id}/save`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ config: config })
-                            });
-                            
-                            if (!response.ok) {
-                                throw new Error('Failed to save configuration');
-                            }
+                            await ConfigAPI.save(config);
                             
                             // Remove from DOM
                             ruleItem.remove();
@@ -1082,64 +1074,14 @@ export class ConfigManager {
         this.app.showToast('Save functionality will be implemented in Phase 4', 'info');
     }
 
-    // Theme management
-    initializeTheme() {
-        // Check for saved theme preference or default to dark mode
-        const savedTheme = localStorage.getItem('arcane-auditor-theme') || 'dark';
-        this.setTheme(savedTheme);
-    }
-
-    setTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        const themeIcon = document.getElementById('theme-icon');
-        const themeText = document.getElementById('theme-text');
-        const themeButton = document.getElementById('theme-toggle');
-        
-        if (theme === 'dark') {
-            themeIcon.textContent = '☀️';
-            themeText.textContent = 'Cast Light';
-            if (themeButton) {
-                themeButton.setAttribute('aria-label', 'Cast Light');
-            }
-        } else {
-            themeIcon.textContent = '🌙';
-            themeText.textContent = 'Cast Darkness';
-            if (themeButton) {
-                themeButton.setAttribute('aria-label', 'Cast Darkness');
-            }
-        }
-        
-        // Save preference
-        localStorage.setItem('arcane-auditor-theme', theme);
-    }
-
-    toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        this.setTheme(newTheme);
-    }
-
     async duplicateConfiguration(configId, newName, category) {
         try {
-            const response = await fetch(`/api/config/create`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: newName,
-                    target: category.toLowerCase(),
-                    base_id: configId
-                })
-            });
-
-            if (!response.ok) throw new Error("Failed to duplicate configuration");
-    
-            this.app.showToast("Configuration duplicated!", "success");
-    
-            // Refresh list
+            await ConfigAPI.duplicate(configId, newName, category);
+            this.app.showToast('🎉 Configuration duplicated!', 'success');
             await this.loadConfigurations();
-    
-        } catch (err) {
-            this.app.showToast(err.message, "error");
+        } catch (error) {
+            console.error('Failed to duplicate configuration:', error);
+            this.app.showToast('❌ Failed to duplicate configuration', 'error');
         }
     }
     
@@ -1186,14 +1128,7 @@ export class ConfigManager {
 
     async deleteConfiguration(configId) {
         try {
-            const response = await fetch(`/api/config/${configId}`, {
-                method: 'DELETE'
-            });
-
-            if (!response.ok) {
-                const err = await response.json().catch(() => null);
-                throw new Error(err?.detail || `HTTP ${response.status}`);
-            }
+            await ConfigAPI.delete(configId);
 
             await this.loadConfigurations();
             this.app.showToast('🗑️ Configuration deleted', 'success');
@@ -1208,8 +1143,6 @@ export class ConfigManager {
         this.app.showToast('Configuration editor will be available in Phase 4', 'info');
         console.log('Edit configuration:', configId);
     }
-
-    // === NEW TOOLBAR UI FUNCTIONS ===
 
     updateConfigToolbar() {
         const config = this.availableConfigs.find(c => c.id === this.selectedConfig);
