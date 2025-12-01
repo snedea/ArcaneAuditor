@@ -34,8 +34,9 @@ export class ConfigManager {
         }
     
         const rules = config.rules;
-        const enabled = Object.values(rules).filter(r => r.enabled).length;
-        const disabled = Object.values(rules).filter(r => !r.enabled).length;
+        // Exclude ghost rules from counts
+        const enabled = Object.values(rules).filter(r => r.enabled && !r._is_ghost).length;
+        const disabled = Object.values(rules).filter(r => !r.enabled && !r._is_ghost).length;
     
         const perf = config.performance || '';
     
@@ -346,8 +347,9 @@ export class ConfigManager {
         let disabled = 0;
 
         if (rulesArray.length > 0) {
-            enabled = rulesArray.filter(rule => rule && rule.enabled).length;
-            disabled = rulesArray.filter(rule => rule && rule.enabled === false).length;
+            // Exclude ghost rules from counts
+            enabled = rulesArray.filter(rule => rule && rule.enabled && !rule._is_ghost).length;
+            disabled = rulesArray.filter(rule => rule && rule.enabled === false && !rule._is_ghost).length;
         } else {
             const total = typeof config.rules_count === 'number' ? config.rules_count : 0;
             const disabledMeta = typeof config.disabled_rules === 'number'
@@ -654,8 +656,9 @@ export class ConfigManager {
         }
         
         const rules = config.rules || {};
-        const enabledRules = Object.entries(rules).filter(([_, ruleConfig]) => ruleConfig.enabled).length;
-        const disabledRules = Object.entries(rules).filter(([_, ruleConfig]) => !ruleConfig.enabled).length;
+        // Exclude ghost rules from counts
+        const enabledRules = Object.entries(rules).filter(([_, ruleConfig]) => ruleConfig.enabled && !ruleConfig._is_ghost).length;
+        const disabledRules = Object.entries(rules).filter(([_, ruleConfig]) => !ruleConfig.enabled && !ruleConfig._is_ghost).length;
         
         // Merge all rules into single list, sorted alphabetically
         const allRules = Object.entries(rules).sort(([a], [b]) => a.localeCompare(b));
@@ -710,7 +713,7 @@ export class ConfigManager {
                         <div class="rule-name-container">
                             <div class="rule-name">
                                 ${ruleName}
-                                ${isGhost ? '<span class="ghost-warning-badge-inline">⚠️ Rule not found in runtime</span>' : ''}
+                                ${isGhost ? '<span class="ghost-warning-badge-inline">⚠️ Rule not found in runtime (not counted or used)</span>' : ''}
                             </div>
                         </div>
                         <div class="rule-controls-container">
@@ -1245,8 +1248,9 @@ export class ConfigManager {
         
         // Update rule count
         if (rulesEl && config.rules) {
-            const enabledRules = Object.values(config.rules).filter(r => r.enabled).length;
-            const disabledRules = Object.values(config.rules).filter(r => !r.enabled).length;
+            // Exclude ghost rules from counts
+            const enabledRules = Object.values(config.rules).filter(r => r.enabled && !r._is_ghost).length;
+            const disabledRules = Object.values(config.rules).filter(r => !r.enabled && !r._is_ghost).length;
             
             if (disabledRules > 0) {
                 rulesEl.innerHTML = `
@@ -1318,8 +1322,9 @@ export class ConfigManager {
                 div.style.gap = '8px';
 
                 // Calculate rule count
-                const enabledRules = cfg.rules ? Object.values(cfg.rules).filter(r => r.enabled).length : 0;
-                const disabledRules = cfg.rules ? Object.values(cfg.rules).filter(r => !r.enabled).length : 0;
+                // Exclude ghost rules from counts
+                const enabledRules = cfg.rules ? Object.values(cfg.rules).filter(r => r.enabled && !r._is_ghost).length : 0;
+                const disabledRules = cfg.rules ? Object.values(cfg.rules).filter(r => !r.enabled && !r._is_ghost).length : 0;
                 const hasRules = cfg.rules && Object.keys(cfg.rules).length > 0;
                 
                 let rulesHtml = '';
