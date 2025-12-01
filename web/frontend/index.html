@@ -62,6 +62,31 @@
         </div>
 
         <main>
+            <!-- Configuration Toolbar -->
+            <div id="config-toolbar" class="config-toolbar">
+                <div id="config-toolbar-left" class="config-toolbar-left">
+                    <div class="config-selector-wrapper">
+                        <button id="config-selected-button" class="config-selected-button">
+                            <span class="config-icon">📜</span>
+                            <span id="config-selected-name" class="config-name">Development</span>
+                            <span class="config-divider">|</span>
+                            <span id="config-selected-category" class="config-selected-category-text"></span>
+                            <span class="config-bullet">•</span>
+                            <span id="config-selected-rules" class="config-rules-count"></span>
+                            <span class="chevron">▼</span>
+                        </button>
+                        <!-- Config Dropdown -->
+                        <div id="config-dropdown" class="config-dropdown"></div>
+                    </div>
+                </div>
+
+                <div class="config-toolbar-right">
+                    <button id="config-manage-btn" class="config-manage-btn">
+                        ⚙️ Manage Rules
+                    </button>
+                </div>
+            </div>
+
             <!-- Upload Section -->
             <section id="upload-section" class="upload-section">
                 <div class="upload-area" id="upload-area">
@@ -91,36 +116,7 @@
                         </div>
                     </div>
                 </div>
-                
-                <section class="analysis-config-container">
-                    <h3 class="section-title">
-                        <span class="icon">⚙️</span> Analysis Configuration
-                    </h3>
-                
-                    <div id="config-card-container" class="config-card-container config-grid">
-                        <div class="config-column" data-category="built-in">
-                            <div class="config-column-header">
-                                <h4>Built-in</h4>
-                            </div>
-                            <div class="config-column-body" id="config-column-built-in"></div>
-                        </div>
-                        <div class="config-column" data-category="team">
-                            <div class="config-column-header">
-                                <h4>Team</h4>
-                                <button class="column-action-btn" data-category="team" aria-label="Create Team Config">+</button>
-                            </div>
-                            <div class="config-column-body" id="config-column-team"></div>
-                        </div>
-                        <div class="config-column" data-category="personal">
-                            <div class="config-column-header">
-                                <h4>Personal</h4>
-                                <button class="column-action-btn" data-category="personal" aria-label="Create Personal Config">+</button>
-                            </div>
-                            <div class="config-column-body" id="config-column-personal"></div>
-                        </div>
-                    </div>
-                    
-                </section>
+            </section>
 
                 <!-- Duplicate Configuration Modal -->
                 <div id="duplicate-config-modal" class="modal-overlay hidden">
