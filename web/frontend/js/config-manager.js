@@ -604,7 +604,9 @@ export class ConfigManager {
             return;
         }
         
-        const isBuiltIn = config.category === 'built-in';
+        // Check if config is built-in (check both category and type, handle both 'built-in' and 'builtin')
+        const category = (config.category || config.type || '').toLowerCase();
+        const isBuiltIn = category === 'built-in' || category === 'builtin';
         
         // Update modal header with action buttons
         if (header) {
