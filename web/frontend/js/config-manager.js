@@ -37,6 +37,35 @@ export class ConfigManager {
     
         metaDiv.textContent = `${enabled} enabled • ${disabled} disabled${perf ? ' • ' + perf : ''}`;
     }
+
+    updateConfigSummary(config) {
+        const nameEl = document.getElementById("summary-config-name");
+        const categoryEl = document.getElementById("summary-config-category");
+        const rulesEl = document.getElementById("summary-config-rules");
+
+        if (!config) return;
+
+        const enabled = Object.values(config.rules).filter(r => r.enabled).length;
+        const disabled = Object.values(config.rules).filter(r => !r.enabled).length;
+
+        if (nameEl) {
+            nameEl.textContent = config.name;
+            nameEl.classList.add("config-summary-name");
+        }
+
+        // Category
+        if (categoryEl) {
+            const category = (config.type || config.category || 'built-in').toLowerCase();
+            categoryEl.textContent = category.toLowerCase();
+            categoryEl.classList.add("config-summary-category");
+        }
+
+        // Rules wording
+        if (rulesEl) {
+            rulesEl.textContent = `${enabled} enabled, ${disabled} disabled`;
+            rulesEl.classList.add("config-summary-rules");
+        }
+    }
     
 
     openDuplicateModal(configId) {
@@ -178,8 +207,12 @@ export class ConfigManager {
                 saveSelectedConfig(this.selectedConfig);
             }
             
-            this.renderConfigCards();
-            this.updateMetadataLine();
+            // Update toolbar and dropdown with new UI
+            this.updateConfigToolbar();
+            this.buildConfigDropdown();
+
+            // Initialize event listeners for toolbar
+            this.initializeToolbarListeners();
 
             this.productionTemplateId = null;
             const productionTemplate = this.availableConfigs.find(cfg => (cfg.name || '').toLowerCase() === 'production-ready');
@@ -484,6 +517,19 @@ export class ConfigManager {
         this.updateConfigSelection();
         this.updateCardSelection();
         this.updateMetadataLine();
+        
+        // Update toolbar
+        const config = this.availableConfigs.find(c => c.id === configId);
+        if (config) {
+            this.updateConfigToolbar();
+            this.buildConfigDropdown();
+        }
+        
+        // Close dropdown if open
+        const dropdown = document.getElementById('config-dropdown');
+        if (dropdown) {
+            dropdown.classList.remove('visible');
+        }
     }
 
     updateConfigSelection() {
@@ -541,6 +587,7 @@ export class ConfigManager {
     showConfigBreakdown() {
         const modal = document.getElementById('config-breakdown-modal');
         const content = document.getElementById('config-breakdown-content');
+        const header = document.querySelector('.modal-header');
         
         if (!this.selectedConfig) {
             alert('Please select a configuration first');
@@ -551,6 +598,30 @@ export class ConfigManager {
         if (!config) {
             alert('Configuration not found');
             return;
+        }
+        
+        const isBuiltIn = config.category === 'built-in';
+        
+        // Update modal header with action buttons
+        if (header) {
+            const existingActions = header.querySelector('.modal-actions');
+            if (existingActions) {
+                existingActions.remove();
+            }
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'modal-actions';
+            
+            if (isBuiltIn) {
+                actionsDiv.innerHTML = `<button id="duplicate-config">Duplicate to Customize</button>`;
+            } else {
+                actionsDiv.innerHTML = `
+                    <button id="save-config">Save</button>
+                    <button id="config-more">⋮</button>
+                `;
+            }
+            
+            header.appendChild(actionsDiv);
         }
         
         const rules = config.rules || {};
@@ -591,16 +662,25 @@ export class ConfigManager {
                     ? JSON.stringify(customSettings, null, 2) 
                     : '';
                 
+                const disabledAttr = isBuiltIn ? 'disabled' : '';
+                const readonlyAttr = isBuiltIn ? 'readonly' : '';
+                
                 html += `
                     <div class="rule-item enabled">
                         <div class="rule-header-row">
                             <div class="rule-name">${ruleName}</div>
+                            ${!isBuiltIn ? `
+                                <label class="rule-toggle">
+                                    <input type="checkbox" data-rule="${ruleName}" checked ${disabledAttr}>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            ` : ''}
                         </div>
                         <div class="rule-description">Severity: ${severity}</div>
                         ${settingsText ? `
                             <div class="rule-settings">
                                 <div class="settings-label">Custom Settings:</div>
-                                <pre class="settings-json">${settingsText}</pre>
+                                <textarea class="settings-json" data-rule="${ruleName}" ${readonlyAttr}>${settingsText}</textarea>
                             </div>
                         ` : ''}
                         <div class="rule-status-badge enabled">✓ Enabled</div>
@@ -623,10 +703,19 @@ export class ConfigManager {
             
             disabledRules.forEach(([ruleName, ruleConfig]) => {
                 const severity = ruleConfig.severity_override || 'ADVICE';
+                const disabledAttr = isBuiltIn ? 'disabled' : '';
+                const readonlyAttr = isBuiltIn ? 'readonly' : '';
+                
                 html += `
                     <div class="rule-item disabled">
                         <div class="rule-header-row">
                             <div class="rule-name">${ruleName}</div>
+                            ${!isBuiltIn ? `
+                                <label class="rule-toggle">
+                                    <input type="checkbox" data-rule="${ruleName}" ${disabledAttr}>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            ` : ''}
                         </div>
                         <div class="rule-description">Severity: ${severity}</div>
                         <div class="rule-status-badge disabled">✗ Disabled</div>
@@ -642,7 +731,43 @@ export class ConfigManager {
         
         content.innerHTML = html;
         
+        // Wire up event handlers
+        if (isBuiltIn) {
+            const duplicateBtn = document.getElementById('duplicate-config');
+            if (duplicateBtn) {
+                duplicateBtn.addEventListener('click', async () => {
+                    try {
+                        await this.duplicateConfiguration(config.id, config.name + ' Copy', 'personal');
+                        this.app.showToast('Configuration duplicated! Opening in edit mode...', 'success');
+                        // Reload configs and reopen modal
+                        await this.loadConfigurations();
+                        const newConfig = this.availableConfigs.find(c => c.name === config.name + ' Copy');
+                        if (newConfig) {
+                            this.selectConfiguration(newConfig.id);
+                            this.showConfigBreakdown();
+                        }
+                    } catch (err) {
+                        this.app.showToast(err.message, 'error');
+                    }
+                });
+            }
+        } else {
+            const saveBtn = document.getElementById('save-config');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', () => {
+                    this.saveCurrentConfigChanges(config);
+                });
+            }
+        }
+        
         modal.style.display = 'flex';
+    }
+
+    async saveCurrentConfigChanges(config) {
+        // TODO: Implement save functionality
+        // This should collect all the rule toggles and custom settings
+        // and send them to the backend to update the config
+        this.app.showToast('Save functionality will be implemented in Phase 4', 'info');
     }
 
     // Theme management
@@ -771,6 +896,193 @@ export class ConfigManager {
         this.app.showToast('Configuration editor will be available in Phase 4', 'info');
         console.log('Edit configuration:', configId);
     }
+
+    // === NEW TOOLBAR UI FUNCTIONS ===
+
+    updateConfigToolbar() {
+        const config = this.availableConfigs.find(c => c.id === this.selectedConfig);
+        if (!config) return;
+
+        const nameEl = document.getElementById('config-selected-name');
+        const categoryEl = document.getElementById('config-selected-category');
+        const rulesEl = document.getElementById('config-selected-rules');
+        
+        if (nameEl) nameEl.textContent = config.name;
+        
+        // Update category as text (not badge)
+        if (categoryEl) {
+            const category = (config.category || config.type || '').toLowerCase();
+            let categoryText = '';
+            let categoryColor = '';
+            
+            if (category === 'built-in' || category === 'builtin') {
+                categoryText = 'Built-in';
+                categoryColor = '#a78bfa';
+            } else if (category === 'personal') {
+                categoryText = 'Personal';
+                categoryColor = '#2dd4bf';
+            } else if (category === 'team') {
+                categoryText = 'Team';
+                categoryColor = '#60a5fa';
+            }
+            
+            if (categoryText) {
+                categoryEl.textContent = categoryText;
+                categoryEl.style.color = categoryColor;
+                categoryEl.className = 'config-selected-category-text';
+                categoryEl.style.display = 'inline';
+            } else {
+                categoryEl.style.display = 'none';
+            }
+        }
+        
+        // Update rule count
+        if (rulesEl && config.rules) {
+            const enabledRules = Object.values(config.rules).filter(r => r.enabled).length;
+            rulesEl.textContent = `${enabledRules} active`;
+        } else if (rulesEl) {
+            rulesEl.textContent = '';
+        }
+    }
+
+    buildConfigDropdown() {
+        const container = document.getElementById('config-dropdown');
+        if (!container) {
+            console.warn('config-dropdown container not found');
+            return;
+        }
+
+        if (!this.availableConfigs || this.availableConfigs.length === 0) {
+            console.warn('No available configs to populate dropdown');
+            container.innerHTML = '<div class="config-dropdown-item" style="padding: 12px 20px; color: var(--text-secondary);">No configurations available</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+
+        const groups = {
+            "BUILT-IN": this.availableConfigs.filter(c => {
+                const category = c.category || c.type || '';
+                return category.toLowerCase() === 'built-in' || category.toLowerCase() === 'builtin';
+            }),
+            "TEAM": this.availableConfigs.filter(c => {
+                const category = c.category || c.type || '';
+                return category.toLowerCase() === 'team';
+            }),
+            "PERSONAL": this.availableConfigs.filter(c => {
+                const category = c.category || c.type || '';
+                return category.toLowerCase() === 'personal';
+            })
+        };
+
+        Object.entries(groups).forEach(([header, list]) => {
+            if (!list.length) return;
+
+            const h = document.createElement('h4');
+            h.textContent = header;
+            container.appendChild(h);
+
+            list.forEach(cfg => {
+                const div = document.createElement('div');
+                const isSelected = cfg.id === this.selectedConfig;
+                
+                if (isSelected) {
+                    div.className = 'config-dropdown-item config-dropdown-item-selected';
+                } else {
+                    div.className = 'config-dropdown-item';
+                }
+                
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.gap = '8px';
+
+                // Calculate rule count
+                const enabledRules = cfg.rules ? Object.values(cfg.rules).filter(r => r.enabled).length : 0;
+                const rulesText = enabledRules > 0 ? `${enabledRules} active` : '';
+
+                div.innerHTML = `
+                    <span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${cfg.name}</span>
+                    ${rulesText ? `<span class="config-rules-count">${rulesText}</span>` : ''}
+                    ${isSelected ? '<span class="config-checkmark">✓</span>' : ''}
+                `;
+
+                div.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.selectConfiguration(cfg.id);
+                    // Close dropdown after selection
+                    container.classList.remove('visible');
+                });
+
+                container.appendChild(div);
+            });
+        });
+
+        const createBtn = document.createElement('div');
+        createBtn.className = 'config-dropdown-create';
+        createBtn.textContent = '+ Create New Configuration';
+        createBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showCreateConfigModal();
+        });
+
+        container.appendChild(createBtn);
+    }
+
+    initializeToolbarListeners() {
+        const selectedButton = document.getElementById('config-selected-button');
+        const manageBtn = document.getElementById('config-manage-btn');
+        const dropdown = document.getElementById('config-dropdown');
+
+        if (selectedButton) {
+            selectedButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const dropdownEl = document.getElementById('config-dropdown');
+                if (dropdownEl) {
+                    // Rebuild dropdown to ensure it's up to date
+                    this.buildConfigDropdown();
+                    dropdownEl.classList.toggle('visible');
+                }
+            });
+        }
+
+        if (manageBtn) {
+            manageBtn.addEventListener('click', () => {
+                this.showConfigBreakdown();
+            });
+        }
+
+        // Close dropdown when clicking outside
+        const handleClickOutside = (e) => {
+            const dropdownEl = document.getElementById('config-dropdown');
+            const buttonEl = document.getElementById('config-selected-button');
+            if (dropdownEl && 
+                !dropdownEl.contains(e.target) && 
+                buttonEl && 
+                !buttonEl.contains(e.target)) {
+                dropdownEl.classList.remove('visible');
+            }
+        };
+        
+        // Use capture phase to ensure we catch the click
+        document.addEventListener('click', handleClickOutside, true);
+    }
+
+    showCreateConfigModal() {
+        // Close dropdown
+        const dropdown = document.getElementById('config-dropdown');
+        if (dropdown) {
+            dropdown.classList.remove('visible');
+        }
+        
+        // For now, open duplicate modal with the first built-in config as template
+        // In a full implementation, this would open a dedicated create modal
+        if (this.availableConfigs.length > 0) {
+            const templateConfig = this.availableConfigs.find(c => c.category === 'built-in') || this.availableConfigs[0];
+            this.openDuplicateModal(templateConfig.id);
+        } else {
+            this.app.showToast('No configuration templates available', 'info');
+        }
+    }
 }
 
 
@@ -803,3 +1115,4 @@ document.addEventListener('keydown', function(event) {
         window.hideConfigBreakdown();
     }
 });
+
