@@ -156,24 +156,14 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Enabled state: 100% opacity, purple border and toggle */
+/* Enabled state: 100% opacity, purple toggle */
 .rule-item.enabled {
     opacity: 1;
-    border-left: 4px solid #9333ea; /* purple-600 */
 }
 
-[data-theme="dark"] .rule-item.enabled {
-    border-left-color: #a78bfa; /* purple-400 for dark mode */
-}
-
-/* Disabled state: dimmed with opacity, slate border and toggle */
+/* Disabled state: 60% opacity, gray toggle, no orange borders/backgrounds */
 .rule-item.disabled {
-    opacity: 0.55;
-    border-left: 4px solid #475569; /* slate-700 */
-}
-
-[data-theme="dark"] .rule-item.disabled {
-    border-left-color: #475569; /* slate-700 */
+    opacity: 0.6;
 }
 
 .rule-header-row {
@@ -234,23 +224,95 @@
     transform: translateX(20px); /* Move to right */
 }
 
-/* Disabled toggle: slate track, thumb on left */
+/* Disabled toggle: gray track, thumb on left */
 .rule-toggle-switch.disabled .toggle-track {
-    background-color: #475569; /* slate-600 */
+    background-color: #6b7280; /* gray-500 */
 }
 
 [data-theme="dark"] .rule-toggle-switch.disabled .toggle-track {
-    background-color: #475569; /* slate-600 */
+    background-color: #6b7280; /* gray-500 */
 }
 
 .rule-toggle-switch.disabled .toggle-thumb {
     transform: translateX(0); /* Stay on left */
 }
 
+/* Disabled toggle for ghost rules - non-interactive */
+.rule-toggle-switch[disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Ghost Rule Styling */
+.rule-item.ghost-rule {
+    border: 2px solid #f59e0b; /* amber-500 - full border */
+    border-radius: 8px;
+    position: relative;
+}
+
+[data-theme="dark"] .rule-item.ghost-rule {
+    border-color: #fbbf24; /* amber-400 */
+}
+
+.ghost-warning-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 4px 8px;
+    background: rgba(245, 158, 11, 0.15); /* amber-500/15 */
+    color: #f59e0b; /* amber-500 */
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .ghost-warning-badge {
+    background: rgba(251, 191, 36, 0.15); /* amber-400/15 */
+    color: #fbbf24; /* amber-400 */
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
 .rule-description {
     color: var(--text-secondary);
     font-size: 0.875rem;
     margin-bottom: 8px;
+}
+
+/* Rule Actions Container */
+.rule-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+/* Delete Button for Ghost Rules */
+.rule-delete-btn {
+    background: transparent;
+    border: 1px solid #ef4444; /* red-500 */
+    color: #ef4444;
+    font-size: 1rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.rule-delete-btn:hover {
+    background: #ef4444;
+    color: white;
+}
+
+[data-theme="dark"] .rule-delete-btn {
+    border-color: #f87171; /* red-400 */
+    color: #f87171;
+}
+
+[data-theme="dark"] .rule-delete-btn:hover {
+    background: #f87171;
+    color: white;
 }
 
 /* Ensure disabled rules have the same text color as enabled rules */
@@ -260,6 +322,143 @@
 
 .rule-item.disabled .rule-description {
     color: var(--text-secondary);
+}
+
+/* Configure Button - at bottom of card */
+.rule-configure-btn {
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--border-color);
+    color: #94a3b8; /* slate-400 */
+    font-size: 0.875rem;
+    padding: 8px 0;
+    margin-top: 12px;
+    margin-bottom: 0;
+    width: 100%;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+.rule-configure-btn:hover {
+    color: #9333ea; /* purple-600 */
+}
+
+[data-theme="light"] .rule-configure-btn {
+    color: #64748b; /* slate-500 */
+}
+
+[data-theme="light"] .rule-configure-btn:hover {
+    color: #9333ea; /* purple-600 */
+}
+
+/* Chevron icon */
+.configure-chevron {
+    font-size: 0.75rem;
+    transition: transform 0.3s ease;
+    margin-left: 8px;
+}
+
+/* Modified indicator - purple dot */
+.configure-modified-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #9333ea; /* purple-600 */
+    border-radius: 50%;
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .configure-modified-dot {
+    background: #a78bfa; /* purple-400 */
+}
+
+/* Settings Panel (Expandable with slide animation) */
+.rule-settings-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, margin-top 0.3s ease-out, margin-bottom 0.3s ease-out;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.rule-settings-panel.expanded {
+    max-height: 500px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+/* Code-like Textarea - Dark Panel */
+.rule-settings-json {
+    width: 100%;
+    min-height: 120px;
+    padding: 12px;
+    background: #020617; /* slate-950 - dark panel */
+    color: #f1f5f9; /* slate-100 */
+    font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+    font-size: 0.75rem;
+    border: 1px solid #1e293b; /* slate-800 */
+    border-radius: 6px;
+    resize: vertical;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+/* JSON Validation States */
+.rule-settings-json.json-valid {
+    border-color: #10b981; /* green-500 - valid JSON */
+}
+
+.rule-settings-json.json-invalid {
+    border-color: #ef4444; /* red-500 - invalid JSON */
+    border-width: 2px;
+}
+
+[data-theme="light"] .rule-settings-json {
+    background: #0f172a; /* slate-900 */
+    color: #e2e8f0; /* slate-200 */
+    border-color: #334155; /* slate-700 */
+}
+
+.rule-settings-json:focus {
+    outline: none;
+    border-color: #9333ea; /* purple-600 */
+}
+
+/* JSON Validation States */
+.rule-settings-json.json-valid {
+    border-color: #10b981; /* green-500 - valid JSON */
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.rule-settings-json.json-invalid {
+    border-color: #ef4444; /* red-500 - invalid JSON */
+    border-width: 2px;
+}
+
+.rule-settings-error {
+    color: #ef4444; /* red-500 */
+    font-size: 0.75rem;
+    margin-top: 8px;
+    padding: 8px;
+    background: rgba(239, 68, 68, 0.1); /* red-500/10 */
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 4px;
+    display: none;
+}
+
+[data-theme="dark"] .rule-settings-error {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+[data-theme="dark"] .rule-settings-error {
+    color: #f87171; /* red-400 */
 }
 
 .rule-settings {

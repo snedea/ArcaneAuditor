@@ -667,17 +667,29 @@ export class ConfigManager {
             const settingsText = Object.keys(customSettings).length > 0 
                 ? JSON.stringify(customSettings, null, 2) 
                 : '';
+            const isGhost = ruleConfig._is_ghost === true;
             
-            const disabledAttr = isBuiltIn ? 'disabled' : '';
             const readonlyAttr = isBuiltIn ? 'readonly' : '';
             const enabledClass = isEnabled ? 'enabled' : 'disabled';
+            const ghostClass = isGhost ? 'ghost-rule' : '';
+            
+            // Toggle switch: show for non-built-in rules (including ghost rules, but disabled for ghosts)
+            const toggleState = isGhost ? 'disabled' : (isEnabled ? 'enabled' : 'disabled');
+            const toggleDisabled = isGhost ? 'disabled' : '';
+            
+            // Check if rule has custom settings (not empty object)
+            const hasCustomSettings = Object.keys(customSettings).length > 0;
+            const modifiedIndicator = hasCustomSettings ? '<span class="configure-modified-dot"></span>' : '';
             
             html += `
-                <div class="rule-item ${enabledClass}" data-rule="${ruleName}">
+                <div class="rule-item ${enabledClass} ${ghostClass}" data-rule="${ruleName}">
                     <div class="rule-header-row">
-                        <div class="rule-name">${ruleName}</div>
+                        <div class="rule-name">
+                            ${ruleName}
+                            ${isGhost ? '<span class="ghost-warning-badge">⚠️ Rule not found in runtime</span>' : ''}
+                        </div>
                         ${!isBuiltIn ? `
-                            <div class="rule-toggle-switch ${isEnabled ? 'enabled' : 'disabled'}" data-rule="${ruleName}">
+                            <div class="rule-toggle-switch ${toggleState}" data-rule="${ruleName}" ${toggleDisabled}>
                                 <div class="toggle-track">
                                     <span class="toggle-thumb"></span>
                                 </div>
@@ -685,10 +697,22 @@ export class ConfigManager {
                         ` : ''}
                     </div>
                     <div class="rule-description">Severity: ${severity}</div>
-                    ${settingsText ? `
-                        <div class="rule-settings">
-                            <div class="settings-label">Custom Settings:</div>
-                            <textarea class="settings-json" data-rule="${ruleName}" ${readonlyAttr}>${settingsText}</textarea>
+                    ${!isBuiltIn ? `
+                        <div class="rule-actions">
+                            ${isGhost ? `
+                                <button class="rule-delete-btn" data-rule="${ruleName}" type="button" title="Remove ghost rule">
+                                    🗑️
+                                </button>
+                            ` : ''}
+                        </div>
+                        <button class="rule-configure-btn ${hasCustomSettings ? 'modified' : ''}" data-rule="${ruleName}" type="button">
+                            Configure
+                            <span class="configure-chevron" data-rule="${ruleName}">▼</span>
+                            ${modifiedIndicator}
+                        </button>
+                        <div class="rule-settings-panel" data-rule="${ruleName}">
+                            <textarea class="rule-settings-json" data-rule="${ruleName}" placeholder='{ "mode": "strict" }' ${readonlyAttr}>${settingsText}</textarea>
+                            <div class="rule-settings-error" data-rule="${ruleName}">Invalid JSON format</div>
                         </div>
                     ` : ''}
                 </div>
@@ -704,7 +728,7 @@ export class ConfigManager {
         
         // Wire up toggle switches for non-built-in configs
         if (!isBuiltIn) {
-            const toggleSwitches = content.querySelectorAll('.rule-toggle-switch');
+            const toggleSwitches = content.querySelectorAll('.rule-toggle-switch:not([disabled])');
             toggleSwitches.forEach(toggle => {
                 toggle.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -728,6 +752,147 @@ export class ConfigManager {
                         toggle.classList.add('enabled');
                         if (config.rules[ruleName]) {
                             config.rules[ruleName].enabled = true;
+                        }
+                    }
+                });
+            });
+            
+            // Wire up delete buttons for ghost rules
+            const deleteButtons = content.querySelectorAll('.rule-delete-btn');
+            deleteButtons.forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const ruleName = btn.dataset.rule;
+                    const ruleItem = btn.closest('.rule-item');
+                    
+                    if (confirm(`Remove ghost rule "${ruleName}" from this configuration?`)) {
+                        try {
+                            // Remove from config
+                            if (config.rules && config.rules[ruleName]) {
+                                delete config.rules[ruleName];
+                            }
+                            
+                            // Save the config via API
+                            const response = await fetch(`/api/config/${config.id}/save`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ config: config })
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error('Failed to save configuration');
+                            }
+                            
+                            // Remove from DOM
+                            ruleItem.remove();
+                            
+                            // Refresh configs and breakdown
+                            await this.loadConfigurations();
+                            this.showConfigBreakdown();
+                            
+                            this.app.showToast('Ghost rule removed', 'success');
+                        } catch (error) {
+                            console.error('Error removing ghost rule:', error);
+                            this.app.showToast('Failed to remove ghost rule', 'error');
+                        }
+                    }
+                });
+            });
+            
+            // Wire up configure buttons
+            const configureButtons = content.querySelectorAll('.rule-configure-btn');
+            configureButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const ruleName = btn.dataset.rule;
+                    const settingsPanel = content.querySelector(`.rule-settings-panel[data-rule="${ruleName}"]`);
+                    const chevron = btn.querySelector('.configure-chevron');
+                    
+                    if (settingsPanel) {
+                        const isExpanded = settingsPanel.classList.contains('expanded');
+                        
+                        if (isExpanded) {
+                            // Collapse
+                            settingsPanel.classList.remove('expanded');
+                            if (chevron) chevron.textContent = '▼';
+                        } else {
+                            // Expand
+                            settingsPanel.classList.add('expanded');
+                            if (chevron) chevron.textContent = '▲';
+                        }
+                    }
+                });
+            });
+            
+            // Wire up JSON validation on textarea blur
+            const settingsTextareas = content.querySelectorAll('.rule-settings-json');
+            settingsTextareas.forEach(textarea => {
+                textarea.addEventListener('blur', (e) => {
+                    const ruleName = textarea.dataset.rule;
+                    const errorDiv = content.querySelector(`.rule-settings-error[data-rule="${ruleName}"]`);
+                    const value = textarea.value.trim();
+                    
+                    // Clear previous error state
+                    textarea.classList.remove('json-invalid', 'json-valid');
+                    if (errorDiv) {
+                        errorDiv.style.display = 'none';
+                    }
+                    
+                    // If empty, that's valid (no custom settings)
+                    if (!value) {
+                        if (config.rules[ruleName]) {
+                            config.rules[ruleName].custom_settings = {};
+                        }
+                        // Update modified indicator (remove purple dot)
+                        const configureBtn = content.querySelector(`.rule-configure-btn[data-rule="${ruleName}"]`);
+                        const modifiedDot = configureBtn?.querySelector('.configure-modified-dot');
+                        configureBtn?.classList.remove('modified');
+                        if (modifiedDot) modifiedDot.remove();
+                        return;
+                    }
+                    
+                    // Try to parse JSON
+                    try {
+                        const parsed = JSON.parse(value);
+                        
+                        // Check if it's an empty object
+                        const isEmpty = Object.keys(parsed).length === 0;
+                        
+                        // Format it nicely (prettify)
+                        const formatted = isEmpty ? '{}' : JSON.stringify(parsed, null, 2);
+                        textarea.value = formatted;
+                        
+                        // Update config
+                        if (config.rules[ruleName]) {
+                            config.rules[ruleName].custom_settings = isEmpty ? {} : parsed;
+                        }
+                        
+                        // Show valid state (brief green border)
+                        textarea.classList.add('json-valid');
+                        setTimeout(() => {
+                            textarea.classList.remove('json-valid');
+                        }, 1000);
+                        
+                        // Update modified indicator (purple dot)
+                        const configureBtn = content.querySelector(`.rule-configure-btn[data-rule="${ruleName}"]`);
+                        const modifiedDot = configureBtn?.querySelector('.configure-modified-dot');
+                        if (isEmpty) {
+                            configureBtn?.classList.remove('modified');
+                            if (modifiedDot) modifiedDot.remove();
+                        } else {
+                            configureBtn?.classList.add('modified');
+                            if (!modifiedDot && configureBtn) {
+                                const dot = document.createElement('span');
+                                dot.className = 'configure-modified-dot';
+                                configureBtn.appendChild(dot);
+                            }
+                        }
+                    } catch (err) {
+                        // Invalid JSON - show red border and error message
+                        textarea.classList.add('json-invalid');
+                        if (errorDiv) {
+                            errorDiv.style.display = 'block';
+                            errorDiv.textContent = `Invalid JSON: ${err.message}`;
                         }
                     }
                 });
