@@ -917,19 +917,17 @@ export class ConfigManager {
             
             if (category === 'built-in' || category === 'builtin') {
                 categoryText = 'Built-in';
-                categoryColor = '#a78bfa';
+                categoryEl.className = 'config-selected-category-text config-category-built-in';
             } else if (category === 'personal') {
                 categoryText = 'Personal';
-                categoryColor = '#2dd4bf';
+                categoryEl.className = 'config-selected-category-text config-category-personal';
             } else if (category === 'team') {
                 categoryText = 'Team';
-                categoryColor = '#60a5fa';
+                categoryEl.className = 'config-selected-category-text config-category-team';
             }
             
             if (categoryText) {
                 categoryEl.textContent = categoryText;
-                categoryEl.style.color = categoryColor;
-                categoryEl.className = 'config-selected-category-text';
                 categoryEl.style.display = 'inline';
             } else {
                 categoryEl.style.display = 'none';
@@ -939,9 +937,23 @@ export class ConfigManager {
         // Update rule count
         if (rulesEl && config.rules) {
             const enabledRules = Object.values(config.rules).filter(r => r.enabled).length;
-            rulesEl.textContent = `${enabledRules} active`;
+            const disabledRules = Object.values(config.rules).filter(r => !r.enabled).length;
+            
+            if (disabledRules > 0) {
+                rulesEl.innerHTML = `
+                    <span class="config-rule-active">${enabledRules} rules active</span>
+                    <span class="config-rule-separator config-rule-separator-button">|</span>
+                    <span class="config-rule-disabled">${disabledRules} Off</span>
+                `;
+            } else {
+                rulesEl.innerHTML = `
+                    <span class="config-rule-active">${enabledRules} rules active</span>
+                `;
+            }
+            rulesEl.className = 'config-rules-count bg-transparent';
         } else if (rulesEl) {
-            rulesEl.textContent = '';
+            rulesEl.innerHTML = '';
+            rulesEl.className = 'config-rules-count bg-transparent';
         }
     }
 
@@ -998,12 +1010,37 @@ export class ConfigManager {
 
                 // Calculate rule count
                 const enabledRules = cfg.rules ? Object.values(cfg.rules).filter(r => r.enabled).length : 0;
-                const rulesText = enabledRules > 0 ? `${enabledRules} active` : '';
+                const disabledRules = cfg.rules ? Object.values(cfg.rules).filter(r => !r.enabled).length : 0;
+                const hasRules = cfg.rules && Object.keys(cfg.rules).length > 0;
+                
+                let rulesHtml = '';
+                if (hasRules) {
+                    rulesHtml = `
+                        <div class="config-rule-active-container">
+                            <span class="config-rule-active">${enabledRules} Active</span>
+                        </div>
+                        <div class="config-rule-off-container">
+                            ${disabledRules > 0 ? `
+                                <span class="config-rule-separator">|</span>
+                                <span class="config-rule-disabled">${disabledRules} Off</span>
+                            ` : ''}
+                        </div>
+                    `;
+                } else {
+                    rulesHtml = `
+                        <div class="config-rule-active-container"></div>
+                        <div class="config-rule-off-container"></div>
+                    `;
+                }
 
                 div.innerHTML = `
-                    <span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${cfg.name}</span>
-                    ${rulesText ? `<span class="config-rules-count">${rulesText}</span>` : ''}
-                    ${isSelected ? '<span class="config-checkmark">✓</span>' : ''}
+                    <span class="config-dropdown-name">${cfg.name}</span>
+                    <div class="config-dropdown-stats">
+                        ${hasRules ? `<span class="config-rules-count bg-transparent">${rulesHtml}</span>` : '<span class="config-rules-count bg-transparent"></span>'}
+                        <span class="config-checkmark-slot" style="width: 24px; display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0;">
+                            ${isSelected ? '<span class="config-checkmark">✓</span>' : ''}
+                        </span>
+                    </div>
                 `;
 
                 div.addEventListener('click', (e) => {
