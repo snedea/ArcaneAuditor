@@ -631,19 +631,22 @@ export class ConfigManager {
         }
         
         const rules = config.rules || {};
-        const enabledRules = Object.entries(rules).filter(([_, ruleConfig]) => ruleConfig.enabled);
-        const disabledRules = Object.entries(rules).filter(([_, ruleConfig]) => !ruleConfig.enabled);
+        const enabledRules = Object.entries(rules).filter(([_, ruleConfig]) => ruleConfig.enabled).length;
+        const disabledRules = Object.entries(rules).filter(([_, ruleConfig]) => !ruleConfig.enabled).length;
+        
+        // Merge all rules into single list, sorted alphabetically
+        const allRules = Object.entries(rules).sort(([a], [b]) => a.localeCompare(b));
         
         let html = `
             <div class="config-breakdown-section">
                 <h4>📊 Configuration: ${config.name}</h4>
                 <div class="config-summary-grid">
                     <div class="summary-card enabled">
-                        <div class="summary-number">${enabledRules.length}</div>
+                        <div class="summary-number">${enabledRules}</div>
                         <div class="summary-label">Enabled Rules</div>
                     </div>
                     <div class="summary-card disabled">
-                        <div class="summary-number">${disabledRules.length}</div>
+                        <div class="summary-number">${disabledRules}</div>
                         <div class="summary-label">Disabled Rules</div>
                     </div>
                     <div class="summary-card total">
@@ -652,90 +655,84 @@ export class ConfigManager {
                     </div>
                 </div>
             </div>
+            <div class="config-breakdown-section">
+                <h4>📋 Rules</h4>
+                <div class="rule-breakdown">
         `;
         
-        if (enabledRules.length > 0) {
-            html += `
-                <div class="config-breakdown-section">
-                    <h4>✅ Enabled Rules</h4>
-                    <div class="rule-breakdown">
-            `;
+        allRules.forEach(([ruleName, ruleConfig]) => {
+            const isEnabled = ruleConfig.enabled;
+            const severity = ruleConfig.severity_override || 'ADVICE';
+            const customSettings = ruleConfig.custom_settings || {};
+            const settingsText = Object.keys(customSettings).length > 0 
+                ? JSON.stringify(customSettings, null, 2) 
+                : '';
             
-            enabledRules.forEach(([ruleName, ruleConfig]) => {
-                const severity = ruleConfig.severity_override || 'ADVICE';
-                const customSettings = ruleConfig.custom_settings || {};
-                const settingsText = Object.keys(customSettings).length > 0 
-                    ? JSON.stringify(customSettings, null, 2) 
-                    : '';
-                
-                const disabledAttr = isBuiltIn ? 'disabled' : '';
-                const readonlyAttr = isBuiltIn ? 'readonly' : '';
-                
-                html += `
-                    <div class="rule-item enabled">
-                        <div class="rule-header-row">
-                            <div class="rule-name">${ruleName}</div>
-                            ${!isBuiltIn ? `
-                                <label class="rule-toggle">
-                                    <input type="checkbox" data-rule="${ruleName}" checked ${disabledAttr}>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            ` : ''}
-                        </div>
-                        <div class="rule-description">Severity: ${severity}</div>
-                        ${settingsText ? `
-                            <div class="rule-settings">
-                                <div class="settings-label">Custom Settings:</div>
-                                <textarea class="settings-json" data-rule="${ruleName}" ${readonlyAttr}>${settingsText}</textarea>
+            const disabledAttr = isBuiltIn ? 'disabled' : '';
+            const readonlyAttr = isBuiltIn ? 'readonly' : '';
+            const enabledClass = isEnabled ? 'enabled' : 'disabled';
+            
+            html += `
+                <div class="rule-item ${enabledClass}" data-rule="${ruleName}">
+                    <div class="rule-header-row">
+                        <div class="rule-name">${ruleName}</div>
+                        ${!isBuiltIn ? `
+                            <div class="rule-toggle-switch ${isEnabled ? 'enabled' : 'disabled'}" data-rule="${ruleName}">
+                                <div class="toggle-track">
+                                    <span class="toggle-thumb"></span>
+                                </div>
                             </div>
                         ` : ''}
-                        <div class="rule-status-badge enabled">✓ Enabled</div>
                     </div>
-                `;
-            });
-            
-            html += `
-                    </div>
-                </div>
-            `;
-        }
-        
-        if (disabledRules.length > 0) {
-            html += `
-                <div class="config-breakdown-section">
-                    <h4>❌ Disabled Rules</h4>
-                    <div class="rule-breakdown">
-            `;
-            
-            disabledRules.forEach(([ruleName, ruleConfig]) => {
-                const severity = ruleConfig.severity_override || 'ADVICE';
-                const disabledAttr = isBuiltIn ? 'disabled' : '';
-                const readonlyAttr = isBuiltIn ? 'readonly' : '';
-                
-                html += `
-                    <div class="rule-item disabled">
-                        <div class="rule-header-row">
-                            <div class="rule-name">${ruleName}</div>
-                            ${!isBuiltIn ? `
-                                <label class="rule-toggle">
-                                    <input type="checkbox" data-rule="${ruleName}" ${disabledAttr}>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            ` : ''}
+                    <div class="rule-description">Severity: ${severity}</div>
+                    ${settingsText ? `
+                        <div class="rule-settings">
+                            <div class="settings-label">Custom Settings:</div>
+                            <textarea class="settings-json" data-rule="${ruleName}" ${readonlyAttr}>${settingsText}</textarea>
                         </div>
-                        <div class="rule-description">Severity: ${severity}</div>
-                        <div class="rule-status-badge disabled">✗ Disabled</div>
-                    </div>
-                `;
-            });
-            
-            html += `
-                    </div>
+                    ` : ''}
                 </div>
             `;
-        }
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
         
         content.innerHTML = html;
+        
+        // Wire up toggle switches for non-built-in configs
+        if (!isBuiltIn) {
+            const toggleSwitches = content.querySelectorAll('.rule-toggle-switch');
+            toggleSwitches.forEach(toggle => {
+                toggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const ruleName = toggle.dataset.rule;
+                    const ruleItem = toggle.closest('.rule-item');
+                    const isCurrentlyEnabled = ruleItem.classList.contains('enabled');
+                    
+                    // Toggle the state
+                    if (isCurrentlyEnabled) {
+                        ruleItem.classList.remove('enabled');
+                        ruleItem.classList.add('disabled');
+                        toggle.classList.remove('enabled');
+                        toggle.classList.add('disabled');
+                        if (config.rules[ruleName]) {
+                            config.rules[ruleName].enabled = false;
+                        }
+                    } else {
+                        ruleItem.classList.remove('disabled');
+                        ruleItem.classList.add('enabled');
+                        toggle.classList.remove('disabled');
+                        toggle.classList.add('enabled');
+                        if (config.rules[ruleName]) {
+                            config.rules[ruleName].enabled = true;
+                        }
+                    }
+                });
+            });
+        }
         
         // Wire up event handlers
         if (isBuiltIn) {

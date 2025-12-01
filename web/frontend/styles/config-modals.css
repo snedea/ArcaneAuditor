@@ -144,11 +144,10 @@
 
 .rule-item {
     padding: 16px;
-    padding-bottom: 2.5rem; /* space for bottom badges */
     border-radius: 8px;
     border: 1px solid var(--border-color);
     background: var(--bg-tertiary);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
     position: relative;
 }
 
@@ -157,20 +156,24 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Enabled state: 100% opacity, purple border and toggle */
 .rule-item.enabled {
-    border-left: 4px solid #10b981;
-    background: rgba(16, 185, 129, 0.05);
+    opacity: 1;
+    border-left: 4px solid #9333ea; /* purple-600 */
 }
 
+[data-theme="dark"] .rule-item.enabled {
+    border-left-color: #a78bfa; /* purple-400 for dark mode */
+}
+
+/* Disabled state: dimmed with opacity, slate border and toggle */
 .rule-item.disabled {
-    border-left: 4px solid #64748b;
-    background: rgba(100, 116, 139, 0.05);
+    opacity: 0.55;
+    border-left: 4px solid #475569; /* slate-700 */
 }
 
-/* Light mode disabled rule items - orange theme */
-[data-theme="light"] .rule-item.disabled {
-    border-left: 4px solid #ea580c;
-    background: rgba(251, 146, 60, 0.05);
+[data-theme="dark"] .rule-item.disabled {
+    border-left-color: #475569; /* slate-700 */
 }
 
 .rule-header-row {
@@ -191,41 +194,57 @@
     word-break: break-word;
 }
 
-.rule-status-badge {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
+/* Toggle Switch Styles */
+.rule-toggle-switch {
+    cursor: pointer;
     flex-shrink: 0;
-    white-space: nowrap;
+    user-select: none;
 }
 
-/* Prevent rule status badges from overlapping config settings */
-.rule-item .rule-status-badge {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
+.toggle-track {
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    position: relative;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    padding: 2px;
 }
 
-.rule-status-badge.enabled {
-    background: rgba(16, 185, 129, 0.1);
-    color: #059669;
-    border: 1px solid rgba(16, 185, 129, 0.2);
+.toggle-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.rule-status-badge.disabled {
-    background: rgba(100, 116, 139, 0.1);
-    color: #64748b;
-    border: 1px solid rgba(100, 116, 139, 0.2);
+/* Enabled toggle: purple track, thumb on right */
+.rule-toggle-switch.enabled .toggle-track {
+    background-color: #9333ea; /* purple-600 */
 }
 
-/* Light mode disabled badges - orange theme */
-[data-theme="light"] .rule-status-badge.disabled {
-    background: rgba(251, 146, 60, 0.1);
-    color: #ea580c;
-    border: 1px solid rgba(251, 146, 60, 0.2);
+[data-theme="dark"] .rule-toggle-switch.enabled .toggle-track {
+    background-color: #9333ea; /* purple-600 */
+}
+
+.rule-toggle-switch.enabled .toggle-thumb {
+    transform: translateX(20px); /* Move to right */
+}
+
+/* Disabled toggle: slate track, thumb on left */
+.rule-toggle-switch.disabled .toggle-track {
+    background-color: #475569; /* slate-600 */
+}
+
+[data-theme="dark"] .rule-toggle-switch.disabled .toggle-track {
+    background-color: #475569; /* slate-600 */
+}
+
+.rule-toggle-switch.disabled .toggle-thumb {
+    transform: translateX(0); /* Stay on left */
 }
 
 .rule-description {
