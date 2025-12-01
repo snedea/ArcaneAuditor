@@ -1,4 +1,4 @@
-// config-api.js
+// api.js
 export const ConfigAPI = {
     /**
      * Fetch all configurations

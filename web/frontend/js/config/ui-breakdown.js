@@ -1,4 +1,4 @@
-// config-ui-breakdown.js
+// ui-breakdown.js
 import { ConfigAPI } from './api.js';
 
 export class ConfigBreakdownUI {
