@@ -33,13 +33,97 @@
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-tertiary);
     border-radius: 12px 12px 0 0;
+    gap: 16px;
 }
 
-.modal-header h3 {
+/* Left side: Title + Badge */
+.modal-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.modal-title {
     margin: 0;
     color: var(--text-primary);
-    font-size: 1.25rem;
+    font-size: 1.25rem; /* text-xl */
+    font-weight: 700; /* font-bold */
+}
+
+.config-source-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 9999px; /* pill */
+    font-size: 0.75rem;
     font-weight: 600;
+    background: rgba(148, 163, 184, 0.2); /* slate-400/20 */
+    color: #94a3b8; /* slate-400 */
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+[data-theme="dark"] .config-source-badge {
+    background: rgba(148, 163, 184, 0.15);
+    color: #cbd5e1; /* slate-300 */
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+/* Right side: Action Bar */
+.modal-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.modal-action-btn {
+    background: transparent;
+    border: 0;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.modal-action-btn.delete-btn {
+    color: #f87171; /* text-red-400 */
+}
+
+.modal-action-btn.delete-btn:hover {
+    background: rgba(239, 68, 68, 0.1); /* hover:bg-red-500/10 */
+}
+
+.modal-action-btn.duplicate-btn {
+    color: #94a3b8; /* text-slate-400 - Ghost button, slate text */
+}
+
+.modal-action-btn.duplicate-btn:hover {
+    color: #ffffff; /* hover:text-white */
+    background: rgba(148, 163, 184, 0.1);
+}
+
+.modal-action-btn.save-btn {
+    background: #9333ea; /* bg-purple-600 - Solid Brand Color */
+    color: #ffffff; /* text-white */
+    font-weight: 500; /* font-medium */
+    padding: 6px 16px; /* px-4 py-1.5 - Wide pill shape */
+    border-radius: 6px; /* rounded-md */
+}
+
+.modal-action-btn.save-btn:hover {
+    background: #a855f7; /* hover:bg-purple-500 */
+}
+
+.modal-action-separator {
+    width: 1px;
+    height: 24px;
+    background: var(--border-color);
+    margin: 0 4px;
 }
 
 .modal-close {

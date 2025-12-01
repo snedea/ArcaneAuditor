@@ -607,27 +607,50 @@ export class ConfigManager {
         // Check if config is built-in (check both category and type, handle both 'built-in' and 'builtin')
         const category = (config.category || config.type || '').toLowerCase();
         const isBuiltIn = category === 'built-in' || category === 'builtin';
+        const sourceName = isBuiltIn ? 'Built-in' : (category === 'team' ? 'Team' : 'Personal');
         
-        // Update modal header with action buttons
+        // Update modal header with new layout
         if (header) {
-            const existingActions = header.querySelector('.modal-actions');
-            if (existingActions) {
-                existingActions.remove();
+            // Clear existing header content
+            header.innerHTML = '';
+            
+            // Left side: Title + Badge
+            const leftSide = document.createElement('div');
+            leftSide.className = 'modal-header-left';
+            leftSide.innerHTML = `
+                <h3 class="modal-title">${config.name}</h3>
+                <span class="config-source-badge">${sourceName}</span>
+            `;
+            
+            // Right side: Action Bar
+            const rightSide = document.createElement('div');
+            rightSide.className = 'modal-header-right';
+            
+            let actionButtons = '';
+            
+            // Delete button (only for Personal/Team)
+            if (!isBuiltIn) {
+                actionButtons += `<button id="delete-config" class="modal-action-btn delete-btn" title="Delete configuration">🗑️</button>`;
             }
             
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'modal-actions';
+            // Duplicate button (always visible)
+            actionButtons += `<button id="duplicate-config" class="modal-action-btn duplicate-btn" title="Duplicate configuration">📋</button>`;
             
-            if (isBuiltIn) {
-                actionsDiv.innerHTML = `<button id="duplicate-config">Duplicate to Customize</button>`;
-            } else {
-                actionsDiv.innerHTML = `
-                    <button id="save-config">Save</button>
-                    <button id="config-more">⋮</button>
-                `;
+            // Save button (only for Personal/Team)
+            if (!isBuiltIn) {
+                actionButtons += `<button id="save-config" class="modal-action-btn save-btn" title="Save changes">💾 Save</button>`;
             }
             
-            header.appendChild(actionsDiv);
+            // Separator
+            actionButtons += `<div class="modal-action-separator"></div>`;
+            
+            // Close button
+            actionButtons += `<button class="modal-close" onclick="hideConfigBreakdown()" title="Close">×</button>`;
+            
+            rightSide.innerHTML = actionButtons;
+            
+            header.appendChild(leftSide);
+            header.appendChild(rightSide);
         }
         
         const rules = config.rules || {};
@@ -639,7 +662,6 @@ export class ConfigManager {
         
         let html = `
             <div class="config-breakdown-section">
-                <h4>📊 Configuration: ${config.name}</h4>
                 <div class="config-summary-grid">
                     <div class="summary-card enabled">
                         <div class="summary-number">${enabledRules}</div>
@@ -930,37 +952,7 @@ export class ConfigManager {
             });
         }
         
-        // Wire up event handlers
-        if (isBuiltIn) {
-            const duplicateBtn = document.getElementById('duplicate-config');
-            if (duplicateBtn) {
-                duplicateBtn.addEventListener('click', () => {
-                    // Close the breakdown modal
-                    const modal = document.getElementById('config-breakdown-modal');
-                    if (modal) {
-                        modal.style.display = 'none';
-                    }
-                    // Open the duplicate modal so user can name the new config
-                    this.openDuplicateModal(config.id, 'Personal');
-                });
-            }
-        } else {
-            const saveBtn = document.getElementById('save-config');
-            if (saveBtn) {
-                saveBtn.addEventListener('click', () => {
-                    this.saveCurrentConfigChanges(config);
-                });
-            }
-            
-            // Wire up kebab menu button
-            const moreBtn = document.getElementById('config-more');
-            if (moreBtn) {
-                moreBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.showModalMenu(config, moreBtn);
-                });
-            }
-        }
+        // Event handlers are now wired up in the header generation code above
         
         modal.style.display = 'flex';
     }
@@ -1486,13 +1478,8 @@ window.hideConfigBreakdown = function() {
     }
 };
 
-// Close modal when clicking outside
-document.addEventListener('click', function(event) {
-    const modal = document.getElementById('config-breakdown-modal');
-    if (event.target === modal) {
-        window.hideConfigBreakdown();
-    }
-});
+// Disabled: Close modal when clicking outside
+// Removed to prevent accidental data loss - modal now only closes via X button or Escape key
 
 // Close modal with Escape key
 document.addEventListener('keydown', function(event) {
