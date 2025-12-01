@@ -5,6 +5,18 @@ export class ConfigBreakdownUI {
     constructor(manager) {
         this.manager = manager;
         this.app = manager.app;
+        
+        // Store current state for filtering
+        this.currentConfig = null;
+        this.currentIsBuiltIn = false;
+        this.allRules = [];
+        
+        // Store filter state to persist across refreshes
+        this.savedFilterState = {
+            search: '',
+            status: 'all',
+            severity: 'all'
+        };
 
         // Escape key functionality
         document.addEventListener('keydown', (e) => {
@@ -65,7 +77,7 @@ export class ConfigBreakdownUI {
             }
             
             // Duplicate (always)
-            actionButtons += `<button id="duplicate-config" class="modal-action-btn duplicate-btn" title="Duplicate configuration">📋</button>`;
+            actionButtons += `<button id="duplicate-config" class="modal-action-btn duplicate-btn" title="Duplicate configuration">📑</button>`;
             
             // Save (only for Personal/Team)
             if (!isBuiltIn) {
@@ -94,20 +106,130 @@ export class ConfigBreakdownUI {
                 this.manager.openDuplicateModal(config.id, 'Personal');
             };
             if (saveBtn) saveBtn.onclick = () => {
+                // Save filter state before refreshing
+                this.saveFilterState();
                 this.manager.saveCurrentConfigChanges(config);
             };
             if (closeBtn) closeBtn.onclick = () => this.hide();
         }
         
+        // Store current state for filtering
+        this.currentConfig = config;
+        this.currentIsBuiltIn = isBuiltIn;
+        
         // --- 2. RENDER BODY (Rules) ---
         this.renderBody(config, isBuiltIn, content);
         
-        // --- 3. BIND EVENTS (Only if not built-in) ---
+        // --- 3. RENDER FILTER TOOLBAR (after body so it's in the right place) ---
+        this.renderFilterToolbar(content);
+        
+        // --- 4. RESTORE FILTER STATE (if we have saved state) ---
+        this.restoreFilterState(content);
+        
+        // --- 5. BIND EVENTS (Only if not built-in) ---
         if (!isBuiltIn) {
             this.bindRuleEvents(content, config);
         }
         
+        // --- 6. BIND FILTER EVENTS ---
+        this.bindFilterEvents(content, config);
+        
         modal.style.display = 'flex';
+    }
+
+    /**
+     * Render the filter toolbar below the summary section
+     */
+    renderFilterToolbar(content) {
+        // Remove existing toolbar if present
+        const existingToolbar = content.querySelector('.config-filter-toolbar');
+        if (existingToolbar) {
+            existingToolbar.remove();
+        }
+        
+        const toolbar = document.createElement('div');
+        toolbar.className = 'config-filter-toolbar';
+        toolbar.innerHTML = `
+            <div class="config-filter-group">
+                <input 
+                    type="text" 
+                    id="config-modal-search" 
+                    class="config-filter-input" 
+                    placeholder="Search rule names..."
+                    autocomplete="off"
+                />
+            </div>
+            <div class="config-filter-group">
+                <label for="config-modal-filter-status">Status:</label>
+                <select id="config-modal-filter-status" class="config-filter-select">
+                    <option value="all">All</option>
+                    <option value="enabled">Enabled</option>
+                    <option value="disabled">Disabled</option>
+                </select>
+            </div>
+            <div class="config-filter-group">
+                <label for="config-modal-filter-severity">Severity:</label>
+                <select id="config-modal-filter-severity" class="config-filter-select">
+                    <option value="all">All</option>
+                    <option value="action">Action</option>
+                    <option value="advice">Advice</option>
+                </select>
+            </div>
+        `;
+        
+        // Insert after the summary section (first config-breakdown-section)
+        const summarySection = content.querySelector('.config-breakdown-section');
+        if (summarySection && summarySection.nextSibling) {
+            content.insertBefore(toolbar, summarySection.nextSibling);
+        } else if (summarySection) {
+            summarySection.insertAdjacentElement('afterend', toolbar);
+        } else {
+            content.appendChild(toolbar);
+        }
+    }
+
+    /**
+     * Get the effective severity for a rule (checks override first, then defaults to ADVICE)
+     */
+    getRuleSeverity(ruleConfig) {
+        // Check severity_override first
+        if (ruleConfig.severity_override) {
+            return ruleConfig.severity_override;
+        }
+        // Default to ADVICE if no override
+        return 'ADVICE';
+    }
+
+    /**
+     * Filter rules based on search and filter criteria
+     */
+    filterRules(allRules, searchTerm, statusFilter, severityFilter) {
+        return allRules.filter(([ruleName, ruleConfig]) => {
+            // Search filter
+            if (searchTerm) {
+                const searchLower = searchTerm.toLowerCase();
+                if (!ruleName.toLowerCase().includes(searchLower)) {
+                    return false;
+                }
+            }
+            
+            // Status filter
+            if (statusFilter !== 'all') {
+                const isEnabled = ruleConfig.enabled && !ruleConfig._is_ghost;
+                if (statusFilter === 'enabled' && !isEnabled) return false;
+                if (statusFilter === 'disabled' && isEnabled) return false;
+            }
+            
+            // Severity filter
+            if (severityFilter !== 'all') {
+                const severity = this.getRuleSeverity(ruleConfig);
+                if (severity.toLowerCase() !== severityFilter.toLowerCase()) {
+                    return false;
+                }
+            }
+            
+            return true;
+        });
     }
 
     renderBody(config, isBuiltIn, content) {
@@ -115,23 +237,56 @@ export class ConfigBreakdownUI {
         const enabledRules = Object.entries(rules).filter(([_, r]) => r.enabled && !r._is_ghost).length;
         const disabledRules = Object.entries(rules).filter(([_, r]) => !r.enabled && !r._is_ghost).length;
         const allRules = Object.entries(rules).sort(([a], [b]) => a.localeCompare(b));
+        
+        // Store allRules for filtering
+        this.allRules = allRules;
 
-        let html = `
-            <div class="config-breakdown-section">
-                <div class="config-summary-grid">
-                    <div class="summary-card enabled"><div class="summary-number">${enabledRules}</div><div class="summary-label">Enabled Rules</div></div>
-                    <div class="summary-card disabled"><div class="summary-number">${disabledRules}</div><div class="summary-label">Disabled Rules</div></div>
-                    <div class="summary-card total"><div class="summary-number">${Object.keys(rules).length}</div><div class="summary-label">Total Rules</div></div>
-                </div>
+        // Clear existing content
+        content.innerHTML = '';
+
+        // Summary section
+        const summarySection = document.createElement('div');
+        summarySection.className = 'config-breakdown-section';
+        summarySection.innerHTML = `
+            <div class="config-summary-grid">
+                <div class="summary-card enabled"><div class="summary-number">${enabledRules}</div><div class="summary-label">Enabled Rules</div></div>
+                <div class="summary-card disabled"><div class="summary-number">${disabledRules}</div><div class="summary-label">Disabled Rules</div></div>
+                <div class="summary-card total"><div class="summary-number">${Object.keys(rules).length}</div><div class="summary-label">Total Rules</div></div>
             </div>
-            <div class="config-breakdown-section">
-                <h4>📋 Rules</h4>
-                <div class="rule-breakdown">
         `;
+        content.appendChild(summarySection);
 
-        allRules.forEach(([ruleName, ruleConfig]) => {
+        // Filter toolbar will be inserted after summary section by renderFilterToolbar
+
+        // Rules section
+        const rulesSection = document.createElement('div');
+        rulesSection.className = 'config-breakdown-section';
+        rulesSection.innerHTML = `
+            <h4>📋 Rules</h4>
+            <div class="rule-breakdown"></div>
+        `;
+        content.appendChild(rulesSection);
+        
+        // Render the rules list
+        const ruleBreakdown = rulesSection.querySelector('.rule-breakdown');
+        this.renderRuleList(ruleBreakdown, allRules, isBuiltIn);
+    }
+
+    /**
+     * Render the list of rules (used for initial render and filtered updates)
+     * @param {HTMLElement} container - The container to render rules into
+     * @param {Array} rulesToRender - Array of [ruleName, ruleConfig] tuples
+     * @param {boolean} isBuiltIn - Whether this is a built-in config
+     * @param {boolean} skipEventBinding - If true, skip binding events (for use during restore)
+     */
+    renderRuleList(container, rulesToRender, isBuiltIn, skipEventBinding = false) {
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        rulesToRender.forEach(([ruleName, ruleConfig]) => {
             const isEnabled = ruleConfig.enabled;
-            const severity = ruleConfig.severity_override || 'ADVICE';
+            const severity = this.getRuleSeverity(ruleConfig);
             const customSettings = ruleConfig.custom_settings || {};
             const settingsText = Object.keys(customSettings).length > 0 ? JSON.stringify(customSettings, null, 2) : '';
             const isGhost = ruleConfig._is_ghost === true;
@@ -143,13 +298,13 @@ export class ConfigBreakdownUI {
             const configureIcon = hasCustomSettings ? '🛠️' : '⚙️';
             const configureText = hasCustomSettings ? 'Customized' : 'Configure';
 
-            html += `
+            const ruleHtml = `
                 <div class="rule-item ${enabledClass} ${ghostClass}" data-rule="${ruleName}">
                     <div class="rule-row-header">
                         <div class="rule-name-container">
                             <div class="rule-name">
                                 ${ruleName}
-                                ${isGhost ? '<span class="ghost-warning-badge-inline">⚠️ Rule not found in runtime</span>' : ''}
+                                ${isGhost ? '<span class="ghost-warning-badge-inline">⚠️ Rule not found in runtime (not counted or used)</span>' : ''}
                             </div>
                         </div>
                         <div class="rule-controls-container">
@@ -178,10 +333,14 @@ export class ConfigBreakdownUI {
                     ` : ''}
                 </div>
             `;
+            
+            container.insertAdjacentHTML('beforeend', ruleHtml);
         });
-
-        html += `</div></div>`;
-        content.innerHTML = html;
+        
+        // Re-bind events after re-rendering (unless we're skipping for restore)
+        if (!skipEventBinding && !isBuiltIn && this.currentConfig) {
+            this.bindRuleEvents(container.closest('#config-breakdown-content'), this.currentConfig);
+        }
     }
 
     bindRuleEvents(content, config) {
@@ -257,6 +416,105 @@ export class ConfigBreakdownUI {
         content.querySelectorAll('.rule-settings-json').forEach(textarea => {
             textarea.addEventListener('blur', () => this.handleJsonBlur(textarea, config));
         });
+    }
+
+    /**
+     * Save current filter state
+     */
+    saveFilterState() {
+        const content = document.getElementById('config-breakdown-content');
+        if (!content) return;
+        
+        const searchInput = content.querySelector('#config-modal-search');
+        const statusFilter = content.querySelector('#config-modal-filter-status');
+        const severityFilter = content.querySelector('#config-modal-filter-severity');
+        
+        this.savedFilterState = {
+            search: searchInput ? searchInput.value.trim() : '',
+            status: statusFilter ? statusFilter.value : 'all',
+            severity: severityFilter ? severityFilter.value : 'all'
+        };
+    }
+
+    /**
+     * Restore saved filter state and apply filters
+     */
+    restoreFilterState(content) {
+        if (!this.savedFilterState) return;
+        
+        const searchInput = content.querySelector('#config-modal-search');
+        const statusFilter = content.querySelector('#config-modal-filter-status');
+        const severityFilter = content.querySelector('#config-modal-filter-severity');
+        const ruleBreakdown = content.querySelector('.rule-breakdown');
+        
+        if (!ruleBreakdown) return;
+        
+        // Restore values
+        if (searchInput && this.savedFilterState.search) {
+            searchInput.value = this.savedFilterState.search;
+        }
+        if (statusFilter && this.savedFilterState.status !== 'all') {
+            statusFilter.value = this.savedFilterState.status;
+        }
+        if (severityFilter && this.savedFilterState.severity !== 'all') {
+            severityFilter.value = this.savedFilterState.severity;
+        }
+        
+        // Apply filters if any are active
+        if (this.savedFilterState.search || 
+            this.savedFilterState.status !== 'all' || 
+            this.savedFilterState.severity !== 'all') {
+            const filteredRules = this.filterRules(
+                this.allRules,
+                this.savedFilterState.search,
+                this.savedFilterState.status,
+                this.savedFilterState.severity
+            );
+            // Skip event binding here since bindRuleEvents will be called after restoreFilterState
+            this.renderRuleList(ruleBreakdown, filteredRules, this.currentIsBuiltIn, true);
+        }
+    }
+
+    /**
+     * Bind event listeners for search and filter controls
+     */
+    bindFilterEvents(content, config) {
+        const searchInput = content.querySelector('#config-modal-search');
+        const statusFilter = content.querySelector('#config-modal-filter-status');
+        const severityFilter = content.querySelector('#config-modal-filter-severity');
+        const ruleBreakdown = content.querySelector('.rule-breakdown');
+        
+        if (!ruleBreakdown) return;
+        
+        const applyFilters = () => {
+            const searchTerm = searchInput ? searchInput.value.trim() : '';
+            const statusValue = statusFilter ? statusFilter.value : 'all';
+            const severityValue = severityFilter ? severityFilter.value : 'all';
+            
+            // Save filter state whenever it changes
+            this.savedFilterState = {
+                search: searchTerm,
+                status: statusValue,
+                severity: severityValue
+            };
+            
+            const filteredRules = this.filterRules(this.allRules, searchTerm, statusValue, severityValue);
+            // Re-render the list (this clears and recreates elements, so we need to rebind)
+            // Don't skip event binding - we need to rebind since elements were recreated
+            this.renderRuleList(ruleBreakdown, filteredRules, this.currentIsBuiltIn, false);
+        };
+        
+        if (searchInput) {
+            searchInput.addEventListener('input', applyFilters);
+        }
+        
+        if (statusFilter) {
+            statusFilter.addEventListener('change', applyFilters);
+        }
+        
+        if (severityFilter) {
+            severityFilter.addEventListener('change', applyFilters);
+        }
     }
 
     handleJsonBlur(textarea, config) {

@@ -220,6 +220,97 @@
     font-weight: 500;
 }
 
+/* Filter Toolbar */
+.config-filter-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.config-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.config-filter-group label {
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+
+.config-filter-input {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    min-width: 200px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.config-filter-input:focus {
+    outline: none;
+    border-color: #9333ea; /* purple-600 */
+    box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+}
+
+.config-filter-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.config-filter-select:hover {
+    border-color: var(--border-color-hover);
+}
+
+.config-filter-select:focus {
+    outline: none;
+    border-color: #9333ea; /* purple-600 */
+    box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+}
+
+/* Dark mode filter inputs */
+[data-theme="dark"] .config-filter-input,
+[data-theme="dark"] .config-filter-select {
+    background: #1e293b; /* slate-800 */
+    border-color: #334155; /* slate-700 */
+    color: #f1f5f9; /* slate-100 */
+}
+
+[data-theme="dark"] .config-filter-input:focus,
+[data-theme="dark"] .config-filter-select:focus {
+    border-color: #a855f7; /* purple-500 */
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+}
+
+/* Light mode filter inputs */
+[data-theme="light"] .config-filter-input,
+[data-theme="light"] .config-filter-select {
+    background: #ffffff;
+    border-color: #e2e8f0; /* slate-200 */
+    color: #1e293b; /* slate-800 */
+}
+
+[data-theme="light"] .config-filter-input:focus,
+[data-theme="light"] .config-filter-select:focus {
+    border-color: #9333ea; /* purple-600 */
+    box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+}
+
 .rule-breakdown {
     display: flex;
     flex-direction: column;

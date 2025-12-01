@@ -29,7 +29,6 @@ This directory contains the logic for managing Rule Configurations in Arcane Aud
   * Updates the **Toolbar** (Selected config name, category badge).
   * Builds and toggles the **Dropdown** menu.
   * Updates the metadata summary line.
-  * *Note: Cards were removed in v1.3. This file only handles the top bar controls.*
 
 ### 4. `ui-breakdown.js` (The Editor View)
 
