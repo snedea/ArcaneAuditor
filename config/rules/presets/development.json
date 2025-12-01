@@ -131,7 +131,7 @@
       "severity_override": null,
       "custom_settings": {}
     },
-    "EndpointOnSendSelfDataRule": {
+    "ScriptOnSendSelfDataRule": {
       "enabled": true,
       "severity_override": null,
       "custom_settings": {}
