@@ -739,20 +739,14 @@ export class ConfigManager {
         if (isBuiltIn) {
             const duplicateBtn = document.getElementById('duplicate-config');
             if (duplicateBtn) {
-                duplicateBtn.addEventListener('click', async () => {
-                    try {
-                        await this.duplicateConfiguration(config.id, config.name + ' Copy', 'personal');
-                        this.app.showToast('Configuration duplicated! Opening in edit mode...', 'success');
-                        // Reload configs and reopen modal
-                        await this.loadConfigurations();
-                        const newConfig = this.availableConfigs.find(c => c.name === config.name + ' Copy');
-                        if (newConfig) {
-                            this.selectConfiguration(newConfig.id);
-                            this.showConfigBreakdown();
-                        }
-                    } catch (err) {
-                        this.app.showToast(err.message, 'error');
+                duplicateBtn.addEventListener('click', () => {
+                    // Close the breakdown modal
+                    const modal = document.getElementById('config-breakdown-modal');
+                    if (modal) {
+                        modal.style.display = 'none';
                     }
+                    // Open the duplicate modal so user can name the new config
+                    this.openDuplicateModal(config.id, 'Personal');
                 });
             }
         } else {
@@ -762,9 +756,133 @@ export class ConfigManager {
                     this.saveCurrentConfigChanges(config);
                 });
             }
+            
+            // Wire up kebab menu button
+            const moreBtn = document.getElementById('config-more');
+            if (moreBtn) {
+                moreBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.showModalMenu(config, moreBtn);
+                });
+            }
         }
         
         modal.style.display = 'flex';
+    }
+
+    showModalMenu(config, triggerElement) {
+        // Close any existing menu
+        const existingMenu = document.querySelector('.config-modal-menu-popover');
+        if (existingMenu) {
+            existingMenu.remove();
+        }
+
+        const menu = document.createElement('div');
+        menu.className = 'config-modal-menu-popover';
+        menu.style.position = 'absolute';
+        menu.style.visibility = 'hidden';
+
+        // Check if config is built-in (check both category and type, handle both 'built-in' and 'builtin')
+        const category = (config.category || config.type || '').toLowerCase();
+        const isBuiltIn = category === 'built-in' || category === 'builtin';
+        
+        // Safety check: This function should never be called for built-in configs
+        if (isBuiltIn) {
+            return;
+        }
+        
+        const actions = [
+            { action: 'duplicate', label: 'Duplicate' },
+            { action: 'delete', label: 'Delete', danger: true }
+        ];
+
+        actions.forEach(({ action, label, danger }) => {
+            const item = document.createElement('div');
+            item.className = 'menu-item';
+            if (danger) {
+                item.classList.add('danger');
+            }
+            item.dataset.action = action;
+            item.textContent = label;
+            menu.appendChild(item);
+        });
+
+        document.body.appendChild(menu);
+
+        const triggerRect = triggerElement.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        const top = triggerRect.bottom + window.scrollY + 8;
+        const minLeft = 8 + window.scrollX;
+        const maxLeft = window.scrollX + document.documentElement.clientWidth - menuRect.width - 8;
+        let left = triggerRect.right + window.scrollX - menuRect.width;
+        left = Math.min(Math.max(left, minLeft), maxLeft);
+
+        menu.style.top = `${top}px`;
+        menu.style.left = `${left}px`;
+        menu.style.visibility = 'visible';
+        menu.style.zIndex = '1001'; // Above modal
+
+        const handleAction = (action) => {
+            switch (action) {
+                case 'duplicate':
+                    // Close the breakdown modal
+                    const modal = document.getElementById('config-breakdown-modal');
+                    if (modal) {
+                        modal.style.display = 'none';
+                    }
+                    // Open the duplicate modal so user can name the new config
+                    this.openDuplicateModal(config.id, 'Personal');
+                    break;
+                case 'delete':
+                    this.requestDeleteConfiguration(config);
+                    // Close modal after delete
+                    const deleteModal = document.getElementById('config-breakdown-modal');
+                    if (deleteModal) {
+                        deleteModal.style.display = 'none';
+                    }
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        const handleMenuClick = (event) => {
+            const target = event.target.closest('.menu-item');
+            if (!target) {
+                return;
+            }
+            const action = target.dataset.action;
+            handleAction(action);
+            closeMenu();
+        };
+
+        const handleClickOutside = (event) => {
+            if (menu.contains(event.target) || triggerElement.contains(event.target)) {
+                return;
+            }
+            closeMenu();
+        };
+
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') {
+                closeMenu();
+            }
+        };
+
+        const closeMenu = () => {
+            menu.removeEventListener('click', handleMenuClick);
+            document.removeEventListener('click', handleClickOutside);
+            document.removeEventListener('keydown', handleEscape);
+            if (menu.parentNode) {
+                menu.parentNode.removeChild(menu);
+            }
+        };
+
+        menu.addEventListener('click', handleMenuClick);
+        setTimeout(() => {
+            document.addEventListener('click', handleClickOutside);
+        }, 0);
+        document.addEventListener('keydown', handleEscape);
     }
 
     async saveCurrentConfigChanges(config) {

@@ -357,6 +357,64 @@
     color: #ffe4e6;
 }
 
+/* Modal menu popover - same styling as card menu but with higher z-index */
+.config-modal-menu-popover {
+    position: absolute;
+    min-width: 140px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+    padding: 6px 0;
+    z-index: 1001; /* Above modal (z-index: 1000) */
+}
+
+.config-modal-menu-popover .menu-item {
+    padding: 8px 14px;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.config-modal-menu-popover .menu-item:hover {
+    background: var(--bg-tertiary);
+    color: var(--accent);
+}
+
+.config-modal-menu-popover .menu-item.danger {
+    color: #f87171;
+}
+
+.config-modal-menu-popover .menu-item.danger:hover {
+    background: rgba(248, 113, 113, 0.12);
+    color: #fee2e2;
+}
+
+[data-theme="dark"] .config-modal-menu-popover {
+    background: #1f2438;
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.65);
+}
+
+[data-theme="dark"] .config-modal-menu-popover .menu-item {
+    color: #f4f6ff;
+}
+
+[data-theme="dark"] .config-modal-menu-popover .menu-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+[data-theme="dark"] .config-modal-menu-popover .menu-item.danger {
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .config-modal-menu-popover .menu-item.danger:hover {
+    background: rgba(239, 68, 68, 0.25);
+    color: #ffe4e6;
+}
+
 .config-selector-row {
     display: flex;
     align-items: center;
