@@ -679,37 +679,44 @@ export class ConfigManager {
             
             // Check if rule has custom settings (not empty object)
             const hasCustomSettings = Object.keys(customSettings).length > 0;
-            const modifiedIndicator = hasCustomSettings ? '<span class="configure-modified-dot"></span>' : '';
+            const configureIcon = hasCustomSettings ? '🛠️' : '⚙️';
+            const configureText = hasCustomSettings ? 'Customized' : 'Configure';
             
             html += `
                 <div class="rule-item ${enabledClass} ${ghostClass}" data-rule="${ruleName}">
-                    <div class="rule-header-row">
-                        <div class="rule-name">
-                            ${ruleName}
-                            ${isGhost ? '<span class="ghost-warning-badge">⚠️ Rule not found in runtime</span>' : ''}
-                        </div>
-                        ${!isBuiltIn ? `
-                            <div class="rule-toggle-switch ${toggleState}" data-rule="${ruleName}" ${toggleDisabled}>
-                                <div class="toggle-track">
-                                    <span class="toggle-thumb"></span>
-                                </div>
+                    <div class="rule-row-header">
+                        <div class="rule-name-container">
+                            <div class="rule-name">
+                                ${ruleName}
+                                ${isGhost ? '<span class="ghost-warning-badge-inline">⚠️ Rule not found in runtime</span>' : ''}
                             </div>
-                        ` : ''}
-                    </div>
-                    <div class="rule-description">Severity: ${severity}</div>
-                    ${!isBuiltIn ? `
-                        <div class="rule-actions">
-                            ${isGhost ? `
-                                <button class="rule-delete-btn" data-rule="${ruleName}" type="button" title="Remove ghost rule">
-                                    🗑️
+                        </div>
+                        <div class="rule-controls-container">
+                            ${!isBuiltIn && !isGhost ? `
+                                <select class="rule-severity-select rule-severity-${severity.toLowerCase()}" data-rule="${ruleName}" data-severity="${severity}">
+                                    <option value="ADVICE" ${severity === 'ADVICE' ? 'selected' : ''}>ADVICE</option>
+                                    <option value="ACTION" ${severity === 'ACTION' ? 'selected' : ''}>ACTION</option>
+                                </select>
+                                <button class="rule-configure-btn ${hasCustomSettings ? 'modified' : ''}" data-rule="${ruleName}" type="button">
+                                    ${configureIcon} ${configureText}
+                                    <span class="configure-chevron" data-rule="${ruleName}">▼</span>
                                 </button>
                             ` : ''}
+                            ${!isBuiltIn && isGhost ? `
+                                <button class="rule-delete-btn" data-rule="${ruleName}" type="button" title="Remove ghost rule">
+                                    🗑️ Remove
+                                </button>
+                            ` : ''}
+                            ${!isBuiltIn ? `
+                                <div class="rule-toggle-switch ${toggleState}" data-rule="${ruleName}" ${toggleDisabled}>
+                                    <div class="toggle-track">
+                                        <span class="toggle-thumb"></span>
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
-                        <button class="rule-configure-btn ${hasCustomSettings ? 'modified' : ''}" data-rule="${ruleName}" type="button">
-                            Configure
-                            <span class="configure-chevron" data-rule="${ruleName}">▼</span>
-                            ${modifiedIndicator}
-                        </button>
+                    </div>
+                    ${!isBuiltIn && !isGhost ? `
                         <div class="rule-settings-panel" data-rule="${ruleName}">
                             <textarea class="rule-settings-json" data-rule="${ruleName}" placeholder='{ "mode": "strict" }' ${readonlyAttr}>${settingsText}</textarea>
                             <div class="rule-settings-error" data-rule="${ruleName}">Invalid JSON format</div>
@@ -799,6 +806,26 @@ export class ConfigManager {
                 });
             });
             
+            // Wire up severity dropdowns
+            const severitySelects = content.querySelectorAll('.rule-severity-select');
+            severitySelects.forEach(select => {
+                select.addEventListener('change', (e) => {
+                    e.stopPropagation();
+                    const ruleName = select.dataset.rule;
+                    const newSeverity = select.value;
+                    
+                    // Update config
+                    if (config.rules[ruleName]) {
+                        config.rules[ruleName].severity_override = newSeverity;
+                    }
+                    
+                    // Update the select's data attribute and class for color
+                    select.dataset.severity = newSeverity;
+                    select.classList.remove('rule-severity-advice', 'rule-severity-action');
+                    select.classList.add(`rule-severity-${newSeverity.toLowerCase()}`);
+                });
+            });
+            
             // Wire up configure buttons
             const configureButtons = content.querySelectorAll('.rule-configure-btn');
             configureButtons.forEach(btn => {
@@ -843,11 +870,14 @@ export class ConfigManager {
                         if (config.rules[ruleName]) {
                             config.rules[ruleName].custom_settings = {};
                         }
-                        // Update modified indicator (remove purple dot)
+                        // Update modified indicator (change icon and text)
                         const configureBtn = content.querySelector(`.rule-configure-btn[data-rule="${ruleName}"]`);
-                        const modifiedDot = configureBtn?.querySelector('.configure-modified-dot');
-                        configureBtn?.classList.remove('modified');
-                        if (modifiedDot) modifiedDot.remove();
+                        if (configureBtn) {
+                            configureBtn.classList.remove('modified');
+                            const chevron = configureBtn.querySelector('.configure-chevron');
+                            const chevronHtml = chevron ? chevron.outerHTML : `<span class="configure-chevron" data-rule="${ruleName}">▼</span>`;
+                            configureBtn.innerHTML = `⚙️ Configure ${chevronHtml}`;
+                        }
                         return;
                     }
                     
@@ -873,18 +903,19 @@ export class ConfigManager {
                             textarea.classList.remove('json-valid');
                         }, 1000);
                         
-                        // Update modified indicator (purple dot)
+                        // Update modified indicator (change icon and text)
                         const configureBtn = content.querySelector(`.rule-configure-btn[data-rule="${ruleName}"]`);
-                        const modifiedDot = configureBtn?.querySelector('.configure-modified-dot');
-                        if (isEmpty) {
-                            configureBtn?.classList.remove('modified');
-                            if (modifiedDot) modifiedDot.remove();
-                        } else {
-                            configureBtn?.classList.add('modified');
-                            if (!modifiedDot && configureBtn) {
-                                const dot = document.createElement('span');
-                                dot.className = 'configure-modified-dot';
-                                configureBtn.appendChild(dot);
+                        if (configureBtn) {
+                            const chevron = configureBtn.querySelector('.configure-chevron');
+                            const chevronHtml = chevron ? chevron.outerHTML : `<span class="configure-chevron" data-rule="${ruleName}">▼</span>`;
+                            
+                            if (isEmpty) {
+                                configureBtn.classList.remove('modified');
+                                configureBtn.innerHTML = `⚙️ Configure ${chevronHtml}`;
+                                configureBtn.classList.remove('modified');
+                            } else {
+                                configureBtn.classList.add('modified');
+                                configureBtn.innerHTML = `🛠️ Customized ${chevronHtml}`;
                             }
                         }
                     } catch (err) {

@@ -18,8 +18,8 @@
     background: var(--bg-secondary);
     border-radius: 12px;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    max-width: 800px;
     width: 100%;
+    max-width: 90vw; /* Workspace overlay feel, not tiny popup */
     max-height: 90vh;
     overflow-y: auto;
     border: 1px solid var(--border-color);
@@ -137,18 +137,26 @@
 }
 
 .rule-breakdown {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px; /* gap-4 equivalent */
 }
 
 .rule-item {
-    padding: 16px;
+    padding: 16px 16px; /* py-4 equivalent - increased vertical padding */
     border-radius: 8px;
     border: 1px solid var(--border-color);
     background: var(--bg-tertiary);
     transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
     position: relative;
+    min-height: 50px; /* Thin row height */
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #f1f5f9; /* border-slate-100 - subtle row separator for light mode */
+}
+
+[data-theme="dark"] .rule-item {
+    border-bottom-color: #1e293b; /* border-slate-800 - subtle row separator for dark mode */
 }
 
 .rule-item:hover {
@@ -159,6 +167,15 @@
 /* Enabled state: 100% opacity, purple toggle */
 .rule-item.enabled {
     opacity: 1;
+    border-left: 4px solid #9333ea; /* purple-600 */
+}
+
+[data-theme="light"] .rule-item.enabled {
+    border-left-color: #a855f7; /* purple-500 for light mode */
+}
+
+[data-theme="dark"] .rule-item.enabled {
+    border-left-color: #a78bfa; /* purple-400 for dark mode */
 }
 
 /* Disabled state: 60% opacity, gray toggle, no orange borders/backgrounds */
@@ -166,22 +183,58 @@
     opacity: 0.6;
 }
 
-.rule-header-row {
+/* Single-row header layout */
+.rule-row-header {
     display: flex;
+    flex-direction: row;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
-    gap: 12px;
-    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+}
+
+.rule-name-container {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
 }
 
 .rule-name {
     font-weight: 600;
     color: var(--text-primary);
     font-size: 1rem;
-    flex: 1;
-    min-width: 0;
     word-break: break-word;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Ghost warning badge inline with title */
+.ghost-warning-badge-inline {
+    display: inline-block;
+    padding: 2px 6px;
+    background: rgba(245, 158, 11, 0.15); /* amber-500/15 */
+    color: #f59e0b; /* amber-500 */
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+[data-theme="dark"] .ghost-warning-badge-inline {
+    background: rgba(251, 191, 36, 0.15); /* amber-400/15 */
+    color: #fbbf24; /* amber-400 */
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+/* Controls container on the right */
+.rule-controls-container {
+    display: flex;
+    align-items: center;
+    gap: 24px; /* gap-6 equivalent */
+    flex-shrink: 0;
 }
 
 /* Toggle Switch Styles */
@@ -211,7 +264,7 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Enabled toggle: purple track, thumb on right */
+/* Enabled toggle: purple-600 background, thumb on right */
 .rule-toggle-switch.enabled .toggle-track {
     background-color: #9333ea; /* purple-600 */
 }
@@ -224,13 +277,13 @@
     transform: translateX(20px); /* Move to right */
 }
 
-/* Disabled toggle: gray track, thumb on left */
+/* Disabled toggle: slate-600 background, thumb on left */
 .rule-toggle-switch.disabled .toggle-track {
-    background-color: #6b7280; /* gray-500 */
+    background-color: #475569; /* slate-600 */
 }
 
 [data-theme="dark"] .rule-toggle-switch.disabled .toggle-track {
-    background-color: #6b7280; /* gray-500 */
+    background-color: #475569; /* slate-600 */
 }
 
 .rule-toggle-switch.disabled .toggle-thumb {
@@ -244,9 +297,9 @@
     pointer-events: none;
 }
 
-/* Ghost Rule Styling */
+/* Ghost Rule Styling - Amber/Yellow border to indicate warning */
 .rule-item.ghost-rule {
-    border: 2px solid #f59e0b; /* amber-500 - full border */
+    border: 2px solid #f59e0b; /* amber-500 - full border warning */
     border-radius: 8px;
     position: relative;
 }
@@ -257,8 +310,7 @@
 
 .ghost-warning-badge {
     display: inline-block;
-    margin-left: 8px;
-    padding: 4px 8px;
+    padding: 6px 10px;
     background: rgba(245, 158, 11, 0.15); /* amber-500/15 */
     color: #f59e0b; /* amber-500 */
     border: 1px solid rgba(245, 158, 11, 0.3);
@@ -273,11 +325,89 @@
     border-color: rgba(251, 191, 36, 0.3);
 }
 
-.rule-description {
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    margin-bottom: 8px;
+/* Ghost Warning Container */
+.ghost-warning-container {
+    margin-top: 8px;
+    margin-bottom: 12px;
 }
+
+/* Rule Bottom Controls - No longer needed, moved to header */
+
+/* Severity Dropdown */
+.rule-severity-select {
+    font-size: 0.75rem; /* text-xs */
+    font-weight: 700; /* font-bold - stronger weight for button-like control */
+    background: #f8fafc; /* bg-slate-50 - solid background for light mode */
+    border: 1px solid #e2e8f0; /* border-slate-200 */
+    border-radius: 6px; /* rounded-md */
+    padding: 2px 8px; /* px-2 py-0.5 */
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    padding-right: 24px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+}
+
+/* Dark mode background for dropdown options menu */
+[data-theme="dark"] .rule-severity-select {
+    background-color: #0f172a; /* bg-slate-900 */
+    border-color: #334155; /* border-slate-700 */
+    box-shadow: none;
+}
+
+.rule-severity-select:hover {
+    border-color: #9333ea; /* border-purple-500 */
+}
+
+.rule-severity-select:focus {
+    outline: none;
+    border-color: #9333ea;
+}
+
+/* Severity select text colors based on selected value */
+/* ADVICE = Sky/Blue (Suggestion/Standard) */
+/* Light mode: deep blue for weight and readability */
+.rule-severity-select.rule-severity-advice {
+    color: #1d4ed8; /* blue-700 - deep blue, adds weight */
+}
+
+[data-theme="dark"] .rule-severity-select.rule-severity-advice {
+    color: #38bdf8; /* sky-400 - bright, readable on dark */
+}
+
+/* ACTION = Amber/Orange (Important/Fix Now) */
+/* Light mode: burnt orange for weight and readability */
+.rule-severity-select.rule-severity-action {
+    color: #c2410c; /* orange-700 - burnt orange, adds weight */
+}
+
+[data-theme="dark"] .rule-severity-select.rule-severity-action {
+    color: #fbbf24; /* amber-400 - bright, readable on dark */
+}
+
+/* Severity option colors */
+/* Light mode: deeper colors for weight */
+.rule-severity-select option[value="ADVICE"] {
+    color: #1d4ed8; /* blue-700 - deep blue, adds weight */
+}
+
+.rule-severity-select option[value="ACTION"] {
+    color: #c2410c; /* orange-700 - burnt orange, adds weight */
+}
+
+[data-theme="dark"] .rule-severity-select option[value="ADVICE"] {
+    color: #38bdf8; /* sky-400 - bright, readable on dark */
+}
+
+[data-theme="dark"] .rule-severity-select option[value="ACTION"] {
+    color: #fbbf24; /* amber-400 - bright, readable on dark */
+}
+
+/* Ghost Actions Container - No longer needed, moved to controls container */
 
 /* Rule Actions Container */
 .rule-actions {
@@ -292,8 +422,8 @@
     background: transparent;
     border: 1px solid #ef4444; /* red-500 */
     color: #ef4444;
-    font-size: 1rem;
-    padding: 4px 8px;
+    font-size: 0.875rem;
+    padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -324,24 +454,20 @@
     color: var(--text-secondary);
 }
 
-/* Configure Button - at bottom of card */
+/* Configure Button - in bottom controls row */
 .rule-configure-btn {
     background: transparent;
     border: none;
-    border-top: 1px solid var(--border-color);
-    color: #94a3b8; /* slate-400 */
-    font-size: 0.875rem;
-    padding: 8px 0;
-    margin-top: 12px;
-    margin-bottom: 0;
-    width: 100%;
+    color: #94a3b8; /* slate-400 - text-xs equivalent */
+    font-size: 0.75rem; /* text-xs */
+    padding: 4px 8px;
     cursor: pointer;
     transition: color 0.2s ease;
-    text-align: left;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 4px;
     position: relative;
+    flex-shrink: 0;
 }
 
 .rule-configure-btn:hover {
@@ -363,19 +489,18 @@
     margin-left: 8px;
 }
 
-/* Modified indicator - purple dot */
-.configure-modified-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    background: #9333ea; /* purple-600 */
-    border-radius: 50%;
-    margin-left: 8px;
-    flex-shrink: 0;
+/* Modified button state - prominent purple text */
+.rule-configure-btn.modified {
+    color: #a78bfa; /* purple-400 - brand purple */
+    font-weight: 500; /* font-medium */
 }
 
-[data-theme="dark"] .configure-modified-dot {
-    background: #a78bfa; /* purple-400 */
+[data-theme="light"] .rule-configure-btn.modified {
+    color: #9333ea; /* purple-600 for light mode */
+}
+
+[data-theme="dark"] .rule-configure-btn.modified {
+    color: #a78bfa; /* purple-400 for dark mode */
 }
 
 /* Settings Panel (Expandable with slide animation) */
@@ -502,8 +627,9 @@
 /* Responsive adjustments for modal */
 @media (max-width: 1024px) {
     .rule-breakdown {
-        grid-template-columns: 1fr;
-        gap: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
     }
 }
 
@@ -534,8 +660,9 @@
     }
     
     .rule-breakdown {
-        grid-template-columns: 1fr;
-        gap: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
     }
     
     .rule-header-row {
