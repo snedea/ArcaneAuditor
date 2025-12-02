@@ -14,6 +14,7 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
     ID = "HardcodedWorkdayAPIRule"
     DESCRIPTION = "Detects hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def __init__(self):
         """Initialize the rule."""

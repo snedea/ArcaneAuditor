@@ -29,6 +29,7 @@ class GridPagingWithSortableFilterableRule(StructureRuleBase):
     ID = "GridPagingWithSortableFilterableRule"
     DESCRIPTION = "Detects grids with paging and sortableAndFilterable columns which can cause performance issues"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     def get_description(self) -> str:
         """Get rule description."""

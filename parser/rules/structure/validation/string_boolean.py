@@ -9,6 +9,7 @@ class StringBooleanRule(StructureRuleBase):
     
     DESCRIPTION = "Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans"
     SEVERITY = "ADVICE"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def get_description(self) -> str:
         """Get rule description."""

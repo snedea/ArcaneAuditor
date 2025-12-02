@@ -13,6 +13,7 @@ class ScriptLongBlockRule(ScriptRuleBase):
     DESCRIPTION = "Ensures non-function script blocks in PMD/POD files don't exceed maximum line count (max 30 lines). Excludes function definitions which are handled by ScriptLongFunctionRule."
     SEVERITY = "ADVICE"
     DETECTOR = LongScriptBlockDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def __init__(self):
         super().__init__()

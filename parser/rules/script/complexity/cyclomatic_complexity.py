@@ -10,6 +10,7 @@ class ScriptComplexityRule(ScriptRuleBase):
     DESCRIPTION = "Ensures scripts don't exceed complexity thresholds (max 10 cyclomatic complexity)"
     SEVERITY = "ADVICE"
     DETECTOR = CyclomaticComplexityDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def get_description(self) -> str:
         """Get rule description."""

@@ -19,6 +19,7 @@ class WidgetIdRequiredRule(StructureRuleBase):
     
     DESCRIPTION = "Ensures all widgets have an 'id' field set (structure validation for PMD and POD files)"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     # Widget types that do not require or support ID values (built-in exclusions)
     BUILT_IN_WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {

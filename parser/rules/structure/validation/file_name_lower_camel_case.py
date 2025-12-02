@@ -31,6 +31,7 @@ class FileNameLowerCamelCaseRule(Rule):
     ID = "FileNameLowerCamelCaseRule"
     DESCRIPTION = "Ensures all file names follow lowerCamelCase naming convention"
     SEVERITY = "ADVICE"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     def get_description(self) -> str:
         """Get rule description."""

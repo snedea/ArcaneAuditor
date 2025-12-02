@@ -10,6 +10,7 @@ class ScriptArrayMethodUsageRule(ScriptRuleBase):
     DESCRIPTION = "Detects manual loops that could be replaced with array higher-order methods like map, filter, forEach"
     SEVERITY = "ADVICE"
     DETECTOR = ArrayMethodUsageDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def get_description(self) -> str:
         """Get rule description."""

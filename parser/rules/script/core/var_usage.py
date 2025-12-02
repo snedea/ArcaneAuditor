@@ -10,6 +10,7 @@ class ScriptVarUsageRule(ScriptRuleBase):
     DESCRIPTION = "Ensures scripts use 'let' or 'const' instead of 'var' (best practice)"
     SEVERITY = "ADVICE"
     DETECTOR = VarUsageDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def get_description(self) -> str:
         """Get rule description."""

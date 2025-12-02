@@ -12,6 +12,7 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
     DESCRIPTION = "Ensures functions are not declared but never used"
     SEVERITY = "ADVICE"
     DETECTOR = UnusedFunctionsDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def get_description(self) -> str:
         """Get rule description."""

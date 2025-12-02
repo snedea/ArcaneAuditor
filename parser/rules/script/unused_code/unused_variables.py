@@ -13,6 +13,7 @@ class ScriptUnusedVariableRule(ScriptRuleBase):
     DESCRIPTION = "Ensures all declared variables are used (prevents dead code) with proper scoping awareness"
     SEVERITY = "ADVICE"
     DETECTOR = UnusedVariableDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def get_description(self) -> str:
         """Get rule description."""

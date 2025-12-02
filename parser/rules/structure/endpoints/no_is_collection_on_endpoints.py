@@ -27,6 +27,7 @@ class NoIsCollectionOnEndpointsRule(StructureRuleBase):
     ID = "NoIsCollectionOnEndpointsRule"
     DESCRIPTION = "Detects isCollection: true on inbound endpoints which can cause tenant-wide performance issues"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     def get_description(self) -> str:
         """Get rule description."""

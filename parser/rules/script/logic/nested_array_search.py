@@ -10,6 +10,7 @@ class ScriptNestedArraySearchRule(ScriptRuleBase):
     DESCRIPTION = "Detects nested array search patterns that cause severe performance issues"
     SEVERITY = "ADVICE"
     DETECTOR = NestedArraySearchDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def get_description(self) -> str:
         """Get rule description."""
