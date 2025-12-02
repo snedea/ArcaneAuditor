@@ -69,7 +69,11 @@
 
         <main>
             <!-- Configuration Toolbar -->
-            <div id="config-toolbar" class="config-toolbar">
+            <div class="config-section-container" style="max-width: 1200px; margin: 0 auto 0;">
+                <h3 class="config-section-title" style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 8px; margin-left: 4px; font-weight: 700;">
+                    ⚙️ Analysis Configuration
+                </h3>
+                <div id="config-toolbar" class="config-toolbar">
                 <div id="config-toolbar-left" class="config-toolbar-left">
                     <div class="config-selector-wrapper">
                         <button id="config-selected-button" class="config-selected-button">
@@ -91,6 +95,7 @@
                         ⚙️ Manage Rules
                     </button>
                 </div>
+                </div>
             </div>
 
             <!-- Upload Section -->
@@ -100,6 +105,9 @@
                         <div class="upload-icon">📁</div>
                         <h3>Upload Your Extend Application</h3>
                         <p>Drag and drop files here, or click to select</p>
+                        <p id="upload-config-hint">
+                            <span>📜</span> Analyzing with <strong id="upload-config-name">...</strong> rules
+                        </p>
                         <div class="upload-buttons">
                             <button type="button" class="btn btn-primary" id="choose-file-btn">
                                 Choose ZIP File

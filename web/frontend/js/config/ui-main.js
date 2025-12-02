@@ -52,6 +52,12 @@ export class ConfigMainUI {
                 rulesEl.innerHTML += `<span class="config-rule-separator">|</span><span class="config-rule-disabled">${counts.disabled} Off</span>`;
             }
         }
+
+        // NEW: Update the upload box hint
+        const hintName = document.getElementById('upload-config-name');
+        if (hintName) {
+            hintName.textContent = config.name;
+        }
     }
 
     buildDropdown() {
