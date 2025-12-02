@@ -126,26 +126,48 @@
 
                 <!-- Duplicate Configuration Modal -->
                 <div id="duplicate-config-modal" class="modal-overlay hidden">
-                    <div class="modal duplicate-modal config-dialog">
-                        <button class="modal-close-btn floating" id="duplicate-close-btn">×</button>
+                    <div class="modal-content" style="max-width: 450px; height: auto; max-height: 90vh;">
+                        
+                        <div class="modal-header">
+                            <div class="modal-header-left">
+                                <span id="duplicate-modal-icon" style="font-size: 1.2rem;">🪄</span>
+                                <h3 id="duplicate-modal-title" class="modal-title">New Configuration</h3>
+                            </div>
+                            <button id="duplicate-close-btn" class="modal-close">×</button>
+                        </div>
 
                         <div class="modal-body">
-                            <label class="modal-label">New Configuration Name</label>
-                            <input id="duplicate-config-name"
-                                class="modal-input"
-                                type="text"
-                                placeholder="Enter new name">
+                            
+                            <div class="setting-group mb-4">
+                                <label class="setting-label" for="duplicate-source-select">Copy From</label>
+                                <div class="setting-description">Select the template or configuration to copy settings from.</div>
+                                <select id="duplicate-source-select" class="setting-input config-select">
+                                </select>
+                            </div>
 
-                            <label class="modal-label">Category</label>
-                            <div class="modal-radio-group">
-                                <label><input type="radio" name="duplicate-category" value="Personal" checked> Personal</label>
-                                <label><input type="radio" name="duplicate-category" value="Team"> Team</label>
+                            <div class="setting-group mb-4">
+                                <label class="setting-label" for="duplicate-config-name">Configuration Name</label>
+                                <input type="text" id="duplicate-config-name" class="setting-input" placeholder="e.g., Strict Production Profile" autocomplete="off">
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label">Category</label>
+                                <div style="display: flex; gap: 16px; margin-top: 8px;">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="radio" name="duplicate-category" value="Personal" class="setting-checkbox" checked>
+                                        <span style="font-size: 0.875rem;">Personal</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="radio" name="duplicate-category" value="Team" class="setting-checkbox">
+                                        <span style="font-size: 0.875rem;">Team</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="modal-footer">
-                            <button class="modal-btn ghost" id="duplicate-cancel-btn">Cancel</button>
-                            <button class="modal-btn primary" id="duplicate-confirm-btn">Create</button>
+                        <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; background: var(--bg-tertiary);">
+                            <button id="duplicate-cancel-btn" class="modal-btn ghost">Cancel</button>
+                            <button id="duplicate-confirm-btn" class="modal-btn primary">Create Wizardry</button>
                         </div>
                     </div>
                 </div>

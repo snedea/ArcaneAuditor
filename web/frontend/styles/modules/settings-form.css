@@ -20,7 +20,7 @@
 .settings-form {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 24px; /* Increased from 16px to push groups apart */
     padding: 16px;
     background: var(--bg-tertiary);
     border-radius: 8px;
@@ -30,7 +30,12 @@
 .setting-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px; /* Tightened from 6px - label and input form a single visual unit */
+    margin-bottom: 24px; /* Increased from 16px for clear separation between fields */
+}
+
+.setting-group:last-child {
+    margin-bottom: 0; /* Remove bottom margin from last group */
 }
 
 .setting-label {
@@ -39,7 +44,9 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-primary);
-    margin-bottom: 2px;
+    margin-bottom: 2px; /* Very tight to the input - creates single visual unit */
+    display: block; /* Ensure it takes full width */
+    line-height: 1.2;
 }
 
 [data-theme="light"] .setting-label {
@@ -51,9 +58,9 @@
     color: var(--text-secondary);
     font-style: normal;
     font-weight: 400;
-    margin-top: 2px;
-    margin-bottom: 8px;
-    line-height: 1.4;
+    margin-top: 0; /* Tight under the label */
+    margin-bottom: 6px; /* Space between description and input */
+    line-height: 1.3;
 }
 
 [data-theme="light"] .setting-description {
@@ -65,7 +72,8 @@
 }
 
 .setting-input,
-.setting-list-input {
+.setting-list-input,
+.config-select {
     width: 100%;
     padding: 8px 12px;
     background: var(--bg-primary);
@@ -74,24 +82,30 @@
     border-radius: 6px;
     font-size: 0.875rem;
     transition: all 0.2s ease;
+    height: 40px; /* Force consistent height for text and selects */
+    line-height: normal;
+    box-sizing: border-box; /* Include padding in height calculation */
 }
 
 .setting-input:focus,
-.setting-list-input:focus {
+.setting-list-input:focus,
+.config-select:focus {
     outline: none;
     border-color: #9333ea; /* purple-600 */
     box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
 }
 
 [data-theme="light"] .setting-input,
-[data-theme="light"] .setting-list-input {
+[data-theme="light"] .setting-list-input,
+[data-theme="light"] .config-select {
     background: white;
     border-color: #cbd5e1; /* slate-300 */
     color: #0f172a; /* slate-900 */
 }
 
 [data-theme="light"] .setting-input:focus,
-[data-theme="light"] .setting-list-input:focus {
+[data-theme="light"] .setting-list-input:focus,
+[data-theme="light"] .config-select:focus {
     border-color: #9333ea;
     box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.15);
 }
@@ -101,6 +115,8 @@
     font-size: 0.8rem;
     line-height: 1.5;
     resize: vertical;
+    height: auto; /* Override fixed height for textareas */
+    min-height: 80px; /* Minimum height for textareas */
 }
 
 .setting-checkbox {

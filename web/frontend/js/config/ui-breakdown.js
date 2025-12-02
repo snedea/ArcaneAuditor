@@ -82,8 +82,32 @@ export class ConfigBreakdownUI {
         }
         
         const modal = document.getElementById('config-breakdown-modal');
+        if (!modal) {
+            this.app.showToast('Configuration modal not found', 'error');
+            return;
+        }
+        
         const content = document.getElementById('config-breakdown-content');
-        const header = document.querySelector('.modal-header');
+        if (!content) {
+            this.app.showToast('Configuration modal content not found', 'error');
+            return;
+        }
+        
+        // Find header within the modal (not document-wide)
+        const modalContent = modal.querySelector('.modal-content');
+        if (!modalContent) {
+            this.app.showToast('Configuration modal structure invalid', 'error');
+            return;
+        }
+        
+        let header = modalContent.querySelector('.modal-header');
+        
+        // Create header if it doesn't exist (shouldn't happen, but be defensive)
+        if (!header) {
+            header = document.createElement('div');
+            header.className = 'modal-header';
+            modalContent.insertBefore(header, content);
+        }
         
         // Access data from the manager
         const config = this.manager.availableConfigs.find(c => c.id === configId);
@@ -99,7 +123,7 @@ export class ConfigBreakdownUI {
         const sourceName = isBuiltIn ? 'Built-in' : (category === 'team' ? 'Team' : 'Personal');
         
         // --- 1. RENDER HEADER ---
-        if (header) {
+        {
             header.innerHTML = '';
             
             // Left: Title + Badge

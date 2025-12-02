@@ -9,7 +9,6 @@ export class ConfigManager {
         this.availableConfigs = [];
         this.selectedConfig = null;
         this.productionTemplateId = null;
-        this.pendingDuplicateId = null;
 
         // Initialize UI components
         this.mainUI = new ConfigMainUI(this);
@@ -60,9 +59,17 @@ export class ConfigManager {
     
     showCreateConfigModal() {
         if (this.availableConfigs.length > 0) {
-            // Default to first built-in
-            const tpl = this.availableConfigs.find(c => c.category === 'built-in') || this.availableConfigs[0];
-            this.openDuplicateModal(tpl.id);
+            // Default to Production-Ready template
+            if (this.productionTemplateId) {
+                this.openDuplicateModal(this.productionTemplateId);
+            } else {
+                // Fallback to first built-in if Production-Ready not found
+                const tpl = this.availableConfigs.find(c => {
+                    const cat = (c.category || c.type || '').toLowerCase();
+                    return ['built-in', 'builtin'].includes(cat);
+                }) || this.availableConfigs[0];
+                this.openDuplicateModal(tpl.id);
+            }
         }
     }
 
@@ -76,9 +83,32 @@ export class ConfigManager {
 
     async duplicateConfiguration(configId, newName, category) {
         try {
-            await ConfigAPI.duplicate(configId, newName, category);
+            const response = await ConfigAPI.duplicate(configId, newName, category);
             this.app.showToast("Configuration duplicated!", "success");
+            
+            // Reload configurations to get the new one
             await this.loadConfigurations();
+            
+            // Find and select the newly created config
+            // The response should contain the new config ID
+            const newConfigId = response?.id || response?.config?.id;
+            if (newConfigId) {
+                // Select the new configuration
+                this.selectConfiguration(newConfigId);
+                
+                // Open the config editor immediately
+                this.showConfigBreakdown();
+            } else {
+                // Fallback: try to find by name if ID not in response
+                const newConfig = this.availableConfigs.find(c => 
+                    c.name === newName && 
+                    ((c.category || c.type || '').toLowerCase() === category.toLowerCase())
+                );
+                if (newConfig) {
+                    this.selectConfiguration(newConfig.id);
+                    this.showConfigBreakdown();
+                }
+            }
         } catch (err) {
             this.app.showToast(err.message, "error");
         }
@@ -108,19 +138,105 @@ export class ConfigManager {
     // These are simple enough to stay or move to a tiny `config-modals.js` 
     // but for now, keep them to avoid over-engineering.
     
-    openDuplicateModal(configId, defaultCategory = 'Personal') {
-        this.pendingDuplicateId = configId;
+    openDuplicateModal(defaultSourceId = null, defaultCategory = 'Personal') {
         const modal = document.getElementById("duplicate-config-modal");
+        const sourceSelect = document.getElementById("duplicate-source-select");
         const nameInput = document.getElementById("duplicate-config-name");
-        if(nameInput) nameInput.value = "";
         
-        // Check radio
+        // 1. Populate Source Dropdown
+        if (sourceSelect) {
+            sourceSelect.innerHTML = '';
+            
+            // Helper to add groups
+            const addGroup = (label, configs) => {
+                if (configs.length === 0) return;
+                const group = document.createElement('optgroup');
+                group.label = label;
+                configs.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name;
+                    group.appendChild(opt);
+                });
+                sourceSelect.appendChild(group);
+            };
+            
+            // Group configs for clarity (check both category and type)
+            const builtIn = this.availableConfigs.filter(c => {
+                const cat = (c.category || c.type || '').toLowerCase();
+                return ['built-in', 'builtin'].includes(cat);
+            });
+            const team = this.availableConfigs.filter(c => {
+                const cat = (c.category || c.type || '').toLowerCase();
+                return cat === 'team';
+            });
+            const personal = this.availableConfigs.filter(c => {
+                const cat = (c.category || c.type || '').toLowerCase();
+                return cat === 'personal';
+            });
+            
+            addGroup('Built-In Templates', builtIn);
+            addGroup('Team Configurations', team);
+            addGroup('Personal Configurations', personal);
+            
+            // 2. Set Default Selection
+            let selectedSourceId = null;
+            if (defaultSourceId && this.availableConfigs.some(c => c.id === defaultSourceId)) {
+                selectedSourceId = defaultSourceId;
+                sourceSelect.value = defaultSourceId;
+            } else if (this.productionTemplateId) {
+                selectedSourceId = this.productionTemplateId; // Fallback
+                sourceSelect.value = this.productionTemplateId;
+            }
+            
+            // Update title, icon, and button based on selected source
+            const updateModalTitle = () => {
+                const selectedId = sourceSelect.value;
+                const selectedConfig = this.availableConfigs.find(c => c.id === selectedId);
+                const sourceName = selectedConfig?.name || '';
+                const titleEl = document.getElementById('duplicate-modal-title');
+                const iconEl = document.getElementById('duplicate-modal-icon');
+                const confirmBtn = document.getElementById('duplicate-confirm-btn');
+                
+                if (sourceName.toLowerCase() === 'production-ready') {
+                    if (titleEl) titleEl.textContent = "New Configuration";
+                    if (iconEl) iconEl.textContent = "🪄";
+                    if (confirmBtn) confirmBtn.textContent = "Create Configuration";
+                } else {
+                    if (titleEl) titleEl.textContent = "Duplicate Configuration";
+                    if (iconEl) iconEl.textContent = "📋";
+                    if (confirmBtn) confirmBtn.textContent = "Clone Configuration";
+                }
+            };
+            
+            // Set initial title/icon based on default selection
+            updateModalTitle();
+            
+            // Update title/icon when dropdown changes
+            // Only add listener if not already added (check data attribute)
+            if (!sourceSelect.dataset.titleUpdaterBound) {
+                sourceSelect.addEventListener('change', updateModalTitle);
+                sourceSelect.dataset.titleUpdaterBound = 'true';
+            }
+        }
+        
+        // 3. Reset Name Input
+        if (nameInput) {
+            nameInput.value = "";
+            nameInput.classList.remove('input-error');
+        }
+        
+        // 4. Set Category Radio
         const cat = (defaultCategory || 'Personal').toLowerCase();
         document.querySelectorAll("input[name='duplicate-category']").forEach(i => 
             i.checked = i.value.toLowerCase() === cat
         );
         
-        if(modal) modal.classList.remove("hidden");
+        // 5. Show Modal
+        if (modal) {
+            modal.classList.remove("hidden");
+            setTimeout(() => nameInput?.focus(), 50);
+        }
     }
 
     closeDuplicateModal() {
@@ -133,9 +249,17 @@ export class ConfigManager {
         if(confirmBtn) confirmBtn.onclick = () => {
             const name = document.getElementById("duplicate-config-name").value.trim();
             const category = document.querySelector("input[name='duplicate-category']:checked")?.value || 'Personal';
-            if (!name) return this.app.showToast("Please enter a name.", "info");
             
-            this.duplicateConfiguration(this.pendingDuplicateId, name, category);
+            // Get source from dropdown
+            const sourceId = document.getElementById("duplicate-source-select").value;
+            
+            if (!name) {
+                this.app.showToast("Please enter a name.", "info");
+                return;
+            }
+            
+            // Pass sourceId directly
+            this.duplicateConfiguration(sourceId, name, category);
             this.closeDuplicateModal();
         };
         
