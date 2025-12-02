@@ -10,6 +10,7 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
     
     DESCRIPTION = "Ensures endpoints have failOnStatusCodes with minimum required codes 400 and 403"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def get_description(self) -> str:
         """Get rule description."""

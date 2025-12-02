@@ -13,6 +13,7 @@ class ScriptUnusedIncludesRule(ScriptRuleBase):
     DESCRIPTION = "Ensures included script files are actually used (via script.function() calls)"
     SEVERITY = "ADVICE"
     DETECTOR = ScriptUnusedIncludesRuleDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def get_description(self) -> str:
         """Get rule description."""

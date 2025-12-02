@@ -30,6 +30,7 @@ class MultipleStringInterpolatorsRule(StructureRuleBase):
     ID = "MultipleStringInterpolatorsRule"
     DESCRIPTION = "Detects multiple string interpolators in a single string which should use template literals instead"
     SEVERITY = "ADVICE"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     def get_description(self) -> str:
         """Get rule description."""

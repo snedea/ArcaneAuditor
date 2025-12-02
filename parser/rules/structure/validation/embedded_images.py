@@ -29,6 +29,7 @@ class EmbeddedImagesRule(StructureRuleBase):
     ID = "EmbeddedImagesRule"
     DESCRIPTION = "Detects embedded images that should be stored as external files"
     SEVERITY = "ADVICE"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     
     def get_description(self) -> str:

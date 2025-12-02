@@ -10,6 +10,7 @@ class ScriptFunctionParameterNamingRule(ScriptRuleBase):
     DESCRIPTION = "Ensures function parameters follow lowerCamelCase naming convention"
     SEVERITY = "ADVICE"
     DETECTOR = FunctionParameterNamingDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def get_description(self) -> str:
         """Get rule description."""

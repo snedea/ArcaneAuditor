@@ -11,6 +11,7 @@ class ScriptUnusedFunctionParametersRule(ScriptRuleBase):
     DESCRIPTION = "Ensures function parameters are actually used in the function body"
     SEVERITY = "ADVICE"
     DETECTOR = UnusedParametersDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def get_description(self) -> str:
         """Get rule description."""

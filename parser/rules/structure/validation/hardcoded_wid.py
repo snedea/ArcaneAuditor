@@ -27,6 +27,7 @@ class HardcodedWidRule(StructureRuleBase):
     ID = "HardcodedWidRule"
     DESCRIPTION = "Detects hardcoded WID values that should be configured in app attributes"
     SEVERITY = "ADVICE"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     # Allowed business process WIDs that are exceptions
     ALLOWED_WIDS = {

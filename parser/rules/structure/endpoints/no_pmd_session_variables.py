@@ -28,6 +28,7 @@ class NoPMDSessionVariablesRule(StructureRuleBase):
     ID = "NoPMDSessionVariablesRule"
     DESCRIPTION = "Detects outboundVariable endpoints with variableScope: session which can cause performance degradation"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     def get_description(self) -> str:
         """Get rule description."""

@@ -11,6 +11,7 @@ class ScriptMagicNumberRule(ScriptRuleBase):
     DESCRIPTION = "Ensures scripts don't contain magic numbers (use named constants)"
     SEVERITY = "ADVICE"
     DETECTOR = MagicNumberDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None):
         """Override to pass source text to detector for code context extraction."""

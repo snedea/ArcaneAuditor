@@ -10,6 +10,9 @@ class ScriptNestingLevelRule(ScriptRuleBase):
     DESCRIPTION = "Ensures scripts don't have excessive nesting levels (max 4 levels)"
     SEVERITY = "ADVICE"
     DETECTOR = NestingLevelDetector
+    AVAILABLE_SETTINGS = {
+        'max_nesting': {'type': 'int', 'default': 4, 'description': 'Maximum nesting level allowed'}
+    }
 
     def get_description(self) -> str:
         """Get rule description."""

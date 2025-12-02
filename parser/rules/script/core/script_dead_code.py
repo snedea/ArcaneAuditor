@@ -12,6 +12,7 @@ class ScriptDeadCodeRule(ScriptRuleBase):
     DESCRIPTION = "Detects and removes dead code from standalone script files"
     SEVERITY = "ADVICE"
     DETECTOR = ScriptDeadCodeDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def __init__(self, config: Dict[str, Any] = None, context=None):
         """Initialize the rule."""

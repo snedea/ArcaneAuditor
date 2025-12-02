@@ -8,6 +8,7 @@ class EndpointBaseUrlTypeRule(StructureRuleBase):
     
     DESCRIPTION = "Ensures endpoint URLs for Workday APIs utilize dataProviders and baseUrlType"
     SEVERITY = "ADVICE"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
 
     def get_description(self) -> str:
         """Get rule description."""

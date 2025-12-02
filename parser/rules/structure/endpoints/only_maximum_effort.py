@@ -26,6 +26,7 @@ class OnlyMaximumEffortRule(StructureRuleBase):
     ID = "OnlyMaximumEffortRule"
     DESCRIPTION = "Ensures endpoints do not use bestEffort to prevent masked API failures"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     def get_description(self) -> str:
         """Get rule description."""

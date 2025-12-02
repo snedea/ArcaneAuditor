@@ -12,6 +12,9 @@ class ScriptDescriptiveParameterRule(ScriptRuleBase):
     DESCRIPTION = "Ensures function parameters use descriptive names when functions take function parameters (except 'a', 'b' for sort)"
     SEVERITY = "ADVICE"
     DETECTOR = DescriptiveParameterDetector
+    AVAILABLE_SETTINGS = {
+        'allowed_single_letters': {'type': 'list', 'default': [], 'description': 'Additional single-letter parameter names to allow beyond built-in exceptions'}
+    }
 
     # Expose constants for testing
     FUNCTIONAL_METHODS = {'map', 'filter', 'find', 'forEach', 'reduce', 'sort'}
