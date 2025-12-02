@@ -47,6 +47,32 @@
     font-weight: 600;
 }
 
+/* Read-only Badge */
+.config-readonly-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 9999px; /* pill */
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(251, 191, 36, 0.15); /* amber-400/15 */
+    color: #f59e0b; /* amber-500 */
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    margin-left: 8px;
+}
+
+[data-theme="dark"] .config-readonly-badge {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24; /* amber-400 */
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+[data-theme="light"] .config-readonly-badge {
+    background-color: #fef3c7; /* amber-100 */
+    color: #d97706; /* amber-600 - darker for contrast */
+    border: 1px solid #fcd34d; /* amber-300 */
+    font-weight: 600;
+}
+
 /* Config Breakdown Section */
 .config-breakdown-section {
     margin-bottom: 24px;

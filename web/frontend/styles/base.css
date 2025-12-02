@@ -518,6 +518,55 @@ header p {
     transform: translateY(0);
 }
 
+/* =========================================
+   CUSTOM SCROLLBARS
+   ========================================= */
+
+/* --- Default / Light Mode --- */
+:root {
+    --scrollbar-width: 8px;
+    --scrollbar-track: transparent;
+    --scrollbar-thumb: #cbd5e1;       /* Slate-300 */
+    --scrollbar-thumb-hover: #94a3b8; /* Slate-400 */
+}
+
+/* --- Dark Mode Variables --- */
+[data-theme="dark"] {
+    --scrollbar-thumb: #334155;       /* Slate-700 */
+    --scrollbar-thumb-hover: #7c3aed; /* Brand Purple (Magical glow on hover) */
+}
+
+/* --- Firefox Standard --- */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* --- WebKit (Chrome, Edge, Safari) --- */
+::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 20px;       /* Fully rounded pill shape */
+    border: 2px solid transparent; /* Creates padding effect so it doesn't touch edges */
+    background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
 [data-theme="light"] .settings-button[aria-expanded="true"] .icon-close {
     color: #1e293b !important;
 }

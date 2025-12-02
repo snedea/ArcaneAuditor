@@ -132,6 +132,7 @@ export class ConfigBreakdownUI {
             leftSide.innerHTML = `
                 <h3 class="modal-title">${config.name}</h3>
                 <span class="config-source-badge">${sourceName}</span>
+                ${isBuiltIn ? '<span class="config-readonly-badge">Read-only</span>' : ''}
             `;
             
             // Right: Action Bar
@@ -204,12 +205,15 @@ export class ConfigBreakdownUI {
             this.isReloadingAfterSave = false; // Reset flag after restoring
         }
         
-        // --- 5. BIND EVENTS (Only if not built-in) ---
+        // --- 5. BIND GRIMOIRE EVENTS (Always - viewing docs doesn't require edit permissions) ---
+        this.bindGrimoireEvents(content);
+        
+        // --- 6. BIND EVENTS (Only if not built-in) ---
         if (!isBuiltIn) {
             this.bindRuleEvents(content, config);
         }
         
-        // --- 6. BIND FILTER EVENTS ---
+        // --- 7. BIND FILTER EVENTS ---
         this.bindFilterEvents(content, config);
         
         modal.style.display = 'flex';
@@ -402,6 +406,22 @@ export class ConfigBreakdownUI {
                 }
             });
             
+        }
+        
+        // PART 2: Bind Direct Events (EVERY TIME content renders)
+        // These elements are destroyed and recreated on every render, so they need fresh listeners
+        this.bindDirectEvents(content, config || this.currentConfig);
+    }
+    
+    /**
+     * Bind Grimoire events (always - viewing docs doesn't require edit permissions)
+     * @param {HTMLElement} content - The content container
+     */
+    bindGrimoireEvents(content) {
+        // Use delegation to handle dynamically added Grimoire buttons
+        if (content.dataset.grimoireBound !== 'true') {
+            content.dataset.grimoireBound = 'true';
+            
             // Grimoire Icon Click
             content.addEventListener('click', (e) => {
                 const btn = e.target.closest('.rule-info-btn');
@@ -413,10 +433,6 @@ export class ConfigBreakdownUI {
                 }
             });
         }
-        
-        // PART 2: Bind Direct Events (EVERY TIME content renders)
-        // These elements are destroyed and recreated on every render, so they need fresh listeners
-        this.bindDirectEvents(content, config || this.currentConfig);
     }
     
     /**
