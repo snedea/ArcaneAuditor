@@ -405,49 +405,146 @@ header p {
 }
 
 .settings-panel {
+    /* Keep positioning (bottom/right) */
     position: absolute;
     bottom: 120px;
     right: 0;
-    width: 280px;
-    background: rgba(15, 23, 42, 0.96);
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    border-radius: 16px;
-    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.45);
-    padding: 18px;
-    backdrop-filter: blur(14px);
+    width: 400px; /* Widen for better text spacing */
+    height: auto; /* Let content drive height */
+    background: rgba(15, 23, 42, 0.98); /* Deep dark blue */
+    border: 1px solid rgba(139, 92, 246, 0.4); /* Purple border */
+    border-radius: 12px;
+    box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(139, 92, 246, 0.15); /* Subtle purple glow */
+    padding: 0; /* Remove padding here, move to body/header */
+    overflow: hidden; /* For header border radius */
+    backdrop-filter: blur(12px);
     display: flex;
     flex-direction: column;
-    gap: 14px;
 }
 
 .settings-panel[hidden] {
     display: none;
 }
 
-.settings-panel-header h3 {
-    margin: 0;
-    font-size: 0.95rem;
-    color: #f8fafc;
+/* Add a Gradient Header */
+.settings-panel-header {
+    background: linear-gradient(to right, rgba(139, 92, 246, 0.15), transparent);
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
+.settings-panel-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #f8fafc;
+    letter-spacing: 0.02em;
+}
+
+/* Style the Body */
 .settings-panel-body {
+    padding: 24px; /* Increased padding for more spacious feel */
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px; /* Space out the options */
 }
 
 .settings-option {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.9rem;
-    color: rgba(248, 250, 252, 0.85);
+    align-items: flex-start; /* So toggle stays at top when text wraps */
+    gap: 12px;
 }
 
+/* Hide default checkbox */
 .settings-option input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 40px;
+    height: 22px;
+    background: #475569; /* Slate-600 (Off) */
+    border-radius: 11px;
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    transition: background 0.3s;
+    flex-shrink: 0; /* Don't squish */
+    margin: 0;
+    margin-top: 2px; /* Align with first line of text */
+}
+
+/* Toggle Knob */
+.settings-option input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
     width: 18px;
     height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Checked State (On) */
+.settings-option input[type="checkbox"]:checked {
+    background: #9333ea; /* Purple-600 (On) */
+}
+
+.settings-option input[type="checkbox"]:checked::after {
+    transform: translateX(18px);
+}
+
+/* Text Label */
+.settings-option label {
+    font-size: 0.9rem;
+    color: #e2e8f0;
     cursor: pointer;
+    margin: 0;
+    flex: 1; /* Ensure it takes up all available space next to the toggle */
+    white-space: normal; /* Allow wrapping */
+    line-height: 1.4; /* Better readability for multi-line text */
+}
+
+/* Light Mode Overrides */
+[data-theme="light"] .settings-panel {
+    background: rgba(255, 255, 255, 0.98); /* Clean white background */
+    border: 1px solid rgba(139, 92, 246, 0.25); /* Softer purple border */
+    box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.15),
+        0 0 20px rgba(139, 92, 246, 0.1); /* Lighter glow for light mode */
+}
+
+[data-theme="light"] .settings-panel-header {
+    background: linear-gradient(to right, rgba(139, 92, 246, 0.08), transparent);
+    border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+[data-theme="light"] .settings-panel-header h3 {
+    color: #1e293b; /* Dark slate for good contrast */
+}
+
+[data-theme="light"] .settings-option label {
+    color: #475569; /* Slate-600 for readable text in light mode */
+}
+
+[data-theme="light"] .settings-option input[type="checkbox"] {
+    background: #cbd5e1; /* Lighter gray for off state in light mode */
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .settings-option input[type="checkbox"]:checked {
+    background: #9333ea; /* Keep purple for on state */
+}
+
+[data-theme="light"] .settings-option input[type="checkbox"]::after {
+    background: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .visually-hidden {

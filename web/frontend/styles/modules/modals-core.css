@@ -72,6 +72,56 @@
     margin: auto;
 }
 
+/* 1. The Container: Add the Arcane Glow (Duplicate Modal) */
+#duplicate-config-modal .modal-content {
+    border: 1px solid rgba(139, 92, 246, 0.3) !important; /* Purple border */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 
+                0 0 20px rgba(139, 92, 246, 0.15) !important; /* Purple glow */
+    overflow: hidden; /* Ensure header background doesn't bleed */
+}
+
+/* 2. The Header: Add a subtle gradient background */
+#duplicate-config-modal .modal-header {
+    background: linear-gradient(to right, rgba(139, 92, 246, 0.1), transparent) !important;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2) !important;
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+#duplicate-config-modal .modal-title {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+}
+
+/* 3. The Inputs: Focus States */
+#duplicate-config-modal input[type="text"]:focus {
+    border-color: #8b5cf6 !important; /* Violet-500 */
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25) !important;
+}
+
+/* 4. The Radio Buttons: Make them pop */
+#duplicate-config-modal label {
+    transition: color 0.2s ease;
+}
+
+#duplicate-config-modal label:hover {
+    color: var(--accent);
+}
+
+/* 5. The Create Button: Gradient */
+#duplicate-confirm-btn {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+#duplicate-confirm-btn:hover {
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.5) !important;
+    transform: translateY(-1px);
+}
+
 /* Modal Header */
 .modal-header {
     display: flex;

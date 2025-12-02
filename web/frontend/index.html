@@ -52,17 +52,18 @@
             </div>
             <div id="settings-panel" class="settings-panel" role="dialog" aria-labelledby="settings-panel-title" hidden>
                 <div class="settings-panel-header">
+                    <span>⚙️</span>
                     <h3 id="settings-panel-title">App Settings</h3>
                 </div>
                 <div class="settings-panel-body">
-                    <label class="settings-option">
+                    <div class="settings-option">
                         <input type="checkbox" id="settings-update-checkbox">
-                        <span>Enable App Update Detection</span>
-                    </label>
-                    <label class="settings-option">
+                        <label for="settings-update-checkbox">Enable app update detection</label>
+                    </div>
+                    <div class="settings-option">
                         <input type="checkbox" id="settings-new-rule-default-checkbox">
-                        <span>Enable new rules by default</span>
-                    </label>
+                        <label for="settings-new-rule-default-checkbox">Automatically enable new rules added in future updates</label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -137,10 +138,9 @@
                     <div class="modal-content" style="max-width: 450px; height: auto; max-height: 90vh;">
                         
                         <div class="modal-header">
-                            <div class="modal-header-left">
-                                <span id="duplicate-modal-icon" style="font-size: 1.2rem;">🪄</span>
-                                <h3 id="duplicate-modal-title" class="modal-title">New Configuration</h3>
-                            </div>
+                            <h3 id="duplicate-modal-title" class="modal-title">
+                                <span id="duplicate-modal-icon" style="margin-right: 8px;">✨</span> New Configuration
+                            </h3>
                             <button id="duplicate-close-btn" class="modal-close">×</button>
                         </div>
 
