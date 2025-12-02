@@ -384,6 +384,7 @@ export class ConfigBreakdownUI {
                 if (btn) {
                     e.stopPropagation();
                     const ruleName = btn.dataset.rule;
+                    this.grimoire.openedFromConfigModal = true;
                     this.grimoire.showGrimoire(ruleName, this.currentConfig);
                 }
             });

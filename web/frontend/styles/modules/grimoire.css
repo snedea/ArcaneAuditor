@@ -298,3 +298,183 @@
     color: #ef4444;
 }
 
+/* --- Grimoire Index View Styles --- */
+
+.grimoire-index-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Search Bar */
+.grimoire-search-container {
+    margin-bottom: 8px;
+}
+
+.grimoire-search-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid rgba(168, 85, 247, 0.3);
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.5);
+    color: #e2e8f0;
+    font-size: 0.9375rem;
+    transition: all 0.2s ease;
+}
+
+.grimoire-search-input:focus {
+    outline: none;
+    border-color: rgba(168, 85, 247, 0.6);
+    background: rgba(15, 23, 42, 0.7);
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+}
+
+.grimoire-search-input::placeholder {
+    color: rgba(226, 232, 240, 0.5);
+}
+
+/* Rules Grid */
+.grimoire-rules-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    /* Remove max-height and overflow - let .grimoire-body handle scrolling */
+}
+
+/* Category Groups */
+.grimoire-category-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.grimoire-category-title {
+    color: #fbbf24;
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+    padding-bottom: 8px;
+    border-bottom: 2px solid rgba(168, 85, 247, 0.3);
+}
+
+.grimoire-category-rules {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+/* Rule Cards */
+.grimoire-rule-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.grimoire-rule-card:hover {
+    background: rgba(15, 23, 42, 0.8);
+    border-color: rgba(168, 85, 247, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+}
+
+.grimoire-rule-card-name {
+    color: #d8b4fe;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.grimoire-rule-card-description {
+    color: #cbd5e1;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Empty State */
+.grimoire-empty-state {
+    text-align: center;
+    color: #94a3b8;
+    padding: 40px 20px;
+    font-size: 1rem;
+}
+
+/* Back Button in Header */
+#grimoire-back-btn {
+    cursor: pointer;
+    color: #cbd5e1;
+    transition: color 0.2s ease;
+    user-select: none;
+}
+
+#grimoire-back-btn:hover {
+    color: #fbbf24;
+}
+
+/* --- Light Mode Index View Overrides --- */
+
+[data-theme="light"] .grimoire-search-input {
+    background: #ffffff;
+    border: 2px solid #cbd5e1;
+    color: #1e293b;
+}
+
+[data-theme="light"] .grimoire-search-input:focus {
+    border-color: #9333ea;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+}
+
+[data-theme="light"] .grimoire-search-input::placeholder {
+    color: #94a3b8;
+}
+
+[data-theme="light"] .grimoire-category-title {
+    color: #d97706;
+    text-shadow: none;
+    border-bottom-color: #e2e8f0;
+}
+
+[data-theme="light"] .grimoire-rule-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .grimoire-rule-card:hover {
+    background: #f8fafc;
+    border-color: #9333ea;
+    box-shadow: 0 4px 12px rgba(147, 51, 234, 0.15);
+}
+
+[data-theme="light"] .grimoire-rule-card-name {
+    color: #7e22ce;
+}
+
+[data-theme="light"] .grimoire-rule-card-description {
+    color: #475569;
+}
+
+[data-theme="light"] .grimoire-empty-state {
+    color: #64748b;
+}
+
+[data-theme="light"] #grimoire-back-btn {
+    color: #64748b;
+}
+
+[data-theme="light"] #grimoire-back-btn:hover {
+    color: #d97706;
+}
+

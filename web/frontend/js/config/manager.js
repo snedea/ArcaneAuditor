@@ -141,6 +141,47 @@ export class ConfigManager {
         
         const closeBtn = document.getElementById("duplicate-close-btn");
         if(closeBtn) closeBtn.onclick = () => this.closeDuplicateModal();
+
+        // Global Grimoire button
+        const grimoireBtn = document.getElementById("global-grimoire-btn");
+        if (grimoireBtn) {
+            grimoireBtn.onclick = () => {
+                this.openGrimoireIndex();
+            };
+        }
+    }
+
+    /**
+     * Open the Grimoire Index view
+     */
+    async openGrimoireIndex() {
+        try {
+            // Get the current selected config or use the first available
+            let configId = this.selectedConfig;
+            if (!configId && this.availableConfigs.length > 0) {
+                configId = this.availableConfigs[0].id;
+            }
+
+            if (!configId) {
+                this.app.showToast('No configuration available', 'error');
+                return;
+            }
+
+            // Fetch the full config data (with rules and documentation)
+            const data = await ConfigAPI.getAll();
+            const config = data.configs.find(c => c.id === configId);
+            
+            if (!config) {
+                this.app.showToast('Configuration not found', 'error');
+                return;
+            }
+
+            // Open the index view (not from config modal)
+            this.breakdownUI.grimoire.showIndex(config, false);
+        } catch (error) {
+            console.error('Failed to open Grimoire:', error);
+            this.app.showToast('Failed to open Rules Grimoire', 'error');
+        }
     }
 
     // --- HELPERS ---

@@ -3,6 +3,253 @@
  * GrimoireUI - Handles displaying rule documentation in a modal
  */
 export class GrimoireUI {
+    constructor() {
+        this.currentView = 'index'; // 'index' or 'detail'
+        this.currentConfig = null;
+        this.openedFromConfigModal = false; // Track if opened from config modal
+    }
+
+    /**
+     * Show the Index View with all rules
+     * @param {Object} config - The configuration object containing all rules
+     * @param {boolean} fromConfigModal - Whether this was opened from the config modal
+     */
+    showIndex(config, fromConfigModal = false) {
+        this.currentConfig = config;
+        this.currentView = 'index';
+        this.openedFromConfigModal = fromConfigModal;
+
+        const rules = config.rules || {};
+        const allRules = Object.entries(rules)
+            .filter(([_, ruleConfig]) => ruleConfig.documentation && Object.keys(ruleConfig.documentation).length > 0)
+            .sort(([a], [b]) => a.localeCompare(b));
+
+        // Get or create the modal
+        let modal = document.getElementById('grimoire-modal');
+        if (!modal) {
+            modal = this.renderGrimoireModal();
+        }
+
+        const titleEl = document.getElementById('grimoire-title');
+        const bodyEl = document.getElementById('grimoire-body');
+
+        if (titleEl) {
+            titleEl.innerHTML = `<span id="grimoire-back-btn" style="display: none;">← </span>📜 Rules Grimoire`;
+        }
+
+        if (bodyEl) {
+            let html = `
+                <div class="grimoire-index-container">
+                    <div class="grimoire-search-container">
+                        <input 
+                            type="text" 
+                            id="grimoire-search-input" 
+                            class="grimoire-search-input" 
+                            placeholder="Search rule names..."
+                            autocomplete="off"
+                        />
+                    </div>
+                    <div class="grimoire-rules-grid" id="grimoire-rules-grid">
+                        ${this.renderRuleCards(allRules)}
+                    </div>
+                </div>
+            `;
+            bodyEl.innerHTML = html;
+
+            // Bind search
+            const searchInput = document.getElementById('grimoire-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    this.filterRules(e.target.value, allRules);
+                });
+            }
+
+            // Bind rule card clicks
+            bodyEl.querySelectorAll('.grimoire-rule-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const ruleName = card.dataset.rule;
+                    this.showGrimoire(ruleName, config);
+                });
+            });
+        }
+
+        // Show the modal
+        modal.style.display = 'flex';
+
+        // Bind close button
+        const closeBtn = document.getElementById('grimoire-close-btn');
+        if (closeBtn) {
+            closeBtn.onclick = () => this.hideGrimoire();
+        }
+
+        // Close on Escape key
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                this.hideGrimoire();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+
+        // Close on overlay click
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                this.hideGrimoire();
+            }
+        };
+    }
+
+    /**
+     * Render rule cards for the index view
+     * @param {Array} rules - Array of [ruleName, ruleConfig] tuples
+     * @returns {string} HTML string
+     */
+    renderRuleCards(rules) {
+        if (rules.length === 0) {
+            return '<p class="grimoire-empty-state">No rules with documentation found.</p>';
+        }
+
+        // Group rules by category (prefix-based grouping)
+        const grouped = this.groupRulesByCategory(rules);
+
+        let html = '';
+        for (const [category, categoryRules] of Object.entries(grouped)) {
+            html += `<div class="grimoire-category-group">
+                <h3 class="grimoire-category-title">${category}</h3>
+                <div class="grimoire-category-rules">
+                    ${categoryRules.map(([ruleName, ruleConfig]) => {
+                        const description = this.getRuleDescription(ruleConfig);
+                        return `
+                            <div class="grimoire-rule-card" data-rule="${ruleName}">
+                                <div class="grimoire-rule-card-name">${ruleName}</div>
+                                <div class="grimoire-rule-card-description">${description}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>`;
+        }
+
+        return html;
+    }
+
+    /**
+     * Group rules by category based on name prefix
+     * @param {Array} rules - Array of [ruleName, ruleConfig] tuples
+     * @returns {Object} Grouped rules by category
+     */
+    groupRulesByCategory(rules) {
+        const grouped = {};
+
+        for (const [ruleName, ruleConfig] of rules) {
+            let category = 'Other';
+            
+            if (ruleName.startsWith('Script')) {
+                category = 'Script Rules';
+            } else if (ruleName.includes('Endpoint') || ruleName.startsWith('Endpoint')) {
+                category = 'Endpoint Rules';
+            } else if (ruleName.includes('Validation') || ruleName.startsWith('Validation')) {
+                category = 'Validation Rules';
+            } else if (ruleName.includes('Widget') || ruleName.startsWith('Widget')) {
+                category = 'Widget Rules';
+            } else if (ruleName.includes('Complexity') || ruleName.includes('Complex')) {
+                category = 'Complexity Rules';
+            } else if (ruleName.includes('Unused') || ruleName.includes('Dead')) {
+                category = 'Unused Code Rules';
+            } else if (ruleName.includes('Core') || ruleName.includes('Var') || ruleName.includes('Function')) {
+                category = 'Core Rules';
+            }
+
+            if (!grouped[category]) {
+                grouped[category] = [];
+            }
+            grouped[category].push([ruleName, ruleConfig]);
+        }
+
+        // Sort categories
+        const categoryOrder = [
+            'Core Rules',
+            'Script Rules',
+            'Complexity Rules',
+            'Unused Code Rules',
+            'Endpoint Rules',
+            'Validation Rules',
+            'Widget Rules',
+            'Other'
+        ];
+
+        const sorted = {};
+        for (const cat of categoryOrder) {
+            if (grouped[cat]) {
+                sorted[cat] = grouped[cat];
+            }
+        }
+        for (const cat of Object.keys(grouped)) {
+            if (!categoryOrder.includes(cat)) {
+                sorted[cat] = grouped[cat];
+            }
+        }
+
+        return sorted;
+    }
+
+    /**
+     * Get a short description for a rule
+     * @param {Object} ruleConfig - Rule configuration object
+     * @returns {string} Description text
+     */
+    getRuleDescription(ruleConfig) {
+        const doc = ruleConfig.documentation || {};
+        if (doc.why) {
+            // Take first sentence or first 100 chars
+            const text = doc.why.replace(/\n/g, ' ').trim();
+            const firstSentence = text.match(/^[^.!?]+[.!?]/);
+            if (firstSentence) {
+                return firstSentence[0].substring(0, 120);
+            }
+            return text.substring(0, 120) + (text.length > 120 ? '...' : '');
+        }
+        return 'No description available.';
+    }
+
+    /**
+     * Filter rules based on search term
+     * @param {string} searchTerm - Search term
+     * @param {Array} allRules - All rules to filter
+     */
+    filterRules(searchTerm, allRules) {
+        const grid = document.getElementById('grimoire-rules-grid');
+        if (!grid) return;
+
+        const searchLower = searchTerm.toLowerCase().trim();
+        const cards = grid.querySelectorAll('.grimoire-rule-card');
+
+        cards.forEach(card => {
+            const ruleName = card.dataset.rule.toLowerCase();
+            const description = card.querySelector('.grimoire-rule-card-description')?.textContent.toLowerCase() || '';
+            
+            if (searchLower === '' || ruleName.includes(searchLower) || description.includes(searchLower)) {
+                card.style.display = '';
+                // Show parent category if any card matches
+                const categoryGroup = card.closest('.grimoire-category-group');
+                if (categoryGroup) {
+                    categoryGroup.style.display = '';
+                }
+            } else {
+                card.style.display = 'none';
+                // Hide category if all cards are hidden
+                const categoryGroup = card.closest('.grimoire-category-group');
+                if (categoryGroup) {
+                    const visibleCards = categoryGroup.querySelectorAll('.grimoire-rule-card:not([style*="display: none"])');
+                    if (visibleCards.length === 0) {
+                        categoryGroup.style.display = 'none';
+                    }
+                }
+            }
+        });
+    }
+
     /**
      * Show the Grimoire modal with documentation for a specific rule
      * @param {string} ruleName - The name of the rule
@@ -13,6 +260,9 @@ export class GrimoireUI {
             console.warn(`No config found for rule: ${ruleName}`);
             return;
         }
+
+        this.currentConfig = config;
+        this.currentView = 'detail';
 
         const ruleConfig = config.rules[ruleName];
         const documentation = ruleConfig.documentation || {};
@@ -28,7 +278,23 @@ export class GrimoireUI {
         const bodyEl = document.getElementById('grimoire-body');
 
         if (titleEl) {
-            titleEl.textContent = `📜 ${ruleName}`;
+            // Update title with back button if needed
+            if (this.openedFromConfigModal) {
+                titleEl.textContent = `📜 ${ruleName}`;
+            } else {
+                // Clear existing content and rebuild
+                titleEl.innerHTML = '';
+                const backBtn = document.createElement('span');
+                backBtn.id = 'grimoire-back-btn';
+                backBtn.style.cursor = 'pointer';
+                backBtn.textContent = '← ';
+                backBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    this.showIndex(config, this.openedFromConfigModal);
+                };
+                titleEl.appendChild(backBtn);
+                titleEl.appendChild(document.createTextNode(`📜 ${ruleName}`));
+            }
         }
 
         if (bodyEl) {
