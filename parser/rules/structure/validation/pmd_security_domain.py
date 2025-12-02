@@ -8,7 +8,9 @@ class PMDSecurityDomainRule(Rule):
     
     DESCRIPTION = "Ensures PMD pages have at least one security domain defined (excludes microConclusion and error pages unless strict mode is enabled)"
     SEVERITY = "ACTION"
-    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    AVAILABLE_SETTINGS = {
+        'strict': {'type': 'bool', 'default': False, 'description': 'When enabled, requires security domains for ALL PMD pages, including microConclusion and error pages'}
+    }
 
     def __init__(self):
         super().__init__()

@@ -10,7 +10,9 @@ class ScriptFunctionParameterCountRule(ScriptRuleBase):
     DESCRIPTION = "Functions should not have too many parameters (max 4 by default)"
     SEVERITY = "ADVICE"
     DETECTOR = FunctionParameterCountDetector
-    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    AVAILABLE_SETTINGS = {
+        'max_parameters': {'type': 'int', 'default': 4, 'description': 'Maximum number of parameters allowed'}
+    }
 
     def get_description(self) -> str:
         """Get rule description."""

@@ -9,7 +9,9 @@ class PMDSectionOrderingRule(Rule):
     
     DESCRIPTION = "Ensures PMD file root-level sections follow consistent ordering for better readability"
     SEVERITY = "ADVICE"
-    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    AVAILABLE_SETTINGS = {
+        'section_order': {'type': 'list', 'default': ['id', 'securityDomains', 'include', 'script', 'endPoints', 'onSubmit', 'outboundData', 'onLoad', 'presentation'], 'description': 'Required order of PMD file root-level sections'}
+    }
 
     def __init__(self, config: Dict[str, Any] = None):
         """Initialize with configurable section order."""
