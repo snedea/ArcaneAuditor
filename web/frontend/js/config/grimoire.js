@@ -93,9 +93,10 @@ export class GrimoireUI {
             closeBtn.onclick = () => this.hideGrimoire();
         }
 
-        // Close on Escape key
+        // Close on Escape key (stop propagation so config modal doesn't also close)
         const escapeHandler = (e) => {
             if (e.key === 'Escape') {
+                e.stopPropagation(); // Prevent event from bubbling to config modal
                 this.hideGrimoire();
                 document.removeEventListener('keydown', escapeHandler);
             }

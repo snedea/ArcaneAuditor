@@ -39,9 +39,16 @@ export class ConfigBreakdownUI {
             this.settingsHandler.currentConfig = config;
         };
 
-        // Escape key functionality
+        // Escape key functionality (only close config modal if Grimoire is not open)
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') this.hide();
+            if (e.key === 'Escape') {
+                // Check if Grimoire modal is open - if so, don't close config modal
+                const grimoireModal = document.getElementById('grimoire-modal');
+                if (grimoireModal && grimoireModal.style.display !== 'none' && grimoireModal.style.display !== '') {
+                    return; // Grimoire is open, let it handle the Escape key
+                }
+                this.hide();
+            }
         });
     }
 
