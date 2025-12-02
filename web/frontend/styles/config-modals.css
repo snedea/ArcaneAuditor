@@ -841,15 +841,21 @@
 }
 
 .setting-description {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     color: var(--text-secondary);
-    font-style: italic;
-    margin-top: -4px;
-    margin-bottom: 4px;
+    font-style: normal;
+    font-weight: 400;
+    margin-top: 2px;
+    margin-bottom: 8px;
+    line-height: 1.4;
 }
 
 [data-theme="light"] .setting-description {
-    color: #64748b; /* slate-500 */
+    color: #475569; /* slate-600 - darker for better contrast */
+}
+
+[data-theme="dark"] .setting-description {
+    color: #94a3b8; /* slate-400 - lighter for better contrast on dark */
 }
 
 .setting-input,
@@ -889,6 +895,22 @@
     font-size: 0.8rem;
     line-height: 1.5;
     resize: vertical;
+}
+
+.setting-hint {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    margin-bottom: 0;
+    font-style: italic;
+}
+
+[data-theme="light"] .setting-hint {
+    color: #64748b; /* slate-500 */
+}
+
+[data-theme="dark"] .setting-hint {
+    color: #94a3b8; /* slate-400 */
 }
 
 .setting-checkbox {

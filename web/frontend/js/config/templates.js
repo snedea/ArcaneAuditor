@@ -82,7 +82,8 @@ export const Templates = {
                 const listValue = Array.isArray(currentValue) 
                     ? currentValue.join('\n') 
                     : (Array.isArray(meta.default) ? meta.default.join('\n') : '');
-                formHtml += `<textarea class="setting-list-input" rows="4" data-key="${key}">${listValue}</textarea>`;
+                formHtml += `<textarea class="setting-list-input" rows="4" data-key="${key}" placeholder="Enter one value per line&#10;Example:&#10;value1&#10;value2&#10;value3">${listValue}</textarea>`;
+                formHtml += `<div class="setting-hint">Enter one value per line</div>`;
             } else if (type === 'dict' || type === 'object') {
                 // Fallback: raw JSON textarea for complex types
                 const jsonValue = currentValue !== undefined 
