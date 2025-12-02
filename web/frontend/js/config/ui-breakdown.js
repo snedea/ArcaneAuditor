@@ -84,7 +84,7 @@ export class ConfigBreakdownUI {
             }
             
             // Duplicate (always)
-            actionButtons += `<button id="duplicate-config" class="modal-action-btn duplicate-btn" title="Duplicate configuration">📑</button>`;
+            actionButtons += `<button id="duplicate-config" class="modal-action-btn duplicate-btn" title="Duplicate configuration">🪄</button>`;
             
             // Save (only for Personal/Team)
             if (!isBuiltIn) {
