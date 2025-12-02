@@ -202,13 +202,62 @@ export class GrimoireUI {
     getRuleDescription(ruleConfig) {
         const doc = ruleConfig.documentation || {};
         if (doc.why) {
-            // Take first sentence or first 100 chars
-            const text = doc.why.replace(/\n/g, ' ').trim();
-            const firstSentence = text.match(/^[^.!?]+[.!?]/);
-            if (firstSentence) {
-                return firstSentence[0].substring(0, 120);
+            // Clean up the text: replace newlines, strip markdown formatting for card display
+            let text = doc.why.replace(/\n/g, ' ').trim();
+            
+            // Remove markdown bold/italic markers for cleaner card text
+            text = text.replace(/\*\*/g, '').replace(/\*/g, '');
+            
+            // Find first sentence, but skip periods:
+            // 1. Inside backticks (code)
+            // 2. In domain names (like .com, .org) - followed by space or end of string
+            // 3. In abbreviations (like "etc.") - followed by space and lowercase
+            let firstSentence = null;
+            let inBackticks = false;
+            
+            for (let i = 0; i < text.length; i++) {
+                if (text[i] === '`') {
+                    inBackticks = !inBackticks;
+                } else if (!inBackticks && /[.!?]/.test(text[i])) {
+                    // Check if this is a real sentence ending
+                    const nextChar = i + 1 < text.length ? text[i + 1] : ' ';
+                    const prevChar = i > 0 ? text[i - 1] : ' ';
+                    const nextTwoChars = i + 2 < text.length ? text.substring(i + 1, i + 3) : ' ';
+                    
+                    // Skip if period is in a domain name (like .com, .org, .net)
+                    // Pattern: one or more letters/numbers + period + common TLD + space/punctuation/end
+                    const domainPattern = /[a-z0-9-]+\.(com|org|net|edu|gov|io|co|uk|de|fr|jp|au|ca|us|info|biz|name|mobi|asia|jobs|museum|travel|xxx|tel|pro|aero|coop|int|mil|arpa|app|dev|tech|online|site|website|store|shop|blog|news|tv|me|cc|ws)(\s|$|[.,;:!?])/i;
+                    // Look back up to 30 characters to find domain pattern
+                    const beforePeriod = text.substring(Math.max(0, i - 30), i + 1);
+                    if (domainPattern.test(beforePeriod)) {
+                        continue; // Skip this period, it's in a domain name
+                    }
+                    
+                    // Skip if it's an abbreviation followed by lowercase (like "etc. and")
+                    // But allow if followed by space and capital letter (sentence ending)
+                    if (text[i] === '.' && nextChar !== ' ' && nextChar !== undefined) {
+                        // Period not followed by space - likely abbreviation or domain
+                        continue;
+                    }
+                    
+                    // This looks like a real sentence ending
+                    firstSentence = text.substring(0, i + 1);
+                    break;
+                }
             }
-            return text.substring(0, 120) + (text.length > 120 ? '...' : '');
+            
+            if (firstSentence) {
+                // Return the full first sentence - let CSS handle truncation with line-clamp
+                return firstSentence;
+            }
+            
+            // If no sentence ending found, truncate at word boundary near 150 chars
+            if (text.length > 150) {
+                const truncated = text.substring(0, 150);
+                const lastSpace = truncated.lastIndexOf(' ');
+                return lastSpace > 0 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+            }
+            return text;
         }
         return 'No description available.';
     }
