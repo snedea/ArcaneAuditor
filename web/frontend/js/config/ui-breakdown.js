@@ -1,5 +1,6 @@
 // ui-breakdown.js
 import { ConfigAPI } from './api.js';
+import { Templates } from './templates.js';
 
 export class ConfigBreakdownUI {
     constructor(manager) {
@@ -157,33 +158,7 @@ export class ConfigBreakdownUI {
         
         const toolbar = document.createElement('div');
         toolbar.className = 'config-filter-toolbar';
-        toolbar.innerHTML = `
-            <div class="config-filter-group">
-                <input 
-                    type="text" 
-                    id="config-modal-search" 
-                    class="config-filter-input" 
-                    placeholder="Search rule names..."
-                    autocomplete="off"
-                />
-            </div>
-            <div class="config-filter-group">
-                <label for="config-modal-filter-status">Status:</label>
-                <select id="config-modal-filter-status" class="config-filter-select">
-                    <option value="all">All</option>
-                    <option value="enabled">Enabled</option>
-                    <option value="disabled">Disabled</option>
-                </select>
-            </div>
-            <div class="config-filter-group">
-                <label for="config-modal-filter-severity">Severity:</label>
-                <select id="config-modal-filter-severity" class="config-filter-select">
-                    <option value="all">All</option>
-                    <option value="action">Action</option>
-                    <option value="advice">Advice</option>
-                </select>
-            </div>
-        `;
+        toolbar.innerHTML = Templates.filterToolbar();
         
         // Insert after the summary section (first config-breakdown-section)
         const summarySection = content.querySelector('.config-breakdown-section');
@@ -255,13 +230,7 @@ export class ConfigBreakdownUI {
         // Summary section
         const summarySection = document.createElement('div');
         summarySection.className = 'config-breakdown-section';
-        summarySection.innerHTML = `
-            <div class="config-summary-grid">
-                <div class="summary-card enabled"><div class="summary-number">${enabledRules}</div><div class="summary-label">Enabled Rules</div></div>
-                <div class="summary-card disabled"><div class="summary-number">${disabledRules}</div><div class="summary-label">Disabled Rules</div></div>
-                <div class="summary-card total"><div class="summary-number">${Object.keys(rules).length}</div><div class="summary-label">Total Rules</div></div>
-            </div>
-        `;
+        summarySection.innerHTML = Templates.summary(enabledRules, disabledRules, Object.keys(rules).length);
         content.appendChild(summarySection);
 
         // Filter toolbar will be inserted after summary section by renderFilterToolbar
@@ -290,63 +259,17 @@ export class ConfigBreakdownUI {
     renderRuleList(container, rulesToRender, isBuiltIn, skipEventBinding = false) {
         if (!container) return;
         
-        container.innerHTML = '';
-        
-        rulesToRender.forEach(([ruleName, ruleConfig]) => {
-            const isEnabled = ruleConfig.enabled;
-            const severity = this.getRuleSeverity(ruleConfig);
-            const customSettings = ruleConfig.custom_settings || {};
-            const settingsText = Object.keys(customSettings).length > 0 ? JSON.stringify(customSettings, null, 2) : '';
-            const isGhost = ruleConfig._is_ghost === true;
-            const supportsConfig = ruleConfig.supports_config !== false; // Default to true if not specified
+        // Map the data to the template
+        const html = rulesToRender.map(([ruleName, ruleConfig]) => {
+            return Templates.ruleRow({
+                ruleName, 
+                ruleConfig, 
+                isBuiltIn, 
+                supportsConfig: ruleConfig.supports_config !== false
+            });
+        }).join('');
 
-            const enabledClass = isEnabled ? 'enabled' : 'disabled';
-            const ghostClass = isGhost ? 'ghost-rule' : '';
-
-            const hasCustomSettings = Object.keys(customSettings).length > 0;
-            const configureIcon = hasCustomSettings ? '🛠️' : '⚙️';
-            const configureText = hasCustomSettings ? 'Customized' : 'Configure';
-
-            const ruleHtml = `
-                <div class="rule-item ${enabledClass} ${ghostClass}" data-rule="${ruleName}">
-                    <div class="rule-row-header">
-                        <div class="rule-name-container">
-                            <div class="rule-name">
-                                ${ruleName}
-                                ${isGhost ? '<span class="ghost-warning-badge-inline">⚠️ Rule not found in runtime (not counted or used)</span>' : ''}
-                            </div>
-                        </div>
-                        <div class="rule-controls-container">
-                            ${!isBuiltIn && !isGhost ? `
-                                ${supportsConfig ? `
-                                    <button class="rule-configure-btn ${hasCustomSettings ? 'modified' : ''}" data-rule="${ruleName}" type="button">
-                                        ${configureIcon} ${configureText} <span class="configure-chevron" data-rule="${ruleName}">▼</span>
-                                    </button>
-                                ` : ''}
-                                <select class="rule-severity-select rule-severity-${severity.toLowerCase()}" data-rule="${ruleName}" data-severity="${severity}">
-                                    <option value="ADVICE" ${severity === 'ADVICE' ? 'selected' : ''}>ADVICE</option>
-                                    <option value="ACTION" ${severity === 'ACTION' ? 'selected' : ''}>ACTION</option>
-                                </select>
-                            ` : ''}
-                            ${!isBuiltIn && isGhost ? `<button class="rule-delete-btn" data-rule="${ruleName}" type="button" title="Remove ghost rule">🗑️ Remove</button>` : ''}
-                            ${!isBuiltIn ? `
-                                <div class="rule-toggle-switch ${isGhost ? 'disabled' : (isEnabled ? 'enabled' : 'disabled')}" data-rule="${ruleName}" ${isGhost ? 'disabled' : ''}>
-                                    <div class="toggle-track"><span class="toggle-thumb"></span></div>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                    ${!isBuiltIn && !isGhost && supportsConfig ? `
-                        <div class="rule-settings-panel" data-rule="${ruleName}">
-                            <textarea class="rule-settings-json" data-rule="${ruleName}" placeholder='{ "mode": "strict" }'>${settingsText}</textarea>
-                            <div class="rule-settings-error" data-rule="${ruleName}">Invalid JSON format</div>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-            
-            container.insertAdjacentHTML('beforeend', ruleHtml);
-        });
+        container.innerHTML = html;
         
         // Note: Events are bound by the caller (show() or bindFilterEvents)
         // We don't bind here to avoid double-binding and container issues
