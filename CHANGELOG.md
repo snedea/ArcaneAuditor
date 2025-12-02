@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v1.4.0] - 2025-12-02
+
+### Added
+
+- **Interactive Rules Grimoire** - Complete documentation system for all 42 rules with searchable index, categorized browsing, detailed examples, and markdown-formatted explanations accessible from anywhere in the UI.
+- **In-app Rule Configuration** - Custom settings UI for rules that support advanced configuration, enabling/disabling of rules, and more!
+- **Global Grimoire Access** - Floating button and integrated documentation links throughout the configuration interface for instant rule reference.
+- **UX Onboarding Improvements** - Unified control panel design, configuration section headers, and dynamic status badges to improve discoverability for new users.
+
+### Changed
+
+- **Results Module Architecture** - Refactored monolithic results renderer into modular structure with separated templates, UI components, and controller logic for better maintainability.
+- **Configuration UI Refactoring** - Split large CSS files into feature-specific modules and extracted configuration logic into dedicated JavaScript modules.
+- **Light Mode Polish** - Enhanced visual depth, shadows, and hover effects for Grimoire cards and modal interfaces.
+- **Modal Ergonomics** - Optimized modal dimensions with shrink-wrap behavior and fixed desktop width for consistent experience across screen sizes.
+- **Configuration Cards** - Gone are the huge configuration cards, in favor of a less dominant presence. 
+
+
+### Fixed
+
+- **Closes #10** - New configuration file editor.
+- **Closes #27** - The move away from Configuration Cards eliminates this issue.
+- **Closes #42** - In-app rule details (Grimoire).
+
+---
+
 ## [v1.3.0] - 2025-11-11
 
 ### Added
@@ -28,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Script Rule Accuracy** - Stops flagging top-level constants as unused and consistently detects magic numbers in simple return statements.
 - **Manifest Naming Expectations** - AMD/SMD naming enforcement skips platform-generated files and tabbed PMD sections evaluate correctly.
 
-----------------------------------------------------------------------------------------------------------------------------
+---
 
 ## [v1.2.0] - 2025-10-30
 
@@ -61,7 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Confusing Installation Options** - Streamlined to Desktop → CLI → Source
 
 **Closes #20** - Completes cross-platform package distribution (macOS support added, desktop app fully implemented)
-----------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------
 
 ## [v1.1.0] - 2025-10-24
 
