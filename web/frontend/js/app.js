@@ -2,7 +2,7 @@
 
 import { ConfigManager } from './config/manager.js';
 import { ThemeManager } from './theme-manager.js';
-import { ResultsRenderer } from './results-renderer.js';
+import { ResultsManager } from './results/manager.js';
 import { downloadResults, getLastSortBy, getLastSortFilesBy } from './utils.js';
 import { showMagicalAnalysisComplete } from './magic-mode.js';
 import { DialogManager } from './dialog-manager.js';
@@ -36,7 +36,7 @@ class ArcaneAuditorApp {
 
         // Initialize managers
         this.configManager = new ConfigManager(this);
-        this.resultsRenderer = new ResultsRenderer(this);
+        this.resultsManager = new ResultsManager(this);
         
         this.initializeEventListeners();
 
@@ -126,7 +126,7 @@ class ArcaneAuditorApp {
             if (e.target.closest('.file-header')) {
                 const filePath = e.target.closest('.file-header').dataset.filePath;
                 if (filePath) {
-                    this.resultsRenderer.toggleFileExpansion(filePath);
+                    this.resultsManager.toggleFileExpansion(filePath);
                 }
             }
         });
@@ -310,10 +310,10 @@ class ArcaneAuditorApp {
         
         // Display context awareness panel if available
         if (this.currentResult && this.currentResult.context) {
-            this.resultsRenderer.displayContext(this.currentResult.context);
+            this.resultsManager.displayContext(this.currentResult.context);
         }
         
-        this.resultsRenderer.renderResults();
+        this.resultsManager.renderResults();
         
         // Show magical analysis completion if in magic mode
         showMagicalAnalysisComplete(this.currentResult);
@@ -757,27 +757,27 @@ class ArcaneAuditorApp {
 
     // Filter and sort methods (delegated to results renderer)
     updateSeverityFilter(value) {
-        this.resultsRenderer.updateSeverityFilter(value);
+        this.resultsManager.updateSeverityFilter(value);
     }
 
     updateFileTypeFilter(value) {
-        this.resultsRenderer.updateFileTypeFilter(value);
+        this.resultsManager.updateFileTypeFilter(value);
     }
 
     updateSortBy(value) {
-        this.resultsRenderer.updateSortBy(value);
+        this.resultsManager.updateSortBy(value);
     }
 
     updateSortFilesBy(value) {
-        this.resultsRenderer.updateSortFilesBy(value);
+        this.resultsManager.updateSortFilesBy(value);
     }
 
     expandAllFiles() {
-        this.resultsRenderer.expandAllFiles();
+        this.resultsManager.expandAllFiles();
     }
 
     collapseAllFiles() {
-        this.resultsRenderer.collapseAllFiles();
+        this.resultsManager.collapseAllFiles();
     }
 
     resetForNewUpload() {
@@ -803,7 +803,7 @@ class ArcaneAuditorApp {
         document.getElementById('selected-files-list').style.display = 'none';
         
         // Reset renderers
-        this.resultsRenderer.resetForNewUpload();
+        this.resultsManager.resetForNewUpload();
         
     }
 
@@ -956,32 +956,32 @@ window.toggleTheme = function() {
 };
 
 window.toggleContextPanel = function() {
-    app.resultsRenderer.toggleContextPanel();
+    app.resultsManager.toggleContextPanel();
 };
 
 // Results renderer global functions
 window.expandAllFiles = function() {
-    app.resultsRenderer.expandAllFiles();
+    app.resultsManager.expandAllFiles();
 };
 
 window.collapseAllFiles = function() {
-    app.resultsRenderer.collapseAllFiles();
+    app.resultsManager.collapseAllFiles();
 };
 
 window.updateSeverityFilter = function(value) {
-    app.resultsRenderer.updateSeverityFilter(value);
+    app.resultsManager.updateSeverityFilter(value);
 };
 
 window.updateFileTypeFilter = function(value) {
-    app.resultsRenderer.updateFileTypeFilter(value);
+    app.resultsManager.updateFileTypeFilter(value);
 };
 
 window.updateSortBy = function(value) {
-    app.resultsRenderer.updateSortBy(value);
+    app.resultsManager.updateSortBy(value);
 };
 
 window.updateSortFilesBy = function(value) {
-    app.resultsRenderer.updateSortFilesBy(value);
+    app.resultsManager.updateSortFilesBy(value);
 };
 
 export default app;
