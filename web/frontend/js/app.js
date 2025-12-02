@@ -44,6 +44,15 @@ class ArcaneAuditorApp {
         this.themeManager = new ThemeManager();
         this.themeManager.initialize();
 
+        // Force blur on the grimoire button if it grabs focus on load
+        // Use setTimeout to ensure it happens after all initialization
+        setTimeout(() => {
+            const grimoireBtn = document.getElementById('global-grimoire-btn');
+            if (grimoireBtn && grimoireBtn === document.activeElement) {
+                grimoireBtn.blur();
+            }
+        }, 100);
+
         // Load configurations
         this.configManager.loadConfigurations();
 
