@@ -135,63 +135,88 @@ export class GrimoireUI {
     }
 
     /**
-     * Group rules by category based on name prefix
+     * Group rules by category based on explicit categorization strategy
      * @param {Array} rules - Array of [ruleName, ruleConfig] tuples
      * @returns {Object} Grouped rules by category
      */
     groupRulesByCategory(rules) {
-        const grouped = {};
+        const grouped = {
+            'Endpoint & Data Rules': [],
+            'Widget & UI Rules': [],
+            'Structure & Security': [],
+            'Unused Code': [],
+            'Script Best Practices': []
+        };
+
+        // Helper to place rule in a bucket
+        const addTo = (cat, rName, rConfig) => {
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push([rName, rConfig]);
+        };
 
         for (const [ruleName, ruleConfig] of rules) {
-            let category = 'Other';
-            
-            if (ruleName.startsWith('Script')) {
-                category = 'Script Rules';
-            } else if (ruleName.includes('Endpoint') || ruleName.startsWith('Endpoint')) {
-                category = 'Endpoint Rules';
-            } else if (ruleName.includes('Validation') || ruleName.startsWith('Validation')) {
-                category = 'Validation Rules';
-            } else if (ruleName.includes('Widget') || ruleName.startsWith('Widget')) {
-                category = 'Widget Rules';
-            } else if (ruleName.includes('Complexity') || ruleName.includes('Complex')) {
-                category = 'Complexity Rules';
-            } else if (ruleName.includes('Unused') || ruleName.includes('Dead')) {
-                category = 'Unused Code Rules';
-            } else if (ruleName.includes('Core') || ruleName.includes('Var') || ruleName.includes('Function')) {
-                category = 'Core Rules';
+            // 1. Unused Code (Highest Priority)
+            if (ruleName.includes('Unused') || ruleName.includes('Dead') || ruleName.includes('Empty')) {
+                addTo('Unused Code', ruleName, ruleConfig);
+                continue;
             }
 
-            if (!grouped[category]) {
-                grouped[category] = [];
+            // 2. Endpoint & Data
+            if (ruleName.includes('Endpoint') || 
+                ruleName.includes('WorkdayAPI') || 
+                ruleName.includes('MaximumEffort') ||
+                ruleName.includes('SessionVariable')) {
+                addTo('Endpoint & Data Rules', ruleName, ruleConfig);
+                continue;
             }
-            grouped[category].push([ruleName, ruleConfig]);
+
+            // 3. Widget & UI
+            if (ruleName.includes('Widget') || 
+                ruleName.includes('Grid') || 
+                ruleName.includes('Footer')) {
+                addTo('Widget & UI Rules', ruleName, ruleConfig);
+                continue;
+            }
+
+            // 4. Structure & Security
+            if (ruleName.includes('Hardcoded') || 
+                ruleName.includes('Security') || 
+                ruleName.includes('Ordering') ||
+                ruleName.includes('FileName') ||
+                ruleName.includes('Embedded') ||
+                ruleName.includes('Boolean') || 
+                ruleName.includes('Interpolator')) {
+                addTo('Structure & Security', ruleName, ruleConfig);
+                continue;
+            }
+
+            // 5. Script (Default for remaining Script* rules)
+            if (ruleName.startsWith('Script')) {
+                addTo('Script Best Practices', ruleName, ruleConfig);
+                continue;
+            }
+
+            // Fallback
+            addTo('Structure & Security', ruleName, ruleConfig);
         }
 
-        // Sort categories
-        const categoryOrder = [
-            'Core Rules',
-            'Script Rules',
-            'Complexity Rules',
-            'Unused Code Rules',
-            'Endpoint Rules',
-            'Validation Rules',
-            'Widget Rules',
-            'Other'
+        // Filter out empty categories and return
+        const finalGrouped = {};
+        const displayOrder = [
+            'Endpoint & Data Rules',
+            'Script Best Practices',
+            'Unused Code',
+            'Widget & UI Rules',
+            'Structure & Security'
         ];
 
-        const sorted = {};
-        for (const cat of categoryOrder) {
-            if (grouped[cat]) {
-                sorted[cat] = grouped[cat];
+        displayOrder.forEach(cat => {
+            if (grouped[cat] && grouped[cat].length > 0) {
+                finalGrouped[cat] = grouped[cat];
             }
-        }
-        for (const cat of Object.keys(grouped)) {
-            if (!categoryOrder.includes(cat)) {
-                sorted[cat] = grouped[cat];
-            }
-        }
+        });
 
-        return sorted;
+        return finalGrouped;
     }
 
     /**
