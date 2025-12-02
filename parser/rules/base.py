@@ -30,6 +30,9 @@ class Rule(ABC):
     DESCRIPTION: str = "This is a base rule."
     SEVERITY: str = "ADVICE" # Can be 'ADVICE', 'ACTION'
     
+    # Dictionary defining available custom settings.
+    # If empty, the rule does not support custom configuration.
+    AVAILABLE_SETTINGS: Dict[str, Any] = {}
 
     @abstractmethod
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:

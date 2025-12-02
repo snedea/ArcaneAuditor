@@ -1,5 +1,6 @@
 // ui-breakdown.js
 import { ConfigAPI } from './api.js';
+import { Templates } from './templates.js';
 
 export class ConfigBreakdownUI {
     constructor(manager) {
@@ -17,6 +18,15 @@ export class ConfigBreakdownUI {
             status: 'all',
             severity: 'all'
         };
+        
+        // Flag to track if we're reloading after a save (to persist filters)
+        this.isReloadingAfterSave = false;
+        
+        // Track if events are bound to avoid duplicates
+        this.eventsBound = false;
+        
+        // Track if a ghost rule deletion is in progress
+        this.isDeletingGhostRule = false;
 
         // Escape key functionality
         document.addEventListener('keydown', (e) => {
@@ -28,6 +38,14 @@ export class ConfigBreakdownUI {
      * Helper to close the modal
      */
     hide() {
+        // Reset filter state and reload flag when closing modal
+        this.savedFilterState = {
+            search: '',
+            status: 'all',
+            severity: 'all'
+        };
+        this.isReloadingAfterSave = false;
+        
         const modal = document.getElementById('config-breakdown-modal');
         if (modal) modal.style.display = 'none';
     }
@@ -36,6 +54,15 @@ export class ConfigBreakdownUI {
      * The main method to show the breakdown modal
      */
     show(configId) {
+        // Reset filter state only if this is a fresh open (not a reload after save)
+        if (!this.isReloadingAfterSave) {
+            this.savedFilterState = {
+                search: '',
+                status: 'all',
+                severity: 'all'
+            };
+        }
+        
         const modal = document.getElementById('config-breakdown-modal');
         const content = document.getElementById('config-breakdown-content');
         const header = document.querySelector('.modal-header');
@@ -77,7 +104,7 @@ export class ConfigBreakdownUI {
             }
             
             // Duplicate (always)
-            actionButtons += `<button id="duplicate-config" class="modal-action-btn duplicate-btn" title="Duplicate configuration">📑</button>`;
+            actionButtons += `<button id="duplicate-config" class="modal-action-btn duplicate-btn" title="Duplicate configuration">🪄</button>`;
             
             // Save (only for Personal/Team)
             if (!isBuiltIn) {
@@ -106,8 +133,9 @@ export class ConfigBreakdownUI {
                 this.manager.openDuplicateModal(config.id, 'Personal');
             };
             if (saveBtn) saveBtn.onclick = () => {
-                // Save filter state before refreshing
+                // Save filter state and set flag before refreshing (so it persists during save/refresh cycle)
                 this.saveFilterState();
+                this.isReloadingAfterSave = true;
                 this.manager.saveCurrentConfigChanges(config);
             };
             if (closeBtn) closeBtn.onclick = () => this.hide();
@@ -123,8 +151,11 @@ export class ConfigBreakdownUI {
         // --- 3. RENDER FILTER TOOLBAR (after body so it's in the right place) ---
         this.renderFilterToolbar(content);
         
-        // --- 4. RESTORE FILTER STATE (if we have saved state) ---
-        this.restoreFilterState(content);
+        // --- 4. RESTORE FILTER STATE (if reloading after save) ---
+        if (this.isReloadingAfterSave) {
+            this.restoreFilterState(content);
+            this.isReloadingAfterSave = false; // Reset flag after restoring
+        }
         
         // --- 5. BIND EVENTS (Only if not built-in) ---
         if (!isBuiltIn) {
@@ -149,33 +180,7 @@ export class ConfigBreakdownUI {
         
         const toolbar = document.createElement('div');
         toolbar.className = 'config-filter-toolbar';
-        toolbar.innerHTML = `
-            <div class="config-filter-group">
-                <input 
-                    type="text" 
-                    id="config-modal-search" 
-                    class="config-filter-input" 
-                    placeholder="Search rule names..."
-                    autocomplete="off"
-                />
-            </div>
-            <div class="config-filter-group">
-                <label for="config-modal-filter-status">Status:</label>
-                <select id="config-modal-filter-status" class="config-filter-select">
-                    <option value="all">All</option>
-                    <option value="enabled">Enabled</option>
-                    <option value="disabled">Disabled</option>
-                </select>
-            </div>
-            <div class="config-filter-group">
-                <label for="config-modal-filter-severity">Severity:</label>
-                <select id="config-modal-filter-severity" class="config-filter-select">
-                    <option value="all">All</option>
-                    <option value="action">Action</option>
-                    <option value="advice">Advice</option>
-                </select>
-            </div>
-        `;
+        toolbar.innerHTML = Templates.filterToolbar();
         
         // Insert after the summary section (first config-breakdown-section)
         const summarySection = content.querySelector('.config-breakdown-section');
@@ -247,13 +252,7 @@ export class ConfigBreakdownUI {
         // Summary section
         const summarySection = document.createElement('div');
         summarySection.className = 'config-breakdown-section';
-        summarySection.innerHTML = `
-            <div class="config-summary-grid">
-                <div class="summary-card enabled"><div class="summary-number">${enabledRules}</div><div class="summary-label">Enabled Rules</div></div>
-                <div class="summary-card disabled"><div class="summary-number">${disabledRules}</div><div class="summary-label">Disabled Rules</div></div>
-                <div class="summary-card total"><div class="summary-number">${Object.keys(rules).length}</div><div class="summary-label">Total Rules</div></div>
-            </div>
-        `;
+        summarySection.innerHTML = Templates.summary(enabledRules, disabledRules, Object.keys(rules).length);
         content.appendChild(summarySection);
 
         // Filter toolbar will be inserted after summary section by renderFilterToolbar
@@ -282,139 +281,116 @@ export class ConfigBreakdownUI {
     renderRuleList(container, rulesToRender, isBuiltIn, skipEventBinding = false) {
         if (!container) return;
         
-        container.innerHTML = '';
+        // Map the data to the template
+        const html = rulesToRender.map(([ruleName, ruleConfig]) => {
+            return Templates.ruleRow({
+                ruleName, 
+                ruleConfig, 
+                isBuiltIn, 
+                supportsConfig: ruleConfig.supports_config !== false
+            });
+        }).join('');
+
+        container.innerHTML = html;
         
-        rulesToRender.forEach(([ruleName, ruleConfig]) => {
-            const isEnabled = ruleConfig.enabled;
-            const severity = this.getRuleSeverity(ruleConfig);
-            const customSettings = ruleConfig.custom_settings || {};
-            const settingsText = Object.keys(customSettings).length > 0 ? JSON.stringify(customSettings, null, 2) : '';
-            const isGhost = ruleConfig._is_ghost === true;
-
-            const enabledClass = isEnabled ? 'enabled' : 'disabled';
-            const ghostClass = isGhost ? 'ghost-rule' : '';
-
-            const hasCustomSettings = Object.keys(customSettings).length > 0;
-            const configureIcon = hasCustomSettings ? '🛠️' : '⚙️';
-            const configureText = hasCustomSettings ? 'Customized' : 'Configure';
-
-            const ruleHtml = `
-                <div class="rule-item ${enabledClass} ${ghostClass}" data-rule="${ruleName}">
-                    <div class="rule-row-header">
-                        <div class="rule-name-container">
-                            <div class="rule-name">
-                                ${ruleName}
-                                ${isGhost ? '<span class="ghost-warning-badge-inline">⚠️ Rule not found in runtime (not counted or used)</span>' : ''}
-                            </div>
-                        </div>
-                        <div class="rule-controls-container">
-                            ${!isBuiltIn && !isGhost ? `
-                                <select class="rule-severity-select rule-severity-${severity.toLowerCase()}" data-rule="${ruleName}" data-severity="${severity}">
-                                    <option value="ADVICE" ${severity === 'ADVICE' ? 'selected' : ''}>ADVICE</option>
-                                    <option value="ACTION" ${severity === 'ACTION' ? 'selected' : ''}>ACTION</option>
-                                </select>
-                                <button class="rule-configure-btn ${hasCustomSettings ? 'modified' : ''}" data-rule="${ruleName}" type="button">
-                                    ${configureIcon} ${configureText} <span class="configure-chevron" data-rule="${ruleName}">▼</span>
-                                </button>
-                            ` : ''}
-                            ${!isBuiltIn && isGhost ? `<button class="rule-delete-btn" data-rule="${ruleName}" type="button" title="Remove ghost rule">🗑️ Remove</button>` : ''}
-                            ${!isBuiltIn ? `
-                                <div class="rule-toggle-switch ${isGhost ? 'disabled' : (isEnabled ? 'enabled' : 'disabled')}" data-rule="${ruleName}" ${isGhost ? 'disabled' : ''}>
-                                    <div class="toggle-track"><span class="toggle-thumb"></span></div>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                    ${!isBuiltIn && !isGhost ? `
-                        <div class="rule-settings-panel" data-rule="${ruleName}">
-                            <textarea class="rule-settings-json" data-rule="${ruleName}" placeholder='{ "mode": "strict" }'>${settingsText}</textarea>
-                            <div class="rule-settings-error" data-rule="${ruleName}">Invalid JSON format</div>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-            
-            container.insertAdjacentHTML('beforeend', ruleHtml);
-        });
-        
-        // Re-bind events after re-rendering (unless we're skipping for restore)
-        if (!skipEventBinding && !isBuiltIn && this.currentConfig) {
-            this.bindRuleEvents(container.closest('#config-breakdown-content'), this.currentConfig);
-        }
+        // Note: Events are bound by the caller (show() or bindFilterEvents)
+        // We don't bind here to avoid double-binding and container issues
     }
 
     bindRuleEvents(content, config) {
-        // Toggle Switches
-        content.querySelectorAll('.rule-toggle-switch:not([disabled])').forEach(toggle => {
-            toggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const ruleName = toggle.dataset.rule;
-                const ruleItem = toggle.closest('.rule-item');
-                const isCurrentlyEnabled = ruleItem.classList.contains('enabled');
-                
-                // Toggle UI state
-                ruleItem.classList.toggle('enabled', !isCurrentlyEnabled);
-                ruleItem.classList.toggle('disabled', isCurrentlyEnabled);
-                toggle.classList.toggle('enabled', !isCurrentlyEnabled);
-                toggle.classList.toggle('disabled', isCurrentlyEnabled);
-                
-                // Update Config Data
-                if (config.rules[ruleName]) {
-                    config.rules[ruleName].enabled = !isCurrentlyEnabled;
-                }
-            });
-        });
-        
-        // Ghost Rule Deletion
-        content.querySelectorAll('.rule-delete-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const ruleName = btn.dataset.rule;
-                if (confirm(`Remove ghost rule "${ruleName}"?`)) {
-                    try {
-                        if (config.rules && config.rules[ruleName]) delete config.rules[ruleName];
-                        
-                        // Use API directly
-                        await ConfigAPI.save(config);
-                        
-                        btn.closest('.rule-item').remove();
-                        await this.manager.loadConfigurations();
-                        this.show(config.id); // Refresh modal
-                        this.app.showToast('Ghost rule removed', 'success');
-                    } catch (error) {
-                        console.error('Error removing ghost rule:', error);
-                        this.app.showToast('Failed to remove ghost rule', 'error');
+        // PART 1: Bind Delegation Listeners (ONCE per container lifetime)
+        // These are attached to the static container and handle clicks for dynamic children
+        if (content.dataset.eventsBound !== 'true') {
+            content.dataset.eventsBound = 'true';
+            
+            // Toggle Switches
+            content.addEventListener('click', (e) => {
+                const toggle = e.target.closest('.rule-toggle-switch:not([disabled])');
+                if (toggle) {
+                    e.stopPropagation();
+                    const ruleName = toggle.dataset.rule;
+                    const ruleItem = toggle.closest('.rule-item');
+                    if (!ruleItem) return;
+                    
+                    const isCurrentlyEnabled = ruleItem.classList.contains('enabled');
+                    
+                    // Toggle UI state
+                    ruleItem.classList.toggle('enabled', !isCurrentlyEnabled);
+                    ruleItem.classList.toggle('disabled', isCurrentlyEnabled);
+                    toggle.classList.toggle('enabled', !isCurrentlyEnabled);
+                    toggle.classList.toggle('disabled', isCurrentlyEnabled);
+                    
+                    // Update Config Data - Use `this.currentConfig` to ensure we edit fresh data
+                    if (this.currentConfig && this.currentConfig.rules && this.currentConfig.rules[ruleName]) {
+                        this.currentConfig.rules[ruleName].enabled = !isCurrentlyEnabled;
                     }
                 }
             });
-        });
+            
+            // Ghost Rule Deletion
+            content.addEventListener('click', (e) => {
+                const btn = e.target.closest('.rule-delete-btn');
+                if (btn && !this.isDeletingGhostRule) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const ruleName = btn.dataset.rule;
+                    
+                    // Show custom modal instead of browser confirm
+                    this.showGhostRuleDeleteModal(ruleName, btn, content);
+                }
+            });
 
-        // Severity Dropdowns
-        content.querySelectorAll('.rule-severity-select').forEach(select => {
+            // Expand/Collapse Settings
+            content.addEventListener('click', (e) => {
+                const btn = e.target.closest('.rule-configure-btn');
+                if (btn) {
+                    e.stopPropagation();
+                    const ruleName = btn.dataset.rule;
+                    const panel = content.querySelector(`.rule-settings-panel[data-rule="${ruleName}"]`);
+                    const chevron = btn.querySelector('.configure-chevron');
+                    if (panel) {
+                        panel.classList.toggle('expanded');
+                        if (chevron) chevron.textContent = panel.classList.contains('expanded') ? '▲' : '▼';
+                    }
+                }
+            });
+        }
+        
+        // PART 2: Bind Direct Events (EVERY TIME content renders)
+        // These elements are destroyed and recreated on every render, so they need fresh listeners
+        this.bindDirectEvents(content, config || this.currentConfig);
+    }
+    
+    /**
+     * Bind direct events (severity dropdowns, textareas) that need individual binding
+     * This is called after re-rendering rules to bind new DOM elements
+     */
+    bindDirectEvents(container, config) {
+        // Use currentConfig to ensure we always edit fresh data
+        const activeConfig = config || this.currentConfig;
+        
+        // Severity Dropdowns - direct binding (change events don't bubble the same way)
+        container.querySelectorAll('.rule-severity-select:not([data-events-bound])').forEach(select => {
+            // Mark as bound to prevent duplicate bindings
+            select.dataset.eventsBound = 'true';
+            
             select.addEventListener('change', (e) => {
+                e.stopPropagation(); // Prevent event from bubbling and interfering with other handlers
                 const ruleName = select.dataset.rule;
                 const newSeverity = select.value;
-                if (config.rules[ruleName]) config.rules[ruleName].severity_override = newSeverity;
+                if (activeConfig && activeConfig.rules && activeConfig.rules[ruleName]) {
+                    activeConfig.rules[ruleName].severity_override = newSeverity;
+                }
                 select.className = `rule-severity-select rule-severity-${newSeverity.toLowerCase()}`;
             });
         });
-
-        // Expand/Collapse Settings
-        content.querySelectorAll('.rule-configure-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const ruleName = btn.dataset.rule;
-                const panel = content.querySelector(`.rule-settings-panel[data-rule="${ruleName}"]`);
-                const chevron = btn.querySelector('.configure-chevron');
-                if (panel) {
-                    panel.classList.toggle('expanded');
-                    if (chevron) chevron.textContent = panel.classList.contains('expanded') ? '▲' : '▼';
-                }
-            });
-        });
-
-        // JSON Validation
-        content.querySelectorAll('.rule-settings-json').forEach(textarea => {
-            textarea.addEventListener('blur', () => this.handleJsonBlur(textarea, config));
+        
+        // JSON Validation - direct binding needed for blur
+        container.querySelectorAll('.rule-settings-json:not([data-events-bound])').forEach(textarea => {
+            // Mark as bound to prevent duplicate bindings
+            textarea.dataset.eventsBound = 'true';
+            
+            textarea.addEventListener('blur', () => this.handleJsonBlur(textarea, activeConfig));
         });
     }
 
@@ -470,8 +446,12 @@ export class ConfigBreakdownUI {
                 this.savedFilterState.status,
                 this.savedFilterState.severity
             );
-            // Skip event binding here since bindRuleEvents will be called after restoreFilterState
             this.renderRuleList(ruleBreakdown, filteredRules, this.currentIsBuiltIn, true);
+            
+            // Re-bind events after restoring filtered state (since elements were recreated)
+            if (!this.currentIsBuiltIn && this.currentConfig) {
+                this.bindRuleEvents(content, this.currentConfig);
+            }
         }
     }
 
@@ -500,8 +480,12 @@ export class ConfigBreakdownUI {
             
             const filteredRules = this.filterRules(this.allRules, searchTerm, statusValue, severityValue);
             // Re-render the list (this clears and recreates elements, so we need to rebind)
-            // Don't skip event binding - we need to rebind since elements were recreated
-            this.renderRuleList(ruleBreakdown, filteredRules, this.currentIsBuiltIn, false);
+            this.renderRuleList(ruleBreakdown, filteredRules, this.currentIsBuiltIn, true);
+            
+            // Re-bind events after filtering (since elements were recreated)
+            if (!this.currentIsBuiltIn && this.currentConfig) {
+                this.bindRuleEvents(content, this.currentConfig);
+            }
         };
         
         if (searchInput) {
@@ -517,7 +501,113 @@ export class ConfigBreakdownUI {
         }
     }
 
+    /**
+     * Show the ghost rule delete confirmation modal
+     */
+    showGhostRuleDeleteModal(ruleName, deleteBtn, content) {
+        const modal = document.getElementById('ghost-rule-delete-modal');
+        const message = document.getElementById('ghost-rule-delete-message');
+        const confirmBtn = document.getElementById('ghost-rule-delete-confirm');
+        const cancelBtn = document.getElementById('ghost-rule-delete-cancel');
+        const closeBtn = document.getElementById('ghost-rule-delete-close');
+        
+        if (!modal || !message || !confirmBtn) {
+            console.error('Ghost rule delete modal elements not found');
+            return;
+        }
+
+        // Update message
+        message.textContent = `Remove ghost rule "${ruleName}"? This rule is not found in the runtime and will not be counted or used.`;
+
+        // Cleanup previous listeners to prevent memory leaks/double-clicks
+        const cleanup = () => {
+            confirmBtn.onclick = null;
+            if (cancelBtn) cancelBtn.onclick = null;
+            if (closeBtn) closeBtn.onclick = null;
+            modal.hidden = true;
+        };
+
+        // Bind Confirm
+        confirmBtn.onclick = () => {
+            cleanup();
+            this.handleGhostRuleDelete(ruleName, deleteBtn, content);
+        };
+
+        // Bind Cancel
+        if (cancelBtn) {
+            cancelBtn.onclick = cleanup;
+        }
+
+        // Bind Close
+        if (closeBtn) {
+            closeBtn.onclick = cleanup;
+        }
+
+        // Show modal
+        modal.hidden = false;
+    }
+
+    /**
+     * Handle the actual ghost rule deletion
+     */
+    async handleGhostRuleDelete(ruleName, deleteBtn, content) {
+        if (this.isDeletingGhostRule) return;
+        
+        this.isDeletingGhostRule = true;
+        try {
+            // Delete from config object using currentConfig
+            if (this.currentConfig && this.currentConfig.rules && this.currentConfig.rules[ruleName]) {
+                delete this.currentConfig.rules[ruleName];
+            }
+            
+            // Save the updated config
+            await ConfigAPI.save(this.currentConfig);
+            
+            // Remove the DOM element immediately for better UX
+            const ruleItem = deleteBtn.closest('.rule-item');
+            if (ruleItem) {
+                ruleItem.remove();
+            }
+            
+            // Update the manager's config cache
+            const managerConfig = this.manager.availableConfigs.find(c => c.id === this.currentConfig.id);
+            if (managerConfig) {
+                managerConfig.rules = this.currentConfig.rules;
+            }
+            
+            // Re-render just the rules list without full modal refresh
+            // This avoids rebinding events and breaking the UI
+            const rulesContainer = content.querySelector('.rules-list');
+            if (rulesContainer) {
+                // Get fresh config data
+                const updatedConfig = managerConfig || this.currentConfig;
+                this.allRules = Object.entries(updatedConfig.rules || {})
+                    .map(([name, ruleConfig]) => ({ name, ...ruleConfig }))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                
+                // Re-render the rules list
+                rulesContainer.innerHTML = '';
+                this.renderRuleList(this.allRules, rulesContainer, updatedConfig, this.currentIsBuiltIn);
+                
+                // Re-bind events for the new DOM elements (severity dropdowns, textareas)
+                // But don't rebind the click handlers since they use event delegation
+                this.bindDirectEvents(rulesContainer, updatedConfig);
+            }
+            
+            this.app.showToast('Ghost rule removed', 'success');
+        } catch (error) {
+            console.error('Error removing ghost rule:', error);
+            this.app.showToast('Failed to remove ghost rule', 'error');
+        } finally {
+            this.isDeletingGhostRule = false;
+        }
+    }
+
     handleJsonBlur(textarea, config) {
+        // Use currentConfig to ensure we always edit fresh data
+        const activeConfig = config || this.currentConfig;
+        if (!activeConfig) return;
+        
         const ruleName = textarea.dataset.rule;
         const errorDiv = document.querySelector(`.rule-settings-error[data-rule="${ruleName}"]`);
         const value = textarea.value.trim();
@@ -529,7 +619,9 @@ export class ConfigBreakdownUI {
         if (errorDiv) errorDiv.style.display = 'none';
 
         if (!value) {
-            if (config.rules[ruleName]) config.rules[ruleName].custom_settings = {};
+            if (activeConfig.rules && activeConfig.rules[ruleName]) {
+                activeConfig.rules[ruleName].custom_settings = {};
+            }
             if (configureBtn) {
                 configureBtn.classList.remove('modified');
                 configureBtn.innerHTML = `⚙️ Configure ${chevronHtml}`;
@@ -540,9 +632,13 @@ export class ConfigBreakdownUI {
         try {
             const parsed = JSON.parse(value);
             const isEmpty = Object.keys(parsed).length === 0;
+            
+            // Use activeConfig instead of config
             textarea.value = isEmpty ? '{}' : JSON.stringify(parsed, null, 2);
             
-            if (config.rules[ruleName]) config.rules[ruleName].custom_settings = isEmpty ? {} : parsed;
+            if (activeConfig.rules && activeConfig.rules[ruleName]) {
+                activeConfig.rules[ruleName].custom_settings = isEmpty ? {} : parsed;
+            }
 
             textarea.classList.add('json-valid');
             setTimeout(() => textarea.classList.remove('json-valid'), 1000);

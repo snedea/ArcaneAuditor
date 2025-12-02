@@ -1021,19 +1021,19 @@
 }
 
 .config-category-personal {
-    color: #0d9488;
+    color: #2563eb; /* Dark blue (swapped from Team) */
 }
 
 [data-theme="dark"] .config-category-personal {
-    color: #2dd4bf;
+    color: #60a5fa; /* Blue (swapped from Team) */
 }
 
 .config-category-team {
-    color: #2563eb;
+    color: #0d9488; /* Teal (swapped from Personal) */
 }
 
 [data-theme="dark"] .config-category-team {
-    color: #60a5fa;
+    color: #2dd4bf; /* Teal-cyan (swapped from Personal) */
 }
 
 .config-divider {

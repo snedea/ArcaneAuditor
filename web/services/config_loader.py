@@ -22,6 +22,19 @@ def get_dynamic_config_info():
     engine = RulesEngine(config)
     runtime_rule_names = [rule.__class__.__name__ for rule in engine.rules]
     
+    # Map Rule Class Name -> Rule Class (for accessing AVAILABLE_SETTINGS)
+    # Note: normalized_rules uses class names as keys (from get_runtime_rule_names)
+    rule_class_map = {
+        type(r).__name__: type(r)
+        for r in engine.rules
+    }
+    
+    # Map Rule Class Name -> Boolean (Has Settings)
+    rule_settings_map = {
+        rule_name: bool(getattr(rule_class, 'AVAILABLE_SETTINGS', {}))
+        for rule_name, rule_class in rule_class_map.items()
+    }
+    
     # Search in priority order: personal, teams, presets
     dirs = get_config_dirs()
     config_dirs = [
@@ -52,6 +65,37 @@ def get_dynamic_config_info():
                     runtime_rule_names=runtime_rule_names,
                     production_rules=production_rules,
                 )
+
+                # Add supports_config flag and merge default settings with user settings
+                for rule_name, rule_config in normalized_rules.items():
+                    # 1. Get the class metadata (Source of Truth for "What is possible")
+                    rule_class = rule_class_map.get(rule_name)
+                    available_settings = {}
+                    if rule_class:
+                        available_settings = getattr(rule_class, 'AVAILABLE_SETTINGS', {})
+                    
+                    # 2. Build the Defaults Dictionary
+                    defaults = {
+                        key: meta['default']
+                        for key, meta in available_settings.items()
+                        if 'default' in meta
+                    }
+                    
+                    # 3. Get the User's Saved Settings (Overrides)
+                    user_settings = rule_config.get('custom_settings', {})
+                    
+                    # 4. Deep Merge: Defaults + User Overrides
+                    # This ensures new Python settings appear even if the user hasn't saved them yet
+                    final_settings = {**defaults, **user_settings}
+                    
+                    # 5. Update the response object
+                    normalized_rules[rule_name]['custom_settings'] = final_settings
+                    
+                    # Add supports_config flag
+                    rule_has_metadata = rule_settings_map.get(rule_name, False)
+                    user_has_config = bool(user_settings)  # Check original user settings, not merged
+                    # Show button if the rule supports it OR if the user has already forced a config
+                    normalized_rules[rule_name]['supports_config'] = rule_has_metadata or user_has_config
 
                 # Count enabled rules
                 enabled_rules = 0
