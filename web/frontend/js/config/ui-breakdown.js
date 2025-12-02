@@ -19,6 +19,9 @@ export class ConfigBreakdownUI {
             severity: 'all'
         };
         
+        // Flag to track if we're reloading after a save (to persist filters)
+        this.isReloadingAfterSave = false;
+        
         // Track if events are bound to avoid duplicates
         this.eventsBound = false;
         
@@ -35,6 +38,14 @@ export class ConfigBreakdownUI {
      * Helper to close the modal
      */
     hide() {
+        // Reset filter state and reload flag when closing modal
+        this.savedFilterState = {
+            search: '',
+            status: 'all',
+            severity: 'all'
+        };
+        this.isReloadingAfterSave = false;
+        
         const modal = document.getElementById('config-breakdown-modal');
         if (modal) modal.style.display = 'none';
     }
@@ -43,6 +54,15 @@ export class ConfigBreakdownUI {
      * The main method to show the breakdown modal
      */
     show(configId) {
+        // Reset filter state only if this is a fresh open (not a reload after save)
+        if (!this.isReloadingAfterSave) {
+            this.savedFilterState = {
+                search: '',
+                status: 'all',
+                severity: 'all'
+            };
+        }
+        
         const modal = document.getElementById('config-breakdown-modal');
         const content = document.getElementById('config-breakdown-content');
         const header = document.querySelector('.modal-header');
@@ -113,8 +133,9 @@ export class ConfigBreakdownUI {
                 this.manager.openDuplicateModal(config.id, 'Personal');
             };
             if (saveBtn) saveBtn.onclick = () => {
-                // Save filter state before refreshing
+                // Save filter state and set flag before refreshing (so it persists during save/refresh cycle)
                 this.saveFilterState();
+                this.isReloadingAfterSave = true;
                 this.manager.saveCurrentConfigChanges(config);
             };
             if (closeBtn) closeBtn.onclick = () => this.hide();
@@ -130,12 +151,13 @@ export class ConfigBreakdownUI {
         // --- 3. RENDER FILTER TOOLBAR (after body so it's in the right place) ---
         this.renderFilterToolbar(content);
         
-        // --- 4. RESTORE FILTER STATE (if we have saved state) ---
-        // Note: restoreFilterState may re-render rules and bind events if filters are active
-        this.restoreFilterState(content);
+        // --- 4. RESTORE FILTER STATE (if reloading after save) ---
+        if (this.isReloadingAfterSave) {
+            this.restoreFilterState(content);
+            this.isReloadingAfterSave = false; // Reset flag after restoring
+        }
         
         // --- 5. BIND EVENTS (Only if not built-in) ---
-        // Bind events after restoreFilterState in case it didn't bind (no filters active)
         if (!isBuiltIn) {
             this.bindRuleEvents(content, config);
         }
