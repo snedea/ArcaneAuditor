@@ -22,6 +22,13 @@ def get_dynamic_config_info():
     engine = RulesEngine(config)
     runtime_rule_names = [rule.__class__.__name__ for rule in engine.rules]
     
+    # Map Rule Class Name -> Boolean (Has Settings)
+    # Note: normalized_rules uses class names as keys (from get_runtime_rule_names)
+    rule_settings_map = {
+        type(r).__name__: bool(getattr(r, 'AVAILABLE_SETTINGS', {}))
+        for r in engine.rules
+    }
+    
     # Search in priority order: personal, teams, presets
     dirs = get_config_dirs()
     config_dirs = [
@@ -52,6 +59,13 @@ def get_dynamic_config_info():
                     runtime_rule_names=runtime_rule_names,
                     production_rules=production_rules,
                 )
+
+                # Add supports_config flag to each rule
+                for rule_name, rule_config in normalized_rules.items():
+                    rule_has_metadata = rule_settings_map.get(rule_name, False)
+                    user_has_config = bool(rule_config.get('custom_settings', {}))
+                    # Show button if the rule supports it OR if the user has already forced a config
+                    normalized_rules[rule_name]['supports_config'] = rule_has_metadata or user_has_config
 
                 # Count enabled rules
                 enabled_rules = 0

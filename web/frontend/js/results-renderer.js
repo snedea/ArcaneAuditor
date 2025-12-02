@@ -584,14 +584,20 @@ export class ResultsRenderer {
 
     // Reset method
     resetForNewUpload() {
-        this.filteredFindings = [];
-        this.expandedFiles.clear();
+        // Reset app-level state
+        if (this.app) {
+            this.app.filteredFindings = [];
+            if (this.app.expandedFiles) {
+                this.app.expandedFiles.clear();
+            }
+            this.app.currentFilters = {
+                severity: 'all',
+                fileType: 'all',
+                sortBy: getLastSortBy(),
+                sortFilesBy: getLastSortFilesBy()
+            };
+        }
+        // Reset renderer-level state
         this.contextPanelExpanded = false;
-        this.currentFilters = {
-            severity: 'all',
-            fileType: 'all',
-            sortBy: getLastSortBy(),
-            sortFilesBy: getLastSortFilesBy()
-        };
     }
 }

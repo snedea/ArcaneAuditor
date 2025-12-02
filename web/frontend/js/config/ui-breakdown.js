@@ -17,6 +17,9 @@ export class ConfigBreakdownUI {
             status: 'all',
             severity: 'all'
         };
+        
+        // Track if events are bound to avoid duplicates
+        this.eventsBound = false;
 
         // Escape key functionality
         document.addEventListener('keydown', (e) => {
@@ -117,6 +120,11 @@ export class ConfigBreakdownUI {
         this.currentConfig = config;
         this.currentIsBuiltIn = isBuiltIn;
         
+        // Reset events bound flag for new modal instance
+        if (content) {
+            content.dataset.eventsBound = 'false';
+        }
+        
         // --- 2. RENDER BODY (Rules) ---
         this.renderBody(config, isBuiltIn, content);
         
@@ -124,9 +132,11 @@ export class ConfigBreakdownUI {
         this.renderFilterToolbar(content);
         
         // --- 4. RESTORE FILTER STATE (if we have saved state) ---
+        // Note: restoreFilterState may re-render rules and bind events if filters are active
         this.restoreFilterState(content);
         
         // --- 5. BIND EVENTS (Only if not built-in) ---
+        // Bind events after restoreFilterState in case it didn't bind (no filters active)
         if (!isBuiltIn) {
             this.bindRuleEvents(content, config);
         }
@@ -290,6 +300,7 @@ export class ConfigBreakdownUI {
             const customSettings = ruleConfig.custom_settings || {};
             const settingsText = Object.keys(customSettings).length > 0 ? JSON.stringify(customSettings, null, 2) : '';
             const isGhost = ruleConfig._is_ghost === true;
+            const supportsConfig = ruleConfig.supports_config !== false; // Default to true if not specified
 
             const enabledClass = isEnabled ? 'enabled' : 'disabled';
             const ghostClass = isGhost ? 'ghost-rule' : '';
@@ -313,9 +324,11 @@ export class ConfigBreakdownUI {
                                     <option value="ADVICE" ${severity === 'ADVICE' ? 'selected' : ''}>ADVICE</option>
                                     <option value="ACTION" ${severity === 'ACTION' ? 'selected' : ''}>ACTION</option>
                                 </select>
-                                <button class="rule-configure-btn ${hasCustomSettings ? 'modified' : ''}" data-rule="${ruleName}" type="button">
-                                    ${configureIcon} ${configureText} <span class="configure-chevron" data-rule="${ruleName}">▼</span>
-                                </button>
+                                ${supportsConfig ? `
+                                    <button class="rule-configure-btn ${hasCustomSettings ? 'modified' : ''}" data-rule="${ruleName}" type="button">
+                                        ${configureIcon} ${configureText} <span class="configure-chevron" data-rule="${ruleName}">▼</span>
+                                    </button>
+                                ` : ''}
                             ` : ''}
                             ${!isBuiltIn && isGhost ? `<button class="rule-delete-btn" data-rule="${ruleName}" type="button" title="Remove ghost rule">🗑️ Remove</button>` : ''}
                             ${!isBuiltIn ? `
@@ -325,7 +338,7 @@ export class ConfigBreakdownUI {
                             ` : ''}
                         </div>
                     </div>
-                    ${!isBuiltIn && !isGhost ? `
+                    ${!isBuiltIn && !isGhost && supportsConfig ? `
                         <div class="rule-settings-panel" data-rule="${ruleName}">
                             <textarea class="rule-settings-json" data-rule="${ruleName}" placeholder='{ "mode": "strict" }'>${settingsText}</textarea>
                             <div class="rule-settings-error" data-rule="${ruleName}">Invalid JSON format</div>
@@ -337,19 +350,30 @@ export class ConfigBreakdownUI {
             container.insertAdjacentHTML('beforeend', ruleHtml);
         });
         
-        // Re-bind events after re-rendering (unless we're skipping for restore)
-        if (!skipEventBinding && !isBuiltIn && this.currentConfig) {
-            this.bindRuleEvents(container.closest('#config-breakdown-content'), this.currentConfig);
-        }
+        // Note: Events are bound by the caller (show() or bindFilterEvents)
+        // We don't bind here to avoid double-binding and container issues
     }
 
     bindRuleEvents(content, config) {
-        // Toggle Switches
-        content.querySelectorAll('.rule-toggle-switch:not([disabled])').forEach(toggle => {
-            toggle.addEventListener('click', (e) => {
+        // Only bind events once per content element to avoid duplicates
+        // Check if we've already bound events to this content element
+        if (content.dataset.eventsBound === 'true') {
+            return;
+        }
+        content.dataset.eventsBound = 'true';
+        
+        // Use event delegation on the content container to avoid duplicate binding issues
+        // This ensures events work even when elements are re-rendered
+        
+        // Toggle Switches - use event delegation
+        content.addEventListener('click', (e) => {
+            const toggle = e.target.closest('.rule-toggle-switch:not([disabled])');
+            if (toggle) {
                 e.stopPropagation();
                 const ruleName = toggle.dataset.rule;
                 const ruleItem = toggle.closest('.rule-item');
+                if (!ruleItem) return;
+                
                 const isCurrentlyEnabled = ruleItem.classList.contains('enabled');
                 
                 // Toggle UI state
@@ -359,49 +383,60 @@ export class ConfigBreakdownUI {
                 toggle.classList.toggle('disabled', isCurrentlyEnabled);
                 
                 // Update Config Data
-                if (config.rules[ruleName]) {
+                if (config.rules && config.rules[ruleName]) {
                     config.rules[ruleName].enabled = !isCurrentlyEnabled;
                 }
-            });
+            }
         });
         
-        // Ghost Rule Deletion
-        content.querySelectorAll('.rule-delete-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+        // Ghost Rule Deletion - use event delegation
+        content.addEventListener('click', (e) => {
+            const btn = e.target.closest('.rule-delete-btn');
+            if (btn) {
                 e.stopPropagation();
                 const ruleName = btn.dataset.rule;
                 if (confirm(`Remove ghost rule "${ruleName}"?`)) {
-                    try {
-                        if (config.rules && config.rules[ruleName]) delete config.rules[ruleName];
-                        
-                        // Use API directly
-                        await ConfigAPI.save(config);
-                        
-                        btn.closest('.rule-item').remove();
-                        await this.manager.loadConfigurations();
-                        this.show(config.id); // Refresh modal
-                        this.app.showToast('Ghost rule removed', 'success');
-                    } catch (error) {
-                        console.error('Error removing ghost rule:', error);
-                        this.app.showToast('Failed to remove ghost rule', 'error');
-                    }
+                    (async () => {
+                        try {
+                            if (config.rules && config.rules[ruleName]) delete config.rules[ruleName];
+                            
+                            // Use API directly
+                            await ConfigAPI.save(config);
+                            
+                            btn.closest('.rule-item')?.remove();
+                            await this.manager.loadConfigurations();
+                            this.show(config.id); // Refresh modal
+                            this.app.showToast('Ghost rule removed', 'success');
+                        } catch (error) {
+                            console.error('Error removing ghost rule:', error);
+                            this.app.showToast('Failed to remove ghost rule', 'error');
+                        }
+                    })();
                 }
-            });
+            }
         });
 
-        // Severity Dropdowns
+        // Severity Dropdowns - direct binding (change events don't bubble the same way)
         content.querySelectorAll('.rule-severity-select').forEach(select => {
-            select.addEventListener('change', (e) => {
-                const ruleName = select.dataset.rule;
-                const newSeverity = select.value;
-                if (config.rules[ruleName]) config.rules[ruleName].severity_override = newSeverity;
-                select.className = `rule-severity-select rule-severity-${newSeverity.toLowerCase()}`;
+            // Remove old listener by cloning (simple way to clear)
+            const newSelect = select.cloneNode(true);
+            select.parentNode.replaceChild(newSelect, select);
+            
+            newSelect.addEventListener('change', (e) => {
+                const ruleName = newSelect.dataset.rule;
+                const newSeverity = newSelect.value;
+                if (config.rules && config.rules[ruleName]) {
+                    config.rules[ruleName].severity_override = newSeverity;
+                }
+                newSelect.className = `rule-severity-select rule-severity-${newSeverity.toLowerCase()}`;
             });
         });
 
-        // Expand/Collapse Settings
-        content.querySelectorAll('.rule-configure-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        // Expand/Collapse Settings - use event delegation
+        content.addEventListener('click', (e) => {
+            const btn = e.target.closest('.rule-configure-btn');
+            if (btn) {
+                e.stopPropagation();
                 const ruleName = btn.dataset.rule;
                 const panel = content.querySelector(`.rule-settings-panel[data-rule="${ruleName}"]`);
                 const chevron = btn.querySelector('.configure-chevron');
@@ -409,12 +444,16 @@ export class ConfigBreakdownUI {
                     panel.classList.toggle('expanded');
                     if (chevron) chevron.textContent = panel.classList.contains('expanded') ? '▲' : '▼';
                 }
-            });
+            }
         });
 
-        // JSON Validation
+        // JSON Validation - direct binding needed for blur
         content.querySelectorAll('.rule-settings-json').forEach(textarea => {
-            textarea.addEventListener('blur', () => this.handleJsonBlur(textarea, config));
+            // Remove old listener by cloning
+            const newTextarea = textarea.cloneNode(true);
+            textarea.parentNode.replaceChild(newTextarea, textarea);
+            
+            newTextarea.addEventListener('blur', () => this.handleJsonBlur(newTextarea, config));
         });
     }
 
@@ -470,8 +509,12 @@ export class ConfigBreakdownUI {
                 this.savedFilterState.status,
                 this.savedFilterState.severity
             );
-            // Skip event binding here since bindRuleEvents will be called after restoreFilterState
             this.renderRuleList(ruleBreakdown, filteredRules, this.currentIsBuiltIn, true);
+            
+            // Re-bind events after restoring filtered state (since elements were recreated)
+            if (!this.currentIsBuiltIn && this.currentConfig) {
+                this.bindRuleEvents(content, this.currentConfig);
+            }
         }
     }
 
@@ -500,8 +543,12 @@ export class ConfigBreakdownUI {
             
             const filteredRules = this.filterRules(this.allRules, searchTerm, statusValue, severityValue);
             // Re-render the list (this clears and recreates elements, so we need to rebind)
-            // Don't skip event binding - we need to rebind since elements were recreated
-            this.renderRuleList(ruleBreakdown, filteredRules, this.currentIsBuiltIn, false);
+            this.renderRuleList(ruleBreakdown, filteredRules, this.currentIsBuiltIn, true);
+            
+            // Re-bind events after filtering (since elements were recreated)
+            if (!this.currentIsBuiltIn && this.currentConfig) {
+                this.bindRuleEvents(content, this.currentConfig);
+            }
         };
         
         if (searchInput) {

@@ -11,6 +11,11 @@ class ScriptLongFunctionRule(ScriptRuleBase):
     DESCRIPTION = "Ensures functions don't exceed maximum line count (max 50 lines)"
     SEVERITY = "ADVICE"
     DETECTOR = LongFunctionDetector
+    AVAILABLE_SETTINGS = {
+        'max_lines': {'type': 'int', 'default': 50, 'description': 'Maximum lines allowed'},
+        'skip_comments': {'type': 'bool', 'default': False, 'description': 'Skip comment lines when counting'},
+        'skip_blank_lines': {'type': 'bool', 'default': False, 'description': 'Skip blank lines when counting'}
+    }
 
     def __init__(self):
         super().__init__()
