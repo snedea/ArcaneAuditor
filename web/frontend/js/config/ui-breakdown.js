@@ -390,59 +390,8 @@ export class ConfigBreakdownUI {
                     e.preventDefault();
                     const ruleName = btn.dataset.rule;
                     
-                    // Use this.currentConfig here too
-                    if (confirm(`Remove ghost rule "${ruleName}"?`)) {
-                        this.isDeletingGhostRule = true;
-                        (async () => {
-                            try {
-                                // Delete from config object using currentConfig
-                                if (this.currentConfig && this.currentConfig.rules && this.currentConfig.rules[ruleName]) {
-                                    delete this.currentConfig.rules[ruleName];
-                                }
-                                
-                                // Save the updated config
-                                await ConfigAPI.save(this.currentConfig);
-                                
-                                // Remove the DOM element immediately for better UX
-                                const ruleItem = btn.closest('.rule-item');
-                                if (ruleItem) {
-                                    ruleItem.remove();
-                                }
-                                
-                                // Update the manager's config cache
-                                const managerConfig = this.manager.availableConfigs.find(c => c.id === this.currentConfig.id);
-                                if (managerConfig) {
-                                    managerConfig.rules = this.currentConfig.rules;
-                                }
-                                
-                                // Re-render just the rules list without full modal refresh
-                                // This avoids rebinding events and breaking the UI
-                                const rulesContainer = content.querySelector('.rules-list');
-                                if (rulesContainer) {
-                                    // Get fresh config data
-                                    const updatedConfig = managerConfig || this.currentConfig;
-                                    this.allRules = Object.entries(updatedConfig.rules || {})
-                                        .map(([name, ruleConfig]) => ({ name, ...ruleConfig }))
-                                        .sort((a, b) => a.name.localeCompare(b.name));
-                                    
-                                    // Re-render the rules list
-                                    rulesContainer.innerHTML = '';
-                                    this.renderRuleList(this.allRules, rulesContainer, updatedConfig, this.currentIsBuiltIn);
-                                    
-                                    // Re-bind events for the new DOM elements (severity dropdowns, textareas)
-                                    // But don't rebind the click handlers since they use event delegation
-                                    this.bindDirectEvents(rulesContainer, updatedConfig);
-                                }
-                                
-                                this.app.showToast('Ghost rule removed', 'success');
-                            } catch (error) {
-                                console.error('Error removing ghost rule:', error);
-                                this.app.showToast('Failed to remove ghost rule', 'error');
-                            } finally {
-                                this.isDeletingGhostRule = false;
-                            }
-                        })();
-                    }
+                    // Show custom modal instead of browser confirm
+                    this.showGhostRuleDeleteModal(ruleName, btn, content);
                 }
             });
 
@@ -604,6 +553,108 @@ export class ConfigBreakdownUI {
         
         if (severityFilter) {
             severityFilter.addEventListener('change', applyFilters);
+        }
+    }
+
+    /**
+     * Show the ghost rule delete confirmation modal
+     */
+    showGhostRuleDeleteModal(ruleName, deleteBtn, content) {
+        const modal = document.getElementById('ghost-rule-delete-modal');
+        const message = document.getElementById('ghost-rule-delete-message');
+        const confirmBtn = document.getElementById('ghost-rule-delete-confirm');
+        const cancelBtn = document.getElementById('ghost-rule-delete-cancel');
+        const closeBtn = document.getElementById('ghost-rule-delete-close');
+        
+        if (!modal || !message || !confirmBtn) {
+            console.error('Ghost rule delete modal elements not found');
+            return;
+        }
+
+        // Update message
+        message.textContent = `Remove ghost rule "${ruleName}"? This rule is not found in the runtime and will not be counted or used.`;
+
+        // Cleanup previous listeners to prevent memory leaks/double-clicks
+        const cleanup = () => {
+            confirmBtn.onclick = null;
+            if (cancelBtn) cancelBtn.onclick = null;
+            if (closeBtn) closeBtn.onclick = null;
+            modal.hidden = true;
+        };
+
+        // Bind Confirm
+        confirmBtn.onclick = () => {
+            cleanup();
+            this.handleGhostRuleDelete(ruleName, deleteBtn, content);
+        };
+
+        // Bind Cancel
+        if (cancelBtn) {
+            cancelBtn.onclick = cleanup;
+        }
+
+        // Bind Close
+        if (closeBtn) {
+            closeBtn.onclick = cleanup;
+        }
+
+        // Show modal
+        modal.hidden = false;
+    }
+
+    /**
+     * Handle the actual ghost rule deletion
+     */
+    async handleGhostRuleDelete(ruleName, deleteBtn, content) {
+        if (this.isDeletingGhostRule) return;
+        
+        this.isDeletingGhostRule = true;
+        try {
+            // Delete from config object using currentConfig
+            if (this.currentConfig && this.currentConfig.rules && this.currentConfig.rules[ruleName]) {
+                delete this.currentConfig.rules[ruleName];
+            }
+            
+            // Save the updated config
+            await ConfigAPI.save(this.currentConfig);
+            
+            // Remove the DOM element immediately for better UX
+            const ruleItem = deleteBtn.closest('.rule-item');
+            if (ruleItem) {
+                ruleItem.remove();
+            }
+            
+            // Update the manager's config cache
+            const managerConfig = this.manager.availableConfigs.find(c => c.id === this.currentConfig.id);
+            if (managerConfig) {
+                managerConfig.rules = this.currentConfig.rules;
+            }
+            
+            // Re-render just the rules list without full modal refresh
+            // This avoids rebinding events and breaking the UI
+            const rulesContainer = content.querySelector('.rules-list');
+            if (rulesContainer) {
+                // Get fresh config data
+                const updatedConfig = managerConfig || this.currentConfig;
+                this.allRules = Object.entries(updatedConfig.rules || {})
+                    .map(([name, ruleConfig]) => ({ name, ...ruleConfig }))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                
+                // Re-render the rules list
+                rulesContainer.innerHTML = '';
+                this.renderRuleList(this.allRules, rulesContainer, updatedConfig, this.currentIsBuiltIn);
+                
+                // Re-bind events for the new DOM elements (severity dropdowns, textareas)
+                // But don't rebind the click handlers since they use event delegation
+                this.bindDirectEvents(rulesContainer, updatedConfig);
+            }
+            
+            this.app.showToast('Ghost rule removed', 'success');
+        } catch (error) {
+            console.error('Error removing ghost rule:', error);
+            this.app.showToast('Failed to remove ghost rule', 'error');
+        } finally {
+            this.isDeletingGhostRule = false;
         }
     }
 
