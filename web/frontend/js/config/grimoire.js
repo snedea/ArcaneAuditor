@@ -491,6 +491,9 @@ export class GrimoireUI {
         // Convert inline code (`code`)
         html = html.replace(/`([^`]+)`/g, '<code class="grimoire-inline-code">$1</code>');
 
+        // Convert bold (**text**)
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
         // Convert line breaks
         html = html.replace(/\n\n/g, '</p><p>');
         html = html.replace(/\n/g, '<br>');
