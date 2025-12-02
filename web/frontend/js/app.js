@@ -289,6 +289,11 @@ class ArcaneAuditorApp {
         if (configToolbar) {
             configToolbar.style.display = 'flex';
         }
+        
+        const configSectionContainer = document.querySelector('.config-section-container');
+        if (configSectionContainer) {
+            configSectionContainer.style.display = 'block';
+        }
     }
 
     showLoading() {
@@ -300,6 +305,11 @@ class ArcaneAuditorApp {
         if (configToolbar) {
             configToolbar.style.display = 'none';
         }
+        
+        const configSectionContainer = document.querySelector('.config-section-container');
+        if (configSectionContainer) {
+            configSectionContainer.style.display = 'none';
+        }
     }
 
     showResults() {
@@ -310,6 +320,11 @@ class ArcaneAuditorApp {
         const configToolbar = document.getElementById('config-toolbar');
         if (configToolbar) {
             configToolbar.style.display = 'none';
+        }
+        
+        const configSectionContainer = document.querySelector('.config-section-container');
+        if (configSectionContainer) {
+            configSectionContainer.style.display = 'none';
         }
         
         // Initialize filtered findings with current result findings
@@ -796,6 +811,12 @@ class ArcaneAuditorApp {
         if (configToolbar) {
             configToolbar.style.display = 'flex';
         }
+        
+        const configSectionContainer = document.querySelector('.config-section-container');
+        if (configSectionContainer) {
+            configSectionContainer.style.display = 'block';
+        }
+        
         document.getElementById('upload-section').style.display = 'block';
         this.currentResult = null;
         this.uploadedFileName = null;
