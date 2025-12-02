@@ -91,6 +91,9 @@ def get_dynamic_config_info():
                     # 5. Update the response object
                     normalized_rules[rule_name]['custom_settings'] = final_settings
                     
+                    # 6. Inject settings schema for frontend form generation
+                    normalized_rules[rule_name]['settings_schema'] = available_settings
+                    
                     # Add supports_config flag
                     rule_has_metadata = rule_settings_map.get(rule_name, False)
                     user_has_config = bool(user_settings)  # Check original user settings, not merged

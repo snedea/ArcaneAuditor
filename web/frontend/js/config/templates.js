@@ -41,6 +41,69 @@ export const Templates = {
     },
 
     /**
+     * Generates HTML for a schema-driven settings form
+     * @param {Object} schema - The settings_schema from the rule (AVAILABLE_SETTINGS)
+     * @param {Object} currentValues - The current custom_settings values
+     * @returns {string} HTML for the settings form
+     */
+    generateSettingsForm(schema, currentValues) {
+        if (!schema || Object.keys(schema).length === 0) {
+            // Fallback: return empty form or raw JSON textarea
+            return '<div class="settings-form"><p class="text-slate-400 text-sm">No settings available</p></div>';
+        }
+
+        let formHtml = '<div class="settings-form">';
+        
+        for (const [key, meta] of Object.entries(schema)) {
+            const type = meta.type || 'string';
+            const description = meta.description || '';
+            const currentValue = currentValues[key];
+            
+            // Title case the key for display
+            const label = key.split('_').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            ).join(' ');
+            
+            formHtml += '<div class="setting-group">';
+            formHtml += `<div class="setting-label">${label}</div>`;
+            if (description) {
+                formHtml += `<div class="setting-description">${description}</div>`;
+            }
+            
+            // Render input based on type
+            if (type === 'bool') {
+                const checked = currentValue === true ? 'checked' : '';
+                formHtml += `<input type="checkbox" class="setting-checkbox" data-key="${key}" ${checked} />`;
+            } else if (type === 'int') {
+                const value = currentValue !== undefined ? currentValue : (meta.default || '');
+                formHtml += `<input type="number" class="setting-input" data-key="${key}" value="${value}" min="0" />`;
+            } else if (type === 'list') {
+                // Join array values with newlines for display
+                const listValue = Array.isArray(currentValue) 
+                    ? currentValue.join('\n') 
+                    : (Array.isArray(meta.default) ? meta.default.join('\n') : '');
+                formHtml += `<textarea class="setting-list-input" rows="4" data-key="${key}">${listValue}</textarea>`;
+            } else if (type === 'dict' || type === 'object') {
+                // Fallback: raw JSON textarea for complex types
+                const jsonValue = currentValue !== undefined 
+                    ? JSON.stringify(currentValue, null, 2) 
+                    : (meta.default ? JSON.stringify(meta.default, null, 2) : '{}');
+                formHtml += `<textarea class="rule-settings-json" data-key="${key}" rows="6">${jsonValue}</textarea>`;
+                formHtml += `<div class="setting-description">Raw JSON (complex type)</div>`;
+            } else {
+                // Default: string or unknown type
+                const value = currentValue !== undefined ? String(currentValue) : (meta.default || '');
+                formHtml += `<input type="text" class="setting-input" data-key="${key}" value="${value}" />`;
+            }
+            
+            formHtml += '</div>';
+        }
+        
+        formHtml += '</div>';
+        return formHtml;
+    },
+
+    /**
      * Generates HTML for a single Rule Row
      */
     ruleRow({ ruleName, ruleConfig, isBuiltIn, supportsConfig }) {
@@ -91,8 +154,8 @@ export const Templates = {
                 </div>
                 ${!isBuiltIn && !isGhost && supportsConfig ? `
                     <div class="rule-settings-panel" data-rule="${ruleName}">
-                        <textarea class="rule-settings-json" data-rule="${ruleName}" placeholder='{ "mode": "strict" }'>${settingsText}</textarea>
-                        <div class="rule-settings-error" data-rule="${ruleName}">Invalid JSON format</div>
+                        ${this.generateSettingsForm(ruleConfig.settings_schema, customSettings)}
+                        <div class="rule-settings-error" data-rule="${ruleName}" style="display: none;">Invalid JSON format</div>
                     </div>
                 ` : ''}
             </div>
