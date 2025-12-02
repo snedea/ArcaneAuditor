@@ -1129,3 +1129,42 @@
     cursor: pointer;
 }
 
+/* --- Light Mode Refinements --- */
+
+/* 1. Fix Washed Out Summary Labels */
+[data-theme="light"] .summary-label {
+    color: #4b5563; /* Darker gray (Zinc-600) instead of faint gray */
+    font-weight: 600; /* Slightly bolder to read better against white */
+}
+
+/* 2. Fix "Floating Emoji" Buttons */
+[data-theme="light"] .modal-header-right .modal-action-btn {
+    background-color: #f3f4f6; /* Light gray background to define the button area */
+    border: 1px solid #d1d5db; /* Subtle border to define the edges */
+    color: #374151; /* Dark icon color */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* Tiny shadow for depth */
+}
+
+/* Keep the Save button distinct (Purple) */
+[data-theme="light"] .modal-header-right .modal-action-btn.save-btn {
+    background-color: #8b5cf6; /* Keep your purple brand color */
+    color: white;
+    border: 1px solid #7c3aed;
+}
+
+[data-theme="light"] .modal-header-right .modal-action-btn:hover {
+    background-color: #e5e7eb; /* Darker gray on hover */
+}
+
+[data-theme="light"] .modal-header-right .modal-action-btn.save-btn:hover {
+    background-color: #7c3aed; /* Darker purple on hover */
+}
+
+/* 3. Fix Config Group Badge (Personal/Team) */
+[data-theme="light"] .config-source-badge {
+    background-color: #e5e7eb; /* Darker background (Zinc-200) */
+    color: #111827; /* Near black text for max contrast */
+    border: 1px solid #d1d5db; /* Border to separate it from the header */
+    font-weight: 600;
+}
+

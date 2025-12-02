@@ -57,8 +57,8 @@ export const Templates = {
         const ghostClass = isGhost ? 'ghost-rule' : '';
 
         const hasCustomSettings = Object.keys(customSettings).length > 0;
-        const configureIcon = hasCustomSettings ? '🛠️' : '⚙️';
-        const configureText = hasCustomSettings ? 'Customized' : 'Configure';
+        const configureIcon = '🛠️';
+        const configureText = 'Customize';
 
         return `
             <div class="rule-item ${enabledClass} ${ghostClass}" data-rule="${ruleName}">
