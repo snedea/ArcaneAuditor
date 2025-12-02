@@ -33,6 +33,14 @@ class Rule(ABC):
     # Dictionary defining available custom settings.
     # If empty, the rule does not support custom configuration.
     AVAILABLE_SETTINGS: Dict[str, Any] = {}
+    
+    # Metadata for the UI Grimoire - documentation displayed in the UI
+    DOCUMENTATION: Dict[str, Any] = {
+        'why': '',           # "Why This Matters" - explanation of the rule's importance
+        'catches': [],       # List of strings describing "What it catches"
+        'examples': '',      # Code examples (good/bad) - formatted as markdown or plain text
+        'recommendation': '' # "Fix" or general advice on how to resolve violations
+    }
 
     @abstractmethod
     def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:

@@ -94,6 +94,10 @@ def get_dynamic_config_info():
                     # 6. Inject settings schema for frontend form generation
                     normalized_rules[rule_name]['settings_schema'] = available_settings
                     
+                    # 7. Inject documentation for UI Grimoire
+                    documentation = getattr(rule_class, 'DOCUMENTATION', {}) if rule_class else {}
+                    normalized_rules[rule_name]['documentation'] = documentation
+                    
                     # Add supports_config flag
                     rule_has_metadata = rule_settings_map.get(rule_name, False)
                     user_has_config = bool(user_settings)  # Check original user settings, not merged

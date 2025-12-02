@@ -130,6 +130,7 @@ export const Templates = {
                     <div class="rule-name-container">
                         <div class="rule-name">
                             ${ruleName}
+                            ${ruleConfig.documentation && Object.keys(ruleConfig.documentation).length > 0 ? `<button class="rule-info-btn" data-rule="${ruleName}" type="button" title="Open Grimoire Entry">📜</button>` : ''}
                             ${isGhost ? '<span class="ghost-warning-badge-inline">⚠️ Rule not found in runtime (not counted or used)</span>' : ''}
                         </div>
                     </div>
