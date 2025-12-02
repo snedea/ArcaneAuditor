@@ -38,6 +38,7 @@
     width: min(420px, 80vw);
     padding: 12px 18px 16px;
     gap: 12px;
+    max-height: 90vh; /* Increased from 85vh to make it taller */
 }
 
 .duplicate-modal {
@@ -55,18 +56,20 @@
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
     border: 1px solid var(--border-color);
     
-    /* --- SIZE FIXES --- */
-    width: 100%;
-    max-width: 850px; /* The "Portrait" width we discussed */
+    /* Keep the Desktop Width */
+    width: 900px;
+    max-width: 95vw;
     
-    /* THE DEAD SPACE FIX: */
-    height: auto;        /* Allow it to shrink */
-    max-height: 85vh;    /* Cap it at 85% screen height */
+    /* --- REVERT TO SHRINK-WRAP --- */
+    /* Was: height: 85vh; */
+    height: auto;       /* Allow it to shrink for short lists */
+    max-height: 85vh;   /* Cap it so it scrolls on long lists */
     
-    /* --- LAYOUT --- */
+    /* Layout */
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    margin: auto;
 }
 
 /* Modal Header */
@@ -212,13 +215,13 @@
 /* Modal Body */
 .modal-body {
     padding: 24px;
-    overflow-y: auto; 
-    /* Removed 'flex: 1' so it doesn't force expansion */
+    overflow-y: auto;
+    /* Remove 'flex: 1' if it's there, so it doesn't force expansion */
 }
 
 .modal-overlay .modal-body {
     overflow-y: auto;
-    flex: 1 1 auto;
+    /* Removed flex: 1 1 auto to prevent forced expansion */
 }
 
 .modal-body {
@@ -434,11 +437,15 @@
 }
 
 /* Responsive adjustments for modals */
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
     .modal-content {
+        width: 95vw;        /* Allow it to shrink on smaller screens */
+        max-width: 900px;    /* But never exceed desktop width */
         max-height: 95vh;
     }
-    
+}
+
+@media (max-width: 768px) {
     .modal-header {
         padding: 16px 20px;
     }
