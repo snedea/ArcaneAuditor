@@ -11,6 +11,53 @@ class FooterPodRequiredRule(StructureRuleBase):
     DESCRIPTION = "Ensures footer uses pod structure (direct pod or footer with pod children). Excludes PMD pages with tabs, hub pages, and microConclusion pages."
     SEVERITY = "ADVICE"
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Using pods for footers promotes component reuse and consistency across your application. Pods are designed to be reusable components, and structuring footers as pods makes them easier to maintain centrally and update across multiple pages. For many applications, developers include an image for the footer. Being able to change the values for this across all pages at once reduces risk when making updates, easing the maintenance for developers.
+
+**Smart Exclusions:**
+Pages with tabs, hub pages, and microConclusion pages are excluded from this requirement.''',
+        'catches': [
+            'Missing pod widgets in footers',
+            'Inconsistent footer implementations'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "presentation": {
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "richText",  // ❌ Should be pod
+          "id": "footerText"
+        }
+      ]
+    }
+  }
+}
+```
+
+**Fix:**
+
+```json
+{
+  "presentation": {
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "pod",  // ✅ Using pod structure
+          "podId": "footer"
+        }
+      ]
+    }
+  }
+}
+```''',
+        'recommendation': 'Use pod structure for footers to enable component reuse and centralized maintenance. This makes it easier to update footer content across all pages at once.'
+    }
 
     def get_description(self) -> str:
         """Get rule description."""

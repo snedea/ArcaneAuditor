@@ -15,6 +15,44 @@ class ScriptDescriptiveParameterRule(ScriptRuleBase):
     AVAILABLE_SETTINGS = {
         'allowed_single_letters': {'type': 'list', 'default': [], 'description': 'Additional single-letter parameter names to allow beyond built-in exceptions'}
     }
+    
+    DOCUMENTATION = {
+        'why': '''Single-letter parameters in array methods (`x => x.active`) hide information about what is being processed, making code harder to scan and understand at a glance. Descriptive names (`user => user.active`) self-document the code and prevent confusion in nested method chains where multiple single-letter variables could refer to different things.
+
+**Special Cases:**
+- **Sort methods:** `a`, `b` are allowed for comparison parameters
+- **Reduce methods:** Suggests `acc` for accumulator, contextual names for items
+- **Minimally context-aware:** Suggests `user` for `users.map()`, `team` for `teams.filter()`, etc.''',
+        'catches': [
+            'Single-letter parameters in array methods that make code hard to read',
+            'Nested array methods with confusing parameter names',
+            'Non-descriptive variable names in map, filter, find, forEach, reduce, sort'
+        ],
+        'examples': '''**Example violations:**
+
+```javascript
+// ❌ Confusing single-letter parameters
+const activeUsers = users.filter(x => x.active);
+const userNames = users.map(u => u.name);
+```
+
+**Fix:**
+
+```javascript
+// ✅ Descriptive parameter names
+const activeUsers = users.filter(user => user.active);
+const userNames = users.map(user => user.name);
+
+// ✅ Clear chained array methods
+const result = departments
+    .map(dept => dept.teams)
+    .filter(team => team.active);
+
+// ✅ Descriptive reduce parameters
+const total = numbers.reduce((acc, num) => {acc + num});
+```''',
+        'recommendation': 'Use descriptive parameter names in array methods instead of single letters. This makes code self-documenting and prevents confusion, especially in nested method chains.'
+    }
 
     # Expose constants for testing
     FUNCTIONAL_METHODS = {'map', 'filter', 'find', 'forEach', 'reduce', 'sort'}

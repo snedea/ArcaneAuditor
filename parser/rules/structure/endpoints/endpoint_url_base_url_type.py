@@ -9,6 +9,42 @@ class EndpointBaseUrlTypeRule(StructureRuleBase):
     DESCRIPTION = "Ensures endpoint URLs for Workday APIs utilize dataProviders and baseUrlType"
     SEVERITY = "ADVICE"
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Workday APIs are heavily used within most Extend applications. Creating a re-usable definition in the AMD dataProviders array is recommended. When dataProviders are defined, developers can use `baseUrlType` on inbound and outbound endpoints (like 'workday-common' or 'workday-app'). This prevents the developer from explicitly including the entire URL both within and across pages. It has the added benefit of reducing the length of URLs on your endpoint definitions, making them easier to read and maintain.''',
+        'catches': [
+            'Hardcoded *.workday.com domains in endpoint URLs',
+            'Hardcoded apiGatewayEndpoint values in URLs',
+            'Endpoints that should use baseUrlType instead of Hardcoded values',
+            'Both patterns promote extracting Workday endpoints to shared AMD data providers'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+// Hardcoded workday.com URL
+{
+  "name": "getWorker",
+  "url": "https://api.workday.com/common/v1/workers/me"  // ❌ Hardcoded workday.com
+}
+
+// Direct apiGatewayEndpoint usage
+{
+  "name": "getWorker",
+  "url": "<% apiGatewayEndpoint + '/common/v1/workers/me' %>"  // ❌ Should use baseUrlType
+}
+```
+
+**Fix:**
+
+```json
+{
+  "name": "getWorker",
+  "url": "/workers/me",  // ✅ Relative URL
+  "baseUrlType": "workday-common"  // ✅ Use baseUrlType instead
+}
+```''',
+        'recommendation': 'Extract Workday API endpoints to shared AMD dataProviders and use `baseUrlType` on endpoints instead of hardcoded URLs. This reduces duplication and makes URLs easier to read and maintain.'
+    }
 
     def get_description(self) -> str:
         """Get rule description."""

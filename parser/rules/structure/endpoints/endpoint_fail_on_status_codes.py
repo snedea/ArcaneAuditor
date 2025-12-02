@@ -11,6 +11,40 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
     DESCRIPTION = "Ensures endpoints have failOnStatusCodes with minimum required codes 400 and 403"
     SEVERITY = "ACTION"
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Without proper error handling (failOnStatusCodes), your endpoints silently swallow errors like "400 Bad Request" or "403 Forbidden", causing your application to proceed as if the call succeeded when it actually failed. This leads to data inconsistencies, broken workflows, and debugging nightmares. Explicit error handling ensures failures are properly caught and handled.''',
+        'catches': [
+            'Missing error handling for 4xx status codes that Extend doesn\'t treat as failures by default'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "endPoints": [{
+    "name": "getCurrentUser",
+    "url": "/users/me"
+    // ❌ Missing failOnStatusCodes
+  }]
+}
+```
+
+**Fix:**
+
+```json
+{
+  "endPoints": [{
+    "name": "getCurrentUser", 
+    "url": "/users/me",
+    "failOnStatusCodes": [
+      {"code": 400},
+      {"code": 403}
+    ]
+  }]
+}
+```''',
+        'recommendation': 'Always include `failOnStatusCodes` with at least codes 400 and 403 on all endpoints to ensure errors are properly caught and handled, preventing silent failures.'
+    }
 
     def get_description(self) -> str:
         """Get rule description."""

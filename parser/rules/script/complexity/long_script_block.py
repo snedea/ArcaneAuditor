@@ -18,6 +18,71 @@ class ScriptLongBlockRule(ScriptRuleBase):
         'skip_comments': {'type': 'bool', 'default': False, 'description': 'Skip comment lines when counting'},
         'skip_blank_lines': {'type': 'bool', 'default': False, 'description': 'Skip blank lines when counting'}
     }
+    
+    DOCUMENTATION = {
+        'why': '''Embedded script blocks (in event handlers like onLoad, onChange, onSend, or widget properties) should be kept small and focused. When these blocks grow beyond 30 lines, they become difficult to read, test, and maintain. Long embedded blocks often contain complex logic that should be extracted into reusable functions in the `script` section (or `.script` files in the case of functionality that could be shared across pages).
+
+This rule enforces the principle that embedded blocks should contain only simple, focused logic while complex operations belong in dedicated functions.''',
+        'catches': [
+            'Script blocks in PMD/POD embedded fields (onLoad, onChange, onSend, widget properties, etc.) that exceed 30 lines',
+            'Embedded blocks containing inline functions, callbacks, and procedural code that should be refactored',
+            'Script blocks that violate single responsibility principle by doing too much in one place',
+            '**Note:** The `script` field in PMD files and standalone `.script` files are excluded entirely as they\'re handled by ScriptLongFunctionRule'
+        ],
+        'examples': '''**Example violations:**
+
+```pmd
+// In onLoad field
+<%
+    const workerData = getWorkerData();
+    const processedData = processWorkerData(workerData);
+    const validationResults = validateWorkerData(processedData);
+    const formattedData = formatWorkerData(validationResults);
+    const enrichedData = enrichWorkerData(formattedData);
+    const finalData = applyBusinessRules(enrichedData);
+    const displayData = prepareDisplayData(finalData);
+    const summaryData = generateSummary(displayData);
+    const reportData = createReport(summaryData);
+    const exportData = prepareExport(reportData);
+    const notificationData = prepareNotifications(exportData);
+    const auditData = createAuditTrail(notificationData);
+    const cacheData = prepareCache(auditData);
+    const responseData = formatResponse(cacheData);
+    // ... 20+ more lines of data processing ...
+    pageVariables.workerData = responseData;
+%>
+```
+
+**Fix:**
+
+```pmd
+// Break into focused functions
+<%
+    const workerData = getWorkerData();
+    const processedData = processWorkerData(workerData);
+    pageVariables.workerData = processedData;
+%>
+
+// Define functions in script section
+const processWorkerData = function(rawData) {
+    const validated = validateWorkerData(rawData);
+    const formatted = formatWorkerData(validated);
+    const enriched = enrichWorkerData(formatted);
+    return enriched;
+};
+
+const validateWorkerData = function(data) {
+    // ... focused validation logic
+    return data;
+};
+
+const formatWorkerData = function(data) {
+    // ... focused formatting logic
+    return data;
+};
+```''',
+        'recommendation': 'Extract complex logic from embedded script blocks into focused functions in the `script` section or `.script` files. Keep embedded blocks small and focused, containing only simple, direct logic.'
+    }
 
     def __init__(self):
         super().__init__()

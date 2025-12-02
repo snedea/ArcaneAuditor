@@ -14,6 +14,38 @@ class ScriptUnusedIncludesRule(ScriptRuleBase):
     SEVERITY = "ADVICE"
     DETECTOR = ScriptUnusedIncludesRuleDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Including unused script files forces the engine to parse and load code that's never executed, directly impacting page load time. Each unnecessary include adds to your application's bundle size and slows down the initial page render. Removing unused includes makes pages load faster and removes potential developer confusion as to why the script is being included in the first place.''',
+        'catches': [
+            'Script files in PMD include arrays that are never called',
+            'Dead script dependencies that increase bundle size'
+        ],
+        'examples': '''**Example violations:**
+
+```javascript
+// In sample.pmd
+{
+  "include": ["util.script", "helper.script"], // ❌ helper.script never called
+  "onLoad": "<%
+    pageVariables.winningNumbers = util.getFutureWinningLottoNumbers(); // Only util.script is used
+  %>"
+}
+```
+
+**Fix:**
+
+```javascript
+// In sample.pmd
+{
+  "include": ["util.script"], // ✅ Only include scripts that are actually used
+  "onLoad": "<%
+    pageVariables.winningNumbers = util.getFutureWinningLottoNumbers();
+  %>"
+}
+```''',
+        'recommendation': 'Remove unused script includes from PMD files. Only include script files that are actually called via `script.function()` patterns. This improves page load time and reduces bundle size.'
+    }
 
     def get_description(self) -> str:
         """Get rule description."""

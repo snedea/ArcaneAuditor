@@ -32,6 +32,26 @@ class MultipleStringInterpolatorsRule(StructureRuleBase):
     SEVERITY = "ADVICE"
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
+    DOCUMENTATION = {
+        'why': '''Multiple interpolators (<% %>) in a single string are harder to read and maintain. Using a single template literal with embedded expressions is cleaner and more performant.''',
+        'catches': [
+            'Strings with 2+ interpolators (<% ... %>)',
+            'Code that should use template literals instead'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+"My name is <% name %> and I like <% food %>"  // ❌ Multiple interpolators
+```
+
+**Fix:**
+
+```json
+"<% `My name is {{name}} and I like {{food}}` %>"  // ✅ Single interpolator with template literal
+```''',
+        'recommendation': 'Use a single interpolator with template literals (backticks and `{{variable}}` syntax) instead of multiple interpolators in a single string. This improves readability and performance.'
+    }
+    
     def get_description(self) -> str:
         """Get rule description."""
         return self.DESCRIPTION

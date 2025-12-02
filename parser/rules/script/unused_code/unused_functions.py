@@ -13,6 +13,51 @@ class ScriptUnusedFunctionRule(ScriptRuleBase):
     SEVERITY = "ADVICE"
     DETECTOR = UnusedFunctionsDetector
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Unused functions add unnecessary code that developers must read and maintain, creating mental overhead when trying to understand what the page actually does. They also increase parsing time and memory usage. Removing unused functions keeps your PMD/Pod files focused and makes the actual logic easier to follow.
+
+**What This Rule Does:** This rule tracks function usage within PMD and Pod files. Unlike standalone `.script` files that use export patterns, embedded scripts don't have formal exports. This rule identifies function variables that are declared but never called anywhere in the script or across related script sections in the same file.
+
+**Note:** This rule is separate from `ScriptDeadCodeRule`, which validates export patterns in standalone `.script` files. Use `ScriptDeadCodeRule` for `.script` files and `ScriptUnusedFunctionRule` for embedded scripts in PMD/Pod files.''',
+        'catches': [
+            'Function variables declared but never called',
+            'Functions that were intended to be used but aren\'t referenced',
+            'Dead code that should be removed'
+        ],
+        'examples': '''**Example violations:**
+
+```javascript
+// In myPage.pmd
+<%
+  const processData = function(data) {  // ✅ Used below
+    return data.filter(item => item.active);
+  };
+  
+  const unusedHelper = function(val) {  // ❌ Never called - unused function
+    return val * 2;
+  };
+  
+  const results = processData(pageVariables.items);
+%>
+```
+
+**Fix:**
+
+```javascript
+// In myPage.pmd
+<%
+  const processData = function(data) {  // ✅ Used
+    return data.filter(item => item.active);
+  };
+  
+  // ✅ Removed unusedHelper - it was never called
+  
+  const results = processData(pageVariables.items);
+%>
+```''',
+        'recommendation': 'Remove unused functions from PMD/Pod embedded scripts. If a function is not called anywhere in the file, it should be removed to reduce code complexity and improve maintainability.'
+    }
 
     def get_description(self) -> str:
         """Get rule description."""

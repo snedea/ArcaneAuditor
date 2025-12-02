@@ -29,6 +29,29 @@ class HardcodedWidRule(StructureRuleBase):
     SEVERITY = "ADVICE"
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
+    DOCUMENTATION = {
+        'why': '''Hardcoded WIDs (Workday IDs) are environment-specific - a worker or job WID in your sandbox won't exist in production. This causes runtime errors when the code tries to look up non-existent data. But even if you're using a common WID that exists across environments, it is meaningless to a developer looking at your code (possibly including yourself!). Storing WIDs in app attributes allows different values per environment, makes your application portable across tenants and instances, and allows for you to name it in a way that makes sense!
+
+**Note:** Business process WIDs ("d9e41a8c446c11de98360015c5e6daf6" and "d9e4223e446c11de98360015c5e6daf6") are allowed as exceptions.''',
+        'catches': [
+            'Hardcoded 32-character WID values',
+            'WIDs that should be configured in app attributes'
+        ],
+        'examples': '''**Example violations:**
+
+```javascript
+const query = "SELECT worker FROM allIndexedWorkers WHERE country = 'd9e41a8c446c11de98360015c5e6daf6'"; // ❌ Hardcoded WID
+```
+
+**Fix:**
+
+```javascript
+const usaLocation = appAttr.usaLocation; // ✅ Use app attribute
+const query = "SELECT worker FROM allIndexedWorkers WHERE country = usaLocation"
+```''',
+        'recommendation': 'Store WID values in app attributes instead of hardcoding them. This makes your application portable across environments and allows meaningful naming that helps developers understand the code.'
+    }
+    
     # Allowed business process WIDs that are exceptions
     ALLOWED_WIDS = {
         "d9e41a8c446c11de98360015c5e6daf6",  # Business process WID

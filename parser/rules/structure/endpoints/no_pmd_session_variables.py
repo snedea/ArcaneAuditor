@@ -30,6 +30,41 @@ class NoPMDSessionVariablesRule(StructureRuleBase):
     SEVERITY = "ACTION"
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
+    DOCUMENTATION = {
+        'why': '''Session-scoped variables persist for the entire user session (potentially hours), continuously consuming memory even after the user leaves your page. This memory isn't released until logout, degrading performance over time and potentially causing issues for long-running sessions.''',
+        'catches': [
+            'Outbound endpoints with `type: "outboundVariable"` AND `variableScope: "session"`'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "outboundEndpoints": [
+    {
+      "name": "saveUserPreference",
+      "type": "outboundVariable",
+      "variableScope": "session"  // ❌ Lasts entire session - performance issue
+    }
+  ]
+}
+```
+
+**Fix:**
+
+```json
+{
+  "outboundEndpoints": [
+    {
+      "name": "saveUserPreference",
+      "type": "outboundVariable",
+      "variableScope": "flow"  // ✅ Use a flow variable, instead
+    }
+  ]
+}
+```''',
+        'recommendation': 'Use `variableScope: "flow"` or `variableScope: "page"` instead of `"session"` for outboundVariable endpoints to prevent memory accumulation and performance degradation.'
+    }
+    
     def get_description(self) -> str:
         """Get rule description."""
         return self.DESCRIPTION

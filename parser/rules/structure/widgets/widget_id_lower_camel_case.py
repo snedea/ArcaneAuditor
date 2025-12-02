@@ -14,6 +14,32 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
     SEVERITY = "ADVICE"
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
+    DOCUMENTATION = {
+        'why': '''LowerCamelCase is the Workday standard, and following it means your code will be consisten across pages AND applications. Mixing conventions (snake_case, PascalCase) forces constant reference checking and slows development.''',
+        'catches': [
+            'Widget IDs that don\'t follow lowerCamelCase convention',
+            'Style guide violations'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "type": "richText",
+  "id": "WelcomeMessage"  // ❌ Should be lowerCamelCase
+}
+```
+
+**Fix:**
+
+```json
+{
+  "type": "richText",
+  "id": "welcomeMessage"  // ✅ Proper lowerCamelCase
+}
+```''',
+        'recommendation': 'Use lowerCamelCase for all widget IDs to follow Workday standards and ensure consistency across pages and applications.'
+    }
+    
     # Widget types that do not require or support ID values
     WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {
         'footer', 'item', 'group', 'title'

@@ -23,6 +23,37 @@ class WidgetIdRequiredRule(StructureRuleBase):
         'excluded_widget_types': {'type': 'list', 'default': [], 'description': 'Additional widget types to exclude from ID requirements'}
     }
     
+    DOCUMENTATION = {
+        'why': '''Widget IDs are essential for referencing widgets in scripts (to get/set values, show/hide, etc.) and for debugging. Without IDs, you can't interact with widgets programmatically, making dynamic behavior impossible. IDs also help identify widgets in error messages and make code maintenance much easier when you need to find where a widget is defined or used. There are also known issues where missing IDs will result in logs not showing the data someone may expect (i.e. a panelList widget may not log its values without all IDs set).
+
+**Smart Exclusions:**
+Built-in widget types that don't require IDs: `footer`, `item`, `group`, `title`, `pod`, `cardContainer`, `card`, `instanceList`, `taskReference`, `editTasks`, `multiSelectCalendar`, `bpExtender`, `hub`, and column objects (which use `columnId` instead).''',
+        'catches': [
+            'Widgets missing required `id` field'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "type": "richText",  // ❌ Missing id field
+  "label": "Welcome",
+  "value": "Hello, user!"
+}
+```
+
+**Fix:**
+
+```json
+{
+  "type": "richText",
+  "id": "welcomeMessage",  // ✅ Added id field
+  "label": "Welcome",
+  "value": "Hello, user!"
+}
+```''',
+        'recommendation': 'Always include an `id` field for widgets that need to be referenced in scripts or for debugging. This enables programmatic interaction and makes code maintenance easier.'
+    }
+    
     # Widget types that do not require or support ID values (built-in exclusions)
     BUILT_IN_WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {
         'footer', 'item', 'group', 'title', 'pod', 'cardContainer', 'card',
