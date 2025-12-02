@@ -1,6 +1,8 @@
 // ui-breakdown.js
 import { ConfigAPI } from './api.js';
 import { Templates } from './templates.js';
+import { GrimoireUI } from './grimoire.js';
+import { SettingsHandler } from './settings-logic.js';
 
 export class ConfigBreakdownUI {
     constructor(manager) {
@@ -27,6 +29,15 @@ export class ConfigBreakdownUI {
         
         // Track if a ghost rule deletion is in progress
         this.isDeletingGhostRule = false;
+        
+        // Initialize helper classes
+        this.grimoire = new GrimoireUI();
+        this.settingsHandler = new SettingsHandler();
+        
+        // Keep settings handler in sync with current config
+        this.settingsHandler.setCurrentConfig = (config) => {
+            this.settingsHandler.currentConfig = config;
+        };
 
         // Escape key functionality
         document.addEventListener('keydown', (e) => {
@@ -144,6 +155,11 @@ export class ConfigBreakdownUI {
         // Store current state for filtering
         this.currentConfig = config;
         this.currentIsBuiltIn = isBuiltIn;
+        
+        // Sync settings handler with current config
+        if (this.settingsHandler) {
+            this.settingsHandler.currentConfig = config;
+        }
         
         // --- 2. RENDER BODY (Rules) ---
         this.renderBody(config, isBuiltIn, content);
@@ -361,7 +377,7 @@ export class ConfigBreakdownUI {
                 if (btn) {
                     e.stopPropagation();
                     const ruleName = btn.dataset.rule;
-                    this.showGrimoire(ruleName);
+                    this.grimoire.showGrimoire(ruleName, this.currentConfig);
                 }
             });
         }
@@ -395,132 +411,8 @@ export class ConfigBreakdownUI {
             });
         });
         
-        // Settings Form Inputs - direct binding for input/change events
-        this.bindSettingsFormEvents(container, activeConfig);
-        
-        // JSON textarea fallback (for dict/object types) - still needs JSON validation
-        container.querySelectorAll('.rule-settings-json:not([data-events-bound])').forEach(textarea => {
-            // Mark as bound to prevent duplicate bindings
-            textarea.dataset.eventsBound = 'true';
-            
-            textarea.addEventListener('blur', () => this.handleJsonBlur(textarea, activeConfig));
-        });
-    }
-    
-    /**
-     * Bind event listeners for schema-driven settings form inputs
-     */
-    bindSettingsFormEvents(container, config) {
-        const activeConfig = config || this.currentConfig;
-        if (!activeConfig) return;
-        
-        // Text inputs
-        container.querySelectorAll('.setting-input:not([data-events-bound])').forEach(input => {
-            input.dataset.eventsBound = 'true';
-            
-            input.addEventListener('input', (e) => {
-                this.handleSettingChange(e.target, activeConfig);
-            });
-        });
-        
-        // Checkboxes
-        container.querySelectorAll('.setting-checkbox:not([data-events-bound])').forEach(checkbox => {
-            checkbox.dataset.eventsBound = 'true';
-            
-            checkbox.addEventListener('change', (e) => {
-                this.handleSettingChange(e.target, activeConfig);
-            });
-        });
-        
-        // List textareas (newline-separated)
-        container.querySelectorAll('.setting-list-input:not([data-events-bound])').forEach(textarea => {
-            textarea.dataset.eventsBound = 'true';
-            
-            textarea.addEventListener('input', (e) => {
-                this.handleSettingChange(e.target, activeConfig);
-            });
-        });
-    }
-    
-    /**
-     * Handle changes to settings form inputs
-     */
-    handleSettingChange(input, config) {
-        const activeConfig = config || this.currentConfig;
-        if (!activeConfig) return;
-        
-        // Find the rule item parent
-        const ruleItem = input.closest('.rule-item');
-        if (!ruleItem) return;
-        
-        const ruleName = ruleItem.dataset.rule;
-        const settingKey = input.dataset.key;
-        
-        if (!ruleName || !settingKey) return;
-        
-        // Ensure custom_settings exists
-        if (!activeConfig.rules[ruleName].custom_settings) {
-            activeConfig.rules[ruleName].custom_settings = {};
-        }
-        
-        // Parse value based on input type
-        let value;
-        if (input.classList.contains('setting-checkbox')) {
-            value = input.checked;
-        } else if (input.classList.contains('setting-list-input')) {
-            // Split by newline, trim, remove empty
-            value = input.value
-                .split('\n')
-                .map(s => s.trim())
-                .filter(s => s !== '');
-        } else if (input.type === 'number') {
-            const numValue = parseInt(input.value, 10);
-            if (isNaN(numValue)) {
-                value = input.value === '' ? undefined : input.value;
-            } else {
-                // Enforce minimum value of 0 for number inputs
-                value = Math.max(0, numValue);
-                // Update the input field to reflect the corrected value
-                if (numValue < 0) {
-                    input.value = 0;
-                }
-            }
-        } else {
-            value = input.value;
-        }
-        
-        // Update the config
-        if (value === undefined || value === '') {
-            // Remove the key if empty
-            delete activeConfig.rules[ruleName].custom_settings[settingKey];
-        } else {
-            activeConfig.rules[ruleName].custom_settings[settingKey] = value;
-        }
-        
-        // Update UI: toggle modified state on configure button
-        this.updateConfigureButtonState(ruleName, activeConfig);
-    }
-    
-    /**
-     * Update the configure button's modified state based on custom_settings
-     * Only toggles the 'modified' class for styling - doesn't change button text
-     */
-    updateConfigureButtonState(ruleName, config) {
-        const activeConfig = config || this.currentConfig;
-        if (!activeConfig || !activeConfig.rules[ruleName]) return;
-        
-        const customSettings = activeConfig.rules[ruleName].custom_settings || {};
-        const hasCustomSettings = Object.keys(customSettings).length > 0;
-        
-        const configureBtn = document.querySelector(`.rule-configure-btn[data-rule="${ruleName}"]`);
-        if (!configureBtn) return;
-        
-        // Only toggle the modified class for styling - keep button text unchanged
-        if (hasCustomSettings) {
-            configureBtn.classList.add('modified');
-        } else {
-            configureBtn.classList.remove('modified');
-        }
+        // Delegate settings form events to SettingsHandler
+        this.settingsHandler.bindSettingsFormEvents(container, activeConfig);
     }
     
     /**
@@ -736,251 +628,5 @@ export class ConfigBreakdownUI {
      * Handle JSON blur for fallback dict/object types (legacy support)
      * This is only used for complex types that can't be represented as simple form inputs
      */
-    handleJsonBlur(textarea, config) {
-        // Use currentConfig to ensure we always edit fresh data
-        const activeConfig = config || this.currentConfig;
-        if (!activeConfig) return;
-        
-        // Find rule name from parent rule-item
-        const ruleItem = textarea.closest('.rule-item');
-        if (!ruleItem) return;
-        
-        const ruleName = ruleItem.dataset.rule;
-        const settingKey = textarea.dataset.key; // For dict/object types, we have a data-key
-        
-        const errorDiv = document.querySelector(`.rule-settings-error[data-rule="${ruleName}"]`);
-        const value = textarea.value.trim();
-        const configureBtn = document.querySelector(`.rule-configure-btn[data-rule="${ruleName}"]`);
-        const chevronHtml = `<span class="configure-chevron" data-rule="${ruleName}">▼</span>`;
 
-        // Clear error
-        textarea.classList.remove('json-invalid', 'json-valid');
-        if (errorDiv) errorDiv.style.display = 'none';
-
-        // Ensure custom_settings exists
-        if (!activeConfig.rules[ruleName].custom_settings) {
-            activeConfig.rules[ruleName].custom_settings = {};
-        }
-
-        if (!value || value === '{}') {
-            // Remove the key if empty
-            if (settingKey) {
-                delete activeConfig.rules[ruleName].custom_settings[settingKey];
-            } else {
-                activeConfig.rules[ruleName].custom_settings = {};
-            }
-            this.updateConfigureButtonState(ruleName, activeConfig);
-            return;
-        }
-
-        try {
-            const parsed = JSON.parse(value);
-            const isEmpty = Object.keys(parsed).length === 0;
-            
-            // Use activeConfig instead of config
-            textarea.value = isEmpty ? '{}' : JSON.stringify(parsed, null, 2);
-            
-            // Update the specific key or entire custom_settings
-            if (settingKey) {
-                if (isEmpty) {
-                    delete activeConfig.rules[ruleName].custom_settings[settingKey];
-                } else {
-                    activeConfig.rules[ruleName].custom_settings[settingKey] = parsed;
-                }
-            } else {
-                activeConfig.rules[ruleName].custom_settings = isEmpty ? {} : parsed;
-            }
-
-            textarea.classList.add('json-valid');
-            setTimeout(() => textarea.classList.remove('json-valid'), 1000);
-
-            this.updateConfigureButtonState(ruleName, activeConfig);
-        } catch (err) {
-            textarea.classList.add('json-invalid');
-            if (errorDiv) {
-                errorDiv.style.display = 'block';
-                errorDiv.textContent = `Invalid JSON: ${err.message}`;
-            }
-        }
-    }
-
-    /**
-     * Show the Grimoire modal with documentation for a specific rule
-     */
-    showGrimoire(ruleName) {
-        if (!this.currentConfig || !this.currentConfig.rules || !this.currentConfig.rules[ruleName]) {
-            console.warn(`No config found for rule: ${ruleName}`);
-            return;
-        }
-
-        const ruleConfig = this.currentConfig.rules[ruleName];
-        const documentation = ruleConfig.documentation || {};
-
-        // Get or create the modal
-        let modal = document.getElementById('grimoire-modal');
-        if (!modal) {
-            modal = this.renderGrimoireModal();
-        }
-
-        // Populate the modal
-        const titleEl = document.getElementById('grimoire-title');
-        const bodyEl = document.getElementById('grimoire-body');
-
-        if (titleEl) {
-            titleEl.textContent = `📜 ${ruleName}`;
-        }
-
-        if (bodyEl) {
-            let html = '';
-
-            // Why This Matters
-            if (documentation.why) {
-                html += `
-                    <div class="grimoire-section">
-                        <h3 class="grimoire-section-title">✨ Why This Matters</h3>
-                        <div class="grimoire-section-content">${this.formatMarkdown(documentation.why)}</div>
-                    </div>
-                `;
-            }
-
-            // What It Catches
-            if (documentation.catches && Array.isArray(documentation.catches) && documentation.catches.length > 0) {
-                html += `
-                    <div class="grimoire-section">
-                        <h3 class="grimoire-section-title">🎯 What It Catches</h3>
-                        <ul class="grimoire-list">
-                            ${documentation.catches.map(item => `<li>${this.formatMarkdown(item)}</li>`).join('')}
-                        </ul>
-                    </div>
-                `;
-            }
-
-            // Examples
-            if (documentation.examples) {
-                html += `
-                    <div class="grimoire-section">
-                        <h3 class="grimoire-section-title">📝 Examples</h3>
-                        <div class="grimoire-section-content">${this.formatMarkdown(documentation.examples)}</div>
-                    </div>
-                `;
-            }
-
-            // Recommendation
-            if (documentation.recommendation) {
-                html += `
-                    <div class="grimoire-section">
-                        <h3 class="grimoire-section-title">💡 Recommendation</h3>
-                        <div class="grimoire-section-content">${this.formatMarkdown(documentation.recommendation)}</div>
-                    </div>
-                `;
-            }
-
-            // If no documentation, show a message
-            if (!html) {
-                html = '<div class="grimoire-section"><p class="text-slate-400">No documentation available for this rule.</p></div>';
-            }
-
-            bodyEl.innerHTML = html;
-        }
-
-        // Show the modal
-        modal.style.display = 'flex';
-
-        // Bind close button
-        const closeBtn = document.getElementById('grimoire-close-btn');
-        if (closeBtn) {
-            closeBtn.onclick = () => this.hideGrimoire();
-        }
-
-        // Close on Escape key
-        const escapeHandler = (e) => {
-            if (e.key === 'Escape') {
-                this.hideGrimoire();
-                document.removeEventListener('keydown', escapeHandler);
-            }
-        };
-        document.addEventListener('keydown', escapeHandler);
-
-        // Close on overlay click
-        modal.onclick = (e) => {
-            if (e.target === modal) {
-                this.hideGrimoire();
-            }
-        };
-    }
-
-    /**
-     * Hide the Grimoire modal
-     */
-    hideGrimoire() {
-        const modal = document.getElementById('grimoire-modal');
-        if (modal) {
-            modal.style.display = 'none';
-        }
-    }
-
-    /**
-     * Create the Grimoire modal DOM structure (if it doesn't exist)
-     */
-    renderGrimoireModal() {
-        // Check if it already exists
-        let modal = document.getElementById('grimoire-modal');
-        if (modal) {
-            return modal;
-        }
-
-        // Create the modal structure
-        modal = document.createElement('div');
-        modal.id = 'grimoire-modal';
-        modal.className = 'grimoire-overlay';
-        modal.style.display = 'none';
-
-        modal.innerHTML = `
-            <div class="grimoire-content">
-                <div class="grimoire-header">
-                    <h2 id="grimoire-title">📜 Rule Grimoire</h2>
-                    <button class="grimoire-close" id="grimoire-close-btn">✖️</button>
-                </div>
-                <div class="grimoire-body" id="grimoire-body">
-                    <!-- Content will be populated dynamically -->
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-        return modal;
-    }
-
-    /**
-     * Simple markdown-like formatting helper
-     * Converts code blocks and inline code to HTML
-     */
-    formatMarkdown(text) {
-        if (!text) return '';
-        
-        // Escape HTML first
-        let html = text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-
-        // Convert code blocks (```language ... ```)
-        html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-            return `<pre class="grimoire-code-block"><code>${code.trim()}</code></pre>`;
-        });
-
-        // Convert inline code (`code`)
-        html = html.replace(/`([^`]+)`/g, '<code class="grimoire-inline-code">$1</code>');
-
-        // Convert line breaks
-        html = html.replace(/\n\n/g, '</p><p>');
-        html = html.replace(/\n/g, '<br>');
-        
-        // Wrap in paragraph if not already wrapped
-        if (!html.startsWith('<')) {
-            html = `<p>${html}</p>`;
-        }
-
-        return html;
-    }
 }
