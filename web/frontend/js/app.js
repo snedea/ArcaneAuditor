@@ -445,7 +445,6 @@ class ArcaneAuditorApp {
             // Ensure UI is in sync after successful save
             this.syncRuleEvolutionPreferenceUI();
             console.log('Rule evolution preference saved:', enabled);
-            this.showToast('✅ Settings saved successfully', 'success');
         } catch (error) {
             console.error('Failed to update rule evolution preferences:', error);
             this.ruleEvolutionPreferences.new_rule_default_enabled = previous;
