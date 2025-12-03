@@ -68,7 +68,7 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(168, 85, 247, 0.3);
     width: 100%;
-    max-width: 950px;
+    max-width: 1100px;
     max-height: 85vh;
     display: flex;
     flex-direction: column;
@@ -360,7 +360,7 @@
 
 .grimoire-category-rules {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 12px;
 }
 
@@ -389,6 +389,9 @@
     font-size: 1rem;
     font-weight: 600;
     margin: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
 }
 
 .grimoire-rule-card-description {
@@ -474,6 +477,9 @@
 [data-theme="light"] .grimoire-rule-card-name {
     color: #4c1d95; /* Deep Violet (instead of black) */
     font-weight: 700;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
 }
 
 /* 4. The Description: Readable Slate */
