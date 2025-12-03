@@ -14,6 +14,17 @@ import sys
 import os
 import json
 from pathlib import Path
+import socket
+
+def _get_free_port():
+    """
+    Asks the OS for a free ephemeral port.
+    Binding to port 0 tells the OS 'assign me whatever is open'.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(('', 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
 
 
 window = None
@@ -243,13 +254,15 @@ def main():
         import uvicorn
         
         DEFAULT_HOST = "127.0.0.1"
-        DEFAULT_PORT = 8080
-        
+
+        # 1. Generate a guaranteed free port (e.g., 54321)
+        dynamic_port = _get_free_port()
+ 
         # Load config
         cfg = load_web_config(cli_args=None)
         host = cfg.get("host", DEFAULT_HOST)
-        port = cfg.get("port", DEFAULT_PORT)
-        log_level = cfg.get("log_level", "info")
+        port = dynamic_port
+        log_level = "info"
         
         # Create API instance
         global desktop_api
