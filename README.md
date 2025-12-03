@@ -4,7 +4,7 @@
 
 > ⚗️ **Validate. Visualize. Improve.** — PMD, Pod, and Script compliance with wizard-level precision.
 
-![Version](https://img.shields.io/badge/version-1.3.1-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-1.4.0-blue?style=for-the-badge)
 [![Download](https://img.shields.io/badge/🚀-Download_Latest-orange?style=for-the-badge)](https://github.com/Developers-and-Dragons/ArcaneAuditor/releases)
 [![Support](https://img.shields.io/badge/🪄-Support_This_Project-purple?style=for-the-badge)](https://buymeacoffee.com/developersanddragons)
 
@@ -33,8 +33,8 @@ It analyzes:
 
 ## 🚀 Quick Start — Desktop App
 
-**New in v1.2:** Arcane Auditor now ships as a native desktop application for Windows and macOS.
-No Python, no browser, no setup — just download and run.
+**New in v1.4:** Arcane Auditor now supports managing rule configurations, right in the app UI! Create new configs, enable/disable rules, and change severities.
+In addition, you can also now browse the rules grimoire, right from the UI!
 
 ### 1. Download
 
@@ -100,9 +100,6 @@ Results appear faster than a polymorph spell — download Excel reports as neede
 
 **Issues Breakdown:**
 ![Issues Breakdown](assets/screenshots/details-dark.png)
-
-**Configuration View:**
-![Configuration View](assets/screenshots/config-dark.png)
 
 </details>
 

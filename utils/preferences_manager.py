@@ -26,7 +26,13 @@ DEFAULT_PREFS = {
         "first_run_completed": False,
         "last_checked": 0,
         "latest_version_cache": ""
-    }
+    },
+    "rule_evolution": {
+        "new_rule_default_enabled": True,
+    },
+    "export": {
+        "excel_single_tab": False,
+    },
 }
 
 # Preferences file path
@@ -150,6 +156,26 @@ def migrate_preferences(prefs: Dict[str, Any]) -> Dict[str, Any]:
         updates.setdefault("latest_version_cache", "")
         migrated["updates"] = updates
 
+    # Normalise rule evolution defaults
+    rule_evolution = migrated.get("rule_evolution")
+    if not isinstance(rule_evolution, dict):
+        rule_evolution = {}
+    rule_evolution.setdefault(
+        "new_rule_default_enabled",
+        DEFAULT_PREFS["rule_evolution"]["new_rule_default_enabled"],
+    )
+    migrated["rule_evolution"] = rule_evolution
+
+    # Normalise export defaults
+    export = migrated.get("export")
+    if not isinstance(export, dict):
+        export = {}
+    export.setdefault(
+        "excel_single_tab",
+        DEFAULT_PREFS["export"]["excel_single_tab"],
+    )
+    migrated["export"] = export
+
     # Ensure all default keys exist (defensive programming)
     for key, default_value in DEFAULT_PREFS.items():
         if key not in migrated:
@@ -203,5 +229,97 @@ def set_cached_latest_version(version: str) -> bool:
     prefs = load_preferences()
     prefs.setdefault("updates", DEFAULT_PREFS["updates"].copy())
     prefs["updates"]["latest_version_cache"] = version or ""
+    return save_preferences(prefs)
+
+
+def get_rule_evolution_prefs() -> Dict[str, Any]:
+    """Return rule evolution preference section."""
+    prefs = load_preferences()
+    rule_prefs = prefs.get("rule_evolution")
+    if not isinstance(rule_prefs, dict):
+        rule_prefs = DEFAULT_PREFS["rule_evolution"].copy()
+    rule_prefs.setdefault(
+        "new_rule_default_enabled",
+        DEFAULT_PREFS["rule_evolution"]["new_rule_default_enabled"],
+    )
+    return rule_prefs
+
+
+def set_rule_evolution_prefs(rule_prefs: Dict[str, Any]) -> bool:
+    """Persist rule evolution preferences."""
+    prefs = load_preferences()
+    prefs["rule_evolution"] = {
+        "new_rule_default_enabled": bool(
+            rule_prefs.get(
+                "new_rule_default_enabled",
+                DEFAULT_PREFS["rule_evolution"]["new_rule_default_enabled"],
+            )
+        )
+    }
+    return save_preferences(prefs)
+
+
+def get_new_rule_default_enabled() -> bool:
+    """Return whether new rules should be enabled by default when normalizing."""
+    prefs = get_rule_evolution_prefs()
+    return bool(
+        prefs.get(
+            "new_rule_default_enabled",
+            DEFAULT_PREFS["rule_evolution"]["new_rule_default_enabled"],
+        )
+    )
+
+
+def set_new_rule_default_enabled(enabled: bool) -> bool:
+    """Persist the default enabled state for newly introduced rules."""
+    prefs = load_preferences()
+    prefs.setdefault("rule_evolution", DEFAULT_PREFS["rule_evolution"].copy())
+    prefs["rule_evolution"]["new_rule_default_enabled"] = bool(enabled)
+    return save_preferences(prefs)
+
+
+def get_export_prefs() -> Dict[str, Any]:
+    """Return export preference section."""
+    prefs = load_preferences()
+    export_prefs = prefs.get("export")
+    if not isinstance(export_prefs, dict):
+        export_prefs = DEFAULT_PREFS["export"].copy()
+    export_prefs.setdefault(
+        "excel_single_tab",
+        DEFAULT_PREFS["export"]["excel_single_tab"],
+    )
+    return export_prefs
+
+
+def set_export_prefs(export_prefs: Dict[str, Any]) -> bool:
+    """Persist export preferences."""
+    prefs = load_preferences()
+    prefs["export"] = {
+        "excel_single_tab": bool(
+            export_prefs.get(
+                "excel_single_tab",
+                DEFAULT_PREFS["export"]["excel_single_tab"],
+            )
+        )
+    }
+    return save_preferences(prefs)
+
+
+def get_excel_single_tab() -> bool:
+    """Return whether Excel export should use a single tab for all findings."""
+    prefs = get_export_prefs()
+    return bool(
+        prefs.get(
+            "excel_single_tab",
+            DEFAULT_PREFS["export"]["excel_single_tab"],
+        )
+    )
+
+
+def set_excel_single_tab(enabled: bool) -> bool:
+    """Persist the single tab preference for Excel exports."""
+    prefs = load_preferences()
+    prefs.setdefault("export", DEFAULT_PREFS["export"].copy())
+    prefs["export"]["excel_single_tab"] = bool(enabled)
     return save_preferences(prefs)
 

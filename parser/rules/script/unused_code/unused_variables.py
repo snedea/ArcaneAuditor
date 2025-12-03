@@ -13,6 +13,34 @@ class ScriptUnusedVariableRule(ScriptRuleBase):
     DESCRIPTION = "Ensures all declared variables are used (prevents dead code) with proper scoping awareness"
     SEVERITY = "ADVICE"
     DETECTOR = UnusedVariableDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Unused variables clutter code and create confusion - developers waste time wondering if the variable is actually used somewhere they can't see. They also suggest incomplete refactoring or abandoned features. Removing unused variables improves code clarity and reduces the mental load of understanding what's actually active in your application.''',
+        'catches': [
+            'Variables declared but never used',
+            'Dead code that increases bundle size'
+        ],
+        'examples': '''**Example violations:**
+
+```javascript
+function processData() {
+    const unusedVar = "never used"; // ❌ Unused variable
+    const result = calculateResult();
+    return result;
+}
+```
+
+**Fix:**
+
+```javascript
+function processData() {
+    const result = calculateResult();
+    return result;
+}
+```''',
+        'recommendation': 'Remove unused variables to improve code clarity and reduce bundle size. Unused variables suggest incomplete refactoring or abandoned features.'
+    }
 
     def get_description(self) -> str:
         """Get rule description."""

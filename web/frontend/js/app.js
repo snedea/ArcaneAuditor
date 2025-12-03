@@ -1,7 +1,8 @@
 // Main application orchestration for Arcane Auditor web interface
 
-import { ConfigManager } from './config-manager.js';
-import { ResultsRenderer } from './results-renderer.js';
+import { ConfigManager } from './config/manager.js';
+import { ThemeManager } from './theme-manager.js';
+import { ResultsManager } from './results/manager.js';
 import { downloadResults, getLastSortBy, getLastSortFilesBy } from './utils.js';
 import { showMagicalAnalysisComplete } from './magic-mode.js';
 import { DialogManager } from './dialog-manager.js';
@@ -24,24 +25,59 @@ class ArcaneAuditorApp {
             enabled: false,
             first_run_completed: false
         };
+        this.ruleEvolutionPreferences = {
+            new_rule_default_enabled: true
+        };
+        this.exportPreferences = {
+            excel_single_tab: false
+        };
         this.updatePreferencesPromise = null;
+        this.ruleEvolutionPreferencesPromise = null;
+        this.exportPreferencesPromise = null;
         this.versionRetryAttempts = 0;
         this.versionRetryTimer = null;
         this.settingsPanelElements = null;
 
         // Initialize managers
         this.configManager = new ConfigManager(this);
-        this.resultsRenderer = new ResultsRenderer(this);
+        this.resultsManager = new ResultsManager(this);
         
         this.initializeEventListeners();
-        this.configManager.initializeTheme();
+
+        // Initialize theme manager
+        this.themeManager = new ThemeManager();
+        this.themeManager.initialize();
+
+        // Fix: Force-remove focus from the Grimoire button on Desktop App load
+        // We use a timeout to let the desktop wrapper finish its initial focus routine first.
+        setTimeout(() => {
+            const grimoireBtn = document.getElementById('global-grimoire-btn');
+            if (grimoireBtn) {
+                grimoireBtn.blur(); // Remove focus
+                grimoireBtn.classList.remove('hover'); // Force remove any sticky hover classes
+            }
+            // Optional: Shift focus to the body so nothing is highlighted
+            document.body.focus(); 
+        }, 500); // 500ms delay is usually the sweet spot
+
+        // Load configurations
         this.configManager.loadConfigurations();
+
         // Load update preferences then version asynchronously after initialization
         this.updatePreferencesPromise = this.loadUpdatePreferences();
         this.updatePreferencesPromise.catch(err => console.error('Failed to load update preferences:', err));
+        this.ruleEvolutionPreferencesPromise = this.loadRuleEvolutionPreferences();
+        this.ruleEvolutionPreferencesPromise.catch(err => console.error('Failed to load rule evolution preferences:', err));
+        this.exportPreferencesPromise = this.loadExportPreferences();
+        this.exportPreferencesPromise.catch(err => console.error('Failed to load export preferences:', err));
         this.loadVersion().catch(err => console.error('Failed to load version:', err));
 
-        this.initializeSettingsPanel();
+        // Initialize settings panel after DOM is loaded
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', () => this.initializeSettingsPanel());
+        } else {
+            this.initializeSettingsPanel();
+        }
 
         if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
             window.addEventListener('pywebviewready', () => {
@@ -108,7 +144,7 @@ class ArcaneAuditorApp {
             if (e.target.closest('.file-header')) {
                 const filePath = e.target.closest('.file-header').dataset.filePath;
                 if (filePath) {
-                    this.resultsRenderer.toggleFileExpansion(filePath);
+                    this.resultsManager.toggleFileExpansion(filePath);
                 }
             }
         });
@@ -118,6 +154,8 @@ class ArcaneAuditorApp {
         const settingsButton = document.getElementById('settings-toggle');
         const settingsPanel = document.getElementById('settings-panel');
         const updateCheckbox = document.getElementById('settings-update-checkbox');
+        const newRuleDefaultCheckbox = document.getElementById('settings-new-rule-default-checkbox');
+        const excelSingleTabCheckbox = document.getElementById('setting-excel-single-tab');
 
         if (!settingsButton || !settingsPanel) {
             return;
@@ -173,15 +211,33 @@ class ArcaneAuditorApp {
             });
         }
 
+        if (newRuleDefaultCheckbox) {
+            newRuleDefaultCheckbox.addEventListener('change', (event) => {
+                const { checked } = event.target;
+                this.persistRuleEvolutionPreference(checked);
+            });
+        }
+
+        if (excelSingleTabCheckbox) {
+            excelSingleTabCheckbox.addEventListener('change', (event) => {
+                const { checked } = event.target;
+                this.persistExportPreference(checked);
+            });
+        }
+
         this.settingsPanelElements = {
             button: settingsButton,
             panel: settingsPanel,
-            updateCheckbox
+            updateCheckbox,
+            newRuleDefaultCheckbox,
+            excelSingleTabCheckbox
         };
 
         // Ensure panel starts hidden
         closePanel();
         this.syncUpdatePreferenceUI();
+        this.syncRuleEvolutionPreferenceUI();
+        this.syncExportPreferenceUI();
 
         // Prevent initial focus outline on load unless the user tabs to the control
         setTimeout(() => {
@@ -191,22 +247,32 @@ class ArcaneAuditorApp {
         }, 50);
     }
 
-    syncUpdatePreferenceUI() {
-        const checkbox = this.settingsPanelElements?.updateCheckbox || document.getElementById('settings-update-checkbox');
+    syncPreferenceUI(key, value) {
+        const checkbox = this.settingsPanelElements[key];
         if (!checkbox) {
             return;
         }
-        checkbox.checked = Boolean(this.updatePreferences.enabled);
+        checkbox.checked = Boolean(value);
+    }
+
+    syncUpdatePreferenceUI() {
+        this.syncPreferenceUI('updateCheckbox', this.updatePreferences.enabled);
+    }
+
+    syncRuleEvolutionPreferenceUI() {
+        this.syncPreferenceUI('newRuleDefaultCheckbox', this.ruleEvolutionPreferences.new_rule_default_enabled);
+    }
+
+    syncExportPreferenceUI() {
+        this.syncPreferenceUI('excelSingleTabCheckbox', this.exportPreferences.excel_single_tab);
     }
 
     async persistUpdatePreference(enabled) {
-        const checkbox = this.settingsPanelElements?.updateCheckbox || document.getElementById('settings-update-checkbox');
+        const checkbox = this.settingsPanelElements.updateCheckbox;
         const previous = this.updatePreferences.enabled;
         this.updatePreferences.enabled = Boolean(enabled);
 
-        if (checkbox) {
-            checkbox.disabled = true;
-        }
+        checkbox.disabled = true;
 
         try {
             if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_update_preferences === 'function') {
@@ -229,14 +295,10 @@ class ArcaneAuditorApp {
         } catch (error) {
             console.error('Failed to update preferences:', error);
             this.updatePreferences.enabled = previous;
-            if (checkbox) {
-                checkbox.checked = previous;
-            }
+            this.syncUpdatePreferenceUI();
             this.showToast('❌ Failed to update settings. Please try again.', 'error');
         } finally {
-            if (checkbox) {
-                checkbox.disabled = false;
-            }
+            checkbox.disabled = false;
         }
     }
 
@@ -244,16 +306,49 @@ class ArcaneAuditorApp {
     showUpload() {
         this.hideAllSections();
         document.getElementById('upload-section').style.display = 'block';
+        
+        // Show config toolbar on analyze page
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'flex';
+        }
+        
+        const configSectionContainer = document.querySelector('.config-section-container');
+        if (configSectionContainer) {
+            configSectionContainer.style.display = 'block';
+        }
     }
 
     showLoading() {
         this.hideAllSections();
         document.getElementById('loading-section').style.display = 'block';
+        
+        // Hide config toolbar when analysis is running
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'none';
+        }
+        
+        const configSectionContainer = document.querySelector('.config-section-container');
+        if (configSectionContainer) {
+            configSectionContainer.style.display = 'none';
+        }
     }
 
     showResults() {
         this.hideAllSections();
         document.getElementById('results-section').style.display = 'block';
+        
+        // Hide config toolbar on results page
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'none';
+        }
+        
+        const configSectionContainer = document.querySelector('.config-section-container');
+        if (configSectionContainer) {
+            configSectionContainer.style.display = 'none';
+        }
         
         // Initialize filtered findings with current result findings
         if (this.currentResult) {
@@ -262,10 +357,10 @@ class ArcaneAuditorApp {
         
         // Display context awareness panel if available
         if (this.currentResult && this.currentResult.context) {
-            this.resultsRenderer.displayContext(this.currentResult.context);
+            this.resultsManager.displayContext(this.currentResult.context);
         }
         
-        this.resultsRenderer.renderResults();
+        this.resultsManager.renderResults();
         
         // Show magical analysis completion if in magic mode
         showMagicalAnalysisComplete(this.currentResult);
@@ -277,6 +372,12 @@ class ArcaneAuditorApp {
         const errorMessage = document.getElementById('error-message');
         errorMessage.textContent = message;
         errorSection.style.display = 'block';
+        
+        // Show config toolbar on analyze page (error is part of analyze flow)
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'flex';
+        }
     }
 
     async ensureUpdatePreferencesLoaded() {
@@ -326,6 +427,132 @@ class ArcaneAuditorApp {
             // Keep defaults (disabled) if we can't load preferences
             this.updatePreferences.enabled = false;
             this.syncUpdatePreferenceUI();
+        }
+    }
+
+    async loadRuleEvolutionPreferences() {
+        try {
+            const response = await fetch('/api/rule-evolution-preferences');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid rule evolution preferences payload');
+            }
+
+            if (typeof data.new_rule_default_enabled === 'boolean') {
+                this.ruleEvolutionPreferences.new_rule_default_enabled = data.new_rule_default_enabled;
+            }
+            this.syncRuleEvolutionPreferenceUI();
+        } catch (error) {
+            console.error('Failed to load rule evolution preferences:', error);
+            // Keep defaults (enabled) if we can't load preferences
+            this.ruleEvolutionPreferences.new_rule_default_enabled = true;
+            this.syncRuleEvolutionPreferenceUI();
+        }
+    }
+
+    async persistRuleEvolutionPreference(enabled) {
+        const checkbox = this.settingsPanelElements.newRuleDefaultCheckbox;
+        const previous = this.ruleEvolutionPreferences.new_rule_default_enabled;
+        this.ruleEvolutionPreferences.new_rule_default_enabled = Boolean(enabled);
+
+        checkbox.disabled = true;
+
+        try {
+            const response = await fetch('/api/rule-evolution-preferences', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ new_rule_default_enabled: enabled })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || `HTTP ${response.status}`);
+            }
+            
+            if (data.success !== true) {
+                throw new Error('Save operation did not return success');
+            }
+            
+            // Ensure UI is in sync after successful save
+            this.syncRuleEvolutionPreferenceUI();
+            console.log('Rule evolution preference saved:', enabled);
+        } catch (error) {
+            console.error('Failed to update rule evolution preferences:', error);
+            this.ruleEvolutionPreferences.new_rule_default_enabled = previous;
+            this.syncRuleEvolutionPreferenceUI();
+            this.showToast(`❌ Failed to update settings: ${error.message}`, 'error');
+        } finally {
+            checkbox.disabled = false;
+        }
+    }
+
+    async loadExportPreferences() {
+        try {
+            const response = await fetch('/api/export-preferences');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid export preferences payload');
+            }
+
+            if (typeof data.excel_single_tab === 'boolean') {
+                this.exportPreferences.excel_single_tab = data.excel_single_tab;
+            }
+            this.syncExportPreferenceUI();
+        } catch (error) {
+            console.error('Failed to load export preferences:', error);
+            // Keep defaults (disabled) if we can't load preferences
+            this.exportPreferences.excel_single_tab = false;
+            this.syncExportPreferenceUI();
+        }
+    }
+
+    async persistExportPreference(enabled) {
+        const checkbox = this.settingsPanelElements.excelSingleTabCheckbox;
+        const previous = this.exportPreferences.excel_single_tab;
+        this.exportPreferences.excel_single_tab = Boolean(enabled);
+
+        checkbox.disabled = true;
+
+        try {
+            const response = await fetch('/api/export-preferences', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ excel_single_tab: enabled })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || `HTTP ${response.status}`);
+            }
+            
+            if (data.success !== true) {
+                throw new Error('Save operation did not return success');
+            }
+            
+            // Ensure UI is in sync after successful save
+            this.syncExportPreferenceUI();
+            console.log('Export preference saved:', enabled);
+        } catch (error) {
+            console.error('Failed to update export preferences:', error);
+            this.exportPreferences.excel_single_tab = previous;
+            this.syncExportPreferenceUI();
+            this.showToast(`❌ Failed to update settings: ${error.message}`, 'error');
+        } finally {
+            checkbox.disabled = false;
         }
     }
 
@@ -639,31 +866,43 @@ class ArcaneAuditorApp {
 
     // Filter and sort methods (delegated to results renderer)
     updateSeverityFilter(value) {
-        this.resultsRenderer.updateSeverityFilter(value);
+        this.resultsManager.updateSeverityFilter(value);
     }
 
     updateFileTypeFilter(value) {
-        this.resultsRenderer.updateFileTypeFilter(value);
+        this.resultsManager.updateFileTypeFilter(value);
     }
 
     updateSortBy(value) {
-        this.resultsRenderer.updateSortBy(value);
+        this.resultsManager.updateSortBy(value);
     }
 
     updateSortFilesBy(value) {
-        this.resultsRenderer.updateSortFilesBy(value);
+        this.resultsManager.updateSortFilesBy(value);
     }
 
     expandAllFiles() {
-        this.resultsRenderer.expandAllFiles();
+        this.resultsManager.expandAllFiles();
     }
 
     collapseAllFiles() {
-        this.resultsRenderer.collapseAllFiles();
+        this.resultsManager.collapseAllFiles();
     }
 
     resetForNewUpload() {
         this.hideAllSections();
+        
+        // Show config toolbar when returning to analyze page
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'flex';
+        }
+        
+        const configSectionContainer = document.querySelector('.config-section-container');
+        if (configSectionContainer) {
+            configSectionContainer.style.display = 'block';
+        }
+        
         document.getElementById('upload-section').style.display = 'block';
         this.currentResult = null;
         this.uploadedFileName = null;
@@ -679,10 +918,8 @@ class ArcaneAuditorApp {
         document.getElementById('selected-files-list').style.display = 'none';
         
         // Reset renderers
-        this.resultsRenderer.resetForNewUpload();
+        this.resultsManager.resetForNewUpload();
         
-        // Re-render configurations to ensure selected config appears at top
-        this.configManager.renderConfigurations();
     }
 
     async loadVersion() {
@@ -830,36 +1067,36 @@ window.downloadResults = function() {
 };
 
 window.toggleTheme = function() {
-    app.configManager.toggleTheme();
+    app.themeManager.toggleTheme();
 };
 
 window.toggleContextPanel = function() {
-    app.resultsRenderer.toggleContextPanel();
+    app.resultsManager.toggleContextPanel();
 };
 
 // Results renderer global functions
 window.expandAllFiles = function() {
-    app.resultsRenderer.expandAllFiles();
+    app.resultsManager.expandAllFiles();
 };
 
 window.collapseAllFiles = function() {
-    app.resultsRenderer.collapseAllFiles();
+    app.resultsManager.collapseAllFiles();
 };
 
 window.updateSeverityFilter = function(value) {
-    app.resultsRenderer.updateSeverityFilter(value);
+    app.resultsManager.updateSeverityFilter(value);
 };
 
 window.updateFileTypeFilter = function(value) {
-    app.resultsRenderer.updateFileTypeFilter(value);
+    app.resultsManager.updateFileTypeFilter(value);
 };
 
 window.updateSortBy = function(value) {
-    app.resultsRenderer.updateSortBy(value);
+    app.resultsManager.updateSortBy(value);
 };
 
 window.updateSortFilesBy = function(value) {
-    app.resultsRenderer.updateSortFilesBy(value);
+    app.resultsManager.updateSortFilesBy(value);
 };
 
 export default app;

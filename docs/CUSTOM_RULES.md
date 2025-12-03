@@ -24,16 +24,17 @@ Rule (Abstract Base)
 ```
 
 **Architecture Pattern:**
+
 - **Rules** (ScriptRuleBase, StructureRuleBase): Orchestrate analysis, handle file iteration
 - **Detectors** (ScriptDetector): Analyze AST and detect patterns
 - **Separation**: Rules coordinate, Detectors detect
 
 ## 📊 When to Use Violation vs Finding
 
-| Output Type | Use When | Description |
-|-------------|----------|-------------|
-| **Violation** | Raw script ASTs (detectors) | Lower-level rule implementation working directly with parsed code |
-| **Finding** | Higher rule-level integration | Validation and reporting at the rule engine level |
+| Output Type         | Use When                      | Description                                                       |
+| ------------------- | ----------------------------- | ----------------------------------------------------------------- |
+| **Violation** | Raw script ASTs (detectors)   | Lower-level rule implementation working directly with parsed code |
+| **Finding**   | Higher rule-level integration | Validation and reporting at the rule engine level                 |
 
 ## 🏗️ Directory Structure
 
@@ -86,11 +87,11 @@ from ...base import Finding
 # Step 1: Create a Detector (handles AST parsing and detection logic)
 class MyScriptDetector(ScriptDetector):
     """Detector for specific pattern in AST."""
-    
+  
     def detect(self, ast: Tree, field_name: str = "") -> List[Violation]:
         """Analyze AST and return violations."""
         violations = []
-        
+      
         # Traverse the AST to find patterns
         for node in ast.find_data('some_ast_node_type'):
             line_number = self.get_line_from_tree_node(node)
@@ -98,20 +99,20 @@ class MyScriptDetector(ScriptDetector):
                 message=f"Found issue in {field_name}",
                 line=line_number
             ))
-        
+      
         return violations
 
 # Step 2: Create a Rule (orchestrates detector usage)
 class CustomScriptMyRule(ScriptRuleBase):
     """Custom script rule using detector pattern."""
-    
+  
     DESCRIPTION = "Description of what this rule checks"
     SEVERITY = "ADVICE"  # "ACTION", "ADVICE"
     DETECTOR = MyScriptDetector  # Reference to your detector class
-    
+  
     def get_description(self) -> str:
         return self.DESCRIPTION
-    
+  
     # The base class automatically:
     # - Iterates through PMD/POD/Script files
     # - Parses script content into AST
@@ -120,6 +121,7 @@ class CustomScriptMyRule(ScriptRuleBase):
 ```
 
 **Why use the Detector pattern?**
+
 - ✅ Separation of concerns (AST logic vs orchestration)
 - ✅ Reusable detectors across multiple rules
 - ✅ Comments automatically ignored by parser
@@ -133,19 +135,19 @@ Some rules implement custom `analyze()` methods for complex logic that doesn't f
 ```python
 class CustomScriptComplexRule(ScriptRuleBase):
     """Custom rule with complex analysis logic."""
-    
+  
     DESCRIPTION = "Complex analysis that doesn't fit detector pattern"
     SEVERITY = "ADVICE"
-    
+  
     def get_description(self) -> str:
         return self.DESCRIPTION
-    
+  
     def analyze(self, context) -> Generator[Finding, None, None]:
         """Custom analysis implementation."""
         # Your custom analysis logic here
         for pmd_model in context.pmds.values():
             yield from self._analyze_pmd_custom(pmd_model, context)
-    
+  
     def _analyze_pmd_custom(self, pmd_model, context):
         """Custom PMD analysis logic."""
         # Complex analysis that doesn't fit detector pattern
@@ -153,6 +155,7 @@ class CustomScriptComplexRule(ScriptRuleBase):
 ```
 
 **When to use each pattern:**
+
 - **Use Detector Pattern**: For AST-based analysis, syntax checking, code quality rules
 - **Use Custom Analysis**: For complex business logic, cross-file analysis, or when detector pattern doesn't fit
 
@@ -296,6 +299,7 @@ class CustomStructureRule(StructureRuleBase):
 **StructureRuleBase** now provides unified line calculation methods for consistent and reliable line number detection:
 
 #### Field Line Numbers
+
 ```python
 # Get line number for a specific field with a specific value
 line_number = self.get_field_line_number(model, 'name', 'myEndpoint')
@@ -303,6 +307,7 @@ line_number = self.get_field_line_number(model, 'id', 'myWidget')
 ```
 
 #### Section Line Numbers
+
 ```python
 # Get line number for a specific section
 line_number = self.get_section_line_number(model, 'footer')
@@ -310,6 +315,7 @@ line_number = self.get_section_line_number(model, 'presentation')
 ```
 
 #### Field After Entity Line Numbers
+
 ```python
 # Get line number for a field that appears after a specific entity
 line_number = self.get_field_after_entity_line_number(model, 'name', 'myEndpoint', 'url')
@@ -317,6 +323,7 @@ line_number = self.get_field_after_entity_line_number(model, 'name', 'myEndpoint
 ```
 
 #### Pattern Search Line Numbers
+
 ```python
 # Find line number where a pattern appears in source content
 line_number = self.find_pattern_line_number(model, 'hardcoded_value', case_sensitive=False)
@@ -324,12 +331,14 @@ line_number = self.find_pattern_line_number(model, 'data:image/', case_sensitive
 ```
 
 #### Text Position Line Numbers
+
 ```python
 # Get line number from a text position (character offset)
 line_number = self.get_line_from_text_position(text, match.start())
 ```
 
-#### Widget Path Helpers (New!)
+#### Widget Path Helpers
+
 ```python
 # Extract nearest container from widget path for context-aware line numbers
 # Works with any nested structure: cellTemplate, primaryLayout, sections, items, etc.
@@ -350,6 +359,7 @@ if container:
 ```
 
 **Benefits:**
+
 - ✅ **Consistent**: All structure rules use the same reliable methods
 - ✅ **Maintainable**: Single source of truth for line calculation logic
 - ✅ **DRY**: Eliminates code duplication across rules
@@ -366,7 +376,7 @@ for widget, path, index in self.traverse_presentation_structure(section_data, se
     # widget: The widget dictionary
     # path: Technical path like "body.children.1.columns.0.cellTemplate"
     # index: Array index if widget is in a list
-    
+  
     widget_type = widget.get('type')
     widget_id = widget.get('id')
     # Analyze the widget...
@@ -383,11 +393,12 @@ for widget_path, widget_data in widgets:
 The traversal automatically handles these containers: `children`, `primaryLayout`, `secondaryLayout`, `sections`, `items`, `navigationTasks`, `cellTemplate`, `columns`
 
 **Example: Checking All Widgets**
+
 ```python
 def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
     if not pmd_model.presentation:
         return
-    
+  
     # Traverse all presentation sections
     presentation_dict = pmd_model.presentation.__dict__
     for section_name, section_data in presentation_dict.items():
@@ -491,21 +502,22 @@ except Exception as e:
 class MyScriptDetector(ScriptDetector):
     def detect(self, ast: Tree, field_name: str = "") -> List[Violation]:
         violations = []
-        
+      
         # Get line number from AST node
         line_number = self.get_line_from_tree_node(node)
-        
+      
         # Get function context for a node (which function contains this node)
         function_name = self.get_function_context_for_node(node, ast)
-        
+      
         # Extract variable name from various node types
         var_name = self._extract_variable_from_node(node)
-        
+      
         # Your detection logic...
         return violations
 ```
 
 **Available Helper Methods:**
+
 - `get_line_from_tree_node(node)`: Get line number from any AST node
 - `get_function_context_for_node(node, ast)`: Find which function contains a node
 - `_extract_variable_from_node(node)`: Extract variable name from identifier nodes
@@ -628,38 +640,174 @@ def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
 - Cache expensive computations when possible
 - Use efficient data structures for large files
 
-### 4. Configuration Support
+### 4. Custom Settings
 
-Support rule configuration through custom_settings:
+Enable users to configure your rule through the UI by defining `AVAILABLE_SETTINGS`. This creates a schema-driven form in the configuration interface.
+
+**Schema Format:**
+
+```python
+AVAILABLE_SETTINGS = {
+    'setting_name': {
+        'type': 'int' | 'float' | 'bool' | 'string' | 'list',
+        'default': <default_value>,
+        'description': 'Human-readable description of what this setting does'
+    }
+}
+```
+
+**Example:**
 
 ```python
 class CustomScriptComplexityRule(ScriptRuleBase):
-    """Configurable complexity rule using unified architecture."""
-  
-    def __init__(self, config: dict = None):
-        """Initialize with optional configuration."""
-        self.config = config or {}
-        self.max_complexity = self.config.get('max_complexity', 10)
+    """Configurable complexity rule with custom settings."""
   
     DESCRIPTION = "Validates script complexity doesn't exceed threshold"
     SEVERITY = "ADVICE"
   
-    def analyze(self, context: ProjectContext) -> Generator[Violation, None, None]:
-        # Use the unified architecture - base class handles iteration
-        yield from self._analyze_scripts(context)
+    # Define custom settings schema
+    AVAILABLE_SETTINGS = {
+        'max_complexity': {
+            'type': 'int',
+            'default': 10,
+            'description': 'Maximum cyclomatic complexity allowed'
+        },
+        'skip_comments': {
+            'type': 'bool',
+            'default': False,
+            'description': 'Skip comment lines when calculating complexity'
+        }
+    }
   
-    def _analyze_scripts(self, context: ProjectContext) -> Generator[Violation, None, None]:
-        """Analyze scripts using the unified architecture."""
+    def __init__(self, config: dict = None):
+        """Initialize with optional configuration."""
+        super().__init__()
+        self.config = config or {}
+        # Settings are automatically applied via apply_settings()
+        # Access them in your analysis logic
+        self.max_complexity = 10  # Default, will be overridden by config
+  
+    def apply_settings(self, settings: dict):
+        """Apply custom settings from configuration."""
+        if 'max_complexity' in settings:
+            self.max_complexity = settings['max_complexity']
+        if 'skip_comments' in settings:
+            self.skip_comments = settings['skip_comments']
+  
+    def analyze(self, context: ProjectContext) -> Generator[Finding, None, None]:
         # Use self.max_complexity in your analysis
-        pass
+        yield from self._analyze_scripts(context)
 ```
 
-### 5. Documentation
+**Setting Types:**
 
-- Include clear rule descriptions
-- Provide helpful error messages with solutions
-- Add examples in your rule's docstring
-- Document any configuration options
+- `'int'`: Integer values (e.g., `max_lines: 50`)
+- `'float'`: Decimal values (e.g., `threshold: 0.15`)
+- `'bool'`: Boolean true/false (e.g., `enabled: true`)
+- `'string'`: Text values (e.g., `pattern: "test"`)
+- `'list'`: Array of values (e.g., `allowed_names: ["a", "b"]`)
+
+**How It Works:**
+
+1. Define `AVAILABLE_SETTINGS` in your rule class
+2. The UI automatically generates a form based on the schema
+3. Users configure settings in the configuration interface
+4. Settings are passed to your rule via `apply_settings()` method
+5. Use the settings in your analysis logic
+
+**Note:** If your rule doesn't support custom configuration, set `AVAILABLE_SETTINGS = {}` (empty dict).
+
+### 5. Grimoire Documentation
+
+Add rich documentation to your rule that appears in the Grimoire (rules documentation UI). This helps users understand why the rule exists, what it catches, and how to fix violations.
+
+**Schema Format:**
+
+```python
+DOCUMENTATION = {
+    'why': 'Explanation of why this rule matters and its importance',
+    'catches': [
+        'List item 1 describing what the rule detects',
+        'List item 2 with another example',
+        'List item 3 with additional context'
+    ],
+    'examples': '''Markdown-formatted code examples showing violations and fixes:
+
+```javascript
+// ❌ Bad example
+const bad = example;
+
+// ✅ Good example  
+const good = example;
+```''',
+    'recommendation': 'Advice on how to fix violations or best practices to follow'
+}
+```
+
+**Example:**
+
+```python
+class CustomScriptCommentRule(ScriptRuleBase):
+    """Rule with full Grimoire documentation."""
+  
+    DESCRIPTION = "Functions should have adequate comments"
+    SEVERITY = "ADVICE"
+  
+    DOCUMENTATION = {
+        'why': '''Well-commented code is easier to understand and maintain. Comments explain the "why" behind code, making it self-documenting and reducing cognitive load for future maintainers.''',
+        'catches': [
+            'Functions with low comment density',
+            'Long functions without explanatory comments',
+            'Functions that require reading implementation to understand purpose'
+        ],
+        'examples': '''**Example violations:**
+
+```javascript
+// ❌ Function without comments
+const processPayment = function(amount) {
+    const rate = getRate();
+    return amount * rate;
+};
+```
+
+**Fix:**
+
+```javascript
+// ✅ Well-commented function
+// Process payment with currency conversion
+const processPayment = function(amount) {
+    // Get current exchange rate
+    const rate = getRate();
+    // Convert and return
+    return amount * rate;
+};
+```''',
+        'recommendation': 'Add comments to explain the purpose and logic flow of functions, especially for complex operations. Comments should explain "why" rather than "what".'
+    }
+```
+
+**Markdown Support:**
+
+- The `examples` field supports full markdown formatting
+- Use code blocks with language tags (e.g., ` ```javascript `)
+- Use `**bold**` for emphasis
+- Use `❌` and `✅` emojis to mark bad/good examples
+
+**Best Practices:**
+
+- **why**: Explain the business/technical reason the rule exists
+- **catches**: Be specific about what patterns trigger violations
+- **examples**: Show real-world violations and clear fixes
+- **recommendation**: Provide actionable advice, not just descriptions
+
+**Note:** If your rule doesn't have documentation yet, set `DOCUMENTATION = {}` (empty dict). The UI will show "No documentation available" until you add it.
+
+### 6. Documentation Best Practices
+
+- Include clear rule descriptions in `DESCRIPTION`
+- Provide helpful error messages with solutions in violation messages
+- Add comprehensive `DOCUMENTATION` for the Grimoire
+- Document all configuration options in `AVAILABLE_SETTINGS` descriptions
 
 ### 6. Testing
 
@@ -818,7 +966,7 @@ class CustomStructureMyRule(StructureRuleBase):
                 )
             )
             return  # Skip analysis if context is missing
-        
+      
         # Proceed with analysis using available context
         for amd_model in context.amds.values():
             # Your analysis logic here
@@ -862,7 +1010,7 @@ def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[F
         )
         # Assume safe defaults and skip validation
         return
-    
+  
     # Proceed with full validation
     app_id = context.application_id
     # Your validation logic here
@@ -873,7 +1021,7 @@ def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[F
 The `ProjectContext` provides access to:
 
 - **`context.pmds`**: Dictionary of PMD models
-- **`context.pods`**: Dictionary of POD models  
+- **`context.pods`**: Dictionary of POD models
 - **`context.amds`**: Dictionary of AMD models
 - **`context.smds`**: Dictionary of SMD models
 - **`context.scripts`**: Dictionary of SCRIPT models
@@ -904,28 +1052,28 @@ from ...base import Finding
 # Step 1: Create Detector (AST detection logic)
 class ConsoleUsageDetector(ScriptDetector):
     """Detects console.log, console.error, etc. in scripts."""
-    
+  
     def detect(self, ast: Tree, field_name: str = "") -> List[Violation]:
         """Find console usage in AST."""
         violations = []
-        
+      
         # Find all member expressions (like console.log)
         for member_expr in ast.find_data('member_dot_expression'):
             if self._is_console_call(member_expr):
                 line_number = self.get_line_from_tree_node(member_expr)
                 function_context = self.get_function_context_for_node(member_expr, ast)
-                
+              
                 message = f"Console statement found in {field_name}"
                 if function_context:
                     message += f" (function: {function_context})"
-                
+              
                 violations.append(Violation(
                     message=message,
                     line=line_number
                 ))
-        
+      
         return violations
-    
+  
     def _is_console_call(self, node: Tree) -> bool:
         """Check if node is console.* call."""
         if len(node.children) >= 2:
@@ -939,14 +1087,14 @@ class ConsoleUsageDetector(ScriptDetector):
 # Step 2: Create Rule (orchestration)
 class CustomScriptConsoleRule(ScriptRuleBase):
     """Detects console usage in scripts."""
-    
+  
     DESCRIPTION = "Detects console.log and console.error usage"
     SEVERITY = "ADVICE"
     DETECTOR = ConsoleUsageDetector
-    
+  
     def get_description(self) -> str:
         return self.DESCRIPTION
-    
+  
     # That's it! ScriptRuleBase handles:
     # - Iterating PMD/POD/Script files
     # - Parsing scripts into AST
@@ -965,41 +1113,41 @@ from ....models import PMDModel, PodModel, ProjectContext
 
 class CustomWidgetLabelRule(StructureRuleBase):
     """Ensures all widgets have labels for accessibility."""
-    
+  
     DESCRIPTION = "Ensures widgets have labels for accessibility"
     SEVERITY = "ADVICE"
-    
+  
     def get_description(self) -> str:
         return self.DESCRIPTION
-    
+  
     def visit_pmd(self, pmd_model: PMDModel, context: ProjectContext) -> Generator[Finding, None, None]:
         if not pmd_model.presentation:
             return
-        
+      
         # Traverse all widgets using helper method
         presentation_dict = pmd_model.presentation.__dict__
         for section_name, section_data in presentation_dict.items():
             if isinstance(section_data, dict):
                 for widget, path, index in self.traverse_presentation_structure(section_data, section_name):
                     yield from self._check_widget_label(widget, pmd_model, path)
-    
+  
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         # Similar logic for POD files
         yield
-    
+  
     def _check_widget_label(self, widget, pmd_model, widget_path):
         """Check if widget has a label."""
         if not isinstance(widget, dict):
             return
-        
+      
         widget_type = widget.get('type')
         if widget_type in ['text', 'richText'] and 'label' not in widget:
             # Use path helpers for accurate line numbers
             container = self.extract_nearest_container_from_path(widget_path)
-            
+          
             # Get line number...
             line_number = 1  # Calculate using helper methods
-            
+          
             yield self._create_finding(
                 message=f"Widget of type '{widget_type}' should have a label for accessibility",
                 file_path=pmd_model.file_path,

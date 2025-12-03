@@ -11,6 +11,41 @@ class ScriptMagicNumberRule(ScriptRuleBase):
     DESCRIPTION = "Ensures scripts don't contain magic numbers (use named constants)"
     SEVERITY = "ADVICE"
     DETECTOR = MagicNumberDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Magic numbers (like `if (price > 1000)` or `return value * 0.15`) hide meaning and make code harder to maintain. When the number appears in multiple places, updating it requires finding every occurrence, risking missed updates. Named constants (`const premiumThreshold = 1000`) make the purpose clear and provide a single source of truth for values that might need to change.''',
+        'catches': [
+            'Numeric literals without clear meaning',
+            'Hard-coded numbers that should be constants'
+        ],
+        'examples': '''**Example violations:**
+
+```javascript
+function calculateDiscount(price) {
+    if (price > 1000) {        // ❌ Magic number
+        return price * 0.15;   // ❌ Magic number
+    }
+    return price * 0.05;       // ❌ Magic number
+}
+```
+
+**Fix:**
+
+```javascript
+const premiumThreshold = 1000;
+const premiumDiscount = 0.15;
+const standardDiscount = 0.05;
+
+function calculateDiscount(price) {
+    if (price > premiumThreshold) {
+        return price * premiumDiscount;
+    }
+    return price * standardDiscount;
+}
+```''',
+        'recommendation': 'Replace magic numbers with named constants that clearly express their purpose. This makes code more maintainable and provides a single source of truth for values that might need to change.'
+    }
 
     def _check(self, script_content: str, field_name: str, file_path: str, line_offset: int = 1, context=None):
         """Override to pass source text to detector for code context extraction."""

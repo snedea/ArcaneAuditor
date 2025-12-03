@@ -9,6 +9,50 @@ class PMDSectionOrderingRule(Rule):
     
     DESCRIPTION = "Ensures PMD file root-level sections follow consistent ordering for better readability"
     SEVERITY = "ADVICE"
+    AVAILABLE_SETTINGS = {
+        'section_order': {'type': 'list', 'default': ['id', 'securityDomains', 'include', 'script', 'endPoints', 'onSubmit', 'outboundData', 'onLoad', 'presentation'], 'description': 'Required order of PMD file root-level sections'}
+    }
+    
+    DOCUMENTATION = {
+        'why': '''Consistent section ordering across PMD files makes them easier to navigate and review. When every file follows the same structure, developers can quickly find what they're looking for (endpoints, scripts, presentation) without scanning the entire file. This is especially helpful when reviewing code or onboarding new team members who need to understand unfamiliar pages.
+
+**Default Section Order:**
+1. `id`
+2. `securityDomains`
+3. `include`
+4. `script`
+5. `endPoints`
+6. `onSubmit`
+7. `outboundData`
+8. `onLoad`
+9. `presentation`''',
+        'catches': [
+            'PMD sections in non-standard order',
+            'Inconsistent file structure across applications'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "presentation": { },     // ❌ presentation should come last
+  "id": "myAppPage",
+  "script": "<%  %>",
+  "include": ["util.script"]
+}
+```
+
+**Fix:**
+
+```json
+{
+  "id": "myAppPage",         // ✅ Proper order
+  "include": ["util.script"],
+  "script": "<%  %>",
+  "presentation": { }
+}
+```''',
+        'recommendation': 'Follow the standard PMD section ordering to improve code readability and make files easier to navigate. The order can be customized via configuration if needed.'
+    }
 
     def __init__(self, config: Dict[str, Any] = None):
         """Initialize with configurable section order."""

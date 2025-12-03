@@ -31,6 +31,30 @@ class FileNameLowerCamelCaseRule(Rule):
     ID = "FileNameLowerCamelCaseRule"
     DESCRIPTION = "Ensures all file names follow lowerCamelCase naming convention"
     SEVERITY = "ADVICE"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''LowerCamelCase is the Workday Extend standard, and following it ensures files are organized predictably, keeping your code looking professional.''',
+        'catches': [
+            'Files using PascalCase (e.g., `MyPage.pmd`)',
+            'Files using snake_case (e.g., `my_page.pmd`)'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+MyPage.pmd          // ❌ PascalCase
+my_page.pmd         // ❌ snake_case
+MY_PAGE.pmd         // ❌ UPPER_SNAKE_CASE
+```
+
+**Fix:**
+
+```json
+myPage.pmd          // ✅ lowerCamelCase
+helperFunctions.script  // ✅ lowerCamelCase
+```''',
+        'recommendation': 'Use lowerCamelCase for all file names to follow Workday Extend standards and maintain a professional, consistent codebase.'
+    }
     
     def get_description(self) -> str:
         """Get rule description."""

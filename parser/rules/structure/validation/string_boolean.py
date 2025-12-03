@@ -9,6 +9,34 @@ class StringBooleanRule(StructureRuleBase):
     
     DESCRIPTION = "Ensures boolean values are not represented as strings 'true'/'false' but as actual booleans"
     SEVERITY = "ADVICE"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Booleans should be represented as actual boolean values (true / false), not strings ("true" / "false"). While the backend may gracefully cast string values, this "magic conversion" hides the true intent of the data.
+
+**🧙 Wizard's Note:** Some areas of Extend actually *require* you to use strings, instead of bools (for example: for some values in your AMD flows), so we won't check in those places and just accept this "gotcha" with Extend.''',
+        'catches': [
+            'Boolean values represented as strings `"true"` or `"false"`'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "visible": "true",  // ❌ String instead of boolean
+  "enabled": "false"  // ❌ String instead of boolean
+}
+```
+
+**Fix:**
+
+```json
+{
+  "visible": true,  // ✅ Actual boolean
+  "enabled": false  // ✅ Actual boolean
+}
+```''',
+        'recommendation': 'Use actual boolean values (true/false) instead of strings ("true"/"false") to clearly express intent and avoid relying on implicit type conversion.'
+    }
 
     def get_description(self) -> str:
         """Get rule description."""

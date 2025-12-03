@@ -37,7 +37,15 @@
 
 /* Upload Section */
 .upload-section {
+    margin-top: 0; /* Already 0, but ensure it stays 0 */
     margin-bottom: 40px;
+    padding: 24px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-top: none; /* This allows the toolbar above to act as the border */
+    border-radius: 10px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
 }
 
 .upload-area {
@@ -81,6 +89,30 @@
 .upload-area p {
     color: var(--text-secondary);
     margin-bottom: 20px;
+}
+
+/* Upload Config Hint - Status Badge */
+#upload-config-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-tertiary);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    margin-top: 16px;
+    margin-bottom: 24px;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+#upload-config-name {
+    color: var(--accent); /* Default / Light Mode */
+    font-weight: 700;
+}
+
+[data-theme="dark"] #upload-config-name {
+    color: #c084fc; /* Bright Lavender for Dark Mode */
 }
 
 .upload-hint {
@@ -182,5 +214,3 @@
 .file-item-remove:hover {
     color: #dc2626;
 }
-
-/* Context Awareness Panel */

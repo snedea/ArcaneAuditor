@@ -14,6 +14,57 @@ class HardcodedWorkdayAPIRule(StructureRuleBase):
     ID = "HardcodedWorkdayAPIRule"
     DESCRIPTION = "Detects hardcoded *.workday.com URLs that should use apiGatewayEndpoint for regional awareness"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Hardcoded workday.com URLs are not update safe and lack regional awareness. Using the `apiGatewayEndpoint` variable ensures your endpoints work across all environments and regions without code changes. If Workday adds additional regional endpoints or changes infrastructure, using the `apiGatewayEndpoint` application variable keeps your app update safe and regionally aware.''',
+        'catches': [
+            'Hardcoded *.workday.com URLs in AMD dataProviders',
+            'Hardcoded *.workday.com URLs in PMD inbound and outbound endpoint URLs',
+            'Hardcoded *.workday.com URLs in POD endpoint URLs',
+            'URLs that should use apiGatewayEndpoint variable instead'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+// AMD dataProvider
+{
+  "dataProviders": [
+    {
+      "key": "workday-common",
+      "value": "https://api.workday.com/common/v1/"  // ❌ Hardcoded workday.com URL
+    }
+  ]
+}
+
+// PMD endpoint
+{
+  "name": "getWorker",
+  "url": "https://api.workday.com/common/v1/workers/me"  // ❌ Hardcoded workday.com URL
+}
+```
+
+**Fix:**
+
+```json
+// AMD dataProvider
+{
+  "dataProviders": [
+    {
+      "key": "workday-common",
+      "value": "<% apiGatewayEndpoint + '/common/v1/' %>"  // ✅ Use apiGatewayEndpoint
+    }
+  ]
+}
+
+// PMD/POD endpoint
+{
+  "name": "getWorker",
+  "url": "<% apiGatewayEndpoint + '/common/v1/workers/me' %>"  // ✅ Use apiGatewayEndpoint
+}
+```''',
+        'recommendation': 'Use the `apiGatewayEndpoint` application variable instead of hardcoded *.workday.com URLs. This ensures your endpoints work across all environments and regions, and keeps your app update safe if Workday changes infrastructure.'
+    }
 
     def __init__(self):
         """Initialize the rule."""

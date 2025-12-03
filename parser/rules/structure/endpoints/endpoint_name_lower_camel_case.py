@@ -12,6 +12,45 @@ class EndpointNameLowerCamelCaseRule(StructureRuleBase):
     ID = "EndpointNameLowerCamelCaseRule"
     DESCRIPTION = "Ensures endpoint names follow lowerCamelCase naming convention (style guide)"
     SEVERITY = "ADVICE"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''LowerCamelCase is the Workday Extend standard for endpoint names. Following the convention improves team collaboration and makes code more professional.''',
+        'catches': [
+            'Endpoint names that don\'t follow camelCase naming',
+            'Inconsistent naming conventions across endpoints'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "endPoints": [
+    {
+      "name": "get_user_data"  // ❌ snake_case
+    }, 
+    {
+      "name": "GetUserProfile" // ❌ PascalCase
+    }
+  ]
+}
+```
+
+**Fix:**
+
+```json
+{
+  "endPoints": [
+    {
+      "name": "getUserData"    // ✅ lowerCamelCase
+    }, 
+    {
+      "name": "getUserProfile" // ✅ lowerCamelCase
+    }
+  ]
+}
+```''',
+        'recommendation': 'Use lowerCamelCase for all endpoint names to follow Workday Extend standards and improve code consistency.'
+    }
     
     def get_description(self) -> str:
         """Get rule description."""

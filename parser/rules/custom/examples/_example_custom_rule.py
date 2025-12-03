@@ -101,6 +101,8 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
     - Detector handles AST analysis and violation detection
     - Rule orchestrates detector usage and configuration
     - Clean separation of concerns
+    - Custom settings support via AVAILABLE_SETTINGS
+    - Grimoire documentation via DOCUMENTATION
     
     PATTERN 2 (RECOMMENDED): Set attributes after detector creation
     This is simpler and more flexible than passing parameters to constructor.
@@ -111,6 +113,62 @@ class CustomScriptCommentQualityRule(ScriptRuleBase):
     DESCRIPTION = "Functions should have adequate comments for maintainability (configurable threshold)"
     SEVERITY = "ADVICE"
     DETECTOR = CommentQualityDetector  # Reference to detector class
+    
+    # Define custom settings that users can configure in the UI
+    AVAILABLE_SETTINGS = {
+        'min_comment_density': {
+            'type': 'float',
+            'default': 0.1,
+            'description': 'Minimum comment density required (0.0 to 1.0, where 0.1 = 10%)'
+        },
+        'min_function_lines': {
+            'type': 'int',
+            'default': 5,
+            'description': 'Minimum function length (in lines) before checking comment density'
+        }
+    }
+    
+    # Grimoire documentation - displayed in the UI when users view rule details
+    DOCUMENTATION = {
+        'why': '''Well-commented code is easier to understand, maintain, and debug. Functions without adequate comments force developers to read through implementation details to understand purpose and behavior. Comments explain the "why" behind code, making it self-documenting and reducing cognitive load for future maintainers.''',
+        'catches': [
+            'Functions with low comment density (fewer comments relative to code)',
+            'Long functions without explanatory comments',
+            'Functions that require reading implementation to understand purpose'
+        ],
+        'examples': '''**Example violations:**
+
+```javascript
+// ❌ Function with low comment density
+const processPayment = function(amount, currency) {
+    const rate = getExchangeRate(currency);
+    const converted = amount * rate;
+    const fee = calculateFee(converted);
+    const total = converted + fee;
+    return submitPayment(total);
+    // No comments explaining the logic flow
+};
+```
+
+**Fix:**
+
+```javascript
+// ✅ Well-commented function
+const processPayment = function(amount, currency) {
+    // Convert amount to base currency using current exchange rate
+    const rate = getExchangeRate(currency);
+    const converted = amount * rate;
+    
+    // Calculate processing fee (2% of converted amount)
+    const fee = calculateFee(converted);
+    const total = converted + fee;
+    
+    // Submit payment to payment gateway
+    return submitPayment(total);
+};
+```''',
+        'recommendation': 'Add comments to explain the purpose and logic flow of functions, especially for complex operations. Comments should explain "why" rather than "what" (the code already shows what). Focus on business logic, edge cases, and non-obvious decisions.'
+    }
     
     def __init__(self, config: dict = None):
         """Initialize with optional configuration."""
@@ -295,12 +353,61 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
     Example custom PMD structure rule.
     
     Demonstrates validation of PMD file structure and organization.
+    Includes custom settings and Grimoire documentation.
     """
     
     IS_EXAMPLE = True  # Exclude from discovery
     
     DESCRIPTION = "PMD files should follow organizational structure standards"
     SEVERITY = "ACTION"
+    
+    # Define custom settings that users can configure in the UI
+    AVAILABLE_SETTINGS = {
+        'required_sections': {
+            'type': 'list',
+            'default': ['id', 'presentation'],
+            'description': 'List of required section names that must be present in PMD files'
+        },
+        'max_endpoints': {
+            'type': 'int',
+            'default': 10,
+            'description': 'Maximum number of endpoints allowed per PMD file'
+        }
+    }
+    
+    # Grimoire documentation - displayed in the UI when users view rule details
+    DOCUMENTATION = {
+        'why': '''PMD files that follow consistent organizational structure are easier to navigate, maintain, and review. Required sections ensure all necessary configuration is present, and limiting endpoint count prevents files from becoming too complex and hard to manage.''',
+        'catches': [
+            'PMD files missing required organizational sections',
+            'PMD files with too many endpoints (indicating need for splitting)',
+            'Inconsistent file structure across the application'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+// ❌ Missing required sections
+{
+  "id": "myPage",
+  "endPoints": [...]
+  // Missing 'presentation' section
+}
+```
+
+**Fix:**
+
+```json
+// ✅ Complete structure with all required sections
+{
+  "id": "myPage",
+  "presentation": {
+    "body": {...}
+  },
+  "endPoints": [...]
+}
+```''',
+        'recommendation': 'Ensure all PMD files include required organizational sections. If a PMD file has too many endpoints, consider splitting it into multiple focused files for better maintainability.'
+    }
     
     def __init__(self, config: dict = None):
         """Initialize with configuration."""
@@ -367,6 +474,7 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
 
 
 # Example configuration for these rules:
+# The custom_settings values correspond to the AVAILABLE_SETTINGS schema defined above
 """
 {
   "rules": {
@@ -374,16 +482,16 @@ class CustomPMDSectionValidationRule(StructureRuleBase):
       "enabled": true,
       "severity_override": "ADVICE",
       "custom_settings": {
-        "min_comment_density": 0.15,
-        "min_function_lines": 8
+        "min_comment_density": 0.15,  // Overrides default of 0.1 (10%)
+        "min_function_lines": 8        // Overrides default of 5
       }
     },
     "CustomPMDSectionValidationRule": {
       "enabled": true,
       "severity_override": "ACTION",
       "custom_settings": {
-        "required_sections": ["id", "presentation", "endPoints"],
-        "max_endpoints": 5
+        "required_sections": ["id", "presentation", "endPoints"],  // Overrides default list
+        "max_endpoints": 5  // Overrides default of 10
       }
     }
   }

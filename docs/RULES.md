@@ -1399,7 +1399,7 @@ Base64-encoded images bloat your PMD/Pod file sizes dramatically (often 30% larg
 
 **Why This Matters:**
 
-Hardcoded WIDs (Workday IDs) are environment-specific - a worker or job WID in your sandbox won't exist in production. This causes runtime errors when the code tries to look up non-existent data. But even if you're using a common WID that exists across environments, it is meaningless to a developer looking at your code (possibly including yourself!). Storing WIDs in app attributes allows different values per environment, makes your application portable across tenants and instances, and allows for you to name it in a way that makes sense!
+Hardcoded WIDs (Workday IDs) are environment-specific - a worker or job WID from your WCPDev tenant won't exist in Production. This causes runtime errors when the code tries to look up non-existent data. But even if you're using a common WID that exists across environments, it is meaningless to a developer looking at your code (possibly including yourself!). Storing WIDs in app attributes allows different values per environment, makes your application portable across tenants and instances, and allows for you to name it in a way that makes sense!
 
 **What it catches:**
 
@@ -1547,7 +1547,7 @@ Without proper error handling (failOnStatusCodes), your endpoints silently swall
 
 **Why This Matters:**
 
-Using `isCollection: true` on inbound endpoints may cause severe performance degradation when apps are in use simultaneously by different users. This can slow down or the entire Workday instance for all users, not just your application. Avoiding isCollection on inbound endpoints is critical for maintaining app performance.
+Using `isCollection: true` on inbound endpoints may cause severe performance degradation when apps are in use simultaneously by different users. This can slow down the entire Workday instance for all users, not just your application. Avoiding isCollection on inbound endpoints is critical for maintaining app performance.
 
 **Example violations:**
 

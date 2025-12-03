@@ -2,8 +2,8 @@
 Rule to detect outboundVariable endpoints with variableScope: session.
 
 PMD session variables persist for the entire user session, consuming memory and 
-potentially causing performance issues as sessions accumulate data. Use page or 
-task scope instead.
+potentially causing performance issues as sessions accumulate data. Use flow 
+scope instead.
 
 This rule only checks outbound endpoints (not inbound).
 """
@@ -28,6 +28,42 @@ class NoPMDSessionVariablesRule(StructureRuleBase):
     ID = "NoPMDSessionVariablesRule"
     DESCRIPTION = "Detects outboundVariable endpoints with variableScope: session which can cause performance degradation"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Session-scoped variables persist for the entire user session (potentially hours), continuously consuming memory even after the user leaves your page. This memory isn't released until logout, degrading performance over time and potentially causing issues for long-running sessions.''',
+        'catches': [
+            'Outbound endpoints with `type: "outboundVariable"` AND `variableScope: "session"`'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "outboundEndpoints": [
+    {
+      "name": "saveUserPreference",
+      "type": "outboundVariable",
+      "variableScope": "session"  // ❌ Lasts entire session - performance issue
+    }
+  ]
+}
+```
+
+**Fix:**
+
+```json
+{
+  "outboundEndpoints": [
+    {
+      "name": "saveUserPreference",
+      "type": "outboundVariable",
+      "variableScope": "flow"  // ✅ Use a flow variable, instead
+    }
+  ]
+}
+```''',
+        'recommendation': 'Use `variableScope: "flow"` instead of `"session"` for outboundVariable endpoints to prevent memory accumulation and performance degradation.'
+    }
     
     def get_description(self) -> str:
         """Get rule description."""
@@ -61,7 +97,7 @@ class NoPMDSessionVariablesRule(StructureRuleBase):
             line_number = self._get_endpoint_line_number(pmd_model, endpoint_name)
             
             yield self._create_finding(
-                message=f"Outbound endpoint '{endpoint_name}' uses session-scoped variable (variableScope: session) which can cause performance degradation. Use 'page' or 'task' scope instead.",
+                message=f"Outbound endpoint '{endpoint_name}' uses session-scoped variable (variableScope: session) which can cause performance degradation. Use 'flow' scope instead.",
                 file_path=pmd_model.file_path,
                 line=line_number
             )

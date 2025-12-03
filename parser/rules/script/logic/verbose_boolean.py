@@ -10,6 +10,31 @@ class ScriptVerboseBooleanCheckRule(ScriptRuleBase):
     DESCRIPTION = "Ensures scripts don't use overly verbose boolean checks (if(var == true) return true else return false)"
     SEVERITY = "ADVICE"
     DETECTOR = VerboseBooleanDetector
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Verbose boolean checks like `if (isActive == true)` or `return (condition) ? true : false` add unnecessary noise and make code harder to scan. The value is already boolean, so the comparison is redundant. Concise expressions (`if (isActive)` or `return condition`) are clearer, more idiomatic, and reduce visual clutter.''',
+        'catches': [
+            'Verbose boolean comparisons that can be simplified',
+            'Redundant boolean expressions'
+        ],
+        'examples': '''**Example violations:**
+
+```javascript
+if (user.active == true) { }     // ❌ Verbose
+if (user.active != false) { }    // ❌ Verbose
+return (condition) ? true : false; // ❌ Redundant
+```
+
+**Fix:**
+
+```javascript
+if (user.active) { }              // ✅ Concise
+if (!user.active) { }             // ✅ Concise
+return condition;                 // ✅ Direct return
+```''',
+        'recommendation': 'Use concise boolean expressions instead of verbose comparisons. Direct boolean values and conditions are clearer and more idiomatic.'
+    }
 
     def get_description(self) -> str:
         """Get rule description."""

@@ -11,6 +11,52 @@ class ScriptLongFunctionRule(ScriptRuleBase):
     DESCRIPTION = "Ensures functions don't exceed maximum line count (max 50 lines)"
     SEVERITY = "ADVICE"
     DETECTOR = LongFunctionDetector
+    AVAILABLE_SETTINGS = {
+        'max_lines': {'type': 'int', 'default': 50, 'description': 'Maximum lines allowed'},
+        'skip_comments': {'type': 'bool', 'default': False, 'description': 'Skip comment lines when counting'},
+        'skip_blank_lines': {'type': 'bool', 'default': False, 'description': 'Skip blank lines when counting'}
+    }
+    
+    DOCUMENTATION = {
+        'why': '''Functions longer than 50 lines typically violate the single responsibility principle - they're doing too many things. Long functions are harder to understand, test, and reuse, and they often hide bugs in the complexity. Breaking them into smaller, focused functions with clear names makes code self-documenting and easier to maintain.''',
+        'catches': [
+            'Functions that exceed 50 lines of code',
+            'Monolithic functions that should be broken down',
+            'Functions that likely violate single responsibility principle',
+            '**Note:** Nested functions are analyzed independently - but inner function lines are also included in outer function counts. This means you could get multiple violations when an inner function exceeds the threshold. This means the outer function does, too!'
+        ],
+        'examples': '''**Example violations:**
+
+```pmd
+const processLargeDataset = function(data) {
+    // ... 60 lines of code ...
+    // This function is doing too many things
+};
+```
+
+**Fix:**
+
+```pmd
+const processLargeDataset = function(data) {
+    const validated = validateData(data);
+    const processed = transformData(validated);
+    return formatOutput(processed);
+};
+
+const validateData = function(data) {
+    // ... validation logic ...
+};
+
+const transformData = function(data) {
+    // ... transformation logic ...
+};
+
+const formatOutput = function(data) {
+    // ... formatting logic ...
+};
+```''',
+        'recommendation': 'Break long functions into smaller, focused functions with clear names. Each function should have a single responsibility, making the code easier to understand, test, and maintain.'
+    }
 
     def __init__(self):
         super().__init__()

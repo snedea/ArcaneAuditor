@@ -29,6 +29,63 @@ class GridPagingWithSortableFilterableRule(StructureRuleBase):
     ID = "GridPagingWithSortableFilterableRule"
     DESCRIPTION = "Detects grids with paging and sortableAndFilterable columns which can cause performance issues"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Combining paging with sortable/filterable columns can cause severe performance degradation due to how data is fetched and processed. This combination forces the system to fetch, sort, and filter data on every page change, leading to slow response times and potential timeout issues.''',
+        'catches': [
+            'Grids with `autoPaging: true` OR `pagingInfo` present',
+            'AND any column with `sortableAndFilterable: true`'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "type": "grid",
+  "id": "workerGrid",
+  "autoPaging": true,  // ❌ Paging enabled
+  "columns": [
+    {
+      "columnId": "workerName",
+      "sortableAndFilterable": true  // ❌ Sortable/filterable with paging
+    }
+  ]
+}
+```
+
+**Fix:**
+
+```json
+{
+  "type": "grid",
+  "id": "workerGrid",
+  "autoPaging": true,  // ✅ Keep paging
+  "columns": [
+    {
+      "columnId": "workerName",
+      "sortableAndFilterable": false  // ✅ Disable sortable/filterable when using paging
+    }
+  ]
+}
+```
+
+**OR remove paging if sorting/filtering is required:**
+
+```json
+{
+  "type": "grid",
+  "id": "workerGrid",
+  // ✅ No paging
+  "columns": [
+    {
+      "columnId": "workerName",
+      "sortableAndFilterable": true  // ✅ Can use sortable/filterable without paging
+    }
+  ]
+}
+```''',
+        'recommendation': 'Either remove paging from grids that need sortable/filterable columns, or disable sortableAndFilterable on all columns when using paging. This combination causes severe performance issues.'
+    }
     
     def get_description(self) -> str:
         """Get rule description."""

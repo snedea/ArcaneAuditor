@@ -26,6 +26,33 @@ class OnlyMaximumEffortRule(StructureRuleBase):
     ID = "OnlyMaximumEffortRule"
     DESCRIPTION = "Ensures endpoints do not use bestEffort to prevent masked API failures"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Using `bestEffort: true` on endpoints silently swallows API failures, causing your code to continue executing as if the call succeeded when it actually failed. This leads to data inconsistency, partial updates, and bugs that are extremely hard to debug because you have no visibility into the failure.''',
+        'catches': [
+            'Endpoints with `bestEffort: true` on inbound and outbound endpoints',
+            'Includes PMD and POD endpoints'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "name": "getWorkers",
+  "bestEffort": true  // ❌ Can mask API failures
+}
+```
+
+**Fix:**
+
+```json
+{
+  "name": "getWorkers"
+  // ✅ Remove bestEffort property
+}
+```''',
+        'recommendation': 'Remove `bestEffort: true` from all endpoints to ensure API failures are properly caught and handled, preventing silent failures and data inconsistencies.'
+    }
     
     def get_description(self) -> str:
         """Get rule description."""
