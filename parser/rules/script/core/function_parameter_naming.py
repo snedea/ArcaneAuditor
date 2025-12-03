@@ -13,7 +13,7 @@ class ScriptFunctionParameterNamingRule(ScriptRuleBase):
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {
-        'why': '''Parameter names are the first thing developers see when calling your functions. Inconsistent naming (like snake_case parameters when everything else uses camelCase) forces mental translation and slows comprehension. Following the same convention for parameters as variables creates a seamless reading experience and makes function signatures immediately understandable.''',
+        'why': '''Parameter names are the first thing developers see when calling your functions. Inconsistent naming (like snake_case parameters when everything else uses lowerCamelCase) forces mental translation and slows comprehension. Following the same convention for parameters as variables creates a seamless reading experience and makes function signatures immediately understandable.''',
         'catches': [
             'Function parameters that don\'t follow lowerCamelCase naming convention',
             'Parameters using snake_case, PascalCase, or other naming conventions',

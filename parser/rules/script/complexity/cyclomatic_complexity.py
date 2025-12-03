@@ -10,10 +10,18 @@ class ScriptComplexityRule(ScriptRuleBase):
     DESCRIPTION = "Ensures scripts don't exceed complexity thresholds (max 10 cyclomatic complexity)"
     SEVERITY = "ADVICE"
     DETECTOR = CyclomaticComplexityDetector
-    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    AVAILABLE_SETTINGS = {
+        'max_complexity': {
+            'type': 'number',
+            'default': 10,
+            'description': 'Maximum allowed cyclomatic complexity per function. Functions exceeding this threshold will be flagged.',
+            'minimum': 1,
+            'maximum': 50
+        }
+    }
     
     DOCUMENTATION = {
-        'why': '''Cyclomatic complexity measures the number of independent paths through your code (every *if*, *else*, *loop*, etc. adds to it). High complexity (>10) means your function has too many decision points, making it exponentially harder to test all scenarios and increasing the chance of bugs. Breaking complex functions into smaller, focused ones makes testing easier and reduces defects.
+        'why': '''Cyclomatic complexity measures the number of independent paths through your code (every *if*, *else*, *loop*, etc. adds to it). High complexity (default threshold: 10, configurable) means your function has too many decision points, making it exponentially harder to test all scenarios and increasing the chance of bugs. Breaking complex functions into smaller, focused ones makes testing easier and reduces defects.
 
 **🧙‍♂️ Wizard's Note:** This rule currently evaluates **either** individual functions **or** procedural script blocks, but not both mixed together. If your script has inline function declarations, only those functions are checked; the procedural code between functions is not separately analyzed for complexity.''',
         'catches': [
@@ -124,7 +132,7 @@ const processOrderItem = function(item) {
     // Complexity: 4 ✅
 }
 ```''',
-        'recommendation': 'Break complex functions into smaller, focused functions with fewer decision points. Each function should handle a single responsibility, making the code easier to test and maintain. Aim for cyclomatic complexity of 10 or less per function.'
+        'recommendation': 'Break complex functions into smaller, focused functions with fewer decision points. Each function should handle a single responsibility, making the code easier to test and maintain. Aim for cyclomatic complexity below the configured threshold (default: 10). You can adjust the threshold in your rule configuration if your team has different complexity standards.'
     }
 
     def get_description(self) -> str:

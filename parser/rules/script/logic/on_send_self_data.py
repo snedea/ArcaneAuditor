@@ -25,8 +25,12 @@ class ScriptOnSendSelfDataRule(ScriptRuleBase):
 **Note:** This rule only applies to **outbound** endpoints. Inbound endpoints are not checked.''',
         'catches': [
             '`self.data = {:}` - Using self.data as temporary storage (empty object)',
-            '`self.data = {\'foo\': \'bar\'}` - Using self.data as temporary storage (populated object)',
+            '`self.data = {\'foo\': \'bar\'}` - Using `self.data` as temporary storage (populated object)',
             'Any assignment that creates a new `self.data` object'
+        ],
+        'allows': [
+            '`self.data.foo = \'bar\'` - Property assignment to existing data (✅ OK - assumes `self.data` is created from valueOutBinding)',
+            'Creating local variables: `let postData = {:}` (✅ Recommended)'
         ],
         'examples': '''**Example violations:**
 
@@ -61,11 +65,7 @@ class ScriptOnSendSelfDataRule(ScriptRuleBase):
     %>"
   }]
 }
-```
-
-**What it allows:**
-- `self.data.foo = 'bar'` - Property assignment to existing data (✅ OK - assumes self.data created from valueOutBinding)
-- Creating local variables: `let postData = {:}` (✅ Recommended)''',
+```''',
         'recommendation': 'Use local variables instead of `self.data` for temporary storage in onSend scripts. This makes code clearer and prevents polluting the `self` reference. Property assignments to existing `self.data` (from valueOutBinding) are allowed.'
     }
 

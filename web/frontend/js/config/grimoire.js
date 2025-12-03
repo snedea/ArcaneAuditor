@@ -409,6 +409,18 @@ export class GrimoireUI {
                 `;
             }
 
+            // What It Allows
+            if (documentation.allows && Array.isArray(documentation.allows) && documentation.allows.length > 0) {
+                html += `
+                    <div class="grimoire-section">
+                        <h3 class="grimoire-section-title">✅ What It Allows</h3>
+                        <ul class="grimoire-list">
+                            ${documentation.allows.map(item => `<li>${this.formatMarkdown(item)}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
             // Examples
             if (documentation.examples) {
                 html += `
@@ -518,15 +530,21 @@ export class GrimoireUI {
     formatMarkdown(text) {
         if (!text) return '';
         
-        // Escape HTML first
+        // Escape HTML first (but preserve newlines for now)
         let html = text
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
 
-        // Convert code blocks (```language ... ```)
-        html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-            return `<pre class="grimoire-code-block"><code>${code.trim()}</code></pre>`;
+        // Convert code blocks (```language ... ```) - use placeholder to preserve context
+        const codeBlockPlaceholders = [];
+        html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code, offset) => {
+            const placeholder = `__CODE_BLOCK_${codeBlockPlaceholders.length}__`;
+            codeBlockPlaceholders.push({
+                placeholder: placeholder,
+                content: `<pre class="grimoire-code-block"><code>${code.trim()}</code></pre>`
+            });
+            return placeholder;
         });
 
         // Convert inline code (`code`)
@@ -535,9 +553,18 @@ export class GrimoireUI {
         // Convert bold (**text**)
         html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-        // Convert line breaks
+        // Convert line breaks - preserve spacing
+        // First, normalize 3+ consecutive newlines to 2 newlines (preserve spacing without excessive breaks)
+        html = html.replace(/\n{3,}/g, '\n\n');
+        // Convert double newlines to paragraph breaks (this preserves empty lines)
         html = html.replace(/\n\n/g, '</p><p>');
+        // Convert single newlines to line breaks
         html = html.replace(/\n/g, '<br>');
+        
+        // Restore code blocks (after newline processing to preserve spacing around them)
+        codeBlockPlaceholders.forEach(({placeholder, content}) => {
+            html = html.replace(placeholder, content);
+        });
         
         // Wrap in paragraph if not already wrapped
         if (!html.startsWith('<')) {
