@@ -30,12 +30,14 @@ class HardcodedWidRule(StructureRuleBase):
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {
-        'why': '''Hardcoded WIDs (Workday IDs) are often environment-specific - a worker or job WID in your sandbox won't exist in production. This causes runtime errors when the code tries to look up non-existent data. But even if you're using a common WID that exists across environments, it is meaningless to a developer looking at your code (possibly including yourself!). Storing WIDs in app attributes allows different values per environment, makes your application portable across tenants and instances, and allows for you to name it in a way that makes sense!
-
-**Note:** Business process WIDs ("d9e41a8c446c11de98360015c5e6daf6" and "d9e4223e446c11de98360015c5e6daf6") are allowed as exceptions.''',
+        'why': '''Hardcoded WIDs (Workday IDs) are often environment-specific - a worker or job WID from your WCPDev tenant won't exist in Production. This causes runtime errors when the code tries to look up non-existent data. But even if you're using a common WID that exists across environments, it is meaningless to a developer looking at your code (possibly including yourself!). Storing WIDs in app attributes allows different values per environment, makes your application portable across tenants and instances, and allows for you to name it in a way that makes sense!''',
         'catches': [
             'Hardcoded 32-character WID values',
             'WIDs that should be configured in app attributes'
+        ],
+        'allows': [
+            'Business process WID "d9e41a8c446c11de98360015c5e6daf6" (allowed exception)',
+            'Business process WID "d9e4223e446c11de98360015c5e6daf6" (allowed exception)'
         ],
         'examples': '''**Example violations:**
 
