@@ -30,7 +30,7 @@ class NoIsCollectionOnEndpointsRule(StructureRuleBase):
     AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
     
     DOCUMENTATION = {
-        'why': '''Using `isCollection: true` on inbound endpoints may cause severe performance degradation when apps are in use simultaneously by different users. This can slow down or the entire Workday instance for all users, not just your application. Avoiding isCollection on inbound endpoints is critical for maintaining app performance.''',
+        'why': '''Using `isCollection: true` on inbound endpoints may cause severe performance degradation when apps are in use simultaneously by different users. This can slow down the entire Workday instance for all users, not just your application. Avoiding isCollection on inbound endpoints is critical for maintaining app performance.''',
         'catches': [
             'Inbound endpoints with `isCollection: true`'
         ],

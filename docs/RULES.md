@@ -1547,7 +1547,7 @@ Without proper error handling (failOnStatusCodes), your endpoints silently swall
 
 **Why This Matters:**
 
-Using `isCollection: true` on inbound endpoints may cause severe performance degradation when apps are in use simultaneously by different users. This can slow down or the entire Workday instance for all users, not just your application. Avoiding isCollection on inbound endpoints is critical for maintaining app performance.
+Using `isCollection: true` on inbound endpoints may cause severe performance degradation when apps are in use simultaneously by different users. This can slow down the entire Workday instance for all users, not just your application. Avoiding isCollection on inbound endpoints is critical for maintaining app performance.
 
 **Example violations:**
 

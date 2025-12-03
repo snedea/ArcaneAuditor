@@ -7,6 +7,7 @@ export class GrimoireUI {
         this.currentView = 'index'; // 'index' or 'detail'
         this.currentConfig = null;
         this.openedFromConfigModal = false; // Track if opened from config modal
+        this.indexScrollPosition = 0; // Store scroll position for index view
     }
 
     /**
@@ -55,6 +56,9 @@ export class GrimoireUI {
                 </div>
             `;
             bodyEl.innerHTML = html;
+            
+            // Restore scroll position if we have one, otherwise start at top
+            bodyEl.scrollTop = this.indexScrollPosition;
 
             // Bind search
             const searchInput = document.getElementById('grimoire-search-input');
@@ -335,6 +339,12 @@ export class GrimoireUI {
             return;
         }
 
+        // Save current scroll position before navigating to detail (if coming from index)
+        let bodyEl = document.getElementById('grimoire-body');
+        if (bodyEl && this.currentView === 'index') {
+            this.indexScrollPosition = bodyEl.scrollTop;
+        }
+
         this.currentConfig = config;
         this.currentView = 'detail';
 
@@ -349,7 +359,10 @@ export class GrimoireUI {
 
         // Populate the modal
         const titleEl = document.getElementById('grimoire-title');
-        const bodyEl = document.getElementById('grimoire-body');
+        // Ensure we have bodyEl reference
+        if (!bodyEl) {
+            bodyEl = document.getElementById('grimoire-body');
+        }
 
         if (titleEl) {
             // Update title with back button if needed
@@ -422,6 +435,9 @@ export class GrimoireUI {
             }
 
             bodyEl.innerHTML = html;
+            
+            // Reset scroll position to top when showing detail view
+            bodyEl.scrollTop = 0;
         }
 
         // Show the modal
