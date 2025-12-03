@@ -48,14 +48,17 @@ class ArcaneAuditorApp {
         this.themeManager = new ThemeManager();
         this.themeManager.initialize();
 
-        // Force blur on the grimoire button if it grabs focus on load
-        // Use setTimeout to ensure it happens after all initialization
+        // Fix: Force-remove focus from the Grimoire button on Desktop App load
+        // We use a timeout to let the desktop wrapper finish its initial focus routine first.
         setTimeout(() => {
             const grimoireBtn = document.getElementById('global-grimoire-btn');
-            if (grimoireBtn && grimoireBtn === document.activeElement) {
-                grimoireBtn.blur();
+            if (grimoireBtn) {
+                grimoireBtn.blur(); // Remove focus
+                grimoireBtn.classList.remove('hover'); // Force remove any sticky hover classes
             }
-        }, 100);
+            // Optional: Shift focus to the body so nothing is highlighted
+            document.body.focus(); 
+        }, 500); // 500ms delay is usually the sweet spot
 
         // Load configurations
         this.configManager.loadConfigurations();
