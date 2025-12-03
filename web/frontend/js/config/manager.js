@@ -265,6 +265,9 @@ export class ConfigManager {
         
         const closeBtn = document.getElementById("duplicate-close-btn");
         if(closeBtn) closeBtn.onclick = () => this.closeDuplicateModal();
+        
+        const cancelBtn = document.getElementById("duplicate-cancel-btn");
+        if(cancelBtn) cancelBtn.onclick = () => this.closeDuplicateModal();
 
         // Global Grimoire button
         const grimoireBtn = document.getElementById("global-grimoire-btn");
