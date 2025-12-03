@@ -45,14 +45,14 @@ class OutputFormatter:
     
     def format_results(self, findings: List[Finding], total_files: int = 0, total_rules: int = 0, 
                       context: Optional['ProjectContext'] = None, config_name: Optional[str] = None,
-                      config_source: Optional[str] = None) -> str:
+                      config_source: Optional[str] = None, single_tab: bool = False) -> str:
         """Format analysis results based on the selected format."""
         if self.format_type == OutputFormat.JSON:
             return self._format_json(findings, total_files, total_rules, context)
         elif self.format_type == OutputFormat.SUMMARY:
             return self._format_summary(findings, total_files, total_rules)
         elif self.format_type == OutputFormat.EXCEL:
-            return self._format_excel(findings, total_files, total_rules, context, config_name, config_source)
+            return self._format_excel(findings, total_files, total_rules, context, config_name, config_source, single_tab)
         else:
             return self._format_console(findings, total_files, total_rules, context)
     
@@ -376,13 +376,18 @@ class OutputFormatter:
             adjusted_width = min(max_length + 2, 80)  # Cap at 80 for readability
             context_sheet.column_dimensions[column_letter].width = adjusted_width
     
-    def _apply_accessible_styling(self, ws, findings: List[Finding]):
+    def _apply_accessible_styling(self, ws, findings: List[Finding], has_file_column: bool = False):
         """
         Apply WCAG-friendly, color-blind accessible styling to findings sheet.
         
         Uses solid colors per severity (warm orange for ACTION, cool blue for ADVICE),
         universal symbols (⚠ for ACTION, ℹ for ADVICE), borders, and fonts that work
         consistently across platforms without relying on color emoji support.
+        
+        Args:
+            ws: The worksheet to style
+            findings: List of Finding objects for reference
+            has_file_column: If True, the first column is "File", so column indices are shifted
         """
         from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
         
@@ -404,9 +409,26 @@ class OutputFormatter:
         wrap = Alignment(wrap_text=True, vertical="top", indent=1)  # Small indent for breathing room
         center = Alignment(horizontal="center", vertical="center")  # For severity column
         
+        # Determine column indices based on whether File column is present
+        if has_file_column:
+            file_col = 1      # A: File
+            rule_id_col = 2   # B: Rule ID
+            severity_col = 3 # C: Severity
+            line_col = 4      # D: Line
+            message_col = 5   # E: Message
+            fixed_col = 6     # F: Fixed
+        else:
+            rule_id_col = 1  # A: Rule ID
+            severity_col = 2 # B: Severity
+            line_col = 3     # C: Line
+            message_col = 4  # D: Message
+            fixed_col = 5    # E: Fixed
+        
         # Apply styling to data rows (skip header row)
         for row in ws.iter_rows(min_row=2, max_col=ws.max_column, max_row=ws.max_row):
-            severity = (row[1].value or "OTHER").strip().upper()
+            # Get severity from the severity column
+            severity_cell = row[severity_col - 1]  # Convert to 0-based index
+            severity = (severity_cell.value or "OTHER").strip().upper()
             
             # Remove symbols if present from previous formatting
             if "⚠" in severity or "ℹ" in severity:
@@ -425,7 +447,7 @@ class OutputFormatter:
                 cell.border = border  # Hairline bottom border for grid rhythm
                 
                 # Add distinctive visual cue: symbol + text in Severity column
-                if cell.column == 2:  # Severity column (B)
+                if cell.column == severity_col:
                     if severity == "ACTION":
                         cell.value = "⚠ ACTION"  # warning symbol
                     elif severity == "ADVICE":
@@ -435,36 +457,54 @@ class OutputFormatter:
                     cell.font = symbol_font
                     cell.alignment = center
                 
-                # Bold Rule ID column
-                elif cell.column == 1:  # Rule ID column (A)
-                    cell.font = bold_font
-                    cell.alignment = wrap
-                # Monospace font for Message column (better for code/paths)
-                elif cell.column == 4:  # Message column (D)
+                # File column (monospace for paths)
+                elif has_file_column and cell.column == file_col:
                     cell.font = mono_font
                     cell.alignment = wrap
+                
+                # Bold Rule ID column
+                elif cell.column == rule_id_col:
+                    cell.font = bold_font
+                    cell.alignment = wrap
+                
+                # Monospace font for Message column (better for code/paths)
+                elif cell.column == message_col:
+                    cell.font = mono_font
+                    cell.alignment = wrap
+                
                 # Normal font for Line column
-                elif cell.column == 3:  # Line column (C)
+                elif cell.column == line_col:
                     cell.font = normal_font
                     cell.alignment = wrap
+                
                 # Center alignment for Fixed column (dropdown)
-                elif cell.column == 5:  # Fixed column (E)
+                elif cell.column == fixed_col:
                     cell.font = normal_font
                     cell.alignment = center
         
         # Adjust column dimensions for better readability
-        ws.column_dimensions["A"].width = 50  # Rule ID (accommodate longest rule names)
-        ws.column_dimensions["B"].width = 14  # Severity (with symbol)
-        ws.column_dimensions["C"].width = 6   # Line
-        ws.column_dimensions["D"].width = 120 # Message
-        ws.column_dimensions["E"].width = 12  # Fixed status dropdown
+        if has_file_column:
+            ws.column_dimensions["A"].width = 40  # File
+            ws.column_dimensions["B"].width = 50  # Rule ID
+            ws.column_dimensions["C"].width = 14  # Severity (with symbol)
+            ws.column_dimensions["D"].width = 6   # Line
+            ws.column_dimensions["E"].width = 120 # Message
+            ws.column_dimensions["F"].width = 12  # Fixed status dropdown
+            msg_col_letter = "E"
+        else:
+            ws.column_dimensions["A"].width = 50  # Rule ID
+            ws.column_dimensions["B"].width = 14  # Severity (with symbol)
+            ws.column_dimensions["C"].width = 6   # Line
+            ws.column_dimensions["D"].width = 120 # Message
+            ws.column_dimensions["E"].width = 12  # Fixed status dropdown
+            msg_col_letter = "D"
         
         # Auto-adjust row heights based on wrapped text in Message column
-        msg_col_width = ws.column_dimensions["D"].width or 120
+        msg_col_width = ws.column_dimensions[msg_col_letter].width or 120
         
         for row_num in range(2, ws.max_row + 1):
-            # Get the Message cell (column D/4)
-            msg_cell = ws.cell(row=row_num, column=4)
+            # Get the Message cell
+            msg_cell = ws.cell(row=row_num, column=message_col)
             
             if msg_cell.value:
                 text = str(msg_cell.value)
@@ -488,7 +528,7 @@ class OutputFormatter:
     
     def _format_excel(self, findings: List[Finding], total_files: int, total_rules: int, 
                      context: Optional['ProjectContext'] = None, config_name: Optional[str] = None,
-                     config_source: Optional[str] = None) -> str:
+                     config_source: Optional[str] = None, single_tab: bool = False) -> str:
         """Format results as Excel file with accessible, color-blind friendly styling."""
         try:
             import openpyxl
@@ -526,22 +566,15 @@ class OutputFormatter:
         for row in range(1, 8):
             summary_sheet[f'A{row}'].font = Font(bold=True)
         
-        # Create sheets for each file with accessible styling
-        for file_path, file_findings in findings_by_file.items():
-            # file_path is already cleaned by _group_findings_by_file
-            # Clean sheet name (Excel has restrictions)
-            sheet_name = Path(file_path).stem[:31]  # Excel sheet name limit
-            sheet_name = "".join(c for c in sheet_name if c.isalnum() or c in (' ', '-', '_')).strip()
-            if not sheet_name:
-                sheet_name = "Unknown"
+        if single_tab:
+            # Create a single "Findings" sheet with File column
+            ws = wb.create_sheet("Findings")
             
-            ws = wb.create_sheet(sheet_name)
-            
-            # Headers (added "Fixed" column for tracking)
-            headers = ["Rule ID", "Severity", "Line", "Message", "Fixed"]
+            # Headers with "File" as first column
+            headers = ["File", "Rule ID", "Severity", "Line", "Message", "Fixed"]
             ws.append(headers)
             
-            # Style headers with darker, more intentional background
+            # Style headers
             header_fill = PatternFill(start_color="22242A", end_color="22242A", fill_type="solid")
             header_font = Font(color="FFFFFF", bold=True, size=11)
             for col_num, header in enumerate(headers, 1):
@@ -550,15 +583,23 @@ class OutputFormatter:
                 cell.font = header_font
                 cell.alignment = Alignment(horizontal="center")
             
-            # Sort findings by severity (ACTION first) then by rule_id
-            sorted_file_findings = sorted(file_findings, key=lambda f: (
-                0 if f.severity == "ACTION" else 1,  # ACTION before ADVICE
-                f.rule_id
+            # Collect all findings and sort by file path, then severity, then rule_id
+            all_findings = []
+            for file_path, file_findings in findings_by_file.items():
+                for finding in file_findings:
+                    all_findings.append((file_path, finding))
+            
+            # Sort: by file path, then severity (ACTION first), then rule_id
+            sorted_findings = sorted(all_findings, key=lambda x: (
+                x[0],  # file_path
+                0 if x[1].severity == "ACTION" else 1,  # ACTION before ADVICE
+                x[1].rule_id
             ))
             
-            # Add findings with empty "Fixed" column
-            for finding in sorted_file_findings:
+            # Add findings with file path in first column
+            for file_path, finding in sorted_findings:
                 row = [
+                    file_path,  # File column
                     finding.rule_id,
                     finding.severity,
                     finding.line,
@@ -567,13 +608,12 @@ class OutputFormatter:
                 ]
                 ws.append(row)
             
-            # Apply accessible styling to this sheet
-            self._apply_accessible_styling(ws, sorted_file_findings)
+            # Apply accessible styling to this sheet (with File column)
+            self._apply_accessible_styling(ws, [f for _, f in sorted_findings], has_file_column=True)
             
-            # Add data validation dropdown to "Fixed" column (E)
+            # Add data validation dropdown to "Fixed" column (F)
             from openpyxl.worksheet.datavalidation import DataValidation
             from openpyxl.formatting.rule import CellIsRule
-            from openpyxl.styles import PatternFill
             
             # Create dropdown with tracking options
             dv = DataValidation(type="list", formula1='"To Do,Fixed,Won\'t Fix"', allow_blank=True)
@@ -582,9 +622,9 @@ class OutputFormatter:
             dv.prompt = 'Select status'
             dv.promptTitle = 'Fix Status'
             
-            # Apply validation to all data rows in Fixed column (E)
+            # Apply validation to all data rows in Fixed column (F)
             ws.add_data_validation(dv)
-            dv.add(f"E2:E{ws.max_row}")
+            dv.add(f"F2:F{ws.max_row}")
             
             # Add conditional formatting to color-code the Fixed column
             # Green for "Fixed"
@@ -600,15 +640,99 @@ class OutputFormatter:
             todo_rule = CellIsRule(operator='equal', formula=['"To Do"'], fill=todo_fill)
             
             # Apply conditional formatting to Fixed column range
-            ws.conditional_formatting.add(f"E2:E{ws.max_row}", fixed_rule)
-            ws.conditional_formatting.add(f"E2:E{ws.max_row}", wont_fix_rule)
-            ws.conditional_formatting.add(f"E2:E{ws.max_row}", todo_rule)
+            ws.conditional_formatting.add(f"F2:F{ws.max_row}", fixed_rule)
+            ws.conditional_formatting.add(f"F2:F{ws.max_row}", wont_fix_rule)
+            ws.conditional_formatting.add(f"F2:F{ws.max_row}", todo_rule)
             
             # Update summary sheet
-            # file_path is already cleaned by _group_findings_by_file
-            action_count = len([f for f in file_findings if f.severity == "ACTION"])
-            advice_count = len([f for f in file_findings if f.severity == "ADVICE"])
-            summary_sheet.append([file_path, len(file_findings), action_count, advice_count])
+            for file_path, file_findings in findings_by_file.items():
+                action_count = len([f for f in file_findings if f.severity == "ACTION"])
+                advice_count = len([f for f in file_findings if f.severity == "ADVICE"])
+                summary_sheet.append([file_path, len(file_findings), action_count, advice_count])
+        else:
+            # Create sheets for each file with accessible styling (original behavior)
+            for file_path, file_findings in findings_by_file.items():
+                # file_path is already cleaned by _group_findings_by_file
+                # Clean sheet name (Excel has restrictions)
+                sheet_name = Path(file_path).stem[:31]  # Excel sheet name limit
+                sheet_name = "".join(c for c in sheet_name if c.isalnum() or c in (' ', '-', '_')).strip()
+                if not sheet_name:
+                    sheet_name = "Unknown"
+                
+                ws = wb.create_sheet(sheet_name)
+                
+                # Headers (added "Fixed" column for tracking)
+                headers = ["Rule ID", "Severity", "Line", "Message", "Fixed"]
+                ws.append(headers)
+                
+                # Style headers with darker, more intentional background
+                header_fill = PatternFill(start_color="22242A", end_color="22242A", fill_type="solid")
+                header_font = Font(color="FFFFFF", bold=True, size=11)
+                for col_num, header in enumerate(headers, 1):
+                    cell = ws.cell(row=1, column=col_num)
+                    cell.fill = header_fill
+                    cell.font = header_font
+                    cell.alignment = Alignment(horizontal="center")
+                
+                # Sort findings by severity (ACTION first) then by rule_id
+                sorted_file_findings = sorted(file_findings, key=lambda f: (
+                    0 if f.severity == "ACTION" else 1,  # ACTION before ADVICE
+                    f.rule_id
+                ))
+                
+                # Add findings with empty "Fixed" column
+                for finding in sorted_file_findings:
+                    row = [
+                        finding.rule_id,
+                        finding.severity,
+                        finding.line,
+                        finding.message,
+                        ""  # Empty Fixed column for user tracking
+                    ]
+                    ws.append(row)
+                
+                # Apply accessible styling to this sheet (no File column in per-file mode)
+                self._apply_accessible_styling(ws, sorted_file_findings, has_file_column=False)
+                
+                # Add data validation dropdown to "Fixed" column (E)
+                from openpyxl.worksheet.datavalidation import DataValidation
+                from openpyxl.formatting.rule import CellIsRule
+                from openpyxl.styles import PatternFill
+                
+                # Create dropdown with tracking options
+                dv = DataValidation(type="list", formula1='"To Do,Fixed,Won\'t Fix"', allow_blank=True)
+                dv.error = 'Please select from the dropdown'
+                dv.errorTitle = 'Invalid Entry'
+                dv.prompt = 'Select status'
+                dv.promptTitle = 'Fix Status'
+                
+                # Apply validation to all data rows in Fixed column (E)
+                ws.add_data_validation(dv)
+                dv.add(f"E2:E{ws.max_row}")
+                
+                # Add conditional formatting to color-code the Fixed column
+                # Green for "Fixed"
+                fixed_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+                fixed_rule = CellIsRule(operator='equal', formula=['"Fixed"'], fill=fixed_fill)
+                
+                # Light gray for "Won't Fix"
+                wont_fix_fill = PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid")
+                wont_fix_rule = CellIsRule(operator='equal', formula=['"Won\'t Fix"'], fill=wont_fix_fill)
+                
+                # Light yellow for "To Do"
+                todo_fill = PatternFill(start_color="FFF9C4", end_color="FFF9C4", fill_type="solid")
+                todo_rule = CellIsRule(operator='equal', formula=['"To Do"'], fill=todo_fill)
+                
+                # Apply conditional formatting to Fixed column range
+                ws.conditional_formatting.add(f"E2:E{ws.max_row}", fixed_rule)
+                ws.conditional_formatting.add(f"E2:E{ws.max_row}", wont_fix_rule)
+                ws.conditional_formatting.add(f"E2:E{ws.max_row}", todo_rule)
+                
+                # Update summary sheet
+                # file_path is already cleaned by _group_findings_by_file
+                action_count = len([f for f in file_findings if f.severity == "ACTION"])
+                advice_count = len([f for f in file_findings if f.severity == "ADVICE"])
+                summary_sheet.append([file_path, len(file_findings), action_count, advice_count])
         
         # Save to temporary file and return path
         import tempfile

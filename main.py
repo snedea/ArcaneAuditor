@@ -35,7 +35,8 @@ def review_app(
     output_file: Path = typer.Option(None, "--output", "-o", help="Output file path (optional)"),
     show_timing: bool = typer.Option(False, "--timing", "-t", help="Show detailed timing information"),
     fail_on_advice: bool = typer.Option(False, "--fail-on-advice", help="Exit with error code when ADVICE issues are found (CI mode)"),
-    quiet: bool = typer.Option(False, "--quiet", "-q", help="Minimal output mode (CI-friendly)")
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Minimal output mode (CI-friendly)"),
+    single_tab: bool = typer.Option(False, "--single-tab", help="Export all findings to a single Excel tab with File column (Excel format only)")
 ):
     """
     Analyze a Workday Extend application.
@@ -208,12 +209,21 @@ def review_app(
             typer.echo("Valid formats: console, json, summary, excel")
             raise typer.Exit(2)  # Exit code 2 for usage errors
         
+        # Validate --single-tab flag (only applies to Excel format)
+        if single_tab and format_type != OutputFormat.EXCEL:
+            typer.secho("Warning: --single-tab flag only applies to Excel format. Ignoring flag.", fg=typer.colors.YELLOW)
+            single_tab = False
+        
         formatting_start_time = time.time()
         formatter = OutputFormatter(format_type)
         total_files = len(context.pmds) + len(context.scripts) + (1 if context.amd else 0)
         total_rules = len(rules_engine.rules)
         
-        formatted_output = formatter.format_results(findings, total_files, total_rules, context)
+        # Pass single_tab parameter only for Excel format
+        if format_type == OutputFormat.EXCEL:
+            formatted_output = formatter.format_results(findings, total_files, total_rules, context, None, None, single_tab)
+        else:
+            formatted_output = formatter.format_results(findings, total_files, total_rules, context)
         formatting_time = time.time() - formatting_start_time
         
         if show_timing:

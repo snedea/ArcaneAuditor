@@ -28,8 +28,12 @@ class ArcaneAuditorApp {
         this.ruleEvolutionPreferences = {
             new_rule_default_enabled: true
         };
+        this.exportPreferences = {
+            excel_single_tab: false
+        };
         this.updatePreferencesPromise = null;
         this.ruleEvolutionPreferencesPromise = null;
+        this.exportPreferencesPromise = null;
         this.versionRetryAttempts = 0;
         this.versionRetryTimer = null;
         this.settingsPanelElements = null;
@@ -61,6 +65,8 @@ class ArcaneAuditorApp {
         this.updatePreferencesPromise.catch(err => console.error('Failed to load update preferences:', err));
         this.ruleEvolutionPreferencesPromise = this.loadRuleEvolutionPreferences();
         this.ruleEvolutionPreferencesPromise.catch(err => console.error('Failed to load rule evolution preferences:', err));
+        this.exportPreferencesPromise = this.loadExportPreferences();
+        this.exportPreferencesPromise.catch(err => console.error('Failed to load export preferences:', err));
         this.loadVersion().catch(err => console.error('Failed to load version:', err));
 
         // Initialize settings panel after DOM is loaded
@@ -146,6 +152,7 @@ class ArcaneAuditorApp {
         const settingsPanel = document.getElementById('settings-panel');
         const updateCheckbox = document.getElementById('settings-update-checkbox');
         const newRuleDefaultCheckbox = document.getElementById('settings-new-rule-default-checkbox');
+        const excelSingleTabCheckbox = document.getElementById('setting-excel-single-tab');
 
         if (!settingsButton || !settingsPanel) {
             return;
@@ -208,17 +215,26 @@ class ArcaneAuditorApp {
             });
         }
 
+        if (excelSingleTabCheckbox) {
+            excelSingleTabCheckbox.addEventListener('change', (event) => {
+                const { checked } = event.target;
+                this.persistExportPreference(checked);
+            });
+        }
+
         this.settingsPanelElements = {
             button: settingsButton,
             panel: settingsPanel,
             updateCheckbox,
-            newRuleDefaultCheckbox
+            newRuleDefaultCheckbox,
+            excelSingleTabCheckbox
         };
 
         // Ensure panel starts hidden
         closePanel();
         this.syncUpdatePreferenceUI();
         this.syncRuleEvolutionPreferenceUI();
+        this.syncExportPreferenceUI();
 
         // Prevent initial focus outline on load unless the user tabs to the control
         setTimeout(() => {
@@ -242,6 +258,10 @@ class ArcaneAuditorApp {
 
     syncRuleEvolutionPreferenceUI() {
         this.syncPreferenceUI('newRuleDefaultCheckbox', this.ruleEvolutionPreferences.new_rule_default_enabled);
+    }
+
+    syncExportPreferenceUI() {
+        this.syncPreferenceUI('excelSingleTabCheckbox', this.exportPreferences.excel_single_tab);
     }
 
     async persistUpdatePreference(enabled) {
@@ -464,6 +484,69 @@ class ArcaneAuditorApp {
             console.error('Failed to update rule evolution preferences:', error);
             this.ruleEvolutionPreferences.new_rule_default_enabled = previous;
             this.syncRuleEvolutionPreferenceUI();
+            this.showToast(`❌ Failed to update settings: ${error.message}`, 'error');
+        } finally {
+            checkbox.disabled = false;
+        }
+    }
+
+    async loadExportPreferences() {
+        try {
+            const response = await fetch('/api/export-preferences');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid export preferences payload');
+            }
+
+            if (typeof data.excel_single_tab === 'boolean') {
+                this.exportPreferences.excel_single_tab = data.excel_single_tab;
+            }
+            this.syncExportPreferenceUI();
+        } catch (error) {
+            console.error('Failed to load export preferences:', error);
+            // Keep defaults (disabled) if we can't load preferences
+            this.exportPreferences.excel_single_tab = false;
+            this.syncExportPreferenceUI();
+        }
+    }
+
+    async persistExportPreference(enabled) {
+        const checkbox = this.settingsPanelElements.excelSingleTabCheckbox;
+        const previous = this.exportPreferences.excel_single_tab;
+        this.exportPreferences.excel_single_tab = Boolean(enabled);
+
+        checkbox.disabled = true;
+
+        try {
+            const response = await fetch('/api/export-preferences', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ excel_single_tab: enabled })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || `HTTP ${response.status}`);
+            }
+            
+            if (data.success !== true) {
+                throw new Error('Save operation did not return success');
+            }
+            
+            // Ensure UI is in sync after successful save
+            this.syncExportPreferenceUI();
+            console.log('Export preference saved:', enabled);
+        } catch (error) {
+            console.error('Failed to update export preferences:', error);
+            this.exportPreferences.excel_single_tab = previous;
+            this.syncExportPreferenceUI();
             this.showToast(`❌ Failed to update settings: ${error.message}`, 'error');
         } finally {
             checkbox.disabled = false;
