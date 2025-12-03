@@ -49,7 +49,7 @@ class MultipleStringInterpolatorsRule(StructureRuleBase):
 ```json
 "<% `My name is {{name}} and I like {{food}}` %>"  // ✅ Single interpolator with template literal
 ```''',
-        'recommendation': 'Use a single interpolator with template literals (backticks and `{{variable}}` syntax) instead of multiple interpolators in a single string. This improves readability and performance.'
+        'recommendation': 'Use a single interpolator with template literals (backticks and `{{variable}}` syntax) instead of multiple interpolators in a single string. This improves readability.'
     }
     
     def get_description(self) -> str:

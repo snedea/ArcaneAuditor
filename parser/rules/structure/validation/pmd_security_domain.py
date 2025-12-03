@@ -17,8 +17,7 @@ class PMDSecurityDomainRule(Rule):
 
 **Smart Exclusions (configurable):**
 - **MicroConclusion pages**: Pages with `presentation.microConclusion: true` are excluded (unless strict mode)
-- **Error pages**: Pages whose ID appears in SMD `errorPageConfigurations` are excluded (unless strict mode)
-- Only enforces security domains on pages that actually need them (unless strict mode)''',
+- **Error pages**: Pages whose ID appears in SMD `errorPageConfigurations` are excluded (unless strict mode)''',
         'catches': [
             'PMD pages missing `securityDomains` list',
             'Empty `securityDomains` arrays',
