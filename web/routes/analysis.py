@@ -212,7 +212,11 @@ async def download_excel(job_id: str):
             config_name = job.result.get("config_name")
             config_source = job.result.get("config_source")
             
-            excel_file_path = formatter.format_results(findings, total_files, total_rules, context, config_name, config_source)
+            # Read the single tab export preference
+            from utils.preferences_manager import get_excel_single_tab
+            single_tab = get_excel_single_tab()
+            
+            excel_file_path = formatter.format_results(findings, total_files, total_rules, context, config_name, config_source, single_tab)
             
             # Generate filename
             timestamp = datetime.now().strftime("%Y-%m-%d")
