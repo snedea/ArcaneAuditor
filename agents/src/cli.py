@@ -158,7 +158,7 @@ def _create_fix_pr(repo: str, token: str, source_dir: Path, written_files: list[
                 title=f"fix: Arcane Auditor auto-fixes ({len(written_files)} files)",
                 body=pr_body,
                 head=branch_name,
-                base="main",
+                base=repo_obj.default_branch,
             )
             return pr.html_url
         except GithubException as exc:
@@ -300,6 +300,10 @@ def fix(
 
     if target_dir is not None and create_pr:
         _error("Cannot specify both --target-dir and --create-pr")
+        raise typer.Exit(code=int(ExitCode.USAGE_ERROR))
+
+    if repo is not None and not create_pr and target_dir is None:
+        _error("--repo requires --create-pr or --target-dir; fixes would be lost when the temp clone is removed")
         raise typer.Exit(code=int(ExitCode.USAGE_ERROR))
 
     manifest = None

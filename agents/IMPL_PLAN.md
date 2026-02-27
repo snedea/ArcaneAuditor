@@ -45,7 +45,7 @@
 
 ## Phase 7: Full Loop Integration
 
-- [ ] P7.1: Add `fix` command to cli.py -- accepts same args as scan, plus --create-pr flag and --target-dir for local output. Pipeline: scan -> audit -> fix -> (optional) re-audit to verify -> (optional) create PR with fixes
+- [x] P7.1: Add `fix` command to cli.py -- accepts same args as scan, plus --create-pr flag and --target-dir for local output. Pipeline: scan -> audit -> fix -> (optional) re-audit to verify -> (optional) create PR with fixes
 - [ ] P7.2: Add `watch` command to cli.py -- poll a GitHub repo for new PRs at --interval seconds (default 300). For each new PR: scan changed files, run audit, post PR comment. Track seen PRs in a local JSON state file to avoid duplicate comments. Support graceful shutdown via SIGINT
 - [ ] P7.3: Create a GitHub Actions workflow template at agents/docs/github-action-template.yml -- reusable workflow that installs uv, installs Arcane Auditor, runs the agent scan on PR changed files, uploads SARIF to GitHub Code Scanning, and optionally posts a PR comment
 - [ ] P7.4: Write integration test -- test_integration.py that runs the full pipeline: scan dirty_app fixture -> audit -> fix -> re-audit -> verify finding count decreased. This proves the deterministic loop works end-to-end

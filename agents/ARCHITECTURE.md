@@ -1,17 +1,63 @@
-# Arcane Auditor Agent System -- Architecture
+# Arcane Auditor CLI -- Architecture
 
 ## Vision
 
-Demonstrate that **deterministic rules can run reliably inside an LLM agent loop** without the false positive/negative problems Chris (Developers and Dragons) identified with Workday's LLM approach.
+Build a deterministic automation tool for Workday Extend code review that addresses Chris's (Developers and Dragons) concern about Workday's LLM-based approach: unreliable, non-repeatable results with false positives and missed violations.
 
-The key insight: the LLM never invents rules. It is a **transport and orchestration layer** that executes Arcane Auditor's existing 42 deterministic rules against real Workday Extend repos, then structures the results for humans. The LLM's job is:
+This tool runs Arcane Auditor's 42 deterministic rules against Extend repos, reports findings, and applies mechanical fixes. The pipeline is:
 
-1. **Navigate** -- clone repos, find Extend artifacts (.pmd, .pod, .script, .amd, .smd)
-2. **Execute** -- invoke `main.py review-app` with appropriate config
-3. **Report** -- parse JSON output, create structured GitHub issues or PR comments
-4. **Fix** (Phase 2) -- propose deterministic fixes based on rule-specific fix templates
+1. **Scan** -- clone repos or walk local directories, find Extend artifacts (.pmd, .pod, .script, .amd, .smd)
+2. **Audit** -- invoke `main.py review-app` as a subprocess, parse JSON output
+3. **Report** -- format results as JSON, SARIF, GitHub issues, or PR comments
+4. **Fix** -- apply deterministic regex/JSON transforms via fix templates
 
-The LLM does NOT evaluate code quality. The 42 rules do that. The LLM is plumbing.
+## Current State: No LLM at Runtime
+
+As built, this tool uses **zero LLM inference at runtime**. The entire pipeline is deterministic Python -- subprocess calls, regex, JSON parsing, string formatting. There are no AI/ML dependencies in `pyproject.toml`. An LLM (Context Foundry) wrote the code, but the code itself never calls one.
+
+This validates Chris's core claim: **the rules should be deterministic**. You don't want an LLM deciding whether `var` is bad -- that's a binary check. Same input, same output, every time, with 301 tests to prove it.
+
+## Where Deterministic Rules Fall Short
+
+Deterministic rules handle the "what's wrong" part. They don't handle "so what?"
+
+What the 42 rules do well:
+- Find known violations with zero false positives
+- Produce consistent, reproducible results across runs
+- Run in CI without surprises
+- Apply safe, mechanical fixes (var -> let/const, remove console.log, fix naming)
+
+What deterministic rules cannot do:
+- **Explain context** -- why does this finding matter for *this specific app*?
+- **Triage** -- you have 50 findings, which 3 should you fix first?
+- **Prioritize by impact** -- a hardcoded WID in a checkout page matters more than one in a test helper
+- **Handle follow-ups** -- "is this really a problem if I'm only using it in tests?"
+- **Fix complex cases** -- the LOW-confidence findings that regex can't safely transform
+- **Spot cross-file patterns** -- "you have this same anti-pattern in 12 files, here's a shared utility"
+- **Write human-quality PR comments** -- not a linter dump, but a colleague's review
+
+## Where an LLM Adds Value (Future)
+
+The right architecture is layered: deterministic rules produce findings (source of truth), an LLM explains, prioritizes, and communicates them. The LLM never overrides or invents findings. It makes existing ones useful.
+
+```
+Layer 1: Deterministic Rules (Arcane Auditor)
+  - Source of truth for all findings
+  - Same input = same output, always
+  - No LLM involvement
+
+Layer 2: Deterministic Fixes (fix_templates/)
+  - Regex/JSON transforms for HIGH-confidence cases
+  - No LLM involvement
+
+Layer 3: LLM Communication Layer (not yet built)
+  - Triage: "fix these 3 first, the rest are cleanup"
+  - Explain: "this hardcoded WID breaks when deployed to a different tenant"
+  - Suggest: complex fixes that regex can't handle safely
+  - Converse: answer developer questions about specific findings
+```
+
+The LLM layer would consume the same JSON output that the CLI produces today. It adds no new findings and removes none. It's a presentation and interaction layer, not a judgment layer.
 
 ## Architecture Overview
 
@@ -60,29 +106,23 @@ agents/
 
 ## Key Design Decisions
 
-### 1. The LLM Never Judges Code
+### 1. Deterministic Rules as Source of Truth
 
-The agent system is a **wrapper** around `main.py review-app`. All code quality decisions come from the 42 deterministic rules. The LLM:
-- Finds files to scan
-- Invokes the tool
-- Formats the output
-- (Phase 2) Applies fix templates
+All code quality decisions come from the 42 rules in the parent Arcane Auditor tool. The CLI automates running them -- it finds files, invokes the tool, formats the output, and applies fix templates. No judgment, no creativity, no inference.
 
-This is the answer to Chris's concern: "I want something deterministic and repeatable." The rules ARE deterministic. The agent just automates running them.
+### 2. Fix Templates Are Mechanical
 
-### 2. Fix Templates Are Deterministic
-
-Each rule has a corresponding fix template that produces exactly one correct fix. Examples:
+Each fix template is a Python class with regex or JSON transforms. Same input, same output:
 - `ScriptVarUsageRule` -> replace `var` with `let` (or `const` if never reassigned)
 - `ScriptConsoleLogRule` -> remove `console.log` statements
 - `WidgetIdLowerCamelCaseRule` -> convert ID to lowerCamelCase
 - `EndpointNameLowerCamelCaseRule` -> convert name to lowerCamelCase
 
-The LLM applies these templates. It does NOT generate creative fixes.
+Only HIGH-confidence fixes auto-apply. If a template can't guarantee correctness, it returns None.
 
 ### 3. SARIF Output for GitHub Integration
 
-SARIF (Static Analysis Results Interchange Format) is the standard for uploading static analysis results to GitHub Code Scanning. By outputting SARIF, the agent integrates natively with GitHub's security tab.
+SARIF (Static Analysis Results Interchange Format) is the standard for uploading static analysis results to GitHub Code Scanning. By outputting SARIF, the tool integrates natively with GitHub's security tab.
 
 ### 4. Separation of Concerns
 
