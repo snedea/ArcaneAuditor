@@ -1,59 +1,72 @@
-# Review Report — P4.5
+# Review Report — P5.1
 
-## Verdict: PASS
+## Verdict: FAIL
 
 ## Runtime Checks
-- Build: PASS (uv sync not re-run; all imports resolve — confirmed by full test suite passing)
-- Tests: PASS (58/58 in test_reporter.py; 142/142 full suite — zero regressions)
-- Lint: PASS (ruff reports "All checks passed!")
-- Docker: SKIPPED (no Docker files changed in this task)
+- Build: PASS (`py_compile` clean; `from src.cli import app` succeeds)
+- Tests: PASS (168 passed, 0 failures across full suite)
+- Lint: PASS (`ruff check src/cli.py src/__main__.py` -- all checks passed)
+- Docker: SKIPPED (no compose files changed in this task)
 
 ## Findings
 
 ```json
 {
   "high": [],
-  "medium": [],
+  "medium": [
+    {
+      "file": "src/cli.py",
+      "line": 105,
+      "issue": "Type contract violation: `repo` is `Optional[str]` at the call site but `scan_github(repo: str, ...)` declares `str`. The validation guards at lines 71-77 prevent None from reaching here at runtime, but mypy strict mode flags this as an error. Per CLAUDE.md: 'Type hints everywhere -- no exceptions.' A future refactor that reorders or removes the guards would silently pass None into the function.",
+      "category": "api-contract"
+    },
+    {
+      "file": "src/cli.py",
+      "line": 121,
+      "issue": "Type contract violation (same root cause): `repo: Optional[str]` passed to `format_github_issues(scan_result, repo: str, token: str)`. Validated non-None by line 83-85 guard, but the type annotation at the call site is wrong. Same issue at line 124 where `repo: Optional[str]` and `pr: Optional[int]` are passed to `format_pr_comment(..., repo: str, pr_number: int, ...)`. Three call sites, same mismatch.",
+      "category": "api-contract"
+    }
+  ],
   "low": [
     {
-      "file": "tests/test_reporter.py",
-      "line": 4,
-      "issue": "Plan specified 'from unittest.mock import MagicMock, call, patch' but 'call' was omitted. 'call' is never used in the file so there is no runtime failure, but the implementation deviates from the stated imports.",
+      "file": "src/__main__.py",
+      "line": 1,
+      "issue": "Incorrect docstring: says 'Allow running the CLI via `python -m src.cli`.' This file enables `python -m src` (Python invokes src/__main__.py). `python -m src.cli` is a different invocation that runs cli.py directly as __main__.",
       "category": "inconsistency"
     },
     {
-      "file": "tests/test_reporter.py",
-      "line": 265,
-      "issue": "test_contains_action_count asserts '\"ACTION: 1\" in result'. This substring matches the header line (reporter.py:74: \"Total findings: 2  (ACTION: 1, ADVICE: 1)\") rather than the By Severity block (reporter.py:83: \"  ACTION : {count}\" — space before colon). The test is correct in its stated invariant but silently exercises the wrong section. If the header format were removed while the By Severity block remained, the test would fail even though the data is present.",
+      "file": "src/cli.py",
+      "line": 139,
+      "issue": "Missing `if __name__ == '__main__': app()` guard. The plan's smoke test (`uv run python -m src.cli --help`) silently exits with no output because cli.py never calls app() when run as __main__. Primary invocation paths (`uv run arcane-agent`, `python -m src`) are unaffected.",
       "category": "inconsistency"
     },
     {
-      "file": "tests/test_reporter.py",
-      "line": 272,
-      "issue": "Same issue as above for test_contains_advice_count — '\"ADVICE: 1\" in result' matches header line, not the By Severity block. See reporter.py:74 vs :84.",
+      "file": "src/cli.py",
+      "line": 34,
+      "issue": "_FORMAT_MAP contains dead entries for CliFormat.GITHUB_ISSUES and CliFormat.PR_COMMENT. The `else` branch that calls `_FORMAT_MAP[format]` is only reached when format is not GITHUB_ISSUES and not PR_COMMENT (handled by the if/elif above). The dead entries imply to a reader that those formats could pass through to report_findings(), which would raise ReporterError.",
       "category": "inconsistency"
     },
     {
-      "file": "tests/test_reporter.py",
-      "line": 303,
-      "issue": "No test exercises the _ensure_label exception path in format_github_issues. The label-management code (reporter.py:216-284) only runs through the happy path (get_label returns MagicMock, no exception). ReporterError from non-404 get_label or failed create_label is untested.",
+      "file": "tests/test_cli.py",
+      "line": 1,
+      "issue": "No tests for the --repo GitHub scanning pipeline: no mocked scan_github call, no mocked format_github_issues or format_pr_comment invocations, and no verification that shutil.rmtree is called in the finally block. The cleanup contract for temp_dir is untested.",
       "category": "inconsistency"
     }
   ],
   "validated": [
-    "All 58 new tests pass; all 142 tests in the full suite pass — no regressions in test_runner.py or test_scanner.py",
-    "Lint: ruff reports zero issues on tests/test_reporter.py",
-    "Mock setup is correct: src.reporter.Github (not github.Github) is patched; Auth.Token is invoked with real module but has no side effects since Github() returns the mock",
-    "Context manager wiring verified: mock_cls.return_value.__enter__.return_value = mock_gh correctly intercepts 'with Github(...) as gh' in both format_github_issues and format_pr_comment",
-    "test_sarif_rule_severity_escalates_when_advice_precedes_action (line 198) is an extra test not in the plan — it correctly covers Known Pattern #3 (ADVICE-then-ACTION escalation) and passes",
-    "test_sarif_line_zero_clamped_to_1 verifies the max(1, finding.line) guard in reporter.py:170 — confirmed correct",
-    "test_sarif_rule_index_matches_rules_array_position correctly validates that ruleIndex values match enumerate(rules) positions, covering Known Pattern #2",
-    "GitHub exception tests use the three-arg GithubException constructor (status, data, headers) matching PyGithub's actual signature",
-    "test_get_pull_github_exception_raises_reporter_error verifies the PR-specific error message contains '#1', satisfying Known Pattern #5 for get_pull",
-    "test_create_comment_github_exception_raises_reporter_error verifies '#1' in the error message for create_issue_comment failures",
-    "test_comment_body_has_blank_line_after_summary_tag correctly asserts '</summary>\\n\\n' — verified against _build_pr_comment_body (reporter.py:404-405) which appends empty string after the <summary> line, producing the required blank line when joined",
-    "MagicMock (not AsyncMock) is used throughout — correct, as all PyGithub calls are synchronous",
-    "ScanResult.model_validate roundtrip test confirmed valid: Pydantic v2 coerces string timestamp to datetime and int to ExitCode enum"
+    "All 168 tests pass including all 26 new test_cli.py tests",
+    "Import chain (cli -> config, models, reporter, runner, scanner) resolves cleanly",
+    "All 6 argument validation guards emit correct error messages and exit code 2",
+    "Exit codes 0/1/2/3 propagate correctly through the pipeline",
+    "_configure_logging sets WARNING level when quiet=True, INFO otherwise",
+    "_error() always writes to stderr via typer.echo(err=True) regardless of --quiet",
+    "--quiet suppresses 'Output written to' message but not errors",
+    "--config preset correctly applied via model_copy before run_audit is called",
+    "manifest.temp_dir cleanup via shutil.rmtree is in the finally block of the audit phase",
+    "Token is extracted via get_secret_value() and empty-string-as-None coercion is handled by AgentConfig validator",
+    "CliFormat enum values use hyphenated strings (github-issues, pr-comment) matching CLI requirement",
+    "scan_github hardcoded to branch='main' per task constraint",
+    "sys import correctly omitted (not needed -- typer.Exit handles process exit)"
   ]
 }
 ```
