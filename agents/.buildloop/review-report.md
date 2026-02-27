@@ -1,12 +1,12 @@
-# Review Report -- P1.1
+# Review Report -- P1.2
 
 ## Verdict: PASS
 
 ## Runtime Checks
-- Build: PASS (`uv sync` resolves 32 packages, `uv build` produces wheel successfully)
-- Tests: PASS (pytest exits 5 -- no tests collected, expected for scaffold task)
-- Lint: PASS (`py_compile` passes on both `src/__init__.py` and `tests/__init__.py`)
-- Docker: SKIPPED (no Docker files in this task)
+- Build: PASS (py_compile clean on both src/models.py and tests/test_models.py)
+- Tests: PASS (23/23 passed in 0.04s)
+- Lint: PASS (ruff check clean, zero findings)
+- Docker: SKIPPED (no Docker/compose files changed in this task)
 
 ## Findings
 
@@ -16,37 +16,36 @@
   "medium": [],
   "low": [
     {
-      "file": "agents/pyproject.toml",
-      "line": 8,
-      "issue": "Plan specifies typer[all]>=0.16.1 but implementation has typer>=0.16.1 (without [all] extra). Currently harmless because rich (the main [all] extra) is a transitive dependency of typer anyway, but if typer changes its dependency tree in a future version, shell completion and rich formatting could break.",
+      "file": "src/models.py",
+      "line": 72,
+      "issue": "ScanResult.timestamp uses datetime.now(UTC) which produces a timezone-aware datetime, while the plan specifies datetime.utcnow (naive). The implementation is actually better -- utcnow() is deprecated in Python 3.12. Not a defect, noting the plan deviation.",
       "category": "inconsistency"
     },
     {
-      "file": "agents/src/__init__.py",
-      "line": 1,
-      "issue": "Missing `from __future__ import annotations` as first import. CLAUDE.md coding convention #1 requires this in every .py file. The file only has a docstring.",
-      "category": "inconsistency"
-    },
-    {
-      "file": "agents/pyproject.toml",
-      "line": 1,
-      "issue": "Plan includes `readme = \"README.md\"` field but implementation omits it. No README.md exists yet so this is correct to omit (would cause a build warning), but worth noting the deviation from plan.",
+      "file": "src/models.py",
+      "line": 73,
+      "issue": "findings_count is a separate required field with no validator ensuring it matches len(findings). Callers could pass findings_count=0 with a non-empty findings list. Acceptable for now -- the runner will populate both from the parent tool's JSON, and adding a validator is a design choice, not a bug.",
       "category": "inconsistency"
     }
   ],
   "validated": [
-    "pyproject.toml parses correctly and uv sync resolves all 32 packages with exit code 0",
-    "uv.lock generated with all 6 expected packages locked: typer, pydantic, pygithub, pyyaml, pytest, pytest-asyncio",
-    "src/__init__.py exists with correct docstring, package is importable via `import src`",
-    "tests/__init__.py exists as empty file, pytest discovers the test directory",
-    "All 4 runtime dependencies importable: typer, pydantic, github (pygithub), yaml (pyyaml)",
-    "Build backend hatchling.build is correct (plan had hatchling.backends which is wrong -- builder fixed this)",
-    "Builder added [tool.hatch.build.targets.wheel] packages=[\"src\"] which is necessary for hatchling to find the src package (good addition not in plan)",
-    "Entry point src.cli:app correctly references the src package (cli module doesn't exist yet, expected for P1.1)",
-    "requires-python = \">=3.12\" matches parent project's .python-version",
-    "pytest config has testpaths=[\"tests\"] and pythonpath=[\".\"] for correct module resolution",
-    "Dev dependency group correctly separates pytest and pytest-asyncio from runtime deps",
-    "uv build produces valid sdist and wheel (arcane_auditor_agents-0.1.0)"
+    "All 4 enums (Severity, ReportFormat, Confidence, ExitCode) have correct values matching the plan",
+    "Finding model is frozen (ConfigDict(frozen=True)) and hashable -- verified via set deduplication test",
+    "Finding.description property correctly aliases message field",
+    "ScanResult.has_issues, action_count, advice_count properties return correct values",
+    "FixResult.is_auto_applicable returns True only for HIGH confidence",
+    "AgentConfig uses SecretStr for github_token -- verified str() masks the value",
+    "AgentConfig.repos uses Field(default_factory=list) -- verified mutable default isolation between instances",
+    "AgentConfig.auditor_path defaults to Path('../') as specified",
+    "All 5 custom exceptions have correct inheritance chain: specific -> ArcaneAgentError -> Exception",
+    "from __future__ import annotations is first import in both files (CLAUDE.md convention)",
+    "No print() calls anywhere -- logging convention respected",
+    "Google-style docstrings on all public classes and properties",
+    "JSON serialization round-trip works for Finding and ScanResult (model_dump_json / model_validate_json)",
+    "Pydantic v2 enum validation rejects invalid severity values (ValidationError on 'INVALID')",
+    "All 23 test cases cover the full plan specification including edge cases (frozen mutation, invalid enum, default values)",
+    "Test imports match all public symbols from src/models.py -- no missing or extra exports",
+    "datetime.now(UTC) is the correct non-deprecated approach for Python 3.12+ (plan said utcnow but implementation is better)"
   ]
 }
 ```
