@@ -1,95 +1,278 @@
-# Plan: P2.2
-
-## Status
-Implementation is ALREADY COMPLETE in scanner.py and test_scanner.py (WIP commit 08b8200).
-Builder's job: run the tests to verify they pass, then mark P2.2 done in IMPL_PLAN.md.
-No new code needs to be written.
+# Plan: P2.3
 
 ## Dependencies
 - list: []
 - commands: []
+  (No new Python packages required. All files are plain JSON or standalone JS data files.)
 
 ## File Operations (in execution order)
 
-### 1. VERIFY src/scanner.py
-- operation: VERIFY (no changes expected)
-- reason: scan_github was added in the WIP commit; verify the implementation is correct before marking done
-- anchor: `def scan_github(repo: str, branch: str, token: str) -> ScanManifest:`
+### 1. CREATE tests/fixtures/clean_app/minimalPage.pmd
+- operation: CREATE
+- reason: Minimal valid Workday Extend PMD page file with zero rule violations -- required as input for clean-scan tests
 
-#### Functions
-- signature: `scan_github(repo: str, branch: str, token: str) -> ScanManifest`
-  - purpose: Clone a GitHub repo to a temp directory, delegate to scan_local, return ScanManifest with repo metadata
-  - logic:
-    1. Split `repo` on `/`. If `len(parts) != 2` or either part is empty, raise `ScanError(f"Invalid repo format: '{repo}'. Expected 'owner/repo'.")`
-    2. Set `clone_url = f"https://github.com/{repo}.git"` (never embed token in URL -- token visible in ps aux)
-    3. Copy `os.environ` to `env`. Set `env["GIT_TERMINAL_PROMPT"] = "0"` to prevent git from hanging on interactive prompt.
-    4. If `token` is truthy (non-empty after strip): create a temp shell script via `tempfile.mkstemp` that `echo`s the token. chmod it to `stat.S_IRWXU`. Set `env["GIT_ASKPASS"] = str(askpass_path)`. This keeps the token out of argv.
-    5. Create temp clone dir via `tempfile.mkdtemp(prefix="arcane_auditor_")`. Assign to `tmp_path = Path(...)`.
-    6. Inside a try block: call `subprocess.run(["git", "clone", "--depth=1", "--branch", branch, clone_url, str(tmp_path)], capture_output=True, text=True, check=False, timeout=120, env=env)`.
-    7. If `result.returncode != 0`: raise `ScanError(f"git clone failed for repo '{repo}' branch '{branch}': {result.stderr.strip()}")`. Token must NOT appear in this message.
-    8. Call `manifest = scan_local(tmp_path)`.
-    9. Set `manifest.repo = repo`, `manifest.branch = branch`, `manifest.temp_dir = tmp_path`.
-    10. Log at DEBUG: `"scan_github: repo=%s branch=%s total=%d tmp=%s"`.
-    11. Return `manifest`.
-    12. In except blocks: re-raise `ScanError` as-is; convert `subprocess.TimeoutExpired` to `ScanError("git clone timed out for repo '{repo}' after 120 seconds.")`; convert `OSError` to `ScanError(f"OS error while cloning repo '{repo}': {exc}")`.
-    13. In `finally` block: if `askpass_path is not None`, call `askpass_path.unlink(missing_ok=True)` to remove the temp credential script.
-  - calls: `scan_local(tmp_path)`, `subprocess.run(...)`, `tempfile.mkstemp(...)`, `tempfile.mkdtemp(...)`
-  - returns: `ScanManifest` with `root_path`, `files_by_type`, `repo`, `branch`, `temp_dir` all populated
-  - error handling:
-    - Invalid repo format -> `ScanError`
-    - git clone nonzero exit -> `ScanError` (stderr included, token excluded)
-    - `subprocess.TimeoutExpired` -> `ScanError` with "timed out" in message
-    - `OSError` -> `ScanError`
-    - `ScanError` from `scan_local` -> re-raised unchanged
-    - NOTE: temp_dir is NOT removed by this function on error or success. The caller (runner or CLI) is responsible for calling `shutil.rmtree(manifest.temp_dir, ignore_errors=True)` after the runner has finished reading from `root_path`. This is intentional: the runner needs the cloned files to be present when it invokes the auditor subprocess.
+#### Content
+The file is a JSON document. Write the following content exactly:
 
-#### Design Note on Cleanup
-The task spec says "Clean up temp dir on completion." This means the orchestration layer (CLI/runner) cleans up after the full audit pipeline completes -- NOT inside scan_github. Cleaning up inside scan_github before returning would delete the files the runner needs. The docstring in scanner.py explicitly documents this contract. No change is needed.
-
-### 2. VERIFY tests/test_scanner.py
-- operation: VERIFY (no changes expected)
-- reason: TestScanGithub was added in the WIP commit; confirm coverage matches the implementation contract
-- anchor: `class TestScanGithub:`
-
-Confirm these 8 tests exist and match the implementation:
-1. `test_invalid_repo_format_raises_scan_error` -- "noslash" -> ScanError("Invalid repo format")
-2. `test_invalid_repo_empty_owner_raises_scan_error` -- "/repo" -> ScanError
-3. `test_invalid_repo_empty_name_raises_scan_error` -- "owner/" -> ScanError
-4. `test_git_clone_failure_raises_scan_error` -- returncode=128, assert "tok" NOT in error message
-5. `test_git_clone_timeout_raises_scan_error` -- TimeoutExpired side effect -> ScanError("timed out")
-6. `test_successful_clone_returns_manifest` -- returncode=0, assert manifest.repo/branch/temp_dir set
-7. `test_token_passed_via_askpass_not_in_url` -- token not in argv, clone_url has no @, GIT_ASKPASS in env
-8. `test_empty_token_uses_unauthenticated_url` -- empty token, no @ in github.com URL in argv
-9. `test_temp_dir_set_on_manifest_and_exists_after_call` -- temp_dir is not None and exists after return
-10. `test_scan_local_error_propagates_as_scan_error` -- scan_local raises ScanError, it propagates
-
-All 10 tests listed above should be present. Count them in the file. If any are missing, add them.
-
-### 3. MODIFY IMPL_PLAN.md
-- operation: MODIFY
-- reason: Mark P2.2 as complete now that implementation and tests are verified
-- anchor: `- [ ] P2.2: Add scan_github(repo: str, branch: str, token: str) to scanner.py`
-
-#### Change
-Replace the exact line:
+```json
+{
+  "id": "minimalPage",
+  "securityDomains": ["Everyone"],
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Minimal Page"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "text",
+          "id": "greetingText",
+          "label": "Greeting",
+          "value": "Hello"
+        }
+      ]
+    },
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "richText",
+          "id": "footerText",
+          "value": "Footer"
+        }
+      ]
+    }
+  },
+  "script": "<% const greeting = 'Hello'; let count = 0; %>"
+}
 ```
-- [ ] P2.2: Add scan_github(repo: str, branch: str, token: str) to scanner.py -- clone a GitHub repo to a temp directory using subprocess git clone (not pygithub), then delegate to scan_local. Clean up temp dir on completion. Return ScanManifest with repo metadata
+
+Design rationale (do NOT include this block in the file -- it is for the builder's reference only):
+- `"id": "minimalPage"` -- the parser reads the `"id"` key and assigns it to `PMDModel.pageId`; filename `minimalPage.pmd` is lowerCamelCase so `FileNameLowerCamelCaseRule` does not trigger
+- `"securityDomains": ["Everyone"]` -- non-empty list satisfies `PMDSecurityDomainRule` (ACTION)
+- All widgets in `body` and `footer` have explicit `"id"` fields -- satisfies `WidgetIdRequiredRule` (ACTION)
+- `"script"` uses `const` and `let`, no `var` -- satisfies `ScriptVarUsageRule` (ADVICE)
+- No `console.log`, `console.warn`, `console.error`, or `console.debug` in any script field -- satisfies `ScriptConsoleLogRule` (ACTION)
+- `0` appears only as a named-variable initialiser (`let count = 0`), not in an expression context -- satisfies `ScriptMagicNumberRule` (ADVICE)
+- No `*.workday.com` URLs anywhere -- satisfies `HardcodedWorkdayAPIRule` (ACTION)
+
+---
+
+### 2. CREATE tests/fixtures/clean_app/minimalPod.pod
+- operation: CREATE
+- reason: Minimal valid Workday Extend POD file with zero rule violations
+
+#### Content
+The file is a JSON document. Write the following content exactly:
+
+```json
+{
+  "podId": "minimalPod",
+  "seed": {
+    "parameters": [],
+    "endPoints": [
+      {
+        "name": "getWorkerData",
+        "url": "<% apiGatewayEndpoint + '/workers/me' %>"
+      }
+    ],
+    "template": {
+      "type": "text",
+      "id": "workerText",
+      "label": "Worker",
+      "value": "Worker data"
+    }
+  }
+}
 ```
-With:
+
+Design rationale (do NOT include this block in the file):
+- `"podId": "minimalPod"` -- lowerCamelCase; filename `minimalPod.pod` is lowerCamelCase
+- Endpoint `"url"` uses `apiGatewayEndpoint` template expression, not a hardcoded `*.workday.com` domain -- satisfies `HardcodedWorkdayAPIRule` (ACTION)
+- Template widget has `"id": "workerText"` -- satisfies `WidgetIdRequiredRule` (ACTION)
+
+---
+
+### 3. CREATE tests/fixtures/clean_app/utils.script
+- operation: CREATE
+- reason: Minimal valid Workday Extend standalone script file with zero rule violations
+
+#### Content
+The file is a plain text JS-like file (no `<%` wrapper -- standalone `.script` files are not wrapped). Write the following content exactly:
+
+```javascript
+const getCurrentTime = function() {
+  return date:getTodaysDate(date:getDateTimeZone('US/Pacific'));
+};
+
+const formatName = function(name) {
+  return name;
+};
+
+{
+  "getCurrentTime": getCurrentTime,
+  "formatName": formatName
+}
 ```
-- [x] P2.2: Add scan_github(repo: str, branch: str, token: str) to scanner.py -- clone a GitHub repo to a temp directory using subprocess git clone (not pygithub), then delegate to scan_local. Clean up temp dir on completion. Return ScanManifest with repo metadata
+
+Design rationale (do NOT include this block in the file):
+- Both `getCurrentTime` and `formatName` are declared with `const` (not `var`) -- satisfies `ScriptVarUsageRule`
+- Both functions are exported in the trailing object literal -- satisfies `ScriptDeadCodeRule` (the "unused function" rule for standalone scripts)
+- No `console.log` calls -- satisfies `ScriptConsoleLogRule`
+- No bare numeric literals used in expressions -- satisfies `ScriptMagicNumberRule`
+- The trailing object literal `{ "getCurrentTime": getCurrentTime, "formatName": formatName }` is the standard Workday Extend export pattern for standalone `.script` files
+
+---
+
+### 4. CREATE tests/fixtures/dirty_app/dirtyPage.pmd
+- operation: CREATE
+- reason: PMD file containing exactly four known violations: ScriptVarUsageRule, ScriptConsoleLogRule, ScriptMagicNumberRule, WidgetIdRequiredRule
+
+#### Content
+The file is a JSON document. Write the following content exactly:
+
+```json
+{
+  "id": "dirtyPage",
+  "securityDomains": ["Everyone"],
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Dirty Page"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "text",
+          "value": "Missing ID widget"
+        }
+      ]
+    },
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "richText",
+          "id": "footerText",
+          "value": "Footer"
+        }
+      ]
+    }
+  },
+  "script": "<% var count = 0; console.log(count); if (count > 42) { count = 100; } %>"
+}
 ```
+
+Violations this file intentionally contains (do NOT include this block in the file):
+1. `var count` in the `"script"` field -- triggers `ScriptVarUsageRule` (ADVICE)
+2. `console.log(count)` in the `"script"` field -- triggers `ScriptConsoleLogRule` (ACTION)
+3. `42` in `count > 42` and `100` in `count = 100` are bare numeric literals in expression context -- triggers `ScriptMagicNumberRule` (ADVICE); note: `0` in `var count = 0` is a named-variable initialiser and may not trigger this rule
+4. The `"type": "text"` widget under `body.children` has no `"id"` field -- triggers `WidgetIdRequiredRule` (ACTION)
+
+---
+
+### 5. CREATE tests/fixtures/dirty_app/dirtyPod.pod
+- operation: CREATE
+- reason: POD file containing exactly one known violation: HardcodedWorkdayAPIRule
+
+#### Content
+The file is a JSON document. Write the following content exactly:
+
+```json
+{
+  "podId": "dirtyPod",
+  "seed": {
+    "parameters": [],
+    "endPoints": [
+      {
+        "name": "getHrData",
+        "url": "https://api.workday.com/common/v1/workers"
+      }
+    ],
+    "template": {
+      "type": "text",
+      "id": "hrText",
+      "label": "HR",
+      "value": "HR data"
+    }
+  }
+}
+```
+
+Violations this file intentionally contains (do NOT include this block in the file):
+1. `"url": "https://api.workday.com/common/v1/workers"` is a hardcoded `*.workday.com` URL in an endpoint `"url"` field -- triggers `HardcodedWorkdayAPIRule` (ACTION)
+
+The rule `HardcodedWorkdayAPIRule.visit_pod()` iterates `pod_model.seed.endPoints`, calls `_check_endpoint_url(endpoint, pod_model, 'pod', i)`, which reads `endpoint.get('url', '')` and runs a regex match against `*.workday.com`.
+
+---
+
+### 6. CREATE tests/fixtures/dirty_app/helpers.script
+- operation: CREATE
+- reason: Standalone script file containing exactly one known violation: ScriptDeadCodeRule (unused function not exported or used internally)
+
+#### Content
+The file is a plain text JS-like file. Write the following content exactly:
+
+```javascript
+const formatDate = function(date) {
+  return date:getTodaysDate(date);
+};
+
+const unusedHelper = function() {
+  return "not exported or used";
+};
+
+{
+  "formatDate": formatDate
+}
+```
+
+Violations this file intentionally contains (do NOT include this block in the file):
+1. `unusedHelper` is declared with `const` but is neither exported in the trailing object literal nor called by any other function in the file -- triggers `ScriptDeadCodeRule` (ADVICE) with a message containing "neither exported nor used internally"
+
+`formatDate` IS exported in the trailing object literal, so it does not trigger the rule. `unusedHelper` is NOT in the export object and is NOT called by `formatDate` or any other code, so it IS flagged as dead code.
+
+---
 
 ## Verification
-- build: `uv run python -c "from src.scanner import scan_github, scan_local; print('imports ok')"` (expect: "imports ok")
-- lint: `uv run python -m py_compile src/scanner.py && echo 'syntax ok'`
-- test: `uv run pytest tests/test_scanner.py -v`
-- smoke: Confirm all 10 tests in TestScanGithub pass. The TestScanLocal tests must also still pass (no regressions). Expected output contains "10 passed" for TestScanGithub tests.
+
+- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/test_scanner.py -v`
+  (existing scanner tests must all pass -- they do not test file content, just that the scanner finds files by extension)
+
+- lint: no lint step for data files
+
+- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/test_scanner.py -v`
+
+- smoke:
+  1. Verify the scanner finds exactly 3 files in clean_app:
+     `cd /Users/name/homelab/ArcaneAuditor/agents && python -c "from pathlib import Path; from src.scanner import scan_local; m = scan_local(Path('tests/fixtures/clean_app')); print(m.total_count, m.files_by_type)"`
+     Expected: `total_count=3`, one file each in `pmd`, `pod`, `script` keys.
+
+  2. Verify the scanner finds exactly 3 files in dirty_app:
+     `cd /Users/name/homelab/ArcaneAuditor/agents && python -c "from pathlib import Path; from src.scanner import scan_local; m = scan_local(Path('tests/fixtures/dirty_app')); print(m.total_count, m.files_by_type)"`
+     Expected: `total_count=3`, one file each in `pmd`, `pod`, `script` keys.
+
+  3. Verify clean_app has zero ACTION findings when run through the parent tool:
+     `cd /Users/name/homelab/ArcaneAuditor && uv run main.py review-app agents/tests/fixtures/clean_app --format json --quiet`
+     Expected: exit code 0 (or at most ADVICE-only findings which also yield exit code 0).
+
+  4. Verify dirty_app has ACTION findings when run through the parent tool:
+     `cd /Users/name/homelab/ArcaneAuditor && uv run main.py review-app agents/tests/fixtures/dirty_app --format json --quiet`
+     Expected: exit code 1 (ACTION issues found). The JSON output must contain findings for `ScriptConsoleLogRule`, `ScriptVarUsageRule`, `ScriptMagicNumberRule`, `WidgetIdRequiredRule`, and `HardcodedWorkdayAPIRule`.
 
 ## Constraints
-- Do NOT modify src/models.py -- ScanManifest already has repo, branch, temp_dir fields
-- Do NOT add any new dependencies to pyproject.toml -- scan_github uses only stdlib (os, stat, subprocess, tempfile, pathlib)
-- Do NOT add shutil import to scanner.py -- shutil.rmtree is the caller's responsibility, not the scanner's
-- Do NOT change the cleanup design -- temp_dir must persist after scan_github returns so the runner can use the files
-- Do NOT modify any file other than IMPL_PLAN.md (and only the checkbox change)
-- Do NOT rewrite the existing implementation -- only verify it matches the spec above
+
+- Do NOT create any `.py` files -- this task is purely data file creation
+- Do NOT modify `src/scanner.py`, `src/models.py`, `src/config.py`, or any existing test file
+- Do NOT create `tests/fixtures/__init__.py` -- the fixtures directory is a data directory, not a Python package
+- Do NOT create `tests/fixtures/expected/` -- that is scope for a later task (P3.3 specifies expected output for runner tests)
+- Do NOT add Python imports or boilerplate to the JSON fixture files -- they must be pure JSON
+- The `.script` file content must NOT be wrapped in `<% %>` -- standalone `.script` files use raw JS syntax (no template wrappers); the `<% %>` wrapper is only for embedded script blocks within `.pmd` and `.pod` JSON field values
+- The file encoding must be UTF-8
+- If smoke test 3 reveals that the clean_app files trigger ACTION violations (exit code 1 instead of 0), fix the offending fixture file content before moving on -- the clean_app fixture MUST produce exit code 0
+- If smoke test 4 reveals that the parent tool produces exit code 0 for dirty_app (meaning it found no ACTION violations), check that the JSON fields match exactly what the parser expects (e.g., the endpoint `"url"` field must be at the top level of the endpoint object, not nested)

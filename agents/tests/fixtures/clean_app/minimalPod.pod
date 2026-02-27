@@ -1,0 +1,19 @@
+{
+  "podId": "minimalPod",
+  "seed": {
+    "parameters": [],
+    "endPoints": [
+      {
+        "name": "getWorkerData",
+        "url": "<% `{apiGatewayEndpoint}/workers/me` %>",
+        "failOnStatusCodes": [{ "code": 400 }, { "code": 403 }]
+      }
+    ],
+    "template": {
+      "type": "text",
+      "id": "workerText",
+      "label": "Worker",
+      "value": "Worker data"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "minimalPage",
+  "securityDomains": ["Everyone"],
+  "script": "<% const greeting = 'Hello'; let count = 0; %>",
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Minimal Page"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "text",
+          "id": "greetingText",
+          "label": "Greeting",
+          "value": "Hello"
+        }
+      ]
+    },
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "richText",
+          "id": "footerText",
+          "value": "Footer"
+        }
+      ]
+    }
+  }
+}
