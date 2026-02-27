@@ -90,6 +90,18 @@ class ScanResult(BaseModel):
         return sum(1 for f in self.findings if f.severity == Severity.ADVICE)
 
 
+class ScanManifest(BaseModel):
+    """Result of scanning a local directory for Workday Extend artifacts."""
+
+    root_path: Path
+    files_by_type: dict[str, list[Path]] = Field(default_factory=dict)
+
+    @property
+    def total_count(self) -> int:
+        """Total number of Extend artifact files found across all types."""
+        return sum(len(paths) for paths in self.files_by_type.values())
+
+
 class FixResult(BaseModel):
     """Result of applying a fix template to a finding."""
 

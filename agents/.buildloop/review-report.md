@@ -1,68 +1,50 @@
-# Review Report — P1.3
+# Review Report — P2.1
 
-## Verdict: FAIL
+## Verdict: PASS
 
 ## Runtime Checks
-- Build: PASS (`uv run python -m py_compile src/config.py src/models.py`)
-- Tests: PASS (14/14 passed — `uv run pytest tests/test_config.py -v`)
-- Lint: SKIPPED (no linter configured in pyproject.toml)
-- Docker: SKIPPED (no compose files changed)
+- Build: PASS (`uv run python -m py_compile src/scanner.py src/models.py` — clean)
+- Tests: PASS (46/46 passed, including 9 new scanner tests and 37 pre-existing tests; no regressions)
+- Lint: SKIPPED (no linter configured in pyproject.toml; plan acknowledges this)
+- Docker: SKIPPED (no Docker files changed or relevant to this task)
 
 ## Findings
 
 ```json
 {
   "high": [],
-  "medium": [
-    {
-      "file": "src/config.py",
-      "line": 36,
-      "issue": "read_text() is not wrapped in try/except. If the config file exists but is unreadable (PermissionError) or is a directory (IsADirectoryError on Unix), a raw OS exception propagates to the caller instead of ConfigError. The function's docstring contract states 'Raises: ConfigError: If the config file is missing, malformed, or fails validation' and the plan spec states 'All errors raise ConfigError'. Both are violated for I/O errors after the exists() guard.",
-      "category": "api-contract"
-    }
-  ],
+  "medium": [],
   "low": [
     {
-      "file": "src/config.py",
-      "line": 38,
-      "issue": "Suffix comparison (.yaml, .yml, .json) is case-sensitive. A file named 'config.YAML' or 'config.YML' falls through to the else branch and raises 'Unsupported config format: .YAML' instead of being parsed as YAML. Unlikely in practice but diverges from conventional file-type detection.",
-      "category": "inconsistency"
+      "file": "agents/src/models.py",
+      "line": 97,
+      "issue": "ScanManifest.files_by_type default_factory=dict yields an empty dict {}, not the 5-key pre-populated dict the plan guarantees ('all five keys are always present'). Only scan_local() enforces this invariant. Direct construction ScanManifest(root_path=p) or round-trip deserialization from JSON produces {}, so downstream code that does manifest.files_by_type['pmd'] without a guard would raise KeyError. The guarantee is behavioral (via scan_local), not structural (via the model).",
+      "category": "api-contract"
     },
     {
-      "file": "src/models.py",
-      "line": 114,
-      "issue": "auditor_path defaults to Path('../'). This is a CWD-relative path that is correct only when the process runs from agents/. In GitHub Actions (where CWD is repo root by default) or any cron/CI setup not chdir-ing to agents/ first, '../' resolves to the repo's parent directory. validate_config() catches this and raises ConfigError immediately (fail-fast), but the error message does not hint at the CWD dependency, making diagnosis harder.",
+      "file": "agents/src/scanner.py",
+      "line": 42,
+      "issue": "path.rglob('*') follows symlinks by default in Python 3.12 and has no cycle detection. A circular symlink inside the scanned repo (e.g., a symlink pointing to an ancestor directory) would exhaust Python's recursion stack and raise RecursionError, which propagates as an unhandled exception rather than a ScanError with a clear message. Low likelihood for Workday Extend repos in practice.",
+      "category": "error-handling"
+    },
+    {
+      "file": "agents/src/scanner.py",
+      "line": 45,
+      "issue": "Extension matching is case-sensitive (item.suffix produces '.pmd', not '.PMD'). Files with uppercase extensions (.PMD, .POD, .SCRIPT, .AMD, .SMD) are silently ignored. No test covers this and no comment documents that case-sensitivity is intentional. Workday Extend tooling likely always produces lowercase extensions, so the practical risk is low.",
       "category": "hardcoded"
-    },
-    {
-      "file": "tests/test_config.py",
-      "line": 55,
-      "issue": "No test for JSON non-dict content (e.g., a JSON array '[1,2,3]' or null). The code path at config.py:54-57 raises ConfigError for non-dict JSON, but this branch has zero test coverage. The analogous YAML case (list YAML) is tested at line 178.",
-      "category": "inconsistency"
-    },
-    {
-      "file": ".buildloop/current-plan.md",
-      "line": 58,
-      "issue": "Plan enumerates 13 tests to confirm present, but the implementation has 14. test_env_var_whitespace_arcane_auditor_path_ignored (test_config.py:122) is absent from the plan's numbered list. Extra test is a net positive, but the count mismatch means the plan's verification checklist is stale.",
-      "category": "inconsistency"
     }
   ],
   "validated": [
-    "All 14 pytest tests pass with exit code 0",
-    "from __future__ import annotations present in both config.py and models.py",
-    "yaml.safe_load used (not yaml.load) — no YAML deserialization vulnerability",
-    "GITHUB_TOKEN whitespace-only value stripped and ignored (config.py:63-65), backed by test at line 105",
-    "ARCANE_AUDITOR_PATH whitespace-only value stripped and ignored (config.py:67-69), backed by test at line 122",
-    "Empty YAML file (yaml.safe_load returns None) correctly treated as {} and uses defaults (config.py:43-44)",
-    "yaml.YAMLError wrapped in ConfigError (config.py:41-42)",
-    "json.JSONDecodeError wrapped in ConfigError (config.py:52-53)",
-    "pydantic.ValidationError wrapped in ConfigError (config.py:73-74)",
-    "validate_config checks exists(), is_dir(), and main.py presence in that order — no logic inversion",
-    "env vars override file config (applied after raw dict is built from file)",
-    "All public functions have Google-style docstrings",
-    "logging module used throughout, no print() calls",
-    "pathlib.Path used for all path operations, no string paths",
-    "ConfigError defined in models.py and imported cleanly into config.py"
+    "scanner.py follows all project conventions: from __future__ import annotations first, logging module (no print), pathlib.Path everywhere, ScanError raised for the two validated preconditions, no broad exception catches",
+    "EXTEND_EXTENSIONS is a frozenset[str] with exactly 5 members matching the 5 required extensions",
+    "files_by_type pre-populates all 5 keys before the rglob loop, so callers via scan_local always get a complete dict",
+    "total_count is a @property on ScanManifest — not a stored field — so it cannot drift from files_by_type contents",
+    "ScanManifest placed correctly in models.py: after ScanResult, before FixResult, as specified in the plan",
+    "All 9 test cases match the plan spec exactly; tmp_path fixture used throughout (no fixture files created)",
+    "No new pyproject.toml dependencies added (pathlib is stdlib; pydantic already present)",
+    "37 pre-existing tests (test_models.py + test_config.py) all pass — models.py modification introduced no regressions",
+    "Import chain verified: test_scanner imports from src.scanner and src.models; src.scanner imports from src.models only; no circular imports",
+    "Smoke import confirmed: uv run python -c 'from src.scanner import scan_local; print(\"import ok\")' exits 0"
   ]
 }
 ```
