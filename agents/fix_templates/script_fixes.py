@@ -66,13 +66,14 @@ class VarToLetConst(FixTemplate):
             extra_varnames: list[str] = re.findall(r',\s*(\w+)\s*=', same_line_tail)
             if self._determine_keyword(first_varname, primary_context) == "let":
                 keyword: str = "let"
-            elif any(
-                self._determine_keyword(vn, after_context) == "let"
-                for vn in extra_varnames
-            ):
-                keyword = "let"
             else:
                 keyword = "const"
+                for vn in extra_varnames:
+                    decl_m = re.search(r',\s*' + re.escape(vn) + r'\s*=', same_line_tail)
+                    vn_tail = same_line_tail[decl_m.end():] if decl_m else ""
+                    if self._determine_keyword(vn, vn_tail + "\n" + after_context) == "let":
+                        keyword = "let"
+                        break
             return m.group(0).replace("var", keyword, 1)
 
         modified_line: str = self._VAR_DECL_RE.sub(_replacer, target_line)
@@ -132,8 +133,8 @@ class TemplateLiteralFix(FixTemplate):
 
     confidence: Literal["HIGH"] = "HIGH"
 
-    _CONCAT_A_RE: re.Pattern[str] = re.compile(r"'([^'\\`\${}]*)'\s*\+\s*(\w+)\b(?!\s*\()")
-    _CONCAT_B_RE: re.Pattern[str] = re.compile(r"(\w+)\s*\+\s*'([^'\\`\${}]*)'")
+    _CONCAT_A_RE: re.Pattern[str] = re.compile(r"'([^'\\`\${}]*)'\s*\+\s*(\w+)\b(?!\s*\(|\.)")
+    _CONCAT_B_RE: re.Pattern[str] = re.compile(r"(?<!\.)\b(\w+)\s*\+\s*'([^'\\`\${}]*)'")
 
     def match(self, finding: Finding) -> bool:
         """Return True if the finding is a ScriptStringConcatRule violation."""
