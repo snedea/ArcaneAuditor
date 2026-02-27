@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import shutil
+import signal
 import stat
 import subprocess
 import tempfile
+import time
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import typer
 from github import Auth, Github, GithubException
@@ -18,7 +21,7 @@ from typer.core import TyperGroup
 
 from src.config import load_config
 from src.fixer import apply_fixes, fix_findings
-from src.models import ConfigError, ExitCode, FixerError, ReportFormat, ReporterError, RunnerError, ScanError, ScanResult
+from src.models import AgentConfig, ConfigError, ExitCode, FixerError, ReportFormat, ReporterError, RunnerError, ScanError, ScanResult, WatchError, WatchState
 from src.reporter import format_github_issues, format_pr_comment, report_findings
 from src.runner import run_audit
 from src.scanner import scan_github, scan_local
@@ -379,3 +382,191 @@ def fix(
     finally:
         if manifest is not None and manifest.temp_dir is not None:
             shutil.rmtree(manifest.temp_dir, ignore_errors=True)
+
+
+def _load_watch_state(state_file: Path, repo: str) -> WatchState:
+    """Load persisted watch state from disk, or return a fresh state on any error.
+
+    Args:
+        state_file: Path to the JSON state file.
+        repo: GitHub repo in owner/repo format. Used to detect stale state files.
+
+    Returns:
+        Existing WatchState if the file is valid and matches repo, otherwise a fresh
+        WatchState with an empty seen_prs dict.
+    """
+    if not state_file.exists():
+        return WatchState(repo=repo)
+    raw = state_file.read_text(encoding="utf-8")
+    try:
+        state = WatchState.model_validate_json(raw)
+    except (ValueError, json.JSONDecodeError) as exc:
+        logger.warning("Corrupt state file %s, starting fresh: %s", state_file, exc)
+        return WatchState(repo=repo)
+    if state.repo != repo:
+        logger.warning("State file repo mismatch: expected %s, got %s. Starting fresh.", repo, state.repo)
+        return WatchState(repo=repo)
+    return state
+
+
+def _save_watch_state(state: WatchState, state_file: Path) -> None:
+    """Atomically write watch state to disk using a .tmp-then-replace strategy.
+
+    Args:
+        state: Current WatchState to persist.
+        state_file: Destination path for the JSON state file.
+
+    Raises:
+        OSError: If the write or rename fails (disk full, permissions, etc.).
+    """
+    data = state.model_dump_json(indent=2)
+    tmp = state_file.with_suffix(".tmp")
+    tmp.write_text(data, encoding="utf-8")
+    tmp.replace(state_file)
+
+
+def _list_open_prs(repo: str, token: str) -> list[tuple[int, str]]:
+    """Fetch the list of open PRs for a GitHub repo.
+
+    Args:
+        repo: GitHub repo in owner/repo format.
+        token: GitHub personal access token or app token.
+
+    Returns:
+        List of (pr_number, head_branch) tuples, ordered newest-first.
+
+    Raises:
+        WatchError: If the GitHub API call fails for any reason.
+    """
+    try:
+        with Github(auth=Auth.Token(token)) as gh:
+            repo_obj = gh.get_repo(repo)
+            pulls = repo_obj.get_pulls(state="open", sort="created", direction="desc")
+            return [(pr.number, pr.head.ref) for pr in pulls]
+    except GithubException as exc:
+        raise WatchError(f"GitHub API error listing PRs for {repo!r}: {exc}") from exc
+
+
+def _process_single_pr(repo: str, pr_number: int, head_branch: str, token: str, agent_config: AgentConfig, quiet: bool) -> str:
+    """Clone the PR branch, run the audit, and post a PR comment with the results.
+
+    Args:
+        repo: GitHub repo in owner/repo format.
+        pr_number: Pull request number to process.
+        head_branch: Branch name for the PR head (used for checkout).
+        token: GitHub personal access token or app token.
+        agent_config: Resolved agent configuration (auditor path, etc.).
+        quiet: If True, suppress informational echo output.
+
+    Returns:
+        URL of the posted PR comment.
+
+    Raises:
+        ScanError: If cloning or scanning the repo fails.
+        RunnerError: If the audit subprocess fails unexpectedly.
+        ReporterError: If posting the GitHub comment fails.
+    """
+    logger.info("Processing PR #%d (branch: %s)", pr_number, head_branch)
+    manifest = scan_github(repo, head_branch, token)
+    try:
+        scan_result = run_audit(manifest, agent_config)
+        comment_url = format_pr_comment(scan_result, repo, pr_number, token)
+        return comment_url
+    finally:
+        if manifest.temp_dir is not None:
+            shutil.rmtree(manifest.temp_dir, ignore_errors=True)
+
+
+@app.command()
+def watch(
+    repo: str = typer.Option(..., "--repo", help="GitHub repo in owner/repo format (e.g. acme/payroll)"),
+    interval: int = typer.Option(300, "--interval", help="Polling interval in seconds"),
+    state_file: Path = typer.Option(Path(".arcane-watch-state.json"), "--state-file", help="Path to the JSON state file for tracking seen PRs"),
+    config: Optional[str] = typer.Option(None, "--config", help="Arcane Auditor config preset name or path"),
+    quiet: bool = typer.Option(False, "--quiet", help="Suppress informational messages; only errors go to stderr"),
+) -> None:
+    _configure_logging(quiet)
+
+    try:
+        agent_config = load_config(None)
+    except ConfigError as exc:
+        _error(str(exc))
+        raise typer.Exit(code=int(ExitCode.USAGE_ERROR))
+
+    if config is not None:
+        agent_config = agent_config.model_copy(update={"config_preset": config})
+
+    token = agent_config.github_token.get_secret_value() if agent_config.github_token is not None else ""
+
+    if not token:
+        _error("watch requires a GitHub token; set GITHUB_TOKEN env var")
+        raise typer.Exit(code=int(ExitCode.USAGE_ERROR))
+
+    if interval < 1:
+        _error("--interval must be >= 1")
+        raise typer.Exit(code=int(ExitCode.USAGE_ERROR))
+
+    shutdown_requested = False
+
+    def _handle_sigint(signum: int, frame: Any) -> None:
+        nonlocal shutdown_requested
+        shutdown_requested = True
+        logger.warning("Shutdown requested, finishing current cycle...")
+
+    previous_handler = signal.getsignal(signal.SIGINT)
+    signal.signal(signal.SIGINT, _handle_sigint)
+
+    state = _load_watch_state(state_file, repo)
+
+    if not quiet:
+        typer.echo(f"Watching {repo} for new PRs (interval: {interval}s, state: {state_file})", err=True)
+
+    try:
+        while not shutdown_requested:
+            try:
+                open_prs = _list_open_prs(repo, token)
+            except WatchError as exc:
+                _error(str(exc))
+                if shutdown_requested:
+                    break
+                for _ in range(interval):
+                    if shutdown_requested:
+                        break
+                    time.sleep(1)
+                continue
+
+            new_prs = [(num, branch) for num, branch in open_prs if not state.has_seen(num)]
+
+            if new_prs and not quiet:
+                typer.echo(f"Found {len(new_prs)} new PR(s): {', '.join(f'#{n}' for n, _ in new_prs)}", err=True)
+
+            for pr_number, head_branch in new_prs:
+                if shutdown_requested:
+                    break
+                try:
+                    comment_url = _process_single_pr(repo, pr_number, head_branch, token, agent_config, quiet)
+                    state.mark_seen(pr_number, comment_url)
+                    try:
+                        _save_watch_state(state, state_file)
+                    except OSError as exc:
+                        logger.warning("Could not save state file %s: %s", state_file, exc)
+                    if not quiet:
+                        typer.echo(f"PR #{pr_number}: {comment_url}", err=True)
+                except (ScanError, RunnerError, ReporterError) as exc:
+                    logger.warning("Failed to process PR #%d: %s", pr_number, exc)
+                    continue
+
+            if shutdown_requested:
+                break
+
+            for _ in range(interval):
+                if shutdown_requested:
+                    break
+                time.sleep(1)
+    finally:
+        signal.signal(signal.SIGINT, previous_handler)
+
+    if not quiet:
+        typer.echo("Watch stopped.", err=True)
+
+    raise typer.Exit(code=0)

@@ -1,11 +1,11 @@
-# Review Report — P7.1
+# Review Report — P7.2
 
 ## Verdict: FAIL
 
 ## Runtime Checks
-- Build: PASS (`python -m py_compile` on all changed files)
-- Tests: PASS (329/329 passed; 28 tests in test_fix_command.py, 35 in test_cli.py)
-- Lint: PASS (`ruff check src/cli.py` -- no issues)
+- Build: PASS (`uv run python -c "from src.cli import app; print('OK')"` exited 0)
+- Tests: PASS (346 passed, 0 failed — all new tests + full regression suite)
+- Lint: PASS (ruff reported no issues on changed files)
 - Docker: SKIPPED (no compose files changed)
 
 ## Findings
@@ -15,42 +15,55 @@
   "high": [],
   "medium": [
     {
-      "file": "src/cli.py",
-      "line": "85-86",
-      "issue": "PR body lists absolute temp dir paths for fixed files instead of repo-relative paths. `written_files` comes from `apply_fixes(fix_results, manifest.root_path)` where `manifest.root_path` is a temp clone dir like `/tmp/arcane_auditor_XXXXX`. `apply_fixes` returns `dest = target_dir / candidate` (absolute). These absolute paths are rendered verbatim in the PR body under '### Fixed Files'. Every `--create-pr` run produces a PR body with meaningless temp paths (e.g. `/tmp/arcane_auditor_abc/app/test.script`) instead of repo-relative paths (`app/test.script`). No test checks the PR body content -- `TestCreateFixPrFunction::test_happy_path_returns_pr_url` only asserts the return URL.",
-      "category": "logic"
-    },
-    {
-      "file": "src/cli.py",
-      "line": "138",
-      "issue": "GitHub token embedded as cleartext in the GIT_ASKPASS temp Python script: `askpass_f.write(f'print({token!r})\\n')`. The token value is written directly into the file content. `scan_github` (scanner.py:98-103) uses the safer pattern: the shell script reads `$GIT_TOKEN` from the subprocess environment -- the token never appears in the file. The `_create_fix_pr` implementation is inconsistent with the established project pattern and leaves the token value as a string literal on disk for the lifetime of the push.",
-      "category": "security"
-    },
-    {
-      "file": "src/cli.py",
-      "line": "153-165",
-      "issue": "`except GithubException` inside `_create_fix_pr` does not cover `requests.*` exceptions that PyGithub propagates on network failures (e.g. `requests.exceptions.ConnectionError`, `requests.exceptions.Timeout`). These escape as unhandled exceptions, propagate past the `except FixerError` guard in `fix()` at line 370, and cause a crash traceback instead of a clean `FixerError` error message and exit code 3.",
+      "file": "agents/src/cli.py",
+      "line": 441,
+      "issue": "_list_open_prs only catches GithubException, but PyGithub raises requests.exceptions.ConnectionError, requests.exceptions.Timeout, and socket.timeout for network-level failures. These are not subclasses of GithubException (confirmed: GithubException MRO is GithubException -> Exception -> BaseException). They propagate uncaught through _list_open_prs, then uncaught through the watch loop's `except WatchError` clause (lines 528-536), crashing the daemon on any transient network error instead of logging a warning and retrying after the interval.",
       "category": "error-handling"
     }
   ],
-  "low": [
-    {
-      "file": ".buildloop/current-plan.md",
-      "line": "4-32",
-      "issue": "Plan claims '18/18 tests passed' and lists TestFixArgumentValidation as '5 tests (lines 82-121)'. Actual test_fix_command.py has 28 tests: TestFixArgumentValidation has 6 tests (6th at line 125-130), plus TestFixCreatePr (3 tests, lines 363-418) and TestCreateFixPrFunction (6 tests, lines 426-504) are not mentioned in the plan at all. The test count discrepancy is purely documentation -- all 28 tests pass.",
-      "category": "inconsistency"
-    }
-  ],
+  "low": [],
   "validated": [
-    "All 329 tests pass including 28 tests in test_fix_command.py and 35 in test_cli.py",
-    "All changed Python files compile cleanly (py_compile)",
-    "ruff reports no lint errors on src/cli.py",
-    "fix command registered at cli.py:259 with correct Typer bool option pattern (typer.Option(False, '--create-pr')) -- no is_flag=True misuse",
-    "Mutual exclusion guards enforced: --target-dir + --create-pr (line 301), --repo without output destination (line 305), --create-pr without --repo (line 291), --create-pr without token (line 297)",
-    "Temp clone cleanup in outer finally block (cli.py:379-381) is exception-safe and fires on typer.Exit propagation",
-    "GIT_ASKPASS temp file is cleaned up in its own finally block (cli.py:145-149) even on push failure",
-    "Re-audit failure is non-fatal: falls back to original scan exit code (cli.py:377)",
-    "assert repo is not None narrowing added before scan_github call (cli.py:315) -- correct pattern vs pre-existing scan command"
+    "All 17 new tests in tests/test_watch_command.py pass",
+    "Full 346-test regression suite passes with no failures",
+    "src/models.py: SeenPR (frozen=True) and WatchState models are correctly defined; mark_seen mutates the dict in-place (not the frozen SeenPR), which is valid",
+    "WatchState dict[int, SeenPR] roundtrip through model_dump_json/model_validate_json correctly coerces string JSON keys back to int",
+    "src/cli.py: _load_watch_state correctly handles missing file, corrupt JSON, and repo mismatch — all three return a fresh WatchState",
+    "_save_watch_state uses atomic .tmp-then-rename pattern as specified",
+    "watch command restores previous SIGINT handler in finally block regardless of how the loop exits",
+    "Shutdown flag is set-only (no sys.exit in handler); loop checks flag at every break point before sleep, between PRs, and at top of while",
+    "Failed PR processing (ScanError/RunnerError/ReporterError) is caught, logged, and skipped without marking the PR as seen — loop continues to next PR",
+    "WatchError from _list_open_prs is caught, logged, and causes a retry-after-interval rather than a crash — but only for GithubException-derived errors (see medium finding)",
+    "_DefaultScanGroup.parse_args correctly routes 'watch' as a known command without prepending 'scan'",
+    "State save wrapped in OSError catch (lines 549-552) to prevent disk-full from crashing the loop",
+    "_process_single_pr uses try/finally to clean up manifest.temp_dir even when run_audit or format_pr_comment raises",
+    "watch --help shows all five options (--repo, --interval, --state-file, --config, --quiet) as specified"
   ]
 }
 ```
+
+## Detail on Medium Finding
+
+`requests.exceptions.ConnectionError` and related exceptions are raised by PyGithub for network-level failures (DNS resolution failure, TCP connection refused, read timeout). They are not subclasses of `GithubException`:
+
+```
+GithubException MRO: GithubException -> Exception
+ConnectionError MRO: ConnectionError -> RequestException -> OSError -> Exception
+```
+
+In `_list_open_prs` (line 441), only `GithubException` is caught:
+
+```python
+except GithubException as exc:
+    raise WatchError(f"GitHub API error listing PRs for {repo!r}: {exc}") from exc
+```
+
+In the watch loop (lines 526-536), only `WatchError` is caught:
+
+```python
+try:
+    open_prs = _list_open_prs(repo, token)
+except WatchError as exc:
+    ...
+```
+
+A `requests.exceptions.ConnectionError` from a transient network blip bypasses both catch clauses, propagates to the outer `try/finally` (line 524/566), restores the signal handler, and then exits the process with an unhandled exception traceback. For a daemon intended to run continuously (cron, GitHub Actions, foundry loop), this means any network hiccup terminates the process entirely rather than waiting `interval` seconds and retrying.

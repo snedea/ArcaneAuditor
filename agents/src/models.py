@@ -120,6 +120,32 @@ class FixResult(BaseModel):
         return self.confidence == Confidence.HIGH
 
 
+class SeenPR(BaseModel):
+    """Record of a PR that has already been processed."""
+    model_config = ConfigDict(frozen=True)
+    pr_number: int
+    comment_url: str
+    processed_at: datetime
+
+
+class WatchState(BaseModel):
+    """Persistent state for the watch command, tracking which PRs have been processed."""
+    repo: str
+    seen_prs: dict[int, SeenPR] = Field(default_factory=dict)
+
+    def has_seen(self, pr_number: int) -> bool:
+        """Check whether a PR number has already been processed."""
+        return pr_number in self.seen_prs
+
+    def mark_seen(self, pr_number: int, comment_url: str) -> None:
+        """Record a PR as processed."""
+        self.seen_prs[pr_number] = SeenPR(
+            pr_number=pr_number,
+            comment_url=comment_url,
+            processed_at=datetime.now(UTC),
+        )
+
+
 class AgentConfig(BaseModel):
     """Configuration for the agent system."""
 
@@ -170,3 +196,7 @@ class FixerError(ArcaneAgentError):
 
 class ConfigError(ArcaneAgentError):
     """Raised when configuration is missing, malformed, or fails validation."""
+
+
+class WatchError(ArcaneAgentError):
+    """Raised when the watch polling loop encounters a fatal error."""
