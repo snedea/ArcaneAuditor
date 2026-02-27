@@ -275,7 +275,9 @@ def _ensure_label(repo_obj: Any, name: str, color: str) -> None:
             try:
                 repo_obj.create_label(name=name, color=color)
             except GithubException as create_exc:
-                raise ReporterError(f"GitHub API error creating label {name!r}: {create_exc}") from create_exc
+                # 422 means the label was created by a concurrent run between our get and create -- that's fine.
+                if create_exc.status != 422:
+                    raise ReporterError(f"GitHub API error creating label {name!r}: {create_exc}") from create_exc
         else:
             raise ReporterError(f"GitHub API error ensuring label {name!r}: {exc}") from exc
 
@@ -354,7 +356,9 @@ def _build_advice_issue_body(findings: list[Finding]) -> str:
     lines.append("| Rule | File | Line | Message |")
     lines.append("| --- | --- | --- | --- |")
     for f in findings:
-        lines.append(f"| {f.rule_id} | {f.file_path} | {f.line} | {f.message} |")
+        safe_path = f.file_path.replace("|", r"\|").replace("\n", " ")
+        safe_msg = f.message.replace("|", r"\|").replace("\n", " ")
+        lines.append(f"| {f.rule_id} | {safe_path} | {f.line} | {safe_msg} |")
     lines.append("")
     lines.append("---")
     lines.append("*Found by [Arcane Auditor](https://github.com/snedea/homelab) -- deterministic rule-based code review.*")
