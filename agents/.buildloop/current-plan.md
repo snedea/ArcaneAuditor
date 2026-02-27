@@ -1,179 +1,186 @@
-# Plan: P4.1
-
-## Context
-
-`src/reporter.py` was started in a WIP commit (`fb29f51`). The file already exists with a
-complete implementation. The builder must:
-1. Read the existing file and verify it matches this spec exactly.
-2. If any function body, signature, import, or docstring differs from this spec, correct it.
-3. If the file already matches, make no changes.
-
-Note: `tests/test_reporter.py` is NOT part of P4.1 -- it is covered by P4.5.
+# Plan: P4.2
 
 ## Dependencies
-
-- list: [] (no new packages required -- json, logging, collections are stdlib; pydantic and
-  src.models are already present)
-- commands: [] (no install commands needed)
+- list: []
+- commands: []
+  (No new dependencies required. `json` is stdlib. All needed models are already in src/models.py.)
 
 ## File Operations (in execution order)
 
 ### 1. MODIFY src/reporter.py
-
 - operation: MODIFY
-- reason: WIP commit may have incomplete or incorrect implementation; verify and finalize
-- anchor: `"""Report formatting for Arcane Auditor scan results."""`
+- reason: Add `format_sarif`, two private helpers, and wire SARIF into the dispatcher
 
 #### Imports / Dependencies
-
-```python
-from __future__ import annotations
-
-import json
-import logging
-from collections import Counter
-
+Replace the existing import line:
+```
 from src.models import ReportFormat, ReporterError, ScanResult
 ```
-
-No other imports. Do not add any imports beyond the six lines above.
-
-#### Module-level Setup
-
-Immediately after imports, declare the module logger:
-
-```python
-logger = logging.getLogger(__name__)
+with:
 ```
+from src.models import Finding, ReportFormat, ReporterError, ScanResult, Severity
+```
+(Add `Finding` and `Severity` to the import. All other imports at the top of the file remain unchanged.)
 
 #### Functions
 
-- signature: `def report_findings(scan_result: ScanResult, format: ReportFormat) -> str:`
-  - purpose: Dispatch to the correct format function based on the format enum value.
-  - logic:
-    1. If `format == ReportFormat.JSON`, call `format_json(scan_result)` and return its result.
-    2. Elif `format == ReportFormat.SARIF`, raise `ReporterError("SARIF format not yet implemented")`.
-    3. Elif `format == ReportFormat.GITHUB_ISSUES`, raise `ReporterError("GitHub Issues format not yet implemented")`.
-    4. Elif `format == ReportFormat.PR_COMMENT`, raise `ReporterError("PR Comment format not yet implemented")`.
-    5. Elif `format == ReportFormat.SUMMARY`, call `format_summary(scan_result)` and return its result.
-    6. After all elif branches (none matched), raise `ReporterError(f"Unsupported report format: {format!r}")`.
-  - calls: `format_json(scan_result)`, `format_summary(scan_result)`
-  - returns: `str` -- the formatted report
-  - error handling: Raise `ReporterError` for unimplemented or unrecognized formats. Do NOT use a bare `else` before the final raise -- the final raise is unconditional after all elif branches.
-  - docstring (Google style):
-    ```
-    Dispatch to the correct format function based on the format enum value.
+##### `format_sarif`
+- signature: `def format_sarif(scan_result: ScanResult) -> str:`
+- purpose: Produce a valid SARIF v2.1.0 JSON document from a ScanResult.
+- logic:
+  1. Call `_build_sarif_rules(scan_result.findings)` and assign the result to `rules: list[dict]`.
+  2. Build `rule_index_map: dict[str, int]` by iterating `enumerate(rules)` and mapping each `rule["id"]` to its integer index `i`.
+  3. Build `results: list[dict]` by calling `_build_sarif_result(f, rule_index_map)` for each `f` in `scan_result.findings`, using a list comprehension.
+  4. Construct `doc: dict` with the following exact structure:
+     ```python
+     doc = {
+         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+         "version": "2.1.0",
+         "runs": [
+             {
+                 "tool": {
+                     "driver": {
+                         "name": "Arcane Auditor",
+                         "version": "1.0.0",
+                         "rules": rules,
+                     }
+                 },
+                 "results": results,
+             }
+         ],
+     }
+     ```
+  5. Return `json.dumps(doc, indent=2)`.
+- calls: `_build_sarif_rules(scan_result.findings)`, `_build_sarif_result(f, rule_index_map)`, `json.dumps(doc, indent=2)`
+- returns: `str` -- a pretty-printed JSON string representing the SARIF document
+- error handling: No explicit error handling. All inputs come from validated Pydantic models; no failure paths exist.
 
-    Args:
-        scan_result: The scan result to format.
-        format: The desired output format.
+##### `_build_sarif_rules`
+- signature: `def _build_sarif_rules(findings: list[Finding]) -> list[dict]:`
+- purpose: Build a deduplicated, ordered list of SARIF rule descriptor dicts from findings.
+- logic:
+  1. Declare `seen: dict[str, str]` (maps rule_id to its resolved SARIF level string -- either `"error"` or `"warning"`). Initialize as empty dict.
+  2. Declare `order: list[str]` to track insertion order of rule IDs. Initialize as empty list.
+  3. For each `f` in `findings`:
+     a. Set `level = "error"` if `f.severity == Severity.ACTION` else `level = "warning"`.
+     b. If `f.rule_id` is NOT in `seen`: append `f.rule_id` to `order` and set `seen[f.rule_id] = level`.
+     c. If `f.rule_id` IS in `seen` and `level == "error"`: set `seen[f.rule_id] = "error"` (escalate to error if any finding for this rule is ACTION).
+  4. Build and return a list by iterating `order`: for each `rule_id` in `order`, append a dict:
+     ```python
+     {
+         "id": rule_id,
+         "name": rule_id,
+         "shortDescription": {"text": rule_id},
+         "defaultConfiguration": {"level": seen[rule_id]},
+     }
+     ```
+- calls: none
+- returns: `list[dict]` -- ordered list of SARIF rule descriptor dicts; empty list if `findings` is empty
+- error handling: None required. Inputs are validated Finding models.
 
-    Returns:
-        The formatted report as a string.
-
-    Raises:
-        ReporterError: If the format is unimplemented or unrecognized.
-    ```
-
-- signature: `def format_json(scan_result: ScanResult) -> str:`
-  - purpose: Serialize a ScanResult to a pretty-printed JSON string.
-  - logic:
-    1. Call `scan_result.model_dump(mode="json")` and assign the result to `data`.
-    2. Call `json.dumps(data, indent=2)` and return the result.
-  - calls: `scan_result.model_dump(mode="json")`, `json.dumps(data, indent=2)`
-  - returns: `str` -- a valid JSON string indented with 2 spaces
-  - error handling: None. Let Pydantic and json raise naturally if the model is invalid.
-  - docstring (Google style):
-    ```
-    Serialize a ScanResult to a pretty-printed JSON string.
-
-    Args:
-        scan_result: The scan result to serialize.
-
-    Returns:
-        A valid JSON string, indented with 2 spaces.
-    ```
-
-- signature: `def format_summary(scan_result: ScanResult) -> str:`
-  - purpose: Produce a human-readable text summary with counts by severity, rule, and file.
-  - logic:
-    1. Declare `lines: list[str] = []`.
-    2. Append `f"Arcane Auditor -- {scan_result.repo}"` to `lines`.
-    3. Append `f"Scanned: {scan_result.timestamp.isoformat()}"` to `lines`.
-    4. Append a combined findings count line:
-       `f"Total findings: {scan_result.findings_count}  (ACTION: {scan_result.action_count}, ADVICE: {scan_result.advice_count})"`.
-       Note: two spaces between the total count and the opening parenthesis.
-    5. Append `"-" * 60` to `lines` (a 60-dash separator).
-    6. If `scan_result.findings_count == 0`:
-       a. Append `"No findings. Application is clean."` to `lines`.
-    7. Else (findings_count > 0):
-       a. Append `"By Severity:"` to `lines`.
-       b. Append `f"  ACTION : {scan_result.action_count}"` to `lines`.
-       c. Append `f"  ADVICE : {scan_result.advice_count}"` to `lines`.
-       d. Append `"By Rule:"` to `lines`.
-       e. Build `rule_counts = Counter(f.rule_id for f in scan_result.findings)`.
-       f. For each `(rule_id, count)` in `rule_counts.most_common()`:
-          append `f"  {rule_id:<50} {count}"` to `lines`.
-       g. Append `"By File:"` to `lines`.
-       h. Build `file_counts = Counter(f.file_path for f in scan_result.findings)`.
-       i. For each `(file_path, count)` in `file_counts.most_common()`:
-          append `f"  {file_path:<60} {count}"` to `lines`.
-    8. Return `"\n".join(lines)`.
-  - calls: `Counter`, `scan_result.findings_count`, `scan_result.action_count`, `scan_result.advice_count`, `scan_result.timestamp.isoformat()`, `scan_result.repo`, `rule_counts.most_common()`, `file_counts.most_common()`
-  - returns: `str` -- multi-line summary with no trailing newline
-  - error handling: None.
-  - docstring (Google style):
-    ```
-    Produce a human-readable text summary with counts by severity, rule, and file.
-
-    Args:
-        scan_result: The scan result to summarize.
-
-    Returns:
-        A multi-line summary string.
-    ```
+##### `_build_sarif_result`
+- signature: `def _build_sarif_result(finding: Finding, rule_index_map: dict[str, int]) -> dict:`
+- purpose: Build a single SARIF result dict from a Finding.
+- logic:
+  1. Set `level = "error"` if `finding.severity == Severity.ACTION` else `level = "warning"`.
+  2. Set `start_line = max(1, finding.line)`. This ensures SARIF's requirement that startLine >= 1 is met even when Finding.line is 0 (unknown).
+  3. Set `uri = finding.file_path.replace("\\", "/")`. This converts Windows backslashes to forward slashes for URI compliance; no-op on Unix paths.
+  4. Construct and return:
+     ```python
+     {
+         "ruleId": finding.rule_id,
+         "ruleIndex": rule_index_map[finding.rule_id],
+         "level": level,
+         "message": {"text": finding.message},
+         "locations": [
+             {
+                 "physicalLocation": {
+                     "artifactLocation": {
+                         "uri": uri,
+                         "uriBaseId": "%SRCROOT%",
+                     },
+                     "region": {
+                         "startLine": start_line,
+                     },
+                 }
+             }
+         ],
+     }
+     ```
+- calls: none
+- returns: `dict` -- a single SARIF result object
+- error handling: None. `rule_index_map[finding.rule_id]` will always succeed because `_build_sarif_rules` was called on the same findings list; every rule_id present in findings is present in the map.
 
 #### Wiring / Integration
+In `report_findings`, replace the existing line:
+```
+        raise ReporterError("SARIF format not yet implemented")
+```
+(which is at line 30, inside the `elif format == ReportFormat.SARIF:` branch) with:
+```
+        return format_sarif(scan_result)
+```
 
-- `report_findings` is the public API. It is called from `src/cli.py` (Phase 5) with the
-  `ScanResult` returned by `runner.run_audit` and the `ReportFormat` chosen by the user.
-- No wiring changes needed at this phase -- cli.py does not yet exist.
-- The three functions (`report_findings`, `format_json`, `format_summary`) must be importable
-  from `src.reporter` by the time P4.5 writes the test file.
+Place `format_sarif` in the file after the existing `format_summary` function (after line 89).
+Place `_build_sarif_rules` immediately after `format_sarif`.
+Place `_build_sarif_result` immediately after `_build_sarif_rules`.
 
 ## Verification
-
-- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.reporter import report_findings, format_json, format_summary; print('import OK')"`
-- lint: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m py_compile src/reporter.py && echo 'syntax OK'`
+- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.reporter import format_sarif, report_findings; print('import ok')"`
+- lint: (no linter configured; skip)
 - test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/ -x -q`
 - smoke:
   1. Run: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "
 import json
-from src.models import ExitCode, ScanResult
-from src.reporter import format_json, format_summary, report_findings, ReportFormat
+from datetime import datetime, UTC
+from src.models import Finding, ScanResult, Severity, ExitCode
+from src.reporter import format_sarif
 
-result = ScanResult(repo='test/repo', findings_count=0, findings=[], exit_code=ExitCode.CLEAN)
-j = format_json(result)
-parsed = json.loads(j)
-assert parsed['repo'] == 'test/repo', 'JSON repo mismatch'
-assert parsed['findings_count'] == 0, 'JSON findings_count mismatch'
-s = format_summary(result)
-assert 'No findings' in s, 'summary missing clean message'
-assert 'test/repo' in s, 'summary missing repo'
-d = report_findings(result, ReportFormat.JSON)
-assert json.loads(d)['repo'] == 'test/repo', 'dispatcher JSON mismatch'
-print('smoke OK')
+result = ScanResult(
+    repo='test-repo',
+    timestamp=datetime.now(UTC),
+    findings_count=2,
+    findings=[
+        Finding(rule_id='ScriptVarUsageRule', severity=Severity.ADVICE, message='Use let or const', file_path='app.pmd', line=5),
+        Finding(rule_id='HardcodedWorkdayAPIRule', severity=Severity.ACTION, message='Do not hardcode API URL', file_path='service.pod', line=12),
+    ],
+    exit_code=ExitCode.ISSUES_FOUND,
+)
+out = format_sarif(result)
+doc = json.loads(out)
+assert doc['version'] == '2.1.0'
+assert len(doc['runs']) == 1
+run = doc['runs'][0]
+assert run['tool']['driver']['name'] == 'Arcane Auditor'
+assert len(run['tool']['driver']['rules']) == 2
+assert len(run['results']) == 2
+assert run['results'][0]['level'] == 'warning'
+assert run['results'][1]['level'] == 'error'
+assert run['results'][0]['locations'][0]['physicalLocation']['region']['startLine'] == 5
+assert run['results'][1]['ruleIndex'] == 1
+print('smoke: PASS')
 "`
-  2. Expected output: `smoke OK`
+  2. Verify output is `smoke: PASS` with no exceptions.
+  3. Also verify with zero findings:
+  Run: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "
+import json
+from datetime import datetime, UTC
+from src.models import ScanResult, ExitCode
+from src.reporter import format_sarif
+
+result = ScanResult(repo='clean', timestamp=datetime.now(UTC), findings_count=0, findings=[], exit_code=ExitCode.CLEAN)
+doc = json.loads(format_sarif(result))
+assert doc['runs'][0]['results'] == []
+assert doc['runs'][0]['tool']['driver']['rules'] == []
+print('empty smoke: PASS')
+"`
 
 ## Constraints
-
-- Do NOT create `tests/test_reporter.py` -- that is P4.5.
-- Do NOT modify `src/models.py`, `src/runner.py`, `src/scanner.py`, `src/config.py`.
-- Do NOT add any imports beyond the six import lines specified above.
-- Do NOT add a `__all__` list or any other module-level declarations beyond the logger.
-- Do NOT use `print()` anywhere -- logging only.
-- format_summary must use `"\n".join(lines)` as the final return -- not a running string
-  concatenation.
-- The final `raise ReporterError(...)` in `report_findings` must be outside and after all
-  `if/elif` branches (not inside an `else`).
+- Do NOT add any new dependencies to pyproject.toml. All needed imports (`json`, `Finding`, `Severity`) are already available.
+- Do NOT modify src/models.py. The existing models are sufficient.
+- Do NOT create a test file. P4.5 covers test_reporter.py.
+- Do NOT modify IMPL_PLAN.md, CLAUDE.md, or ARCHITECTURE.md.
+- Do NOT use `urllib.parse.quote` on file URIs -- the `replace("\\", "/")` backslash conversion is the only path transformation needed. Arcane Auditor finding paths are simple relative paths and do not contain characters requiring percent-encoding.
+- The `_build_sarif_rules` and `_build_sarif_result` functions are private helpers (underscore prefix). They must not be exported or referenced outside reporter.py.
+- `ruleIndex` in each result must be the integer index of the rule in the `rules` array. Use the `rule_index_map` dict for this. Do not recompute by scanning the list.
+- `startLine` must always be an integer >= 1. Use `max(1, finding.line)` unconditionally.
