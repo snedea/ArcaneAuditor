@@ -1,140 +1,179 @@
 # Plan: P4.1
 
+## Context
+
+`src/reporter.py` was started in a WIP commit (`fb29f51`). The file already exists with a
+complete implementation. The builder must:
+1. Read the existing file and verify it matches this spec exactly.
+2. If any function body, signature, import, or docstring differs from this spec, correct it.
+3. If the file already matches, make no changes.
+
+Note: `tests/test_reporter.py` is NOT part of P4.1 -- it is covered by P4.5.
+
 ## Dependencies
-- list: []
-- commands: []
-  (No new packages required. `json`, `collections`, `logging` are stdlib. All model types are already in src/models.py.)
+
+- list: [] (no new packages required -- json, logging, collections are stdlib; pydantic and
+  src.models are already present)
+- commands: [] (no install commands needed)
 
 ## File Operations (in execution order)
 
-### 1. CREATE src/reporter.py
-- operation: CREATE
-- reason: New module for formatting ScanResult into multiple output formats; dispatcher + JSON + summary implementations required by P4.1
+### 1. MODIFY src/reporter.py
+
+- operation: MODIFY
+- reason: WIP commit may have incomplete or incorrect implementation; verify and finalize
+- anchor: `"""Report formatting for Arcane Auditor scan results."""`
 
 #### Imports / Dependencies
+
 ```python
 from __future__ import annotations
 
 import json
 import logging
-from collections import Counter, defaultdict
+from collections import Counter
 
-from src.models import ReportFormat, ReporterError, ScanResult, Severity
+from src.models import ReportFormat, ReporterError, ScanResult
+```
+
+No other imports. Do not add any imports beyond the six lines above.
+
+#### Module-level Setup
+
+Immediately after imports, declare the module logger:
+
+```python
+logger = logging.getLogger(__name__)
 ```
 
 #### Functions
 
-- signature: `report_findings(scan_result: ScanResult, format: ReportFormat) -> str`
-  - purpose: Dispatch to the correct format function based on `format` enum value
+- signature: `def report_findings(scan_result: ScanResult, format: ReportFormat) -> str:`
+  - purpose: Dispatch to the correct format function based on the format enum value.
   - logic:
-    1. Match `format` against each `ReportFormat` enum member using `if/elif` chain
-    2. If `format == ReportFormat.JSON`, call `format_json(scan_result)` and return the result
-    3. If `format == ReportFormat.SARIF`, raise `ReporterError("SARIF format not yet implemented")`
-    4. If `format == ReportFormat.GITHUB_ISSUES`, raise `ReporterError("GitHub Issues format not yet implemented")`
-    5. If `format == ReportFormat.PR_COMMENT`, raise `ReporterError("PR Comment format not yet implemented")`
-    6. If `format == ReportFormat.SUMMARY` (see note below), call `format_summary(scan_result)` and return the result
-    7. After the if/elif chain, raise `ReporterError(f"Unsupported report format: {format!r}")` to handle any unrecognized value
-
-  NOTE: The IMPL_PLAN specifies `ReportFormat.SUMMARY` as a CLI option (`--format summary`). However, the existing `ReportFormat` enum in `src/models.py` does NOT have a `SUMMARY` member. The dispatcher must handle `format_summary` via a new enum value. See "Wiring / Integration" section for the required models.py modification.
-
+    1. If `format == ReportFormat.JSON`, call `format_json(scan_result)` and return its result.
+    2. Elif `format == ReportFormat.SARIF`, raise `ReporterError("SARIF format not yet implemented")`.
+    3. Elif `format == ReportFormat.GITHUB_ISSUES`, raise `ReporterError("GitHub Issues format not yet implemented")`.
+    4. Elif `format == ReportFormat.PR_COMMENT`, raise `ReporterError("PR Comment format not yet implemented")`.
+    5. Elif `format == ReportFormat.SUMMARY`, call `format_summary(scan_result)` and return its result.
+    6. After all elif branches (none matched), raise `ReporterError(f"Unsupported report format: {format!r}")`.
   - calls: `format_json(scan_result)`, `format_summary(scan_result)`
-  - returns: `str`
-  - error handling: Raise `ReporterError` for unimplemented or unrecognized formats
+  - returns: `str` -- the formatted report
+  - error handling: Raise `ReporterError` for unimplemented or unrecognized formats. Do NOT use a bare `else` before the final raise -- the final raise is unconditional after all elif branches.
+  - docstring (Google style):
+    ```
+    Dispatch to the correct format function based on the format enum value.
 
-- signature: `format_json(scan_result: ScanResult) -> str`
-  - purpose: Serialize ScanResult to a pretty-printed JSON string
-  - logic:
-    1. Call `scan_result.model_dump(mode="json")` to get a JSON-serializable dict (this handles datetime, Path, and Enum serialization via Pydantic's mode="json")
-    2. Call `json.dumps(data, indent=2)` on the resulting dict
-    3. Return the resulting string
-  - calls: `scan_result.model_dump(mode="json")`, `json.dumps`
-  - returns: `str` (valid JSON, indented with 2 spaces)
-  - error handling: Let any `TypeError` from `json.dumps` propagate naturally (should not occur with `mode="json"`)
+    Args:
+        scan_result: The scan result to format.
+        format: The desired output format.
 
-- signature: `format_summary(scan_result: ScanResult) -> str`
-  - purpose: Produce a human-readable text summary with counts by severity, rule, and file
+    Returns:
+        The formatted report as a string.
+
+    Raises:
+        ReporterError: If the format is unimplemented or unrecognized.
+    ```
+
+- signature: `def format_json(scan_result: ScanResult) -> str:`
+  - purpose: Serialize a ScanResult to a pretty-printed JSON string.
   - logic:
-    1. Build header line: `f"Arcane Auditor -- {scan_result.repo}"`
-    2. Build timestamp line: `f"Scanned: {scan_result.timestamp.isoformat()}"` (timestamp is a datetime with UTC tzinfo)
-    3. Build overall counts line: `f"Total findings: {scan_result.findings_count}  (ACTION: {scan_result.action_count}, ADVICE: {scan_result.advice_count})"`
-    4. Build separator line of 60 dashes: `"-" * 60`
-    5. Build "By Severity" subsection:
-       a. Write header `"By Severity:"`
-       b. For `Severity.ACTION`: write `f"  ACTION : {scan_result.action_count}"`
-       c. For `Severity.ADVICE`: write `f"  ADVICE : {scan_result.advice_count}"`
-    6. Build "By Rule" subsection:
-       a. Write header `"By Rule:"`
-       b. Build a `Counter` by iterating `scan_result.findings` and counting `f.rule_id` occurrences: `rule_counts = Counter(f.rule_id for f in scan_result.findings)`
-       c. Sort `rule_counts.most_common()` by count descending (Counter.most_common() already does this)
-       d. For each `(rule_id, count)` pair, write `f"  {rule_id:<50} {count}"`
-    7. Build "By File" subsection:
-       a. Write header `"By File:"`
-       b. Build a `Counter` by iterating `scan_result.findings` and counting `f.file_path` occurrences: `file_counts = Counter(f.file_path for f in scan_result.findings)`
-       c. Sort `file_counts.most_common()` by count descending
-       d. For each `(file_path, count)` pair, write `f"  {file_path:<60} {count}"`
-    8. If `scan_result.findings_count == 0`, skip sections 5-7 entirely and instead write a single line: `"No findings. Application is clean."`
-    9. Join all lines with `"\n"` and return the resulting string
-  - calls: `Counter` (from `collections`), `scan_result.action_count`, `scan_result.advice_count`
-  - returns: `str`
-  - error handling: No error handling needed; Counter handles empty lists cleanly
+    1. Call `scan_result.model_dump(mode="json")` and assign the result to `data`.
+    2. Call `json.dumps(data, indent=2)` and return the result.
+  - calls: `scan_result.model_dump(mode="json")`, `json.dumps(data, indent=2)`
+  - returns: `str` -- a valid JSON string indented with 2 spaces
+  - error handling: None. Let Pydantic and json raise naturally if the model is invalid.
+  - docstring (Google style):
+    ```
+    Serialize a ScanResult to a pretty-printed JSON string.
+
+    Args:
+        scan_result: The scan result to serialize.
+
+    Returns:
+        A valid JSON string, indented with 2 spaces.
+    ```
+
+- signature: `def format_summary(scan_result: ScanResult) -> str:`
+  - purpose: Produce a human-readable text summary with counts by severity, rule, and file.
+  - logic:
+    1. Declare `lines: list[str] = []`.
+    2. Append `f"Arcane Auditor -- {scan_result.repo}"` to `lines`.
+    3. Append `f"Scanned: {scan_result.timestamp.isoformat()}"` to `lines`.
+    4. Append a combined findings count line:
+       `f"Total findings: {scan_result.findings_count}  (ACTION: {scan_result.action_count}, ADVICE: {scan_result.advice_count})"`.
+       Note: two spaces between the total count and the opening parenthesis.
+    5. Append `"-" * 60` to `lines` (a 60-dash separator).
+    6. If `scan_result.findings_count == 0`:
+       a. Append `"No findings. Application is clean."` to `lines`.
+    7. Else (findings_count > 0):
+       a. Append `"By Severity:"` to `lines`.
+       b. Append `f"  ACTION : {scan_result.action_count}"` to `lines`.
+       c. Append `f"  ADVICE : {scan_result.advice_count}"` to `lines`.
+       d. Append `"By Rule:"` to `lines`.
+       e. Build `rule_counts = Counter(f.rule_id for f in scan_result.findings)`.
+       f. For each `(rule_id, count)` in `rule_counts.most_common()`:
+          append `f"  {rule_id:<50} {count}"` to `lines`.
+       g. Append `"By File:"` to `lines`.
+       h. Build `file_counts = Counter(f.file_path for f in scan_result.findings)`.
+       i. For each `(file_path, count)` in `file_counts.most_common()`:
+          append `f"  {file_path:<60} {count}"` to `lines`.
+    8. Return `"\n".join(lines)`.
+  - calls: `Counter`, `scan_result.findings_count`, `scan_result.action_count`, `scan_result.advice_count`, `scan_result.timestamp.isoformat()`, `scan_result.repo`, `rule_counts.most_common()`, `file_counts.most_common()`
+  - returns: `str` -- multi-line summary with no trailing newline
+  - error handling: None.
+  - docstring (Google style):
+    ```
+    Produce a human-readable text summary with counts by severity, rule, and file.
+
+    Args:
+        scan_result: The scan result to summarize.
+
+    Returns:
+        A multi-line summary string.
+    ```
 
 #### Wiring / Integration
-- `src/reporter.py` imports from `src.models` only; no circular dependencies
-- `report_findings` is the single public entry point; `format_json` and `format_summary` are also public (called directly in tests and CLI)
 
----
-
-### 2. MODIFY src/models.py
-- operation: MODIFY
-- reason: Add `SUMMARY = "summary"` to the `ReportFormat` enum so the dispatcher and future CLI can reference it
-- anchor: `    PR_COMMENT = "pr_comment"`  (line 28, the last existing member of ReportFormat)
-
-#### Change
-After the line `    PR_COMMENT = "pr_comment"`, add:
-```python
-    SUMMARY = "summary"
-```
-
-The full updated enum block becomes:
-```python
-class ReportFormat(str, Enum):
-    """Supported output formats for scan reports."""
-
-    JSON = "json"
-    SARIF = "sarif"
-    GITHUB_ISSUES = "github_issues"
-    PR_COMMENT = "pr_comment"
-    SUMMARY = "summary"
-```
-
-No other changes to models.py.
-
----
+- `report_findings` is the public API. It is called from `src/cli.py` (Phase 5) with the
+  `ScanResult` returned by `runner.run_audit` and the `ReportFormat` chosen by the user.
+- No wiring changes needed at this phase -- cli.py does not yet exist.
+- The three functions (`report_findings`, `format_json`, `format_summary`) must be importable
+  from `src.reporter` by the time P4.5 writes the test file.
 
 ## Verification
-- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.reporter import report_findings, format_json, format_summary; print('import ok')"`
-- lint: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m py_compile src/reporter.py && uv run python -m py_compile src/models.py`
+
+- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.reporter import report_findings, format_json, format_summary; print('import OK')"`
+- lint: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m py_compile src/reporter.py && echo 'syntax OK'`
 - test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/ -x -q`
 - smoke:
-  ```
-  cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "
-  from src.models import ReportFormat, ScanResult, ExitCode
-  from src.reporter import format_json, format_summary, report_findings
-  from datetime import datetime, UTC
-  sr = ScanResult(repo='test/repo', findings_count=0, findings=[], exit_code=ExitCode.CLEAN)
-  print(format_json(sr)[:80])
-  print(format_summary(sr))
-  print(report_findings(sr, ReportFormat.JSON)[:40])
-  print(report_findings(sr, ReportFormat.SUMMARY))
-  "
-  ```
+  1. Run: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "
+import json
+from src.models import ExitCode, ScanResult
+from src.reporter import format_json, format_summary, report_findings, ReportFormat
+
+result = ScanResult(repo='test/repo', findings_count=0, findings=[], exit_code=ExitCode.CLEAN)
+j = format_json(result)
+parsed = json.loads(j)
+assert parsed['repo'] == 'test/repo', 'JSON repo mismatch'
+assert parsed['findings_count'] == 0, 'JSON findings_count mismatch'
+s = format_summary(result)
+assert 'No findings' in s, 'summary missing clean message'
+assert 'test/repo' in s, 'summary missing repo'
+d = report_findings(result, ReportFormat.JSON)
+assert json.loads(d)['repo'] == 'test/repo', 'dispatcher JSON mismatch'
+print('smoke OK')
+"`
+  2. Expected output: `smoke OK`
 
 ## Constraints
-- Do NOT modify ARCHITECTURE.md, CLAUDE.md, IMPL_PLAN.md
-- Do NOT add any new packages to pyproject.toml; only stdlib modules are needed
-- Do NOT implement format_sarif, format_github_issues, or format_pr_comment -- those belong to P4.2-P4.4; the dispatcher must raise ReporterError for those formats
-- Do NOT create tests/test_reporter.py -- that belongs to P4.5
-- The only two files touched are `src/reporter.py` (CREATE) and `src/models.py` (MODIFY, one line added)
-- Use `from __future__ import annotations` as the first import in reporter.py
-- Use `logging` module, never `print()`
-- All public functions require Google-style docstrings
+
+- Do NOT create `tests/test_reporter.py` -- that is P4.5.
+- Do NOT modify `src/models.py`, `src/runner.py`, `src/scanner.py`, `src/config.py`.
+- Do NOT add any imports beyond the six import lines specified above.
+- Do NOT add a `__all__` list or any other module-level declarations beyond the logger.
+- Do NOT use `print()` anywhere -- logging only.
+- format_summary must use `"\n".join(lines)` as the final return -- not a running string
+  concatenation.
+- The final `raise ReporterError(...)` in `report_findings` must be outside and after all
+  `if/elif` branches (not inside an `else`).

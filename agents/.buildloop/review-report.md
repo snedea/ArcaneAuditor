@@ -1,49 +1,49 @@
 # Review Report — P4.1
 
-## Verdict: FAIL
+## Verdict: PASS
 
 ## Runtime Checks
-- Build: PASS (py_compile clean on src/reporter.py and src/models.py)
-- Tests: PASS (84 passed, 0 failed)
-- Lint: PASS (ruff check -- no issues; flake8 unavailable, substituted ruff)
-- Docker: SKIPPED (no compose files changed in this task)
+- Build: PASS (`uv run python -c "from src.reporter import report_findings, format_json, format_summary; print('import OK')"` → `import OK`)
+- Tests: PASS (84 passed in 1.15s)
+- Lint: PASS (`ruff check src/reporter.py` → All checks passed)
+- Docker: SKIPPED (no Docker files changed)
 
 ## Findings
 
 ```json
 {
   "high": [],
-  "medium": [
-    {
-      "file": "src/reporter.py",
-      "line": 72,
-      "issue": "format_summary gates the detail sections on `findings_count == 0` (stored field) while the header on lines 66-69 uses `action_count` and `advice_count` (computed properties from the `findings` list). When they disagree, the output is contradictory. Confirmed: ScanResult(findings_count=0, findings=[Finding(severity=ACTION, ...)]) produces a header reading 'Total findings: 0  (ACTION: 1, ADVICE: 0)' immediately followed by 'No findings. Application is clean.' Pydantic has no validator enforcing findings_count == len(findings), so this path is reachable via model_validate from untrusted JSON. Runner always sets findings_count=len(findings) so normal automated paths are unaffected, but any direct construction or JSON round-trip with mismatched counts produces actively misleading output.",
-      "category": "logic"
-    }
-  ],
+  "medium": [],
   "low": [
     {
       "file": "src/reporter.py",
-      "line": 11,
-      "issue": "`logger = logging.getLogger(__name__)` is defined but never called anywhere in the module. No debug/info/warning/error log statements exist in reporter.py. CLAUDE.md says to use logging, not print(), but having a logger declared and never invoked leaves the module silent during dispatch and formatting. Not a crash risk, but the declaration is dead code.",
-      "category": "style"
-    },
-    {
-      "file": "src/reporter.py",
       "line": 14,
-      "issue": "Parameter named `format` shadows the Python builtin `format`. Plan-specified signature, so this is an inherited design choice rather than an implementation error. Ruff A002 in strict mode would flag this.",
+      "issue": "Parameter named 'format' shadows Python built-in 'format()'. Ruff A002 did not fire (likely not enabled), but this is a naming collision that can confuse readers. Explicitly specified by the plan, so not blocking.",
       "category": "style"
     }
   ],
   "validated": [
-    "All 5 ReportFormat enum members dispatched correctly: JSON->format_json, SUMMARY->format_summary, SARIF/GITHUB_ISSUES/PR_COMMENT each raise ReporterError with specific messages",
-    "Final `raise ReporterError(f'Unsupported report format: {format!r}')` at line 38 correctly handles values outside the enum (confirmed: passing raw string 'bogus' raises ReporterError)",
-    "SUMMARY = 'summary' added to ReportFormat in models.py line 29 -- enum now has 5 members",
-    "format_json uses model_dump(mode='json') which correctly serializes datetime to ISO 8601 with Z suffix, Path to str, and Enum to .value -- confirmed via smoke test",
-    "format_summary correctly handles empty findings: Counter on empty generator raises no exception, sections produce empty output cleanly",
-    "Unused imports from plan (defaultdict, Severity) correctly omitted from implementation -- no unused-import lint issues",
-    "84 tests pass including scanner and runner tests -- no regressions from models.py modification",
-    "Module-level imports resolve without circular dependency: reporter.py imports from src.models only"
+    "src/reporter.py exists with correct module docstring at line 1",
+    "from __future__ import annotations is the first import (line 3), per convention",
+    "Imports are exactly the six lines specified: json, logging, Counter, ReportFormat, ReporterError, ScanResult",
+    "No imports beyond the six specified lines",
+    "logger = logging.getLogger(__name__) declared immediately after imports at line 11",
+    "report_findings: signature matches spec, dispatch order (JSON → SARIF → GITHUB_ISSUES → PR_COMMENT → SUMMARY) is correct",
+    "report_findings: final raise ReporterError is unconditional and OUTSIDE all if/elif branches (line 38), not inside an else",
+    "report_findings: all three unimplemented formats raise ReporterError with exact messages verified at runtime",
+    "format_json: uses model_dump(mode='json') then json.dumps(data, indent=2), no extra error handling added",
+    "format_summary: uses lines list and '\\n'.join(lines) as final return — no string concatenation",
+    "format_summary: two-space gap between total count and opening parenthesis matches spec",
+    "format_summary: 60-dash separator used (not 59 or 61)",
+    "format_summary: rule_id column width is 50, file_path column width is 60, matching spec exactly",
+    "format_summary: clean-app branch appends 'No findings. Application is clean.' exactly",
+    "format_summary: uses scan_result.findings_count (field) for total, action_count/advice_count (computed properties) for breakdown",
+    "No print() calls anywhere in the file",
+    "Google-style docstrings present on all three public functions",
+    "No __all__ declaration or extra module-level declarations",
+    "Smoke test from plan passes: JSON serialization, summary clean-app path, dispatcher all verified",
+    "ScanResult.action_count and advice_count are @property computed from findings list — consistent with how format_summary uses them",
+    "format_json does not include computed @property fields (action_count, advice_count) in JSON output — expected Pydantic v2 behavior, not a bug"
   ]
 }
 ```
