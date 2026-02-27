@@ -1,39 +1,63 @@
-# Review Report -- P4.2
+# Review Report — P4.3
 
-## Verdict: PASS
+## Verdict: FAIL
 
 ## Runtime Checks
-- Build: PASS (`python -m py_compile src/reporter.py` clean; import smoke test OK)
-- Tests: PASS (84/84 passed, `uv run pytest tests/ -x -q`)
-- Lint: PASS (ruff: all checks passed; flake8 E501 warnings are from flake8's default 79-char limit, which is not configured for this project -- ruff defaults to 88 and is the authoritative linter)
-- Docker: SKIPPED (no Docker files changed in this task)
+- Build: PASS (`uv run python -m py_compile src/reporter.py` clean; `uv sync` succeeds)
+- Tests: PASS (84/84 existing tests pass)
+- Lint: PASS (`uv run ruff check src/reporter.py` -- all checks passed)
+- Docker: SKIPPED (no compose files changed)
 
 ## Findings
 
 ```json
 {
   "high": [],
-  "medium": [],
+  "medium": [
+    {
+      "file": "src/reporter.py",
+      "line": 357,
+      "issue": "_build_advice_issue_body inserts finding.message verbatim into a markdown table cell with no pipe-character escaping. A message containing '|' splits the cell and adds phantom columns, corrupting the table. Confirmed with test: message 'Remove console.log | warn calls' renders as a 6-column row under a 4-column header. Real messages from ScriptStringConcatRule and ScriptMagicNumberRule contain backticks and single-quotes today; a future rule with '|' will produce a broken GitHub issue table.",
+      "category": "logic"
+    },
+    {
+      "file": "src/reporter.py",
+      "line": 275,
+      "issue": "_ensure_label catches create_label's GithubException and re-raises any status as ReporterError -- including status 422 (Unprocessable Entity / label already exists). In a concurrent scenario where two agent processes both get 404 from get_label and both call create_label, the second process receives 422 and aborts the entire format_github_issues call with ReporterError instead of treating 'already exists' as a no-op success. This is not guarded by status code and will surface to callers.",
+      "category": "race"
+    }
+  ],
   "low": [
     {
       "file": "src/reporter.py",
-      "line": 113,
-      "issue": "Tool driver version hardcoded to '1.0.0'. The project has no version constant to source this from, and the plan explicitly specifies this value, so it is intentional -- but it will silently drift if the parent auditor version changes.",
-      "category": "hardcoded"
+      "line": 329,
+      "issue": "_build_action_issue_body uses `f\"> {finding.message}\"` as a single string. If finding.message contains '\\n', only the first line is inside the blockquote; subsequent lines render as unformatted body text. Confirmed by inspection: the join produces `> First line\\nSecond line` with no `> ` prefix on the continuation line.",
+      "category": "logic"
+    },
+    {
+      "file": "src/reporter.py",
+      "line": 311,
+      "issue": "_build_action_issue_title omits line number: `f\"[Arcane Auditor] {finding.rule_id}: {finding.file_path}\"`. Two ACTION findings for the same (rule_id, file_path) at different lines produce identical titles. The caller-side `existing_titles.add(title)` at line 239 (added beyond the plan spec) means the second occurrence is silently dropped with only a DEBUG log. The caller receives no indication that a finding was not filed. In dirty_app this does not trigger for ACTION findings (all are unique per rule+file), but it is a latent silent-data-loss path.",
+      "category": "logic"
+    },
+    {
+      "file": "src/reporter.py",
+      "line": 351,
+      "issue": "Grammar: `f\"## Arcane Auditor ADVICE Summary ({len(findings)} findings)\"` produces '1 findings' when len == 1. Minor but visible in all single-finding scans.",
+      "category": "style"
     }
   ],
   "validated": [
-    "Plan conformance: all three functions (format_sarif, _build_sarif_rules, _build_sarif_result) are present at the correct positions (lines 92, 123, 152). Dispatcher at reporter.py:30 calls format_sarif rather than raising. Import at line 9 includes Finding and Severity as specified.",
-    "SARIF document structure: $schema, version, runs[].tool.driver.name/version/rules, runs[].results[] all present and correctly nested. Validated against plan spec and SARIF 2.1.0 structural requirements.",
-    "Severity mapping: ADVICE->warning, ACTION->error verified in both _build_sarif_rules (defaultConfiguration.level) and _build_sarif_result (result level). Individual result levels are independent of the deduplicated rule descriptor level.",
-    "Severity escalation: when the same rule_id appears with both ADVICE and ACTION findings, defaultConfiguration.level is escalated to 'error' while individual result levels retain their own values. Verified with explicit test.",
-    "ruleIndex correctness: built from enumerate(rules) in format_sarif (line 102), guaranteed to match the rules array index. _build_sarif_result uses the map directly without recomputation.",
-    "Line-number clamping: max(1, finding.line) at reporter.py:163 correctly handles line=0 (unknown) and hypothetical negatives. Verified with line=0 case returning startLine=1.",
-    "Empty findings case: runs[0].results==[] and runs[0].tool.driver.rules==[] when no findings present. Both plan smoke tests pass.",
-    "Deduplication: _build_sarif_rules deduplicated by rule_id using seen dict + order list; insertion order preserved. No duplicate rule descriptors emitted.",
-    "Path handling: backslash->forwardslash replacement at line 164 is a no-op on Unix paths and correct on Windows paths. No percent-encoding applied per plan constraint.",
-    "No new dependencies added. json is stdlib; Finding and Severity were already in models.py.",
-    "84/84 existing tests pass with no regressions."
+    "PyGithub v2 Auth.Token usage: implementation correctly uses Github(auth=Auth.Token(token)) rather than the deprecated Github(token) from the plan. Import of Auth is present.",
+    "Context manager `with Github(...) as gh:` -- connection is closed on both success and exception paths; all API calls are inside the with block.",
+    "All GithubException instances from every API call site are caught and re-raised as ReporterError with descriptive messages. No PyGithub exceptions surface to callers.",
+    "Label colors passed without '#' prefix as required by PyGithub create_label.",
+    "GITHUB_ISSUES dispatcher stub error message updated correctly to the new wording.",
+    "existing_titles.add(title) at line 239 correctly prevents duplicate API calls within a single run when the same (rule_id, file_path) appears more than once in action_findings.",
+    "format_json, format_summary, format_sarif, _build_sarif_rules, _build_sarif_result -- all unchanged and all 84 prior tests pass.",
+    "All 5 new functions (format_github_issues, _ensure_label, _get_existing_issue_titles, _build_action_issue_title, _build_action_issue_body, _build_advice_issue_body) are importable.",
+    "pyproject.toml unchanged; pygithub>=2.1.1 was already declared.",
+    "Token is not logged or printed anywhere in the new code."
   ]
 }
 ```

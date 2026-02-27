@@ -5,6 +5,9 @@ from __future__ import annotations
 import json
 import logging
 from collections import Counter
+from typing import Any
+
+from github import Auth, Github, GithubException
 
 from src.models import Finding, ReportFormat, ReporterError, ScanResult, Severity
 
@@ -29,7 +32,9 @@ def report_findings(scan_result: ScanResult, format: ReportFormat) -> str:
     elif format == ReportFormat.SARIF:
         return format_sarif(scan_result)
     elif format == ReportFormat.GITHUB_ISSUES:
-        raise ReporterError("GitHub Issues format not yet implemented")
+        raise ReporterError(
+            "GitHub Issues format requires repo and token -- call format_github_issues() directly"
+        )
     elif format == ReportFormat.PR_COMMENT:
         raise ReporterError("PR Comment format not yet implemented")
     elif format == ReportFormat.SUMMARY:
@@ -181,3 +186,176 @@ def _build_sarif_result(finding: Finding, rule_index_map: dict[str, int]) -> dic
             }
         ],
     }
+
+
+def format_github_issues(scan_result: ScanResult, repo: str, token: str) -> list[str]:
+    """Create GitHub issues for scan findings.
+
+    Creates one issue per ACTION finding and one grouped summary issue for all
+    ADVICE findings. Skips duplicates by title match against existing open issues.
+
+    Args:
+        scan_result: The scan result containing findings.
+        repo: The GitHub repo in "owner/name" format.
+        token: A GitHub personal access token with repo scope.
+
+    Returns:
+        List of HTML URLs for created issues.
+
+    Raises:
+        ReporterError: If any GitHub API call fails.
+    """
+    with Github(auth=Auth.Token(token)) as gh:
+        try:
+            repo_obj = gh.get_repo(repo)
+        except GithubException as exc:
+            raise ReporterError(f"GitHub API error accessing repo {repo!r}: {exc}") from exc
+
+        _ensure_label(repo_obj, "arcane-auditor", "0075ca")
+        _ensure_label(repo_obj, "arcane-auditor:ACTION", "e11d48")
+        _ensure_label(repo_obj, "arcane-auditor:ADVICE", "f59e0b")
+
+        existing_titles = _get_existing_issue_titles(repo_obj)
+        created_urls: list[str] = []
+
+        action_findings = [f for f in scan_result.findings if f.severity == Severity.ACTION]
+        advice_findings = [f for f in scan_result.findings if f.severity == Severity.ADVICE]
+
+        for finding in action_findings:
+            title = _build_action_issue_title(finding)
+            if title in existing_titles:
+                logger.debug("Skipping duplicate issue: %s", title)
+                continue
+            body = _build_action_issue_body(finding)
+            try:
+                issue = repo_obj.create_issue(
+                    title=title,
+                    body=body,
+                    labels=["arcane-auditor", "arcane-auditor:ACTION"],
+                )
+            except GithubException as exc:
+                raise ReporterError(f"GitHub API error creating issue {title!r}: {exc}") from exc
+            created_urls.append(issue.html_url)
+            existing_titles.add(title)
+
+        if advice_findings:
+            title = "[Arcane Auditor] ADVICE Summary"
+            if title in existing_titles:
+                logger.debug("Skipping duplicate advice summary issue")
+            else:
+                body = _build_advice_issue_body(advice_findings)
+                try:
+                    issue = repo_obj.create_issue(
+                        title=title,
+                        body=body,
+                        labels=["arcane-auditor", "arcane-auditor:ADVICE"],
+                    )
+                except GithubException as exc:
+                    raise ReporterError(f"GitHub API error creating ADVICE summary issue: {exc}") from exc
+                created_urls.append(issue.html_url)
+
+        return created_urls
+
+
+def _ensure_label(repo_obj: Any, name: str, color: str) -> None:
+    """Create the GitHub label if it does not already exist on the repo.
+
+    Args:
+        repo_obj: A PyGithub Repository object.
+        name: The label name.
+        color: The label color as a 6-character hex string (no # prefix).
+
+    Raises:
+        ReporterError: If the GitHub API returns an error other than 404.
+    """
+    try:
+        repo_obj.get_label(name)
+    except GithubException as exc:
+        if exc.status == 404:
+            try:
+                repo_obj.create_label(name=name, color=color)
+            except GithubException as create_exc:
+                raise ReporterError(f"GitHub API error creating label {name!r}: {create_exc}") from create_exc
+        else:
+            raise ReporterError(f"GitHub API error ensuring label {name!r}: {exc}") from exc
+
+
+def _get_existing_issue_titles(repo_obj: Any) -> set[str]:
+    """Return titles of all open issues labelled "arcane-auditor".
+
+    Args:
+        repo_obj: A PyGithub Repository object.
+
+    Returns:
+        Set of issue title strings.
+
+    Raises:
+        ReporterError: If the GitHub API call fails.
+    """
+    try:
+        issues = repo_obj.get_issues(state="open", labels=["arcane-auditor"])
+        return {issue.title for issue in issues}
+    except GithubException as exc:
+        raise ReporterError(f"GitHub API error fetching existing issues: {exc}") from exc
+
+
+def _build_action_issue_title(finding: Finding) -> str:
+    """Build the canonical GitHub issue title for one ACTION finding.
+
+    Args:
+        finding: The ACTION finding.
+
+    Returns:
+        The issue title string.
+    """
+    return f"[Arcane Auditor] {finding.rule_id}: {finding.file_path}"
+
+
+def _build_action_issue_body(finding: Finding) -> str:
+    """Build the markdown issue body for one ACTION finding.
+
+    Args:
+        finding: The ACTION finding.
+
+    Returns:
+        The issue body as a markdown string.
+    """
+    lines: list[str] = [
+        f"## {finding.rule_id}",
+        "",
+        "**Severity:** ACTION",
+        f"**File:** {finding.file_path}",
+        f"**Line:** {finding.line}",
+        "",
+        "**Message:**",
+        "",
+        f"> {finding.message}",
+        "",
+        "---",
+        "",
+        "*Found by [Arcane Auditor](https://github.com/snedea/homelab) -- deterministic rule-based code review.*",
+    ]
+    return "\n".join(lines)
+
+
+def _build_advice_issue_body(findings: list[Finding]) -> str:
+    """Build the markdown issue body for the grouped ADVICE summary issue.
+
+    Args:
+        findings: List of ADVICE findings.
+
+    Returns:
+        The issue body as a markdown string.
+    """
+    lines: list[str] = []
+    lines.append(f"## Arcane Auditor ADVICE Summary ({len(findings)} findings)")
+    lines.append("These are advisory findings -- they do not require immediate action but indicate opportunities for improvement.")
+    lines.append("")
+    lines.append("| Rule | File | Line | Message |")
+    lines.append("| --- | --- | --- | --- |")
+    for f in findings:
+        lines.append(f"| {f.rule_id} | {f.file_path} | {f.line} | {f.message} |")
+    lines.append("")
+    lines.append("---")
+    lines.append("*Found by [Arcane Auditor](https://github.com/snedea/homelab) -- deterministic rule-based code review.*")
+    return "\n".join(lines)
