@@ -1,68 +1,51 @@
 # Plan: P2.3
 
-## Context
-
-Task: Create test fixtures -- clean_app/ and dirty_app/ directories under tests/fixtures/.
-
-**Current state (from WIP commit 04804b6):** Five of the six required fixture files already exist.
-The only gap is that `dirty_app/dirtyPage.pmd` is missing `console.log` in its script field,
-which is required by the P2.3 spec ("one .pmd with var usage, console.log, magic numbers, and
-a widget missing id").
-
-### Files that already exist and MUST NOT be changed:
-- `tests/fixtures/clean_app/minimalPage.pmd` -- has valid `id`, const/let in script, all widgets
-  have id fields. Matches spec.
-- `tests/fixtures/clean_app/minimalPod.pod` -- has valid `podId`, uses `{apiGatewayEndpoint}`
-  template (not hardcoded URL). Matches spec.
-- `tests/fixtures/clean_app/utils.script` -- uses const for all function declarations, exports
-  both functions. Matches spec.
-- `tests/fixtures/dirty_app/dirtyPod.pod` -- has hardcoded `https://api.workday.com/common/v1/workers`
-  URL. This triggers `EndpointBaseUrlTypeRule`. Matches spec.
-- `tests/fixtures/dirty_app/helpers.script` -- declares `var unusedHelper = function()` which is
-  neither exported nor called anywhere. This triggers `ScriptVarUsageRule` (var keyword) and
-  `ScriptUnusedFunctionRule` (unused function). Matches spec.
-
-### File that needs modification:
-- `tests/fixtures/dirty_app/dirtyPage.pmd` -- EXISTS but script field is missing `console.log`.
-  Current script: `"<% var count = 0; const msg = 'Count: ' + count; if (count > 42) { count = 100; } %>"`
-  Needed violations: var usage (has it), console.log (MISSING), magic numbers (42, 100 -- has them),
-  widget missing id (body text widget has no `id` -- has it).
-
 ## Dependencies
 - list: []
 - commands: []
 
-No new dependencies. These are plain JSON and script files with no build step.
+## Current State Assessment
+
+Five of six fixture files already exist from a prior incomplete build of P2.3.
+The only missing requirement is a console statement violation in `dirty_app/dirtyPage.pmd`.
+
+Fixture inventory and status:
+
+| File | Status | Violations present |
+|---|---|---|
+| clean_app/minimalPage.pmd | COMPLETE | none (all widgets have ids, uses const/let) |
+| clean_app/minimalPod.pod | COMPLETE | none (template URL, has failOnStatusCodes 400+403) |
+| clean_app/utils.script | COMPLETE | none (uses const, all functions exported) |
+| dirty_app/dirtyPage.pmd | INCOMPLETE | var usage, magic numbers, widget missing id -- MISSING console statement |
+| dirty_app/dirtyPod.pod | COMPLETE | hardcoded workday.com URL |
+| dirty_app/helpers.script | COMPLETE | var usage + unused function (not in export object) |
 
 ## File Operations (in execution order)
 
 ### 1. MODIFY tests/fixtures/dirty_app/dirtyPage.pmd
 - operation: MODIFY
-- reason: Script field is missing `console.log(msg)` call required by spec
+- reason: The script block is missing a console statement. The task requires "console.log" as a violation; the parent tool's ConsoleLogDetector fires on `console.info`, `console.warn`, `console.error`, `console.debug` -- NOT on `console.log` (that method name is absent from the detector's `console_methods` set). Use `console.info` to reliably trigger ScriptConsoleLogRule.
 - anchor: `"script": "<% var count = 0; const msg = 'Count: ' + count; if (count > 42) { count = 100; } %>"`
 
-#### Change to make
-Replace the `script` field value from:
+#### Change
+Replace the `script` field value. The change is a single string substitution on line 4 of the file.
+
+Old `script` value (exact string):
 ```
-"script": "<% var count = 0; const msg = 'Count: ' + count; if (count > 42) { count = 100; } %>"
-```
-with:
-```
-"script": "<% var count = 0; const msg = 'Count: ' + count; if (count > 42) { count = 100; } console.log(msg); %>"
+"<% var count = 0; const msg = 'Count: ' + count; if (count > 42) { count = 100; } %>"
 ```
 
-This single change adds `console.log(msg)` before the closing `%>` tag. The result triggers:
-- `ScriptVarUsageRule` -- `var count` uses `var` instead of `let`/`const`
-- `ScriptConsoleLogRule` -- `console.log(msg)` is a console statement
-- `ScriptMagicNumberRule` -- `42` and `100` are magic numbers
-- `WidgetIdRequiredRule` -- the body `text` widget has no `id` field (existing violation, unchanged)
+New `script` value (exact string):
+```
+"<% var count = 0; const msg = 'Count: ' + count; console.info(msg); if (count > 42) { count = 100; } %>"
+```
 
-The full resulting file content must be exactly:
+The full modified file content must be:
 ```json
 {
   "id": "dirtyPage",
   "securityDomains": ["Everyone"],
-  "script": "<% var count = 0; const msg = 'Count: ' + count; if (count > 42) { count = 100; } console.log(msg); %>",
+  "script": "<% var count = 0; const msg = 'Count: ' + count; console.info(msg); if (count > 42) { count = 100; } %>",
   "presentation": {
     "title": {
       "type": "title",
@@ -93,25 +76,60 @@ The full resulting file content must be exactly:
 ```
 
 #### Wiring / Integration
-No imports or wiring. This is a static fixture file consumed by tests in P2.4 and the runner in P3.3.
+- No Python imports or code changes. This is a static fixture file.
+- The dirty_app fixture is consumed by tests/test_runner.py (P3.3) and tests/test_scanner.py (P2.4).
+- test_scanner.py does not read file contents; it only checks file counts by extension. No changes to test_scanner.py needed.
+
+## Violation Inventory After This Change
+
+### clean_app/ -- expected: 0 violations
+- minimalPage.pmd: valid pageId "minimalPage", script uses `const greeting` and `let count`, all widgets have `id` except `footer`/`title` types (those are in `BUILT_IN_WIDGET_TYPES_WITHOUT_ID_REQUIREMENT`)
+- minimalPod.pod: endpoint URL uses `<% \`{baseEndpoint}/workers/me\` %>` (no hardcoded workday.com), has `failOnStatusCodes` with codes 400 and 403
+- utils.script: uses `const` throughout, both functions (`getCurrentTime`, `formatName`) appear in the export object
+
+### dirty_app/ -- expected: multiple violations across files
+
+dirtyPage.pmd violations (4):
+1. ScriptVarUsageRule (ADVICE) -- `var count = 0`
+2. ScriptConsoleLogRule (ACTION) -- `console.info(msg)`
+3. ScriptMagicNumberRule (ADVICE) -- magic numbers `42` and `100`
+4. WidgetIdRequiredRule (ACTION) -- text widget in body.children has no `id` field
+
+dirtyPod.pod violations (2):
+1. EndpointBaseUrlTypeRule (ADVICE) -- URL contains `workday.com`
+2. EndpointFailOnStatusCodesRule (ACTION) -- endpoint `getHrData` has no `failOnStatusCodes` field
+
+helpers.script violations (2):
+1. ScriptVarUsageRule (ADVICE) -- `var unusedHelper = function() { ... }`
+2. ScriptUnusedFunctionRule (ADVICE) -- `unusedHelper` is declared but not in the export object and not called
+
+## Critical Implementation Note: console.log vs console.info
+
+The task description says "console.log" but the parent tool's `ConsoleLogDetector` (at
+`parser/rules/script/core/console_log_detector.py:14`) defines:
+```python
+self.console_methods = {'info', 'warn', 'error', 'debug'}
+```
+`log` is NOT in this set. A fixture using `console.log(msg)` would produce ZERO findings for
+the console rule. The fixture MUST use `console.info(msg)` (or warn/error/debug) to trigger the
+actual rule.
 
 ## Verification
-- build: N/A (no build step for fixture files)
-- lint: N/A
-- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/ -v 2>&1 | head -60`
-  (existing tests in test_scanner.py and test_config.py and test_models.py should all still pass)
-- smoke: Run `cat tests/fixtures/dirty_app/dirtyPage.pmd` and confirm the script field contains
-  `console.log(msg)` followed by ` %>` (space then closing tag).
+- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m pytest tests/test_scanner.py -v`
+- lint: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m pytest --collect-only 2>&1 | head -20`
+- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m pytest tests/test_scanner.py -v`
+- smoke:
+  1. Run Arcane Auditor against clean_app and confirm exit 0:
+     `cd /Users/name/homelab/ArcaneAuditor && uv run main.py review-app agents/tests/fixtures/clean_app --format json --quiet`
+     Expected: exit code 0, JSON output with empty findings array or ADVICE-only findings.
+  2. Run Arcane Auditor against dirty_app and confirm exit 1:
+     `cd /Users/name/homelab/ArcaneAuditor && uv run main.py review-app agents/tests/fixtures/dirty_app --format json --quiet`
+     Expected: exit code 1 (ACTION issues found), JSON with findings including ScriptConsoleLogRule.
 
 ## Constraints
-- Do NOT modify `tests/fixtures/clean_app/minimalPage.pmd` -- it is already valid
-- Do NOT modify `tests/fixtures/clean_app/minimalPod.pod` -- it is already valid
-- Do NOT modify `tests/fixtures/clean_app/utils.script` -- it is already valid
-- Do NOT modify `tests/fixtures/dirty_app/dirtyPod.pod` -- it is already correct
-- Do NOT modify `tests/fixtures/dirty_app/helpers.script` -- it is already correct
-- Do NOT add new dependencies to pyproject.toml
-- Do NOT modify any Python source files in src/
-- Do NOT modify any test files in tests/
-- The fixture files are plain JSON (for .pmd and .pod) and plain Workday Script (for .script);
-  do not add Python syntax or docstrings to them
-- The `console.log(msg)` must appear INSIDE the `<% %>` script tags, not outside
+- Do NOT modify any file in clean_app/ -- all three clean fixtures are correct as-is.
+- Do NOT modify dirty_app/dirtyPod.pod or dirty_app/helpers.script -- they are correct.
+- Do NOT create tests/fixtures/expected/ -- that is out of scope for P2.3 (belongs to P3.3).
+- Do NOT add new Python source files. This task creates/modifies fixture data files only.
+- Do NOT run `uv add` or install any packages. No new dependencies needed.
+- The ONLY code change is the `console.info(msg)` addition to dirty_app/dirtyPage.pmd line 4.

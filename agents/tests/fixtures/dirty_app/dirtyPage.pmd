@@ -1,7 +1,7 @@
 {
   "id": "dirtyPage",
   "securityDomains": ["Everyone"],
-  "script": "<% var count = 0; const msg = 'Count: ' + count; if (count > 42) { count = 100; } %>",
+  "script": "<% var count = 0; const msg = 'Count: ' + count; console.info(msg); if (count > 42) { count = 100; } %>",
   "presentation": {
     "title": {
       "type": "title",

@@ -3,39 +3,98 @@
 ## Verdict: FAIL
 
 ## Runtime Checks
-- Build: SKIPPED (no build step for fixture files)
-- Tests: PASS (56/56 passed -- `uv run pytest tests/ -v`)
-- Lint: SKIPPED (no Python source changes)
-- Docker: SKIPPED (no compose files changed)
+- Build: PASS (py_compile on src/*.py: 0 errors)
+- Tests: PASS (19/19 in tests/test_scanner.py)
+- Lint: SKIPPED (neither ruff nor flake8 installed in agents venv)
+- Docker: N/A (no compose files changed)
 
 ## Findings
 
 ```json
 {
-  "high": [
+  "high": [],
+  "medium": [
     {
       "file": "tests/fixtures/dirty_app/dirtyPage.pmd",
       "line": 4,
-      "issue": "console.log(msg) was NOT added to the script field. The plan's sole file operation (modify dirtyPage.pmd to add console.log) was not executed. Current script ends with '} %>' but should end with '} console.log(msg); %>'. The ScriptConsoleLogRule violation cannot be triggered by this fixture, making it incomplete per spec. git diff confirms zero changes to this file from HEAD.",
+      "issue": "ScriptConsoleLogRule is DISABLED in the default config. The console.info(msg) addition produces zero findings when the scan runs without --config. The plan's verification step explicitly says 'Expected: exit code 1, JSON with findings including ScriptConsoleLogRule' -- this is false. The rule is skipped with 'Skipping disabled rule: ScriptConsoleLogRule' in both clean and dirty app scans. P3.3 tests that assert on this violation will fail unless they pass --config pointing to test-config.json (which is itself untracked and unwired).",
       "category": "logic"
-    }
-  ],
-  "medium": [
+    },
     {
-      "file": "tests/fixtures/clean_app/minimalPod.pod",
-      "line": 8,
-      "issue": "File was modified contrary to the plan's explicit 'DO NOT modify' constraint. URL changed from '{apiGatewayEndpoint}' (committed HEAD) to '{baseEndpoint}' (working tree). The plan's analysis was wrong -- EndpointBaseUrlTypeRule (parser/rules/structure/endpoints/endpoint_url_base_url_type.py:49) includes 'apigatewayendpoint' as a hardcoded_patterns entry, so the committed version WOULD have been flagged as a violation. The change to '{baseEndpoint}' is functionally correct but the plan described the old version as 'Matches spec' and said to never modify this file. The plan was not updated to document this correction.",
+      "file": "tests/fixtures/dirty_app/dirtyPage.pmd",
+      "line": 4,
+      "issue": "Plan's violation inventory for dirtyPage.pmd is wrong. ScriptStringConcatRule fires on 'Count: ' + count (ADVICE) but is not listed in the plan. Actual dirty_app findings: ScriptVarUsageRule, ScriptStringConcatRule, ScriptMagicNumberRule x2, WidgetIdRequiredRule = 5 violations. Plan documents 4 (omitting ScriptStringConcatRule, including ScriptConsoleLogRule which does not fire).",
+      "category": "inconsistency"
+    },
+    {
+      "file": "tests/fixtures/dirty_app/dirtyPod.pod",
+      "line": 7,
+      "issue": "Plan's violation inventory for dirtyPod.pod documents 2 violations (EndpointBaseUrlTypeRule, EndpointFailOnStatusCodesRule). The actual scan fires 3: HardcodedWorkdayAPIRule (ACTION) also fires on the workday.com URL. The plan's violation count is wrong; any P3.3 test that asserts exactly 2 findings for dirtyPod.pod will fail.",
       "category": "inconsistency"
     }
   ],
-  "low": [],
+  "low": [
+    {
+      "file": "tests/fixtures/dirty_app/helpers.script",
+      "line": 5,
+      "issue": "Plan claims ScriptUnusedFunctionRule fires on unusedHelper (2 violations from helpers.script). The rule is disabled by default. Only ScriptVarUsageRule fires. Plan's violation inventory for this file overstates by one.",
+      "category": "inconsistency"
+    },
+    {
+      "file": "tests/fixtures/test-config.json",
+      "line": 1,
+      "issue": "Untracked file added outside the stated scope of this plan iteration. The plan says 'The ONLY code change is the console.info(msg) addition to dirty_app/dirtyPage.pmd line 4.' This file is not referenced by any scan command, test, or runner invocation -- it exists but has no current integration.",
+      "category": "inconsistency"
+    }
+  ],
   "validated": [
-    "minimalPage.pmd is clean: uses const/let in script, all inner widgets (text at greetingText, richText at footerText) have id fields, title and footer types are in BUILT_IN_WIDGET_TYPES_WITHOUT_ID_REQUIREMENT and correctly exempt",
-    "utils.script is clean: const used for all function declarations, both getCurrentTime and formatName are exported in the return block",
-    "dirtyPod.pod correctly contains hardcoded 'https://api.workday.com/common/v1/workers' which matches 'workday.com' pattern in EndpointBaseUrlTypeRule hardcoded_patterns",
-    "helpers.script correctly uses 'var' for unusedHelper (triggers ScriptVarUsageRule) and omits it from the export block (triggers ScriptUnusedFunctionRule)",
-    "All 56 existing tests pass with no regressions",
-    "dirtyPage.pmd existing violations are intact: var count uses var (ScriptVarUsageRule), 42 and 100 are magic numbers (ScriptMagicNumberRule), body children text widget at line 15 has no id field (WidgetIdRequiredRule)"
+    "dirtyPage.pmd: console.info(msg) correctly added at line 4; file is valid JSON",
+    "All 6 fixture files exist on disk (3 clean_app, 3 dirty_app)",
+    "clean_app scan: exit 0, 0 findings -- correct",
+    "dirty_app scan: exit 1 (3 ACTION findings) -- exit code is correct",
+    "ScriptVarUsageRule fires on dirtyPage.pmd (var count) and helpers.script (var unusedHelper)",
+    "ScriptMagicNumberRule fires on 42 and 100 in dirtyPage.pmd; 0 is correctly exempt",
+    "WidgetIdRequiredRule fires on the text widget missing id in dirtyPage.pmd body.children[0]",
+    "EndpointFailOnStatusCodesRule and EndpointBaseUrlTypeRule both fire on dirtyPod.pod",
+    "clean_app/minimalPage.pmd: const/let only, all widgets have ids, zero violations",
+    "clean_app/minimalPod.pod: template URL (no workday.com), failOnStatusCodes present, zero violations",
+    "clean_app/utils.script: const only, both functions exported, zero violations",
+    "19/19 pytest scanner tests pass after the fixture change"
   ]
 }
+```
+
+## Evidence for key findings
+
+**ScriptConsoleLogRule disabled by default** (confirmed by actual scan output):
+```
+Skipping disabled rule: ScriptConsoleLogRule   # appears in BOTH clean and dirty app scans
+```
+Plan verification claim: "Expected: exit code 1, JSON with findings including ScriptConsoleLogRule" -- NOT MET.
+
+**ScriptStringConcatRule fires (unplanned)** (from actual dirty_app scan JSON):
+```json
+{
+  "rule_id": "ScriptStringConcatRule",
+  "severity": "ADVICE",
+  "message": "...uses string concatenation with + operator: ''Count: ' + count'...",
+  "file_path": "dirtyPage.pmd",
+  "line": 4
+}
+```
+
+**HardcodedWorkdayAPIRule fires (unplanned)** (from actual dirty_app scan JSON):
+```json
+{
+  "rule_id": "HardcodedWorkdayAPIRule",
+  "severity": "ACTION",
+  "message": "Pod endpoint 'getHrData' uses hardcoded *.workday.com URL...",
+  "file_path": "dirtyPod.pod",
+  "line": 7
+}
+```
+
+**ScriptUnusedFunctionRule disabled by default**:
+```
+Skipping disabled rule: ScriptUnusedFunctionRule   # appears in BOTH scans
 ```
