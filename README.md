@@ -182,25 +182,82 @@ uv sync
 uv run pytest
 ```
 
-### Option B: Traditional pip
+### Option B: Traditional pip (macOS/Linux)
 
 **Best for:** Restricted environments without UV
 
-> ⚠️ Requires Python 3.12+ pre-installed
+> Requires Python 3.12+ pre-installed
 
 ```bash
-# Download and extract release
 cd ArcaneAuditor
-
-# Install dependencies
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
 
 # Run without 'uv run' prefix
 python main.py review-app myapp.zip
 python web/server.py --port 8080
 ```
 
+### Option C: Traditional pip (Windows)
+
+**Best for:** Windows machines without UV
+
+> Requires Python 3.12+ -- download from https://www.python.org/downloads/ and check **"Add to PATH"** during install.
+
+```powershell
+cd ArcaneAuditor
+python -m venv .venv
+.venv\Scripts\activate
+pip install -e .
+
+# Run without 'uv run' prefix
+python main.py review-app myapp.zip
+python web/server.py --port 8080
+```
+
+> To install UV on Windows instead: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
+
 </details>
+
+---
+
+## 🧠 LLM Explain Layer (Optional)
+
+Arcane Auditor includes an optional LLM-powered triage layer (`explain.py`) that takes the deterministic findings and produces a human-friendly summary with prioritized explanations and fix suggestions.
+
+### Setup
+
+```bash
+# Install the extra dependency (one time)
+uv pip install litellm
+```
+
+### Usage
+
+```bash
+# Default: uses local Ollama (llama3.2) -- no API key needed
+uv run python explain.py myapp.zip
+
+# OpenAI
+OPENAI_API_KEY=sk-... uv run python explain.py myapp.zip --model gpt-4o
+
+# Claude
+ANTHROPIC_API_KEY=sk-ant-... uv run python explain.py myapp.zip --model anthropic/claude-sonnet-4-6
+
+# Skip the LLM, just get structured JSON output
+uv run python explain.py myapp.zip --json-only
+```
+
+### Without UV (pip)
+
+```bash
+# After activating your venv (see Alternative Installation above)
+pip install litellm
+python explain.py myapp.zip
+```
+
+> The LLM layer is purely additive -- Arcane Auditor's core analysis runs the same 42 deterministic rules regardless. The LLM just explains the results.
 
 ---
 
