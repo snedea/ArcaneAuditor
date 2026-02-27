@@ -1,49 +1,52 @@
-# Review Report — P6.2
+# Review Report — P6.3
 
-## Verdict: PASS
+## Verdict: FAIL
 
 ## Runtime Checks
-- Build: PASS (`uv run python -m py_compile` on all changed files — clean)
-- Tests: PASS (42/42 new tests pass; 219/219 full suite pass)
-- Lint: SKIPPED (no ruff/mypy configured in pyproject.toml — confirmed by plan)
-- Docker: SKIPPED (no compose files changed)
+- Build: PASS (`uv run python -c "from fix_templates.structure_fixes import ..."` exits clean)
+- Tests: PASS (219 passed in 4.52s — no regressions)
+- Lint: PASS (`ruff check fix_templates/structure_fixes.py` — all checks passed)
+- Docker: SKIPPED (no compose files changed in this task)
 
 ## Findings
 
 ```json
 {
   "high": [],
-  "medium": [],
+  "medium": [
+    {
+      "file": "fix_templates/structure_fixes.py",
+      "line": 299,
+      "issue": "Sort key in _add_missing_codes crashes unhandled. `ep[\"failOnStatusCodes\"].sort(key=lambda e: int(e.get(\"code\", 0)) ...)` calls int() inside the lambda without exception handling. When an existing entry has {\"code\": null} (JSON null -> Python None), int(None) raises TypeError. When an entry has {\"code\": \"abc\"} (non-numeric string), int(\"abc\") raises ValueError. Both propagate unhandled through _fix_endpoint_in_data and apply(). The apply() method only catches json.JSONDecodeError, so this crash escapes to the caller. The documented contract -- 'apply() returns FixResult | None' -- is violated. Verified: reproducing with source containing {\"code\": null} raises TypeError from apply().",
+      "category": "crash"
+    }
+  ],
   "low": [
     {
-      "file": "fix_templates/script_fixes.py",
-      "line": 119,
-      "issue": "RemoveConsoleLog.apply checks `stripped in (\"\", \"%>\", \"<%%\")` but not the combined `\"<%  %>\"` pattern. A line like `<% console.log('x'); %>` produces `modified_line = \"<%  %>\\n\"` after substitution; stripped becomes `\"<%  %>\"` which is not in the set, so the line is kept rather than removed. Leaves a semantically empty Extend template expression in the file.",
-      "category": "inconsistency"
+      "file": "fix_templates/structure_fixes.py",
+      "line": 155,
+      "issue": "LowerCamelCaseEndpointName.apply() calls self._MSG_RE.search() on a pattern anchored with '^'. With no MULTILINE flag, search() with '^' only matches at position 0 -- functionally identical to .match() for single-line inputs, but misleading. Should use .match() for idiomatic clarity.",
+      "category": "style"
     },
     {
-      "file": "fix_templates/script_fixes.py",
-      "line": 136,
-      "issue": "TemplateLiteralFix only handles single-quoted string concatenation. Double-quoted strings (e.g., `\"Hello \" + name`) silently return None with no log message. This is consistent with the plan's \"simple cases only\" constraint but is undocumented in the class docstring.",
-      "category": "inconsistency"
-    },
-    {
-      "file": "fix_templates/script_fixes.py",
-      "line": 20,
-      "issue": "VarToLetConst._VAR_DECL_RE uses `(\\w+)` which excludes `$`-prefixed identifiers common in some Workday Extend scripts (e.g., `var $el = ...`). These silently return None. Consistent with \"simple cases only\" but undocumented.",
+      "file": "fix_templates/structure_fixes.py",
+      "line": 103,
+      "issue": "The guard 'if \"<\" in invalid_id: return None' in LowerCamelCaseWidgetId.apply() checks for any '<' character, but _to_lower_camel_case() only checks for '<%'. The docstring attributes both to 'script syntax'. In practice _to_lower_camel_case() returns None for any value containing '<' anyway (no pattern matches), so the guard is redundant -- but the inconsistency between the two checks is misleading.",
       "category": "inconsistency"
     }
   ],
   "validated": [
-    "All 42 new tests pass; 219/219 full suite tests pass with no regressions",
-    "_determine_keyword regex correctly handles all compound assignments (+=, -=, **=, &&=, ||=, ??=, >>=, <<=, >>>=), prefix/postfix increment/decrement, and correctly rejects == / === / substring matches (e.g., 'max' does not trigger for varname 'x')",
-    "RemoveConsoleLog correctly returns None for nested console calls (`console.log(console.error('x'))`) — inner match is substituted but 'console.' remains, triggering the safety check at line 116",
-    "TemplateLiteralFix correctly rejects function calls (getName()), property accesses (arr.length via negative lookbehind), and ambiguous multi-concat patterns ('a' + b + c + 'd')",
-    "Registry auto-discovery finds all three templates (VarToLetConst, RemoveConsoleLog, TemplateLiteralFix) via inspect.getattr_static — correctly distinguishes annotation-only declarations from real string assignments",
-    "IMPL_PLAN.md P6.2 correctly marked [x]",
-    "test_apply_returns_none_for_property_access_plus_string (extra test not in plan) is correct: `arr.length + ' items'` returns None because `(?<!\\.)` lookbehind prevents matching `length` (preceded by `.`), and _CONCAT_A_RE finds no single-quoted string before the `+`",
-    "_CONSOLE_RE `\\s*;?` tail correctly handles no-semicolon console calls by consuming the trailing newline — pop-on-empty logic still fires correctly, producing expected empty string output",
-    "VarToLetConst multi-var logic correctly detects reassignment of secondary variables (`y = 3`) and upgrades the entire declaration to `let`"
+    "All three classes import cleanly and register in FixTemplateRegistry (registry smoke test passed: ['RemoveConsoleLog', 'TemplateLiteralFix', 'VarToLetConst', 'AddFailOnStatusCodes', 'LowerCamelCaseEndpointName', 'LowerCamelCaseWidgetId'])",
+    "confidence: Literal['HIGH'] = 'HIGH' is a class-level string attribute on all three classes; registry discovery check passes (inspect.getattr_static returns 'HIGH', isinstance(..., str) is True)",
+    "_to_lower_camel_case correctly returns None for: empty string, '<%' template syntax, all-uppercase identifiers without separators, values that start with a digit, and values with no recognized form",
+    "_to_lower_camel_case separator branch correctly lowercases before split, so mixed-case intermediates are normalized (documented known limitation in docstring)",
+    "LowerCamelCaseWidgetId.apply() and LowerCamelCaseEndpointName.apply() both use re.escape() on the extracted identifier when building field_re, preventing regex injection from special characters in the identifier value",
+    "Replacement f-strings are safe: fixed_id/fixed_name always match _LOWER_CAMEL_RE (only [a-zA-Z0-9]), so no backslash or backreference characters appear in the substitution string",
+    "AddFailOnStatusCodes._extract_endpoint_and_codes correctly handles both message subtypes; missing_codes empty-set guard is present",
+    "AddFailOnStatusCodes._add_missing_codes existing_codes loop correctly wraps int() in try/except (ValueError, TypeError) -- the bug is only in the subsequent sort call",
+    "All three apply() methods guard against finding.line == 0 and finding.line > len(lines) before accessing the lines list",
+    "AddFailOnStatusCodes uses json.loads/json.dumps as required by the plan; LowerCamelCaseWidgetId and LowerCamelCaseEndpointName use line-targeted regex replacement as required",
+    "All 219 existing tests pass with no regressions introduced by the new module"
   ]
 }
 ```
