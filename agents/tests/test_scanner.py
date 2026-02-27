@@ -10,6 +10,10 @@ import pytest
 from src.models import ScanError, ScanManifest
 from src.scanner import EXTEND_EXTENSIONS, scan_github, scan_local
 
+FIXTURES_DIR: Path = Path(__file__).parent / "fixtures"
+CLEAN_APP_FIXTURE: Path = FIXTURES_DIR / "clean_app"
+DIRTY_APP_FIXTURE: Path = FIXTURES_DIR / "dirty_app"
+
 
 class TestScanLocal:
 
@@ -79,6 +83,51 @@ class TestScanLocal:
         assert ".amd" in EXTEND_EXTENSIONS
         assert ".smd" in EXTEND_EXTENSIONS
         assert len(EXTEND_EXTENSIONS) == 5
+
+    def test_clean_app_fixture_has_expected_artifact_counts(self) -> None:
+        result = scan_local(CLEAN_APP_FIXTURE)
+        assert result.total_count == 3
+        assert len(result.files_by_type["pmd"]) == 1
+        assert len(result.files_by_type["pod"]) == 1
+        assert len(result.files_by_type["script"]) == 1
+        assert len(result.files_by_type["amd"]) == 0
+        assert len(result.files_by_type["smd"]) == 0
+
+    def test_clean_app_fixture_paths_are_absolute(self) -> None:
+        result = scan_local(CLEAN_APP_FIXTURE)
+        for p in result.files_by_type["pmd"]:
+            assert p.is_file()
+        for p in result.files_by_type["pod"]:
+            assert p.is_file()
+        for p in result.files_by_type["script"]:
+            assert p.is_file()
+
+    def test_dirty_app_fixture_has_expected_artifact_counts(self) -> None:
+        result = scan_local(DIRTY_APP_FIXTURE)
+        assert result.total_count == 3
+        assert len(result.files_by_type["pmd"]) == 1
+        assert len(result.files_by_type["pod"]) == 1
+        assert len(result.files_by_type["script"]) == 1
+        assert len(result.files_by_type["amd"]) == 0
+        assert len(result.files_by_type["smd"]) == 0
+
+    def test_js_files_are_ignored(self, tmp_path: Path) -> None:
+        (tmp_path / "app.js").write_text("console.log('hello')")
+        (tmp_path / "utils.js").write_text("function foo() {}")
+        (tmp_path / "valid.pmd").write_text("x")
+        result = scan_local(tmp_path)
+        assert result.total_count == 1
+        assert len(result.files_by_type["pmd"]) == 1
+        assert not any(p.suffix == ".js" for paths in result.files_by_type.values() for p in paths)
+
+    def test_py_files_are_ignored(self, tmp_path: Path) -> None:
+        (tmp_path / "scanner.py").write_text("import os")
+        (tmp_path / "models.py").write_text("class Foo: pass")
+        (tmp_path / "valid.script").write_text("const x = 1;")
+        result = scan_local(tmp_path)
+        assert result.total_count == 1
+        assert len(result.files_by_type["script"]) == 1
+        assert not any(p.suffix == ".py" for paths in result.files_by_type.values() for p in paths)
 
 
 class TestScanGithub:

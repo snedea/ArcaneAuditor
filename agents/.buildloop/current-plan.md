@@ -1,254 +1,144 @@
-# Plan: P2.3
-
-Date: 2026-02-27
-Version: v2
-Status: in-progress
-
-## Context
-
-Task P2.3 creates test fixtures for the agent test suite. The previous builder made multiple WIP commits that created partial fixtures. This plan completes the work.
-
-**Current state after prior builder runs:**
-- `tests/fixtures/clean_app/minimalPage.pmd` EXISTS but is missing required `script` field
-- `tests/fixtures/clean_app/minimalPod.pod` EXISTS and is complete
-- `tests/fixtures/clean_app/utils.script` EXISTS and is complete
-- `tests/fixtures/dirty_app/dirtyPage.pmd` EXISTS with var, console.info, magic numbers, missing id
-- `tests/fixtures/dirty_app/dirtyPod.pod` EXISTS with hardcoded workday URL
-- `tests/fixtures/dirty_app/helpers.script` EXISTS with var + unexported function
-- `tests/fixtures/expected/clean_app.json` EXISTS (format: `{exit_code, findings:[]}`)
-- `tests/fixtures/expected/dirty_app.json` EXISTS with 11 findings listed
-- `tests/fixtures/test-config.json` EXISTS with all rules enabled
-
-**Gap**: `clean_app/minimalPage.pmd` is missing the `script` field. The IMPL_PLAN.md task description explicitly requires "a minimal valid .pmd file (valid pageId, **script with const/let**, proper naming)".
-
-**Critical**: The expected JSON files were written by the prior builder without running the tool. They must be verified against actual parent tool output and updated if wrong.
+# Plan: P2.4
 
 ## Dependencies
-
 - list: []
 - commands: []
-  (No new packages needed. Parent tool is invoked as subprocess.)
+  (No new dependencies. pytest is already in dev group; all imports are stdlib + existing project modules.)
+
+## Pre-flight: Assess Existing Coverage
+
+`tests/test_scanner.py` already exists with substantial `TestScanLocal` and `TestScanGithub` coverage.
+The following P2.4 requirements are ALREADY covered by existing tests -- do NOT rewrite or duplicate them:
+
+| Existing test | Covers |
+|---|---|
+| `test_empty_directory_returns_zero_total` | empty directory graceful handling |
+| `test_flat_directory_finds_all_extension_types` | all 5 extension types found (via tmp_path) |
+| `test_non_extend_files_are_ignored` | .md and .json ignored (via tmp_path) |
+| `test_multiple_files_per_type` | correct count returned |
+
+The following requirements are NOT yet covered and must be added:
+1. `scan_local` against the real `tests/fixtures/clean_app/` directory -- exact file counts
+2. `scan_local` against the real `tests/fixtures/dirty_app/` directory -- exact file counts
+3. `.js` files explicitly ignored (task description names .js specifically)
+4. `.py` files explicitly ignored (task description names .py specifically)
 
 ## File Operations (in execution order)
 
-### 1. MODIFY tests/fixtures/clean_app/minimalPage.pmd
+### 1. MODIFY tests/test_scanner.py
 - operation: MODIFY
-- reason: Add `script` field with const/let to satisfy task requirement "script with const/let". Currently the file has id, securityDomains, presentation but no script field.
-- anchor: `"securityDomains": ["Everyone"],`
+- reason: Add 4 missing tests: fixture-based scan tests for both clean_app and dirty_app, and explicit .js/.py exclusion tests
+- anchor: `    def test_extend_extensions_constant_contains_all_types(self) -> None:`
+  (This is the last method in `TestScanLocal`. New tests are appended after it, before the `TestScanGithub` class.)
 
-#### Content change
+#### Imports / Dependencies
+No new imports needed. `Path` is already imported. `pytest` is already imported.
 
-The file currently reads:
-```json
-{
-  "id": "minimalPage",
-  "securityDomains": ["Everyone"],
-  "presentation": {
-    "title": {
-      "type": "title",
-      "label": "Minimal Page"
-    },
-    "body": {
-      "type": "section",
-      "id": "bodySection",
-      "children": [
-        {
-          "type": "text",
-          "id": "greetingText",
-          "label": "Greeting",
-          "value": "Hello"
-        }
-      ]
-    },
-    "footer": {
-      "type": "footer",
-      "children": [
-        {
-          "type": "pod",
-          "id": "footerPod"
-        }
-      ]
-    }
-  }
-}
+#### Fixture Path Constants
+Add two module-level constants immediately after the existing imports block (after line 12, before `class TestScanLocal`):
+
+```python
+FIXTURES_DIR: Path = Path(__file__).parent / "fixtures"
+CLEAN_APP_FIXTURE: Path = FIXTURES_DIR / "clean_app"
+DIRTY_APP_FIXTURE: Path = FIXTURES_DIR / "dirty_app"
 ```
 
-Replace with this exact content:
-```json
-{
-  "id": "minimalPage",
-  "securityDomains": ["Everyone"],
-  "script": "<% const greeting = 'Hello'; %>",
-  "presentation": {
-    "title": {
-      "type": "title",
-      "label": "Minimal Page"
-    },
-    "body": {
-      "type": "section",
-      "id": "bodySection",
-      "children": [
-        {
-          "type": "text",
-          "id": "greetingText",
-          "label": "Greeting",
-          "value": "<% greeting %>"
-        }
-      ]
-    },
-    "footer": {
-      "type": "footer",
-      "children": [
-        {
-          "type": "pod",
-          "id": "footerPod"
-        }
-      ]
-    }
-  }
-}
-```
+Rationale: using `Path(__file__).parent` ensures paths resolve correctly regardless of which directory pytest is invoked from.
 
-**Design rationale (no judgment calls needed):**
-- `script` field placed between `securityDomains` and `presentation` to satisfy `PMDSectionOrderingRule` (config order: id, securityDomains, include, script, endPoints, onSubmit, outboundData, onLoad, presentation)
-- `const greeting = 'Hello'` uses const (not var), satisfying `ScriptVarUsageRule`
-- `'Hello'` is a string literal with no magic numbers, satisfying `ScriptMagicNumberRule`
-- No console.* calls, satisfying `ScriptConsoleLogRule`
-- No string concatenation (`+`), satisfying `ScriptStringConcatRule`
-- `greeting` is referenced in `"value": "<% greeting %>"` in the presentation body -- this prevents `ScriptUnusedVariableRule` from firing (the parser scans full source_content for variable references)
-- `id: "minimalPage"` is a valid lowerCamelCase page ID
-- All widgets have `id` fields (bodySection, greetingText, footerPod), satisfying `WidgetIdRequiredRule`
+#### Functions
 
-**If `ScriptUnusedVariableRule` still fires after this change:**
-- Fallback: change the script to `"<% const getGreeting = function() { return 'Hello'; }; const greeting = getGreeting(); %>"` and keep `"value": "<% greeting %>"`
-- This ensures `getGreeting` is used (called), and `greeting` is referenced in presentation
+- signature: `def test_clean_app_fixture_has_expected_artifact_counts(self) -> None:`
+  - purpose: Verify scan_local on the real clean_app fixture returns exactly 3 files across pmd/pod/script with zero amd/smd
+  - logic:
+    1. Call `scan_local(CLEAN_APP_FIXTURE)` and assign to `result`
+    2. Assert `result.total_count == 3`
+    3. Assert `len(result.files_by_type["pmd"]) == 1`
+    4. Assert `len(result.files_by_type["pod"]) == 1`
+    5. Assert `len(result.files_by_type["script"]) == 1`
+    6. Assert `len(result.files_by_type["amd"]) == 0`
+    7. Assert `len(result.files_by_type["smd"]) == 0`
+  - calls: `scan_local(CLEAN_APP_FIXTURE)`
+  - returns: `None`
+  - error handling: none -- if the fixture doesn't exist, the test will raise ScanError and fail with a clear message
 
-### 2. VERIFY AND UPDATE tests/fixtures/expected/clean_app.json
-- operation: MODIFY (or no-op if already correct)
-- reason: The existing expected/clean_app.json was written by the prior builder without running the tool. Must verify against actual parent tool output.
-- anchor: `"exit_code": 0,`
+- signature: `def test_clean_app_fixture_paths_are_absolute(self) -> None:`
+  - purpose: Verify that paths in files_by_type are Path objects pointing to real files
+  - logic:
+    1. Call `scan_local(CLEAN_APP_FIXTURE)` and assign to `result`
+    2. For each path in `result.files_by_type["pmd"]`: assert `p.is_file()` is True
+    3. For each path in `result.files_by_type["pod"]`: assert `p.is_file()` is True
+    4. For each path in `result.files_by_type["script"]`: assert `p.is_file()` is True
+  - calls: `scan_local(CLEAN_APP_FIXTURE)`
+  - returns: `None`
+  - error handling: none
 
-**Steps to verify:**
-1. Run the parent tool against the (now updated) clean_app fixture:
-   ```bash
-   cd /Users/name/homelab/ArcaneAuditor
-   uv run main.py review-app agents/tests/fixtures/clean_app \
-     --format json \
-     --config agents/tests/fixtures/test-config.json \
-     --output /tmp/arcane_clean_actual.json \
-     --quiet
-   echo "Exit code: $?"
-   ```
-2. Read `/tmp/arcane_clean_actual.json` to see actual parent tool JSON output
-3. The actual output has this schema:
-   ```json
-   {
-     "summary": {"total_files": N, "total_rules": N, "total_findings": N, "findings_by_severity": {...}},
-     "findings": [{"rule_id": "...", "severity": "...", "message": "...", "file_path": "...", "line": N}]
-   }
-   ```
-4. Check `summary.total_findings`. If it is 0, the clean_app fixture is correct.
-5. If `total_findings > 0`, debug each finding and adjust the clean_app fixture files to eliminate the violation. Then re-run.
-6. Once confirmed `total_findings == 0`, the existing `expected/clean_app.json` content is already correct as-is:
-   ```json
-   {
-     "exit_code": 0,
-     "findings": []
-   }
-   ```
-   No update needed.
+- signature: `def test_dirty_app_fixture_has_expected_artifact_counts(self) -> None:`
+  - purpose: Verify scan_local on the real dirty_app fixture returns exactly 3 files across pmd/pod/script
+  - logic:
+    1. Call `scan_local(DIRTY_APP_FIXTURE)` and assign to `result`
+    2. Assert `result.total_count == 3`
+    3. Assert `len(result.files_by_type["pmd"]) == 1`
+    4. Assert `len(result.files_by_type["pod"]) == 1`
+    5. Assert `len(result.files_by_type["script"]) == 1`
+    6. Assert `len(result.files_by_type["amd"]) == 0`
+    7. Assert `len(result.files_by_type["smd"]) == 0`
+  - calls: `scan_local(DIRTY_APP_FIXTURE)`
+  - returns: `None`
+  - error handling: none
 
-**If findings appear in clean_app scan, common causes and fixes:**
-- `ScriptUnusedVariableRule` fires on `greeting`: change script to `"<% const greeting = 'Hello'; const msg = greeting; %>"` -- then `greeting` is used in the same block, and `msg` is referenced in presentation `"value": "<% msg %>"`
-- `ScriptMagicNumberRule` fires: no numbers in `'Hello'` so this should not happen
-- `PMDSectionOrderingRule` fires: verify `script` key appears between `securityDomains` and `presentation` in the JSON
+- signature: `def test_js_files_are_ignored(self, tmp_path: Path) -> None:`
+  - purpose: Verify .js files are not collected (task description explicitly names .js as a non-Extend type to test)
+  - logic:
+    1. Write `(tmp_path / "app.js").write_text("console.log('hello')")`
+    2. Write `(tmp_path / "utils.js").write_text("function foo() {}")`
+    3. Write `(tmp_path / "valid.pmd").write_text("x")` -- one Extend file so total_count tests for exact value
+    4. Call `scan_local(tmp_path)` and assign to `result`
+    5. Assert `result.total_count == 1`
+    6. Assert `len(result.files_by_type["pmd"]) == 1`
+    7. Verify no .js path appears in any files_by_type list: `assert not any(p.suffix == ".js" for paths in result.files_by_type.values() for p in paths)`
+  - calls: `scan_local(tmp_path)`
+  - returns: `None`
+  - error handling: none
 
-### 3. VERIFY AND UPDATE tests/fixtures/expected/dirty_app.json
-- operation: MODIFY (or no-op if already correct)
-- reason: The existing expected/dirty_app.json was written by the prior builder without running the tool. Line numbers and message text must match actual parent tool output exactly.
-- anchor: `"rule_id": "ScriptMagicNumberRule",`
+- signature: `def test_py_files_are_ignored(self, tmp_path: Path) -> None:`
+  - purpose: Verify .py files are not collected (task description explicitly names .py as a non-Extend type to test)
+  - logic:
+    1. Write `(tmp_path / "scanner.py").write_text("import os")`
+    2. Write `(tmp_path / "models.py").write_text("class Foo: pass")`
+    3. Write `(tmp_path / "valid.script").write_text("const x = 1;")` -- one Extend file
+    4. Call `scan_local(tmp_path)` and assign to `result`
+    5. Assert `result.total_count == 1`
+    6. Assert `len(result.files_by_type["script"]) == 1`
+    7. Verify no .py path appears in any files_by_type list: `assert not any(p.suffix == ".py" for paths in result.files_by_type.values() for p in paths)`
+  - calls: `scan_local(tmp_path)`
+  - returns: `None`
+  - error handling: none
 
-**Steps to verify:**
-1. Run the parent tool against the dirty_app fixture:
-   ```bash
-   cd /Users/name/homelab/ArcaneAuditor
-   uv run main.py review-app agents/tests/fixtures/dirty_app \
-     --format json \
-     --config agents/tests/fixtures/test-config.json \
-     --output /tmp/arcane_dirty_actual.json \
-     --quiet
-   echo "Exit code: $?"
-   ```
-2. Read `/tmp/arcane_dirty_actual.json`
-3. Extract the `findings` array from the actual output
-4. The exit code should be 1 (ACTION issues found: `ScriptConsoleLogRule`, `EndpointFailOnStatusCodesRule`, `HardcodedWorkdayAPIRule`, `WidgetIdRequiredRule` are all ACTION severity)
-5. Compare actual findings against `expected/dirty_app.json`
+#### Wiring / Integration
+All 6 new methods are added to the `TestScanLocal` class, after the existing `test_extend_extensions_constant_contains_all_types` method and before the closing of the class (before `class TestScanGithub:`).
 
-**What to check in the comparison:**
-- `rule_id` values: must match exactly (case-sensitive)
-- `severity` values: must match exactly ("ACTION" or "ADVICE")
-- `file_path` values: the parent tool uses relative paths from the app root. Confirm whether it emits `"dirtyPage.pmd"` or `"dirty_app/dirtyPage.pmd"` or the full absolute path
-- `line` values: these are the most likely to differ from the estimated values in the prior builder's expected file
-- `message` text: must match exactly including punctuation and spacing
-
-6. Overwrite `expected/dirty_app.json` with a file built from the actual findings:
-   ```json
-   {
-     "exit_code": 1,
-     "findings": [
-       <-- paste each finding from /tmp/arcane_dirty_actual.json findings array here -->
-     ]
-   }
-   ```
-   Important: use the `exit_code` from the actual tool run (should be 1), not from the summary.
-
-**Expected violations (must all appear; if any are missing, the dirty fixture is wrong):**
-- `ScriptVarUsageRule` ADVICE: var declaration in `dirtyPage.pmd` (the `var count` in script block, line 4)
-- `ScriptVarUsageRule` ADVICE: var declaration in `helpers.script` (the `var unusedHelper`, line 5)
-- `ScriptConsoleLogRule` ACTION: console.info in `dirtyPage.pmd` script block (line 4)
-- `ScriptMagicNumberRule` ADVICE: magic number 42 in `dirtyPage.pmd` (line 4)
-- `ScriptMagicNumberRule` ADVICE: magic number 100 in `dirtyPage.pmd` (line 4)
-- `ScriptStringConcatRule` ADVICE: string concat `'Count: ' + count` in `dirtyPage.pmd` (line 4)
-- `ScriptDeadCodeRule` ADVICE: `unusedHelper` declared but not exported in `helpers.script` (line 5)
-- `HardcodedWorkdayAPIRule` ACTION: hardcoded workday.com URL in `dirtyPod.pod`
-- `EndpointFailOnStatusCodesRule` ACTION: missing failOnStatusCodes in `dirtyPod.pod`
-- `EndpointBaseUrlTypeRule` ADVICE: workday URL without baseUrlType in `dirtyPod.pod`
-- `WidgetIdRequiredRule` ACTION: text widget at body->children[0] missing id in `dirtyPage.pmd`
-
-**Minimum required violations: at least 1 ACTION finding** (to confirm exit_code is 1, not 0).
+The two module-level constants (`FIXTURES_DIR`, `CLEAN_APP_FIXTURE`, `DIRTY_APP_FIXTURE`) are inserted after the existing import block (after line 12: `from src.scanner import EXTEND_EXTENSIONS, scan_github, scan_local`) and before line 14: `class TestScanLocal:`.
 
 ## Verification
-
 - build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv sync`
-- lint: (no linter configured for fixture files; they are JSON/script content, not Python)
-- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/ -v`
-  (Note: test_scanner.py tests scan_local on these fixtures; they should all pass. P3.3 test_runner.py does not exist yet.)
-- smoke-clean:
-  ```bash
-  cd /Users/name/homelab/ArcaneAuditor
-  uv run main.py review-app agents/tests/fixtures/clean_app \
-    --format json \
-    --config agents/tests/fixtures/test-config.json \
-    --quiet
-  # Expect: exit code 0, output contains "total_findings": 0
-  ```
-- smoke-dirty:
-  ```bash
-  cd /Users/name/homelab/ArcaneAuditor
-  uv run main.py review-app agents/tests/fixtures/dirty_app \
-    --format json \
-    --config agents/tests/fixtures/test-config.json \
-    --quiet
-  # Expect: exit code 1, output contains findings for ScriptConsoleLogRule, HardcodedWorkdayAPIRule, EndpointFailOnStatusCodesRule, WidgetIdRequiredRule
-  ```
+- lint: (no linter configured in pyproject.toml -- skip)
+- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/test_scanner.py -v`
+- smoke: Confirm the output shows all pre-existing tests still pass and the 6 new tests appear as PASSED. Expected new test names:
+  - `TestScanLocal::test_clean_app_fixture_has_expected_artifact_counts`
+  - `TestScanLocal::test_clean_app_fixture_paths_are_absolute`
+  - `TestScanLocal::test_dirty_app_fixture_has_expected_artifact_counts`
+  - `TestScanLocal::test_js_files_are_ignored`
+  - `TestScanLocal::test_py_files_are_ignored`
 
 ## Constraints
-
-- Do NOT modify `tests/fixtures/dirty_app/dirtyPage.pmd`, `tests/fixtures/dirty_app/dirtyPod.pod`, or `tests/fixtures/dirty_app/helpers.script` -- they are correct and complete.
-- Do NOT modify `tests/fixtures/clean_app/minimalPod.pod` or `tests/fixtures/clean_app/utils.script` -- they are correct and complete.
-- Do NOT modify `tests/fixtures/test-config.json`.
-- Do NOT change the format of `expected/clean_app.json` and `expected/dirty_app.json` -- they use `{exit_code, findings:[]}` schema intentionally.
-- Do NOT modify any `.py` source files in `src/` or `tests/`.
-- Do NOT add new fixture files beyond what already exists.
-- The only Python test that may fail before this task: none. `test_scanner.py` tests do not depend on fixture file content, only on file existence.
-- Always use the `test-config.json` config file when running the parent tool against fixtures, to ensure consistent rule enablement.
+- Do NOT modify `TestScanGithub` -- those tests are complete and unrelated to P2.4
+- Do NOT rewrite or remove existing `TestScanLocal` tests -- they already pass
+- Do NOT modify `src/scanner.py` -- it is correct as-is; this task is tests only
+- Do NOT modify `src/models.py`
+- Do NOT add any new pip dependencies
+- Do NOT create conftest.py -- fixture paths are module-level constants in the test file itself, which is simpler and sufficient
+- The 6th test (`test_clean_app_fixture_paths_are_absolute`) is a bonus correctness test; include it -- it costs nothing and catches a real class of bug (returning strings instead of Path objects)
+- Fixture count assertions (total_count == 3) are derived from the actual fixture contents:
+  - clean_app: minimalPage.pmd, minimalPod.pod, utils.script (3 files, no .amd or .smd)
+  - dirty_app: dirtyPage.pmd, dirtyPod.pod, helpers.script (3 files, no .amd or .smd)
+  If the fixture directory contents ever change, these assertions must be updated to match
