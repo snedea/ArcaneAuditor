@@ -1,209 +1,317 @@
-# Plan: P2.1
+# Plan: P2.2
 
 ## Dependencies
 - list: []
 - commands: []
-  (All required packages -- pydantic, pathlib -- are stdlib or already in pyproject.toml)
+  (no new packages needed: `subprocess`, `tempfile`, and `shutil` are stdlib)
+
+## Design Decision: Temp Dir Lifecycle
+
+The task spec says "clean up temp dir on completion." However, the runner (P3.1) needs
+`scan_manifest.root_path` to exist on disk when it invokes the auditor subprocess.
+If `scan_github` cleaned up the temp dir before returning, `root_path` would be a
+dangling path and `run_audit` would fail.
+
+Resolution: `scan_github` does NOT clean up internally. Instead, `ScanManifest` gains
+an optional `temp_dir: Path | None` field. When set, the caller owns the temp dir and
+MUST call `shutil.rmtree(manifest.temp_dir, ignore_errors=True)` after the auditor
+finishes. The runner (P3.1) will be planned with this cleanup responsibility in mind.
 
 ## File Operations (in execution order)
 
 ### 1. MODIFY src/models.py
 - operation: MODIFY
-- reason: Add ScanManifest model; scanner.py will import it from here
-- anchor: `class ScanResult(BaseModel):`
-
-#### Imports / Dependencies
-No new imports needed. `Path` is already imported from `pathlib`.
+- reason: ScanManifest needs `repo`, `branch`, and `temp_dir` fields to carry GitHub
+  metadata and allow callers to clean up the cloned temp directory.
+- anchor: `    root_path: Path`  (line 94 in ScanManifest class body)
 
 #### Structs / Types
-Insert the following class **after** the `ScanResult` class block (after line ending with `return self.exit_code == ExitCode.ISSUES_FOUND`) and **before** the `FixResult` class:
-
-```python
-class ScanManifest(BaseModel):
-    """Result of scanning a local directory for Workday Extend artifacts."""
-
+Replace the ScanManifest body from:
+```
     root_path: Path
     files_by_type: dict[str, list[Path]] = Field(default_factory=dict)
-
-    @property
-    def total_count(self) -> int:
-        """Total number of Extend artifact files found across all types."""
-        return sum(len(paths) for paths in self.files_by_type.values())
+```
+with:
+```
+    root_path: Path
+    files_by_type: dict[str, list[Path]] = Field(default_factory=dict)
+    repo: str | None = None
+    branch: str | None = None
+    temp_dir: Path | None = None
 ```
 
-Fields:
-- `root_path: Path` -- the directory that was scanned (absolute or as-given)
-- `files_by_type: dict[str, list[Path]]` -- maps extension string without leading dot (e.g. `"pmd"`, `"pod"`, `"script"`, `"amd"`, `"smd"`) to list of `Path` objects for matching files found under root_path; all five keys are always present even when the list is empty
-- `total_count` is a `@property` computed from `files_by_type`, not a stored field, so it cannot drift from the actual data
+All three new fields are optional with `None` default -- no callers of `scan_local` need
+to change. `temp_dir` is set only when `scan_github` creates a temp directory; the caller
+is responsible for cleanup via `shutil.rmtree(manifest.temp_dir, ignore_errors=True)`.
 
 #### Wiring / Integration
-`ScanManifest` must be importable from `src.models`. No other files reference it yet.
+- No other files reference `ScanManifest` field names by string -- the change is purely
+  additive and backward-compatible.
+- `test_scanner.py` tests that check `result.files_by_type == {...}` are unaffected
+  because the new fields have defaults.
 
 ---
 
-### 2. CREATE src/scanner.py
-- operation: CREATE
-- reason: Implements scan_local() per task P2.1
+### 2. MODIFY src/scanner.py
+- operation: MODIFY
+- reason: Add `scan_github` function that clones a GitHub repo to a temp dir and
+  delegates to `scan_local`.
+- anchor: `from src.models import ScanError, ScanManifest`  (line 8)
 
 #### Imports / Dependencies
+Add these three stdlib imports directly below the existing `from pathlib import Path` line:
+```python
+import subprocess
+import tempfile
+import shutil
+```
+Keep the existing import block order intact (`logging`, `pathlib`, then the new ones,
+then `from src.models import ...`).
+
+Final import block in scanner.py:
 ```python
 from __future__ import annotations
 
 import logging
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 
 from src.models import ScanError, ScanManifest
-```
-
-#### Constants
-```python
-EXTEND_EXTENSIONS: frozenset[str] = frozenset({".pmd", ".pod", ".script", ".amd", ".smd"})
-```
-
-Place this constant at module level immediately after the `logger` assignment.
-
-#### Module-level setup
-```python
-logger = logging.getLogger(__name__)
 ```
 
 #### Functions
 
-- signature: `def scan_local(path: Path) -> ScanManifest:`
-  - purpose: Walk a directory tree recursively and collect all Workday Extend artifact files by extension
+- signature: `def scan_github(repo: str, branch: str, token: str) -> ScanManifest:`
+  - purpose: Clone a GitHub repo to a temporary directory, scan for Extend artifacts
+    via `scan_local`, and return a `ScanManifest` enriched with repo metadata.
+  - docstring (Google style):
+    ```
+    """Clone a GitHub repo and scan it for Workday Extend artifact files.
+
+    Args:
+        repo: Repository in 'owner/repo' format (e.g. 'acme/payroll-extend').
+        branch: Branch name to clone (e.g. 'main').
+        token: GitHub personal access token for private repos.
+               Pass an empty string for public repos.
+
+    Returns:
+        A ScanManifest with root_path pointing to the cloned directory,
+        files_by_type populated, and repo/branch/temp_dir fields set.
+        The caller MUST call shutil.rmtree(manifest.temp_dir, ignore_errors=True)
+        after the auditor has finished with root_path.
+
+    Raises:
+        ScanError: If repo format is invalid, git clone fails, or the local
+                   scan raises ScanError.
+    """
+    ```
   - logic:
-    1. Check `path.exists()`. If False, raise `ScanError(f"Path does not exist: {path}")`.
-    2. Check `path.is_dir()`. If False, raise `ScanError(f"Path is not a directory: {path}")`.
-    3. Initialize `files_by_type: dict[str, list[Path]]` with all five extension keys pre-populated: `{"pmd": [], "pod": [], "script": [], "amd": [], "smd": []}`.
-    4. Iterate over every item yielded by `path.rglob("*")`.
-    5. For each `item` in the rglob result: call `item.is_file()`. If False, skip (it's a directory entry).
-    6. Check `item.suffix` against `EXTEND_EXTENSIONS`. If `item.suffix` is not in `EXTEND_EXTENSIONS`, skip.
-    7. Compute `ext_key = item.suffix[1:]` (strips the leading dot, e.g. `".pmd"` becomes `"pmd"`).
-    8. Append `item` to `files_by_type[ext_key]`.
-    9. After the loop, call `logger.debug("scan_local: root=%s total=%d", path, sum(len(v) for v in files_by_type.values()))`.
-    10. Construct and return `ScanManifest(root_path=path, files_by_type=files_by_type)`.
-  - calls: `path.exists()`, `path.is_dir()`, `path.rglob("*")`, `item.is_file()`, `ScanManifest(...)`, `logger.debug(...)`
-  - returns: `ScanManifest` instance
-  - error handling: Raise `ScanError` (imported from `src.models`) for non-existent path and for path that is a file rather than a directory. Do NOT catch exceptions from `path.rglob()` -- let OS errors propagate naturally as they indicate a genuine filesystem problem outside the scanner's control.
+    1. Validate `repo` format: split on `/`, assert `len(parts) == 2` and both parts
+       are non-empty strings. If invalid, raise `ScanError(f"Invalid repo format: '{repo}'. Expected 'owner/repo'.")`.
+    2. Build `clone_url`:
+       - If `token` is a non-empty, non-whitespace string:
+         `clone_url = f"https://{token}@github.com/{repo}.git"`
+       - Else:
+         `clone_url = f"https://github.com/{repo}.git"`
+    3. Create a temp directory:
+       `tmp_path = Path(tempfile.mkdtemp(prefix="arcane_auditor_"))`
+    4. Inside a `try` block, call `subprocess.run` with these exact arguments:
+       ```python
+       result = subprocess.run(
+           ["git", "clone", "--depth=1", "--branch", branch, clone_url, str(tmp_path)],
+           capture_output=True,
+           text=True,
+           check=False,
+           timeout=120,
+       )
+       ```
+    5. If `result.returncode != 0`:
+       - Raise `ScanError(f"git clone failed for repo '{repo}' branch '{branch}': {result.stderr.strip()}")`.
+       - Do NOT include `clone_url` in the error message (it may contain the token).
+    6. Call `manifest = scan_local(tmp_path)`. Let `ScanError` propagate unmodified.
+    7. Mutate the manifest to set GitHub metadata:
+       ```python
+       manifest.repo = repo
+       manifest.branch = branch
+       manifest.temp_dir = tmp_path
+       ```
+    8. Log at DEBUG level:
+       `logger.debug("scan_github: repo=%s branch=%s total=%d tmp=%s", repo, branch, manifest.total_count, tmp_path)`
+    9. Return `manifest`.
+    10. In an `except Exception as exc` clause (catching anything other than `ScanError`
+        that escapes steps 4-6):
+        - Re-raise as `ScanError(f"Unexpected error scanning GitHub repo '{repo}': {exc}")` using `from exc`.
+        - Note: This outer `except` must NOT catch `ScanError` -- use `except Exception as exc`
+          and add `if isinstance(exc, ScanError): raise` as the first line inside it,
+          OR use `except (subprocess.TimeoutExpired, OSError) as exc:` to be specific.
 
-#### Docstring (Google style, on the function)
-```
-"""Walk a directory tree and collect all Workday Extend artifact files by extension.
+    Preferred exception structure (avoids catching ScanError):
+    ```python
+    try:
+        result = subprocess.run(...)   # step 4
+        if result.returncode != 0:     # step 5
+            raise ScanError(...)
+        manifest = scan_local(tmp_path)  # step 6
+        manifest.repo = repo             # step 7
+        manifest.branch = branch
+        manifest.temp_dir = tmp_path
+        logger.debug(...)               # step 8
+        return manifest                 # step 9
+    except ScanError:
+        raise
+    except subprocess.TimeoutExpired:
+        raise ScanError(f"git clone timed out for repo '{repo}' after 120 seconds.")
+    except OSError as exc:
+        raise ScanError(f"OS error while cloning repo '{repo}': {exc}") from exc
+    ```
 
-Args:
-    path: Root directory to scan. Must exist and be a directory.
+    Note on cleanup: The `tmp_path` directory is NOT deleted inside `scan_github`.
+    It is returned in `manifest.temp_dir` for the caller to remove.
 
-Returns:
-    A ScanManifest with root_path, files_by_type keyed by extension (without dot),
-    and a computed total_count.
-
-Raises:
-    ScanError: If path does not exist or is not a directory.
-"""
-```
-
-#### Module docstring (top of file, after the future import)
-```
-"""Find Workday Extend artifact files in a local directory tree."""
-```
+  - calls:
+    - `tempfile.mkdtemp(prefix="arcane_auditor_")` -> returns str, convert to Path
+    - `subprocess.run(["git", "clone", "--depth=1", "--branch", branch, clone_url, str(tmp_path)], capture_output=True, text=True, check=False, timeout=120)` -> CompletedProcess
+    - `scan_local(tmp_path)` -> ScanManifest (may raise ScanError)
+  - returns: `ScanManifest` with `repo`, `branch`, `temp_dir` populated
+  - error handling:
+    - `ScanError` from invalid repo format or git clone failure: raised directly
+    - `ScanError` from `scan_local`: re-raised unmodified (via `except ScanError: raise`)
+    - `subprocess.TimeoutExpired`: re-raised as `ScanError`
+    - `OSError` (e.g., tempfile creation failure): re-raised as `ScanError`
 
 #### Wiring / Integration
-`scanner.py` imports only from `src.models`. No other modules import from `scanner.py` yet (runner.py is a future task).
+- `scan_github` is added after `scan_local` in the file (no changes to `scan_local`).
+- `EXTEND_EXTENSIONS` constant remains unchanged.
+- `scan_github` is not wired into any other module in this task -- the CLI (P5.2) will
+  call it. No `__all__` export list exists in scanner.py so no changes needed there.
 
 ---
 
-### 3. CREATE tests/test_scanner.py
-- operation: CREATE
-- reason: Test coverage for scan_local() per project convention (every module gets a test file)
+### 3. MODIFY tests/test_scanner.py
+- operation: MODIFY
+- reason: Add a `TestScanGithub` test class covering success path, error paths,
+  and metadata fields.
+- anchor: `class TestScanLocal:` (line 11 -- add the new class AFTER the existing class)
 
 #### Imports / Dependencies
+Add these imports at the top of the test file, after the existing imports:
+```python
+import shutil
+from unittest.mock import MagicMock, patch
+```
+
+Final import block for tests/test_scanner.py:
 ```python
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.models import ScanError, ScanManifest
-from src.scanner import EXTEND_EXTENSIONS, scan_local
+from src.scanner import EXTEND_EXTENSIONS, scan_github, scan_local
 ```
 
-#### Test cases (all use `tmp_path: Path` pytest fixture -- no pre-created fixture files needed)
+#### Test Class: TestScanGithub
 
-**Class `TestScanLocal`:**
+Append after the last line of `TestScanLocal`:
 
-1. `test_nonexistent_path_raises_scan_error(tmp_path)`:
-   - Call `scan_local(tmp_path / "does_not_exist")`.
-   - Assert `pytest.raises(ScanError)` with match `"does not exist"`.
+```python
+class TestScanGithub:
+```
 
-2. `test_file_path_raises_scan_error(tmp_path)`:
-   - Create `f = tmp_path / "file.pmd"` and write any text to it.
-   - Call `scan_local(f)`.
-   - Assert `pytest.raises(ScanError)` with match `"not a directory"`.
+Tests to implement (each as a method):
 
-3. `test_empty_directory_returns_zero_total(tmp_path)`:
-   - Call `result = scan_local(tmp_path)`.
-   - Assert `result.total_count == 0`.
-   - Assert `result.root_path == tmp_path`.
-   - Assert `result.files_by_type == {"pmd": [], "pod": [], "script": [], "amd": [], "smd": []}`.
+1. **test_invalid_repo_format_raises_scan_error** (no slash):
+   - Call `scan_github("noslash", "main", "tok")` without mocking.
+   - Assert `ScanError` is raised with message matching `"Invalid repo format"`.
 
-4. `test_flat_directory_finds_all_extension_types(tmp_path)`:
-   - Create one file per extension in `tmp_path`:
-     `(tmp_path / "a.pmd").write_text("x")`, `(tmp_path / "b.pod").write_text("x")`,
-     `(tmp_path / "c.script").write_text("x")`, `(tmp_path / "d.amd").write_text("x")`,
-     `(tmp_path / "e.smd").write_text("x")`.
-   - Call `result = scan_local(tmp_path)`.
-   - Assert `result.total_count == 5`.
-   - Assert `len(result.files_by_type["pmd"]) == 1`.
-   - Assert `len(result.files_by_type["pod"]) == 1`.
-   - Assert `len(result.files_by_type["script"]) == 1`.
-   - Assert `len(result.files_by_type["amd"]) == 1`.
-   - Assert `len(result.files_by_type["smd"]) == 1`.
+2. **test_invalid_repo_empty_owner_raises_scan_error**:
+   - Call `scan_github("/repo", "main", "tok")`.
+   - Assert `ScanError` is raised with message matching `"Invalid repo format"`.
 
-5. `test_nested_directories_are_traversed(tmp_path)`:
-   - Create `sub = tmp_path / "level1" / "level2"` and call `sub.mkdir(parents=True)`.
-   - Create `(tmp_path / "top.pmd").write_text("x")`.
-   - Create `(sub / "deep.pmd").write_text("x")`.
-   - Call `result = scan_local(tmp_path)`.
-   - Assert `result.total_count == 2`.
-   - Assert `len(result.files_by_type["pmd"]) == 2`.
+3. **test_invalid_repo_empty_name_raises_scan_error**:
+   - Call `scan_github("owner/", "main", "tok")`.
+   - Assert `ScanError` is raised with message matching `"Invalid repo format"`.
 
-6. `test_non_extend_files_are_ignored(tmp_path)`:
-   - Create `(tmp_path / "readme.md").write_text("x")` and `(tmp_path / "config.json").write_text("{}")`.
-   - Create `(tmp_path / "app.pmd").write_text("x")`.
-   - Call `result = scan_local(tmp_path)`.
-   - Assert `result.total_count == 1`.
-   - Assert `len(result.files_by_type["pmd"]) == 1`.
+4. **test_git_clone_failure_raises_scan_error** (mock subprocess):
+   - Use `@patch("src.scanner.subprocess.run")` decorator.
+   - Configure mock to return `MagicMock(returncode=128, stderr="fatal: repo not found")`.
+   - Call `scan_github("owner/repo", "main", "tok")`.
+   - Assert `ScanError` is raised with message matching `"git clone failed"`.
+   - Assert message does NOT contain the token `"tok"`.
 
-7. `test_returns_scan_manifest_instance(tmp_path)`:
-   - Call `result = scan_local(tmp_path)`.
-   - Assert `isinstance(result, ScanManifest)`.
+5. **test_git_clone_timeout_raises_scan_error**:
+   - Use `@patch("src.scanner.subprocess.run")`.
+   - Configure mock `side_effect = subprocess.TimeoutExpired(cmd="git", timeout=120)`.
+   - Import `subprocess` in the test file for this.
+   - Call `scan_github("owner/repo", "main", "tok")`.
+   - Assert `ScanError` is raised with message matching `"timed out"`.
 
-8. `test_multiple_files_per_type(tmp_path)`:
-   - Create three `.pmd` files: `(tmp_path / "a.pmd").write_text("x")`, `(tmp_path / "b.pmd").write_text("x")`, `(tmp_path / "c.pmd").write_text("x")`.
-   - Call `result = scan_local(tmp_path)`.
-   - Assert `result.total_count == 3`.
-   - Assert `len(result.files_by_type["pmd"]) == 3`.
+6. **test_successful_clone_returns_manifest** (tmp_path fixture + mock subprocess):
+   - Use `@patch("src.scanner.subprocess.run")` and `@patch("src.scanner.scan_local")`.
+   - Configure subprocess mock: `MagicMock(returncode=0, stderr="")`.
+   - Configure scan_local mock: return a real `ScanManifest(root_path=tmp_path, files_by_type={"pmd": [], "pod": [], "script": [], "amd": [], "smd": []})`.
+   - Call `manifest = scan_github("owner/repo", "main", "mytoken")`.
+   - Assert `manifest.repo == "owner/repo"`.
+   - Assert `manifest.branch == "main"`.
+   - Assert `manifest.temp_dir is not None`.
+   - Assert `isinstance(manifest, ScanManifest)`.
+   - Clean up: `shutil.rmtree(manifest.temp_dir, ignore_errors=True)`.
 
-9. `test_extend_extensions_constant_contains_all_types()`:
-   - Assert `".pmd" in EXTEND_EXTENSIONS`.
-   - Assert `".pod" in EXTEND_EXTENSIONS`.
-   - Assert `".script" in EXTEND_EXTENSIONS`.
-   - Assert `".amd" in EXTEND_EXTENSIONS`.
-   - Assert `".smd" in EXTEND_EXTENSIONS`.
-   - Assert `len(EXTEND_EXTENSIONS) == 5`.
+7. **test_token_injected_into_clone_url**:
+   - Use `@patch("src.scanner.subprocess.run")` and `@patch("src.scanner.scan_local")`.
+   - Configure subprocess mock: `MagicMock(returncode=0)`.
+   - Configure scan_local mock: return minimal `ScanManifest(root_path=tmp_path)`.
+   - Call `scan_github("owner/repo", "main", "mytoken123")`.
+   - Capture `subprocess.run.call_args` and inspect `args[0]` (the command list).
+   - Assert `"https://mytoken123@github.com/owner/repo.git"` is in the command list.
+   - Clean up temp_dir via `shutil.rmtree`.
+
+8. **test_empty_token_uses_unauthenticated_url**:
+   - Same as above but pass `token=""`.
+   - Assert clone URL in command does NOT contain `@`.
+   - Assert `"https://github.com/owner/repo.git"` is in the command list.
+   - Clean up temp_dir.
+
+9. **test_temp_dir_set_on_manifest_and_exists_after_call**:
+   - Use `@patch("src.scanner.subprocess.run")` and `@patch("src.scanner.scan_local")`.
+   - Configure mocks for success.
+   - Call `manifest = scan_github("owner/repo", "main", "")`.
+   - Assert `manifest.temp_dir is not None`.
+   - Assert `manifest.temp_dir.exists()` is True (temp dir NOT cleaned up by scan_github).
+   - Clean up: `shutil.rmtree(manifest.temp_dir, ignore_errors=True)`.
+
+10. **test_scan_local_error_propagates_as_scan_error**:
+    - Use `@patch("src.scanner.subprocess.run")` and `@patch("src.scanner.scan_local")`.
+    - Configure subprocess mock for success.
+    - Configure scan_local mock `side_effect = ScanError("no Extend files")`.
+    - Call `scan_github("owner/repo", "main", "")`.
+    - Assert `ScanError` is raised with message `"no Extend files"`.
+    - Note: temp dir may be left behind in this case (caller never gets manifest).
+      This is acceptable for the current task scope; the OS will clean it up.
 
 ## Verification
-- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.scanner import scan_local; print('import ok')"`
-- lint: (no linter configured in pyproject.toml -- skip)
+- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.scanner import scan_github; print('import ok')"`
+- lint: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run ruff check src/scanner.py src/models.py tests/test_scanner.py` (skip if ruff not in pyproject.toml)
 - test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/test_scanner.py -v`
-- smoke: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from pathlib import Path; from src.scanner import scan_local; m = scan_local(Path('src')); print(m.total_count, m.files_by_type)"`
+- smoke:
+  1. Run `uv run python -c "from src.models import ScanManifest; m = ScanManifest(root_path=__import__('pathlib').Path('.')); print(m.repo, m.branch, m.temp_dir)"` and expect `None None None`.
+  2. Run `uv run pytest tests/test_scanner.py::TestScanGithub -v` and expect all 10 tests to pass.
+  3. Run `uv run pytest tests/test_scanner.py -v` and expect the full test suite (all TestScanLocal + TestScanGithub tests) to pass.
 
 ## Constraints
-- Do NOT add any new entries to `pyproject.toml` -- no new dependencies are needed
-- Do NOT modify `src/config.py`, `tests/test_models.py`, or `tests/test_config.py`
-- Do NOT create fixture files in `tests/fixtures/` -- all scanner tests use `tmp_path` (pytest built-in)
-- Do NOT use `os.walk()` -- use `Path.rglob("*")` exclusively
-- Do NOT store `total_count` as a field on ScanManifest -- it must be a `@property` to prevent drift
-- Do NOT catch broad exceptions in `scan_local` -- only raise `ScanError` for the two validated preconditions
-- The `files_by_type` dict in `scan_local` must pre-populate all five keys before the rglob loop so callers can always access `result.files_by_type["pmd"]` without a KeyError, even when no files of that type were found
+- Do NOT modify `IMPL_PLAN.md`, `CLAUDE.md`, or `ARCHITECTURE.md`.
+- Do NOT add any new third-party packages -- only use stdlib (`subprocess`, `tempfile`, `shutil`).
+- Do NOT modify `scan_local` -- only add `scan_github` after it.
+- Do NOT include the `clone_url` (which may contain the token) in any log message or error string.
+- Do NOT use `PyGithub` for the clone operation -- only `subprocess` + `git`.
+- Do NOT clean up the temp directory inside `scan_github` -- leave it in `manifest.temp_dir` for the caller.
+- Do NOT use `check=True` on the subprocess call -- parse returncode explicitly.
+- Do NOT add `from __future__ import annotations` -- it is already line 1 of scanner.py.
+- Preserve the existing `model_config = ConfigDict(frozen=True)` on `Finding` -- do NOT add frozen to `ScanManifest`.
+- The `ScanManifest` changes must be backward-compatible: all three new fields (`repo`, `branch`, `temp_dir`) must default to `None` so existing `scan_local` callers and existing tests are unaffected.

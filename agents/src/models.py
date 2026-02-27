@@ -95,6 +95,9 @@ class ScanManifest(BaseModel):
 
     root_path: Path
     files_by_type: dict[str, list[Path]] = Field(default_factory=dict)
+    repo: str | None = None
+    branch: str | None = None
+    temp_dir: Path | None = None
 
     @property
     def total_count(self) -> int:
