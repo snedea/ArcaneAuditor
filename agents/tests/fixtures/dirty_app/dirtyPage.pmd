@@ -21,9 +21,8 @@
       "type": "footer",
       "children": [
         {
-          "type": "richText",
-          "id": "footerText",
-          "value": "Footer"
+          "type": "pod",
+          "id": "footerPod"
         }
       ]
     }
