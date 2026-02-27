@@ -1,8 +1,8 @@
-# Arcane Auditor Agent System
+# Arcane Auditor CLI
 
-Autonomous agent wrapper for [Arcane Auditor](../README.md) that scans Workday Extend repos, runs the 42 deterministic rules, reports findings, and applies fixes.
+Automation wrapper for [Arcane Auditor](../README.md) that scans Workday Extend repos, runs the 42 deterministic rules, reports findings, and applies fixes.
 
-The LLM never judges code quality. The 42 rules do that. The LLM is plumbing -- it finds files, invokes the tool, formats output, and applies fix templates.
+**No LLM is used at runtime.** This is a deterministic CLI tool -- regex, JSON parsing, subprocess calls, and string formatting. An LLM ([Context Foundry](https://github.com/context-foundry/context-foundry)) wrote the code, but the code itself never calls one. There are zero AI/ML dependencies in `pyproject.toml`.
 
 ## Prerequisites
 
@@ -97,21 +97,38 @@ uv run python -m src tests/fixtures/clean_app --format summary
 | 2 | Usage error -- bad arguments or config |
 | 3 | Runtime error -- tool crashed |
 
+## Scanning vs Fixing
+
+The `scan` command is **read-only**. It analyzes your code and reports findings. It never modifies files.
+
+```bash
+# Read-only -- reports findings, touches nothing
+uv run python -m src /path/to/app --format summary
+```
+
+The `fix` command (Phase 7, not yet implemented) will be a **separate opt-in command**. When it ships, it will have three safeguards:
+
+1. **No LLM involved.** Fixes are deterministic regex/JSON transforms (see Fix Templates below). Same input always produces the same output.
+2. **Writes to a separate directory, not in-place.** Original source files are never modified.
+3. **Human review required.** The `--create-pr` flag pushes fixes to a branch and opens a PR. A developer reviews and merges (or doesn't).
+
+If you don't trust automated fixes, just use `scan`. The fix path is entirely optional.
+
 ## Fix Templates
 
-The agent includes 6 deterministic fix templates that auto-correct HIGH-confidence findings:
+The tool includes 6 deterministic fix templates. These are pure Python -- regex pattern matching and JSON manipulation. No LLM, no API calls, no inference. Given the same input, they produce the same output every time.
 
 **Script fixes:**
-- `VarToLetConst` -- replaces `var` with `let` or `const` (uses mutation analysis)
-- `RemoveConsoleLog` -- removes `console.log/warn/error` calls
+- `VarToLetConst` -- replaces `var` with `let` or `const` (uses mutation analysis via regex)
+- `RemoveConsoleLog` -- removes `console.log/warn/error` lines
 - `TemplateLiteralFix` -- converts string concatenation to template literals
 
 **Structure fixes:**
 - `LowerCamelCaseWidgetId` -- converts widget IDs to lowerCamelCase
 - `LowerCamelCaseEndpointName` -- converts endpoint names to lowerCamelCase
-- `AddFailOnStatusCodes` -- adds missing `failOnStatusCodes` to endpoints
+- `AddFailOnStatusCodes` -- adds missing `failOnStatusCodes` to endpoints (JSON parsing)
 
-Fix templates are applied via the `fixer` module. Only HIGH-confidence fixes are auto-applied; MEDIUM and LOW are reported as suggestions. The `fix` CLI command is not yet wired up (Phase 7).
+Only **HIGH-confidence** templates are applied. If a template can't be certain the transform is safe, it returns `None` and the finding is skipped. MEDIUM and LOW confidence findings are reported as suggestions for a human to address.
 
 ## Adding a Fix Template
 
