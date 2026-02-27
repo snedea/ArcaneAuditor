@@ -3,58 +3,56 @@
 ## Verdict: FAIL
 
 ## Runtime Checks
-- Build: PASS (`uv run python -m py_compile src/scanner.py src/models.py` — no errors)
-- Tests: PASS (19/19 passed, `uv run pytest tests/test_scanner.py -v`)
-- Lint: PASS (`uv run ruff check` — all checks passed)
-- Docker: SKIPPED (no compose files changed in this task)
+- Build: PASS (`uv run python -m py_compile src/scanner.py` — syntax ok)
+- Tests: PASS (19/19 passed — 9 TestScanLocal + 10 TestScanGithub)
+- Lint: PASS (`uv run ruff check src/scanner.py` — all checks passed)
+- Docker: SKIPPED (no Docker files changed in this task)
 
 ## Findings
 
 ```json
 {
-  "high": [
+  "high": [],
+  "medium": [
     {
       "file": "src/scanner.py",
-      "line": 100,
-      "issue": "Shell injection via unescaped token in GIT_ASKPASS script. The token is embedded directly in a shell script using single-quote delimiters: `f.write(f\"echo '{token}'\\n\")`. A token containing a single quote breaks out of the quoted context and injects arbitrary shell commands. Example: token='x\\'; cat /etc/passwd; echo \\'' produces `echo 'x'; cat /etc/passwd; echo ''` in the script. This allows arbitrary code execution if the token value is attacker-controlled (e.g., via a malicious config file). Fix: use shlex.quote(token) or set the token in the script via an exported shell variable with a heredoc so the value is never interpreted as shell syntax.",
-      "category": "security"
+      "line": 96,
+      "issue": "tempfile.mkstemp() is called at line 96 and tempfile.mkdtemp() at line 105, both BEFORE the try: block that starts at line 106. The except OSError handler at line 127 can only catch OSErrors raised inside the try block. If /tmp is full, /tmp permissions are wrong, or any other OS-level failure occurs in mkstemp or mkdtemp, the exception propagates as a raw OSError -- not ScanError. Any caller that follows the documented contract (catching ScanError for all failure modes) will experience an unhandled exception and crash. The plan's error-handling spec says 'OSError -> ScanError' but the current try-block placement only covers the subprocess.run call, not the tempfile allocation calls.",
+      "category": "crash"
     }
   ],
-  "medium": [],
   "low": [
     {
       "file": "src/scanner.py",
       "line": 99,
-      "issue": "GIT_ASKPASS script returns the token unconditionally regardless of what git is prompting for (username vs. password). Git calls the askpass binary twice — once with a 'Username for ...' prompt and once with a 'Password for ...' prompt. The script always echoes the token. For GitHub this happens to work because GitHub ignores the username field when a valid PAT is supplied as the password, but this behavior is GitHub-specific. For GitLab, Bitbucket, or self-hosted Gitea instances, authentication may fail silently. No test covers a non-GitHub host.",
-      "category": "api-contract"
-    },
-    {
-      "file": "src/scanner.py",
-      "line": 104,
-      "issue": "The temporary clone directory (tmp_path) is not cleaned up when git clone fails (returncode != 0) or when scan_local raises ScanError. The docstring documents this as intentional. However, the agent is explicitly intended to run in a Context Foundry loop (CLAUDE.md) that may scan many failing repos in rapid succession. On that code path, /tmp will accumulate arcane_auditor_* directories indefinitely — each being a full shallow clone that could be hundreds of MB. The OS does not reclaim /tmp between loop iterations on Linux systems that mount /tmp as tmpfs with a fixed size. This is a documented design choice but the practical impact in a loop context is more serious than the plan acknowledges.",
-      "category": "resource-leak"
-    },
-    {
-      "file": "src/scanner.py",
-      "line": 87,
-      "issue": "Plan-vs-implementation inconsistency: the plan's final import block for scanner.py included `import shutil`, but the implementation correctly omits it (shutil is unused inside scanner.py). Separately, the plan specified building the clone URL as `https://{token}@github.com/{repo}.git` (plan lines 114-117), but the implementation diverged to use GIT_ASKPASS (a security improvement). The test class name changed from test_token_injected_into_clone_url to test_token_passed_via_askpass_not_in_url. These deviations are improvements, but the plan was not updated to reflect them, creating a gap if a future agent re-reads the plan.",
+      "issue": "The GIT_ASKPASS script ignores its $1 argument (the prompt string from git) and always echoes $GIT_TOKEN regardless of whether git is asking for a username or password. The correct pattern checks $1: return 'x-access-token' for a Username prompt and the token for a Password prompt. The current behavior works for GitHub PAT auth in practice (GitHub validates the password/token and ignores the username), but is non-standard and could fail with stricter host configurations or future git versions that validate the username more strictly.",
       "category": "inconsistency"
+    },
+    {
+      "file": "src/scanner.py",
+      "line": 95,
+      "issue": "token.strip() is evaluated for the truthy check at line 95, but the original unstripped token value is written to env[\"GIT_TOKEN\"] at line 103. A token with leading or trailing whitespace would pass the truthy check but include the whitespace when passed to git via the askpass script, likely causing auth failure.",
+      "category": "inconsistency"
+    },
+    {
+      "file": "tests/test_scanner.py",
+      "line": 99,
+      "issue": "Three failure-path tests (test_git_clone_failure_raises_scan_error at line 99, test_git_clone_timeout_raises_scan_error at line 106, test_scan_local_error_propagates_as_scan_error at line 164) do not mock tempfile.mkdtemp. Each test run creates a real directory in /tmp via mkdtemp that is never removed (ScanError is raised before a manifest is returned, so the caller has no temp_dir to clean up). This is consistent with the documented design limitation but pollutes /tmp across test runs.",
+      "category": "resource-leak"
     }
   ],
   "validated": [
-    "All 19 tests pass, including 10 new TestScanGithub tests and 9 pre-existing TestScanLocal tests.",
-    "Ruff finds zero lint issues across scanner.py, models.py, and test_scanner.py.",
-    "ScanManifest gains repo/branch/temp_dir fields with None defaults — backward-compatible with all existing scan_local callers and tests.",
-    "scan_github correctly raises ScanError with message 'Invalid repo format' for noslash, /repo, and owner/ inputs (no mocking needed — validated without network).",
-    "Token does NOT appear in subprocess argv — the clone URL is always the unauthenticated form https://github.com/owner/repo.git; GIT_ASKPASS carries the credential.",
-    "GIT_TERMINAL_PROMPT=0 is set, preventing interactive prompts if askpass fails.",
-    "askpass temp file is always deleted in the finally block (missing_ok=True handles the case where creation failed) — no askpass file leaks.",
-    "askpass file is created with mkstemp (0600) then chmod'd to 0700 (S_IRWXU) — owner-only read/write/execute, correct for an askpass script.",
-    "result.stderr is stripped before inclusion in the ScanError message — clone_url (which never contains the token in this implementation) is not included in errors.",
-    "ScanManifest is mutable (no frozen ConfigDict) — manifest.repo = repo / manifest.branch = branch / manifest.temp_dir = tmp_path attribute assignments are valid in Pydantic v2.",
-    "subprocess.run is called with check=False and timeout=120 per the project convention in CLAUDE.md.",
-    "from __future__ import annotations is present as line 1 in all three changed files.",
-    "scan_local is not modified — only scan_github is appended after it."
+    "All 19 tests pass: 9 TestScanLocal and all 10 TestScanGithub tests specified in the plan are present and passing",
+    "Token never appears in the git clone URL (clone_url uses plain https://github.com/{repo}.git) or in the ScanError message on clone failure",
+    "GIT_TERMINAL_PROMPT=0 is set in env to prevent git from hanging on interactive credential prompts",
+    "GIT_ASKPASS temp script is cleaned up unconditionally in the finally block (line 129-131) on all code paths",
+    "ScanManifest.repo, .branch, and .temp_dir are all set before returning the manifest (lines 118-120)",
+    "ScanManifest is mutable in Pydantic v2 (no frozen=True in models.py), so direct attribute assignment at lines 118-120 is valid",
+    "subprocess.run uses capture_output=True, text=True, check=False, timeout=120 matching the project convention in CLAUDE.md",
+    "P2.2 is correctly marked [x] in IMPL_PLAN.md line 14",
+    "No new imports or dependencies added beyond stdlib (os, stat, subprocess, tempfile, pathlib) -- pyproject.toml unchanged",
+    "scan_local ScanError propagates unchanged via except ScanError: raise (line 123-124)",
+    "subprocess.TimeoutExpired is converted to ScanError with 'timed out' in the message (line 125-126)"
   ]
 }
 ```

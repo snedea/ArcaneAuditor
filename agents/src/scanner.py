@@ -97,9 +97,10 @@ def scan_github(repo: str, branch: str, token: str) -> ScanManifest:
         askpass_path = Path(askpass_str)
         with os.fdopen(askpass_fd, "w") as f:
             f.write("#!/bin/sh\n")
-            f.write(f"echo '{token}'\n")
+            f.write("printf '%s\\n' \"$GIT_TOKEN\"\n")
         askpass_path.chmod(stat.S_IRWXU)
         env["GIT_ASKPASS"] = str(askpass_path)
+        env["GIT_TOKEN"] = token
 
     tmp_path = Path(tempfile.mkdtemp(prefix="arcane_auditor_"))
     try:
