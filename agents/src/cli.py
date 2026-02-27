@@ -17,6 +17,7 @@ from typing import Any, Optional
 
 import typer
 from github import Auth, Github, GithubException
+from requests.exceptions import RequestException
 from typer.core import TyperGroup
 
 from src.config import load_config
@@ -443,7 +444,7 @@ def _list_open_prs(repo: str, token: str) -> list[tuple[int, str]]:
             repo_obj = gh.get_repo(repo)
             pulls = repo_obj.get_pulls(state="open", sort="created", direction="desc")
             return [(pr.number, pr.head.ref) for pr in pulls]
-    except GithubException as exc:
+    except (GithubException, RequestException) as exc:
         raise WatchError(f"GitHub API error listing PRs for {repo!r}: {exc}") from exc
 
 
