@@ -1,13 +1,12 @@
-# Review Report — P5.2
+# Review Report — P5.3
 
 ## Verdict: PASS
 
 ## Runtime Checks
-- Build: PASS (`from src.cli import app` imports cleanly)
-- Tests: PASS (168 passed, 0 failed)
-- Lint: PASS (`ruff check src/` reports all checks passed)
-- Docker: SKIPPED (no Docker files changed or present in agents/)
-- Smoke: PASS (`arcane-agent scan --help` shows PATH, --repo, --pr, --format, --output, --config, --quiet)
+- Build: PASS (uv sync -- no new dependencies, existing env valid)
+- Tests: PASS (35/35 passed in 3.39s)
+- Lint: SKIPPED (no linter configured per plan constraints)
+- Docker: SKIPPED (no Docker files changed)
 
 ## Findings
 
@@ -17,50 +16,31 @@
   "medium": [],
   "low": [
     {
-      "file": "src/cli.py",
-      "line": 55,
-      "issue": "Parameter `format` shadows Python built-in `format()`. Plan note for item 6 advised using `report_fmt` instead. Not caught by ruff because A002 is not enabled (Known Pattern #10). No runtime impact since the built-in is never called in this function.",
+      "file": "tests/test_cli.py",
+      "line": 417,
+      "issue": "Inconsistent result.stdout vs result.output within TestIntegrationLocalScan. Lines 417 and 424 use result.stdout (pure stdout in Click 8.2+) while lines 431 and 437 use result.output (mixed stdout+stderr interleaved stream). Both are correct for their respective assertions but the inconsistency is unexplained and could confuse a future reader about which attribute to use.",
       "category": "style"
     },
     {
-      "file": "src/cli.py",
-      "line": 105,
-      "issue": "Type mismatch: `repo` is `Optional[str]` but `scan_github(repo: str, ...)` expects `str`. Runtime-safe because the guard at lines 71-73 guarantees `repo is not None` when `path is None`. However mypy would flag this. No cast or assert is present.",
-      "category": "api-contract"
-    },
-    {
-      "file": "src/cli.py",
-      "line": 121,
-      "issue": "Type mismatch: `repo: Optional[str]` passed to `format_github_issues(..., repo: str, ...)`. Runtime-safe because line 83-85 guards this path. Same pattern as line 105.",
-      "category": "api-contract"
-    },
-    {
-      "file": "src/cli.py",
-      "line": 124,
-      "issue": "Type mismatch: `repo: Optional[str]` and `pr: Optional[int]` passed to `format_pr_comment(..., repo: str, pr_number: int, ...)`. Runtime-safe because lines 87-93 guard both. Same pattern.",
-      "category": "api-contract"
+      "file": "tests/test_cli.py",
+      "line": 6,
+      "issue": "Plan specified inserting 'import json' between 'import pytest' and 'from typer.testing import CliRunner' (i.e., in the third-party section). Implementation correctly placed it in the stdlib section between 'from datetime...' and 'from pathlib...', which is actually more correct. Minor plan/implementation spec divergence; no runtime impact.",
+      "category": "inconsistency"
     }
   ],
   "validated": [
-    "All 8 P5.2 requirements confirmed present in src/cli.py at the expected anchor text",
-    "Req 1: scan_local dispatch (cli.py:102-103)",
-    "Req 2: scan_github dispatch (cli.py:104-105)",
-    "Req 3: --pr without --repo exits code 2 (cli.py:79-81)",
-    "Req 4: run_audit(manifest, agent_config) called (cli.py:111)",
-    "Req 5: shutil.rmtree(manifest.temp_dir) in finally block (cli.py:115-117)",
-    "Req 6: Dispatch to report_findings / format_github_issues / format_pr_comment (cli.py:119-129)",
-    "Req 7: output.write_text(formatted) when --output given, typer.echo otherwise (cli.py:131-136)",
-    "Req 8: raise typer.Exit(code=int(scan_result.exit_code)) as final statement (cli.py:138)",
-    "IMPL_PLAN.md P5.2 correctly flipped from [ ] to [x] -- only change was that single character pair",
-    "Known Pattern #2 verified: runner.py subprocess cwd is auditor_path (project root), scan target is a positional argument, not cwd",
-    "Known Pattern #3 verified: reporter.py:405 appends blank line after </summary> before table header -- compliant",
-    "Known Pattern #9 noted: _parse_json_output uses raw_decode with stdout.find('{'); flagged in a prior build cycle, not in P5.2 scope",
-    "Known Pattern #10: format parameter shadowing present in both cli.py:55 and reporter.py:17 -- not runtime-impacting",
-    "temp_dir cleanup: finally block at cli.py:115-117 runs correctly on both success and RunnerError; only skipped on ScanError (before second try block is entered)",
-    "scan_github token handling: empty string correctly bypasses ASKPASS setup in scanner.py:95",
-    "_FORMAT_MAP covers all five CliFormat values; else branch at cli.py:126 only reached by JSON/SARIF/SUMMARY which are all present in the map -- no KeyError possible",
-    "168 existing tests pass; no regressions introduced",
-    "Smoke test confirms all documented flags appear in --help output"
+    "All 35 tests pass: 26 pre-existing + 9 new (6 in TestIntegrationLocalScan, 3 in TestHelp)",
+    "AUDITOR_PATH = Path(__file__).parent.parent.parent correctly resolves to ArcaneAuditor/ (contains main.py)",
+    "All fixture paths use Path(__file__).parent -- no os.getcwd() or bare string literals",
+    "Plan required CliRunner(mix_stderr=False) for JSON tests; this parameter does not exist in Click 8.3.1 / Typer 0.24.1 (raises TypeError). Builder correctly omitted it and substituted result.stdout (pure stdout in Click 8.2+) which achieves the same JSON isolation goal. No bug.",
+    "result.stdout in Click 8.3.1 returns decoded stdout_bytes only; result.output returns interleaved stdout+stderr. JSON tests use result.stdout (correct). Summary tests use result.output (correct -- typer.echo(formatted) writes to stdout which is in the mixed stream, and containment checks work).",
+    "env={'ARCANE_AUDITOR_PATH': str(AUDITOR_PATH)} in runner.invoke(): Click's isolation context patches os.environ for the duration of the call; subprocess.run() in runner.py inherits the patched os.environ. Config correctly reads ARCANE_AUDITOR_PATH from env (config.py:67). Wire-up is correct.",
+    "No duplicate test_pr_without_repo_exits_2 added -- pre-existing test at line 78 was preserved intact.",
+    "Module-level runner = CliRunner() not redefined; 9 new tests split correctly between module-level runner and method-local invocations.",
+    "Error messages in TestArgumentValidation use result.output (mixed stream) which includes stderr. _error() calls typer.echo(..., err=True), writing to stderr. result.output in Click 8.2+ includes stderr, so containment assertions are correct.",
+    "test_scan_format_json_output_has_required_keys checks parsed.keys() >= {'repo','timestamp','findings_count','findings','exit_code'} -- the >= (superset) operator is correct for this assertion. The JSON does contain exactly these 5 keys (action_count and advice_count are @property computed fields excluded from model_dump per Pydantic v2 behavior; test correctly does not assert their presence or absence).",
+    "TestHelp tests invoke app with ['--help']. With a single @app.command() decorator, Typer exposes the scan command directly at app level. --help shows scan options including --format. Confirmed by test passing.",
+    "import json correctly placed in stdlib section alongside other stdlib imports."
   ]
 }
 ```

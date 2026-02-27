@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,6 +14,10 @@ from src.cli import app
 from src.models import AgentConfig, ExitCode, ScanManifest, ScanResult
 
 runner = CliRunner()
+FIXTURES_DIR: Path = Path(__file__).parent / "fixtures"
+CLEAN_APP_FIXTURE: Path = FIXTURES_DIR / "clean_app"
+DIRTY_APP_FIXTURE: Path = FIXTURES_DIR / "dirty_app"
+AUDITOR_PATH: Path = Path(__file__).parent.parent.parent  # resolves to ArcaneAuditor/ containing main.py
 
 
 def _make_config(tmp_path: Path) -> AgentConfig:
@@ -386,3 +391,70 @@ class TestConfigPreset:
 
         called_config: AgentConfig = mock_audit.call_args[0][1]
         assert called_config.config_preset == "production-ready"
+
+
+# ---------------------------------------------------------------------------
+# Integration tests -- real fixture paths, real parent tool
+# ---------------------------------------------------------------------------
+
+
+class TestIntegrationLocalScan:
+
+    def test_scan_clean_fixture_exits_0(self) -> None:
+        """Real clean_app fixture scan exits with code 0 (CLEAN)."""
+        result = runner.invoke(app, [str(CLEAN_APP_FIXTURE)], env={"ARCANE_AUDITOR_PATH": str(AUDITOR_PATH)})
+        assert result.exit_code == 0
+
+    def test_scan_dirty_fixture_exits_1(self) -> None:
+        """Real dirty_app fixture scan exits with code 1 (ISSUES_FOUND)."""
+        result = runner.invoke(app, [str(DIRTY_APP_FIXTURE)], env={"ARCANE_AUDITOR_PATH": str(AUDITOR_PATH)})
+        assert result.exit_code == 1
+
+    def test_scan_format_json_produces_valid_json(self) -> None:
+        """Real scan with --format json produces parseable JSON on stdout."""
+        result = runner.invoke(app, [str(CLEAN_APP_FIXTURE), "--format", "json", "--quiet"], env={"ARCANE_AUDITOR_PATH": str(AUDITOR_PATH)})
+        assert result.exit_code == 0
+        parsed = json.loads(result.stdout)
+        assert isinstance(parsed, dict)
+
+    def test_scan_format_json_output_has_required_keys(self) -> None:
+        """JSON stdout contains the required top-level keys."""
+        result = runner.invoke(app, [str(CLEAN_APP_FIXTURE), "--format", "json", "--quiet"], env={"ARCANE_AUDITOR_PATH": str(AUDITOR_PATH)})
+        assert result.exit_code == 0
+        parsed = json.loads(result.stdout)
+        assert parsed.keys() >= {"repo", "timestamp", "findings_count", "findings", "exit_code"}
+
+    def test_scan_format_summary_produces_text_output(self) -> None:
+        """Real scan with --format summary produces text containing 'Arcane Auditor'."""
+        result = runner.invoke(app, [str(CLEAN_APP_FIXTURE), "--format", "summary", "--quiet"], env={"ARCANE_AUDITOR_PATH": str(AUDITOR_PATH)})
+        assert result.exit_code == 0
+        assert "Arcane Auditor" in result.output
+
+    def test_scan_format_summary_contains_total_findings_line(self) -> None:
+        """Summary output contains a 'Total findings:' line."""
+        result = runner.invoke(app, [str(CLEAN_APP_FIXTURE), "--format", "summary", "--quiet"], env={"ARCANE_AUDITOR_PATH": str(AUDITOR_PATH)})
+        assert result.exit_code == 0
+        assert "Total findings:" in result.output
+
+
+# ---------------------------------------------------------------------------
+# --help flag
+# ---------------------------------------------------------------------------
+
+
+class TestHelp:
+
+    def test_help_exits_0(self) -> None:
+        """--help exits with code 0."""
+        result = runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+
+    def test_help_output_contains_usage(self) -> None:
+        """--help output contains 'Usage'."""
+        result = runner.invoke(app, ["--help"])
+        assert "Usage" in result.output
+
+    def test_help_output_contains_format_option(self) -> None:
+        """--help output lists the --format option."""
+        result = runner.invoke(app, ["--help"])
+        assert "--format" in result.output
