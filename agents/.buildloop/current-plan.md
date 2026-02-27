@@ -1,144 +1,128 @@
-# Plan: P2.4
+# Plan: P3.1
 
 ## Dependencies
-- list: []
-- commands: []
-  (No new dependencies. pytest is already in dev group; all imports are stdlib + existing project modules.)
-
-## Pre-flight: Assess Existing Coverage
-
-`tests/test_scanner.py` already exists with substantial `TestScanLocal` and `TestScanGithub` coverage.
-The following P2.4 requirements are ALREADY covered by existing tests -- do NOT rewrite or duplicate them:
-
-| Existing test | Covers |
-|---|---|
-| `test_empty_directory_returns_zero_total` | empty directory graceful handling |
-| `test_flat_directory_finds_all_extension_types` | all 5 extension types found (via tmp_path) |
-| `test_non_extend_files_are_ignored` | .md and .json ignored (via tmp_path) |
-| `test_multiple_files_per_type` | correct count returned |
-
-The following requirements are NOT yet covered and must be added:
-1. `scan_local` against the real `tests/fixtures/clean_app/` directory -- exact file counts
-2. `scan_local` against the real `tests/fixtures/dirty_app/` directory -- exact file counts
-3. `.js` files explicitly ignored (task description names .js specifically)
-4. `.py` files explicitly ignored (task description names .py specifically)
+- list: [] (no new packages -- uses stdlib json, subprocess, logging only)
+- commands: [] (no install commands required)
 
 ## File Operations (in execution order)
 
-### 1. MODIFY tests/test_scanner.py
-- operation: MODIFY
-- reason: Add 4 missing tests: fixture-based scan tests for both clean_app and dirty_app, and explicit .js/.py exclusion tests
-- anchor: `    def test_extend_extensions_constant_contains_all_types(self) -> None:`
-  (This is the last method in `TestScanLocal`. New tests are appended after it, before the `TestScanGithub` class.)
+### 1. CREATE src/runner.py
+- operation: CREATE
+- reason: Implements run_audit() to invoke the parent Arcane Auditor subprocess and parse its JSON output into ScanResult
 
 #### Imports / Dependencies
-No new imports needed. `Path` is already imported. `pytest` is already imported.
+- `from __future__ import annotations`
+- `import json`
+- `import logging`
+- `import subprocess`
+- `from pathlib import Path`
+- `from pydantic import ValidationError`
+- `from src.models import AgentConfig, ExitCode, Finding, RunnerError, ScanManifest, ScanResult`
 
-#### Fixture Path Constants
-Add two module-level constants immediately after the existing imports block (after line 12, before `class TestScanLocal`):
+#### Structs / Types (if applicable)
+- None (all models already defined in src/models.py)
 
-```python
-FIXTURES_DIR: Path = Path(__file__).parent / "fixtures"
-CLEAN_APP_FIXTURE: Path = FIXTURES_DIR / "clean_app"
-DIRTY_APP_FIXTURE: Path = FIXTURES_DIR / "dirty_app"
-```
-
-Rationale: using `Path(__file__).parent` ensures paths resolve correctly regardless of which directory pytest is invoked from.
+#### Module-level
+- `logger = logging.getLogger(__name__)`
 
 #### Functions
 
-- signature: `def test_clean_app_fixture_has_expected_artifact_counts(self) -> None:`
-  - purpose: Verify scan_local on the real clean_app fixture returns exactly 3 files across pmd/pod/script with zero amd/smd
+**Function 1:**
+- signature: `def run_audit(scan_manifest: ScanManifest, config: AgentConfig) -> ScanResult`
+  - purpose: Invoke Arcane Auditor on the manifest's root_path, parse JSON output, return ScanResult
   - logic:
-    1. Call `scan_local(CLEAN_APP_FIXTURE)` and assign to `result`
-    2. Assert `result.total_count == 3`
-    3. Assert `len(result.files_by_type["pmd"]) == 1`
-    4. Assert `len(result.files_by_type["pod"]) == 1`
-    5. Assert `len(result.files_by_type["script"]) == 1`
-    6. Assert `len(result.files_by_type["amd"]) == 0`
-    7. Assert `len(result.files_by_type["smd"]) == 0`
-  - calls: `scan_local(CLEAN_APP_FIXTURE)`
-  - returns: `None`
-  - error handling: none -- if the fixture doesn't exist, the test will raise ScanError and fail with a clear message
+    1. Resolve `auditor_path = config.auditor_path.resolve()`
+    2. Build `cmd: list[str] = ["uv", "run", "main.py", "review-app", str(scan_manifest.root_path), "--format", "json", "--quiet"]`
+    3. Log at DEBUG: `logger.debug("run_audit: path=%s auditor=%s", scan_manifest.root_path, auditor_path)`
+    4. Enter a try/except block:
+       - Call `result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=300, cwd=auditor_path)`
+       - Catch `subprocess.TimeoutExpired`: raise `RunnerError(f"Arcane Auditor timed out after 300 seconds for path: {scan_manifest.root_path}")`
+       - Catch `OSError as exc`: raise `RunnerError(f"Failed to invoke Arcane Auditor subprocess: {exc}") from exc`
+    5. Log at DEBUG: `logger.debug("run_audit: returncode=%d stdout_len=%d stderr_len=%d", result.returncode, len(result.stdout), len(result.stderr))`
+    6. If `result.returncode == ExitCode.USAGE_ERROR` (value 2): raise `RunnerError(f"Arcane Auditor usage error (exit 2) for path '{scan_manifest.root_path}': {(result.stdout.strip() or result.stderr.strip())[:500]}")`
+    7. If `result.returncode == ExitCode.RUNTIME_ERROR` (value 3): raise `RunnerError(f"Arcane Auditor runtime error (exit 3) for path '{scan_manifest.root_path}': {(result.stderr.strip() or result.stdout.strip())[:500]}")`
+    8. If `result.returncode not in (ExitCode.CLEAN, ExitCode.ISSUES_FOUND)` (i.e., not 0 or 1): raise `RunnerError(f"Arcane Auditor returned unexpected exit code {result.returncode} for path '{scan_manifest.root_path}'")`
+    9. Call `data = _parse_json_output(result.stdout, scan_manifest.root_path)` (see Function 2 below)
+    10. Call `findings = _build_findings(data, scan_manifest.root_path)` (see Function 3 below)
+    11. Set `exit_code = ExitCode(result.returncode)`
+    12. Set `repo = scan_manifest.repo if scan_manifest.repo is not None else str(scan_manifest.root_path)`
+    13. Return `ScanResult(repo=repo, findings_count=len(findings), findings=findings, exit_code=exit_code)`
+  - calls:
+    - `subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=300, cwd=auditor_path)`
+    - `_parse_json_output(result.stdout, scan_manifest.root_path)`
+    - `_build_findings(data, scan_manifest.root_path)`
+  - returns: `ScanResult`
+  - error handling:
+    - `subprocess.TimeoutExpired` -> raise `RunnerError`
+    - `OSError` -> raise `RunnerError`
+    - exit code 2 -> raise `RunnerError`
+    - exit code 3 -> raise `RunnerError`
+    - any unexpected exit code -> raise `RunnerError`
+    - JSON parse failure (from `_parse_json_output`) -> `RunnerError` propagates
+    - Pydantic validation failure (from `_build_findings`) -> `RunnerError` propagates
 
-- signature: `def test_clean_app_fixture_paths_are_absolute(self) -> None:`
-  - purpose: Verify that paths in files_by_type are Path objects pointing to real files
+**Function 2:**
+- signature: `def _parse_json_output(stdout: str, path: Path) -> dict`
+  - purpose: Extract and parse the JSON object from noisy stdout (parent tool emits non-JSON lines even with --quiet)
   - logic:
-    1. Call `scan_local(CLEAN_APP_FIXTURE)` and assign to `result`
-    2. For each path in `result.files_by_type["pmd"]`: assert `p.is_file()` is True
-    3. For each path in `result.files_by_type["pod"]`: assert `p.is_file()` is True
-    4. For each path in `result.files_by_type["script"]`: assert `p.is_file()` is True
-  - calls: `scan_local(CLEAN_APP_FIXTURE)`
-  - returns: `None`
-  - error handling: none
+    1. Find first `{` with `idx = stdout.find("{")`
+    2. If `idx == -1`: raise `RunnerError(f"No JSON found in Arcane Auditor stdout for path '{path}'. stdout snippet: {stdout[:300]!r}")`
+    3. Create `decoder = json.JSONDecoder()`
+    4. Try: `data, _ = decoder.raw_decode(stdout, idx)`
+    5. Catch `json.JSONDecodeError as exc`: raise `RunnerError(f"Failed to parse Arcane Auditor JSON output for path '{path}': {exc}") from exc`
+    6. If `not isinstance(data, dict)`: raise `RunnerError(f"Arcane Auditor JSON output is not an object for path '{path}'")`
+    7. Return `data`
+  - calls: `json.JSONDecoder().raw_decode(stdout, idx)`
+  - returns: `dict` -- the parsed JSON object (expected keys: "summary", "findings")
+  - error handling:
+    - No `{` in stdout -> raise `RunnerError`
+    - `json.JSONDecodeError` -> raise `RunnerError`
+    - Parsed value is not a dict -> raise `RunnerError`
 
-- signature: `def test_dirty_app_fixture_has_expected_artifact_counts(self) -> None:`
-  - purpose: Verify scan_local on the real dirty_app fixture returns exactly 3 files across pmd/pod/script
+**Function 3:**
+- signature: `def _build_findings(data: dict, path: Path) -> list[Finding]`
+  - purpose: Validate and construct Finding models from the parsed JSON data
   - logic:
-    1. Call `scan_local(DIRTY_APP_FIXTURE)` and assign to `result`
-    2. Assert `result.total_count == 3`
-    3. Assert `len(result.files_by_type["pmd"]) == 1`
-    4. Assert `len(result.files_by_type["pod"]) == 1`
-    5. Assert `len(result.files_by_type["script"]) == 1`
-    6. Assert `len(result.files_by_type["amd"]) == 0`
-    7. Assert `len(result.files_by_type["smd"]) == 0`
-  - calls: `scan_local(DIRTY_APP_FIXTURE)`
-  - returns: `None`
-  - error handling: none
-
-- signature: `def test_js_files_are_ignored(self, tmp_path: Path) -> None:`
-  - purpose: Verify .js files are not collected (task description explicitly names .js as a non-Extend type to test)
-  - logic:
-    1. Write `(tmp_path / "app.js").write_text("console.log('hello')")`
-    2. Write `(tmp_path / "utils.js").write_text("function foo() {}")`
-    3. Write `(tmp_path / "valid.pmd").write_text("x")` -- one Extend file so total_count tests for exact value
-    4. Call `scan_local(tmp_path)` and assign to `result`
-    5. Assert `result.total_count == 1`
-    6. Assert `len(result.files_by_type["pmd"]) == 1`
-    7. Verify no .js path appears in any files_by_type list: `assert not any(p.suffix == ".js" for paths in result.files_by_type.values() for p in paths)`
-  - calls: `scan_local(tmp_path)`
-  - returns: `None`
-  - error handling: none
-
-- signature: `def test_py_files_are_ignored(self, tmp_path: Path) -> None:`
-  - purpose: Verify .py files are not collected (task description explicitly names .py as a non-Extend type to test)
-  - logic:
-    1. Write `(tmp_path / "scanner.py").write_text("import os")`
-    2. Write `(tmp_path / "models.py").write_text("class Foo: pass")`
-    3. Write `(tmp_path / "valid.script").write_text("const x = 1;")` -- one Extend file
-    4. Call `scan_local(tmp_path)` and assign to `result`
-    5. Assert `result.total_count == 1`
-    6. Assert `len(result.files_by_type["script"]) == 1`
-    7. Verify no .py path appears in any files_by_type list: `assert not any(p.suffix == ".py" for paths in result.files_by_type.values() for p in paths)`
-  - calls: `scan_local(tmp_path)`
-  - returns: `None`
-  - error handling: none
+    1. Extract `raw_findings = data.get("findings", [])`
+    2. If `not isinstance(raw_findings, list)`: raise `RunnerError(f"'findings' key in Arcane Auditor output is not a list for path '{path}'")`
+    3. Initialize `findings: list[Finding] = []`
+    4. Try: for each `item` in `raw_findings`, call `findings.append(Finding.model_validate(item))`
+    5. Catch `ValidationError as exc`: raise `RunnerError(f"Failed to validate Finding from Arcane Auditor output for path '{path}': {exc}") from exc`
+    6. Return `findings`
+  - calls: `Finding.model_validate(item)` for each item in raw_findings
+  - returns: `list[Finding]`
+  - error handling:
+    - `"findings"` value not a list -> raise `RunnerError`
+    - `pydantic.ValidationError` on any item -> raise `RunnerError`
 
 #### Wiring / Integration
-All 6 new methods are added to the `TestScanLocal` class, after the existing `test_extend_extensions_constant_contains_all_types` method and before the closing of the class (before `class TestScanGithub:`).
-
-The two module-level constants (`FIXTURES_DIR`, `CLEAN_APP_FIXTURE`, `DIRTY_APP_FIXTURE`) are inserted after the existing import block (after line 12: `from src.scanner import EXTEND_EXTENSIONS, scan_github, scan_local`) and before line 14: `class TestScanLocal:`.
+- `run_audit` is the public API; `_parse_json_output` and `_build_findings` are private helpers called only by `run_audit`
+- Imports `ScanManifest`, `AgentConfig`, `ScanResult`, `Finding`, `ExitCode`, `RunnerError` from `src.models`
+- No circular imports: `src.models` has no imports from `src.runner`
+- `run_audit` will be imported by `src.cli` (Phase 5) as `from src.runner import run_audit`
 
 ## Verification
-- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv sync`
-- lint: (no linter configured in pyproject.toml -- skip)
-- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/test_scanner.py -v`
-- smoke: Confirm the output shows all pre-existing tests still pass and the 6 new tests appear as PASSED. Expected new test names:
-  - `TestScanLocal::test_clean_app_fixture_has_expected_artifact_counts`
-  - `TestScanLocal::test_clean_app_fixture_paths_are_absolute`
-  - `TestScanLocal::test_dirty_app_fixture_has_expected_artifact_counts`
-  - `TestScanLocal::test_js_files_are_ignored`
-  - `TestScanLocal::test_py_files_are_ignored`
+- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.runner import run_audit; print('import OK')"`
+- lint: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m py_compile src/runner.py && echo 'syntax OK'`
+- test: no existing tests for runner yet (P3.3 creates tests/test_runner.py)
+- smoke: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "
+from src.runner import run_audit, _parse_json_output
+from pathlib import Path
+# Test _parse_json_output extracts JSON from noisy stdout
+noisy = 'Scanning directory: /foo\nFound 3 files\n{\n  \"summary\": {},\n  \"findings\": []\n}\nTotal time: 1.2s'
+data = _parse_json_output(noisy, Path('/foo'))
+assert data == {'summary': {}, 'findings': []}, f'Got {data}'
+print('_parse_json_output OK')
+"`
 
 ## Constraints
-- Do NOT modify `TestScanGithub` -- those tests are complete and unrelated to P2.4
-- Do NOT rewrite or remove existing `TestScanLocal` tests -- they already pass
-- Do NOT modify `src/scanner.py` -- it is correct as-is; this task is tests only
-- Do NOT modify `src/models.py`
-- Do NOT add any new pip dependencies
-- Do NOT create conftest.py -- fixture paths are module-level constants in the test file itself, which is simpler and sufficient
-- The 6th test (`test_clean_app_fixture_paths_are_absolute`) is a bonus correctness test; include it -- it costs nothing and catches a real class of bug (returning strings instead of Path objects)
-- Fixture count assertions (total_count == 3) are derived from the actual fixture contents:
-  - clean_app: minimalPage.pmd, minimalPod.pod, utils.script (3 files, no .amd or .smd)
-  - dirty_app: dirtyPage.pmd, dirtyPod.pod, helpers.script (3 files, no .amd or .smd)
-  If the fixture directory contents ever change, these assertions must be updated to match
+- Do NOT modify src/models.py, src/scanner.py, src/config.py, pyproject.toml, or any test files
+- Do NOT add any new pip dependencies -- stdlib json, subprocess, and logging are sufficient
+- Do NOT use print() -- use logging.getLogger(__name__) only
+- Do NOT use string paths -- use pathlib.Path everywhere
+- The subprocess cwd MUST be set to config.auditor_path.resolve() so that `uv run main.py` resolves correctly relative to the parent project
+- The timeout MUST be exactly 300 seconds (not 299, not 301)
+- subprocess.run() MUST use check=False -- parse exit codes manually; never use check=True
+- The function names _parse_json_output and _build_findings are private (underscore prefix); run_audit is the only public export
+- Do NOT pre-validate scan_manifest.total_count -- let exit code 2 handle empty manifests
+- The `repo` field in ScanResult: use scan_manifest.repo if it is not None, otherwise use str(scan_manifest.root_path)

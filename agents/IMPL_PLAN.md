@@ -13,7 +13,7 @@
 - [x] P2.1: Create src/scanner.py with a scan_local(path: Path) function that walks a directory tree and returns list of paths to .pmd, .pod, .script, .amd, .smd files. Must handle nested directories. Return a ScanManifest model (root_path, files found by type, total count)
 - [x] P2.2: Add scan_github(repo: str, branch: str, token: str) to scanner.py -- clone a GitHub repo to a temp directory using subprocess git clone (not pygithub), then delegate to scan_local. Clean up temp dir on completion. Return ScanManifest with repo metadata
 - [x] P2.3: Create test fixtures -- tests/fixtures/clean_app/ with a minimal valid .pmd file (valid pageId, script with const/let, proper naming), a valid .pod file, a valid .script file. Create tests/fixtures/dirty_app/ with files containing known violations: one .pmd with var usage, console.log, magic numbers, and a widget missing id; one .pod with hardcoded workday URL; one .script with unused function
-- [ ] P2.4: Write tests/test_scanner.py -- test scan_local finds all artifact types in both fixtures, test it returns correct counts, test it ignores non-Extend files (e.g., .js, .py), test it handles empty directories gracefully
+- [x] P2.4: Write tests/test_scanner.py -- test scan_local finds all artifact types in both fixtures, test it returns correct counts, test it ignores non-Extend files (e.g., .js, .py), test it handles empty directories gracefully
 
 ## Phase 3: Runner -- Execute Arcane Auditor
 
