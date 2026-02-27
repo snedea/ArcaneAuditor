@@ -1,0 +1,9 @@
+services:
+  arcane-auditor:
+    build: .
+    container_name: arcane-auditor
+    restart: unless-stopped
+    ports:
+      - "8082:8080"
+    volumes:
+      - ~/.claude:/home/appuser/.claude

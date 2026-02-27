@@ -5,6 +5,9 @@ This serves the simple HTML/JavaScript interface with FastAPI backend.
 """
 
 from contextlib import asynccontextmanager
+import json
+import os
+import subprocess
 import sys
 import tempfile
 import threading
@@ -172,6 +175,27 @@ class JobStatusResponse(BaseModel):
 class AnalysisRequest(BaseModel):
     """Request model for analysis."""
     job_id: str
+
+class ExplainRequest(BaseModel):
+    """Request model for AI explanation."""
+    findings: dict
+
+EXPLAIN_SYSTEM_PROMPT = (
+    "You are a senior Workday Extend code reviewer. You receive deterministic findings "
+    "from Arcane Auditor (a static analysis tool with 42 rules) as JSON.\n\n"
+    "Your job:\n"
+    "1. TRIAGE: Group findings by priority. What should the developer fix first and why?\n"
+    "2. EXPLAIN: For each finding, explain why it matters in plain English. "
+    "Not what the rule says -- why a real developer should care.\n"
+    "3. SUGGEST: For ACTION-severity findings, suggest a concrete fix. "
+    "For ADVICE-severity findings, explain the trade-off.\n\n"
+    "Rules:\n"
+    "- Never invent findings that aren't in the JSON.\n"
+    "- Never contradict the tool's output.\n"
+    "- Never say a finding is wrong or should be ignored.\n"
+    "- Be concise. Developers don't read walls of text.\n"
+    "- If the JSON has zero findings, just say the app is clean."
+)
 
 
 @asynccontextmanager
@@ -574,6 +598,59 @@ async def download_excel(job_id: str):
             
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Excel generation failed: {str(e)}")
+
+@app.post("/api/explain")
+async def explain_findings(request: ExplainRequest):
+    """Send analysis findings to Claude for AI-powered explanation."""
+    findings = request.findings
+
+    if not findings:
+        raise HTTPException(status_code=400, detail="No findings provided")
+
+    model = os.environ.get("LLM_MODEL", "claude-sonnet-4-6")
+    user_msg = (
+        "Here are the Arcane Auditor findings for a Workday Extend application. "
+        "Triage, explain, and suggest fixes.\n\n"
+        f"```json\n{json.dumps(findings, indent=2)}\n```"
+    )
+
+    try:
+        result = await asyncio.to_thread(
+            subprocess.run,
+            [
+                "claude",
+                "--print",
+                "--model", model,
+                "--max-turns", "1",
+                "--system-prompt", EXPLAIN_SYSTEM_PROMPT,
+            ],
+            input=user_msg,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+
+        if result.returncode != 0:
+            error_msg = result.stderr.strip() or "Claude CLI returned non-zero exit code"
+            print(f"Claude CLI error: {error_msg}", file=sys.stderr)
+            raise HTTPException(status_code=502, detail=f"AI explanation failed: {error_msg}")
+
+        explanation = result.stdout.strip()
+        if not explanation:
+            raise HTTPException(status_code=502, detail="AI returned empty response")
+
+        return {"explanation": explanation}
+
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="AI explanation timed out (120s limit)")
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail="Claude CLI not available in this environment")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Explain endpoint error: {e}", file=sys.stderr)
+        raise HTTPException(status_code=500, detail=f"AI explanation failed: {str(e)}")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():

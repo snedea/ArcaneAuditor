@@ -97,19 +97,25 @@ class ArcaneAuditorApp {
     showResults() {
         this.hideAllSections();
         document.getElementById('results-section').style.display = 'block';
-        
+
         // Initialize filtered findings with current result findings
         if (this.currentResult) {
             this.filteredFindings = [...this.currentResult.findings];
         }
-        
+
         // Display context awareness panel if available
         if (this.currentResult && this.currentResult.context) {
             this.resultsRenderer.displayContext(this.currentResult.context);
         }
-        
+
         this.resultsRenderer.renderResults();
-        
+
+        // Show "Explain with AI" button if there are findings
+        const explainBtn = document.getElementById('explain-btn');
+        if (explainBtn && this.currentResult && this.currentResult.findings.length > 0) {
+            explainBtn.style.display = 'inline-flex';
+        }
+
         // Show magical analysis completion if in magic mode
         showMagicalAnalysisComplete(this.currentResult);
     }
@@ -128,6 +134,7 @@ class ArcaneAuditorApp {
         document.getElementById('error-section').style.display = 'none';
         document.getElementById('results-section').style.display = 'none';
         document.getElementById('context-section').style.display = 'none';
+        document.getElementById('explain-section').style.display = 'none';
     }
 
     // File handling methods
@@ -404,6 +411,110 @@ class ArcaneAuditorApp {
         this.resultsRenderer.collapseAllFiles();
     }
 
+    async explainWithAI() {
+        if (!this.currentResult || !this.currentResult.findings.length) return;
+
+        const explainBtn = document.getElementById('explain-btn');
+        const explainSection = document.getElementById('explain-section');
+        const explainLoading = document.getElementById('explain-loading');
+        const explainError = document.getElementById('explain-error');
+        const explainContent = document.getElementById('explain-content');
+
+        // Disable button, show loading
+        explainBtn.disabled = true;
+        explainBtn.textContent = '🤖 Explaining...';
+        explainSection.style.display = 'block';
+        explainLoading.style.display = 'flex';
+        explainError.style.display = 'none';
+        explainContent.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/explain', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    findings: {
+                        findings: this.currentResult.findings,
+                        summary: this.currentResult.summary
+                    }
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || 'AI explanation failed');
+            }
+
+            explainLoading.style.display = 'none';
+            explainContent.innerHTML = this.renderMarkdown(data.explanation);
+
+            // Replace button with "explained" state
+            explainBtn.textContent = '✅ Explained';
+        } catch (error) {
+            explainLoading.style.display = 'none';
+            explainError.style.display = 'block';
+            document.getElementById('explain-error-message').textContent =
+                `Failed to get AI explanation: ${error.message}`;
+
+            // Re-enable button for retry
+            explainBtn.disabled = false;
+            explainBtn.textContent = '🤖 Retry Explain';
+        }
+    }
+
+    renderMarkdown(text) {
+        // Simple markdown to HTML converter
+        let html = text
+            // Escape HTML entities first
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        // Code blocks (``` ... ```)
+        html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+            return `<pre><code class="lang-${lang}">${code.trim()}</code></pre>`;
+        });
+
+        // Inline code
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+        // Headings
+        html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+        // Bold and italic
+        html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+        // Horizontal rules
+        html = html.replace(/^---$/gm, '<hr>');
+
+        // Unordered lists (handle nested with indentation)
+        html = html.replace(/^(\s*)[-*] (.+)$/gm, (_, indent, content) => {
+            const depth = Math.floor(indent.length / 2);
+            return `<li class="md-depth-${depth}">${content}</li>`;
+        });
+        // Wrap consecutive <li> elements in <ul>
+        html = html.replace(/((?:<li[^>]*>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+
+        // Ordered lists
+        html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+        // Wrap consecutive numbered <li> that aren't inside <ul>
+        html = html.replace(/(?:^|(?<=<\/ul>)\n)((?:<li>.*<\/li>\n?)+)/gm, '<ol>$1</ol>');
+
+        // Paragraphs - wrap lines that aren't already wrapped in block elements
+        html = html.replace(/^(?!<[houple]|<li|<pre|<hr)(.+)$/gm, '<p>$1</p>');
+
+        // Clean up extra newlines
+        html = html.replace(/\n{2,}/g, '\n');
+
+        return html;
+    }
+
     resetForNewUpload() {
         this.hideAllSections();
         document.getElementById('upload-section').style.display = 'block';
@@ -420,6 +531,16 @@ class ArcaneAuditorApp {
         // Hide selected files list
         document.getElementById('selected-files-list').style.display = 'none';
         
+        // Reset explain section
+        const explainBtn = document.getElementById('explain-btn');
+        if (explainBtn) {
+            explainBtn.style.display = 'none';
+            explainBtn.disabled = false;
+            explainBtn.textContent = '🤖 Explain with AI';
+        }
+        document.getElementById('explain-section').style.display = 'none';
+        document.getElementById('explain-content').innerHTML = '';
+
         // Reset renderers
         this.resultsRenderer.resetForNewUpload();
         
@@ -447,6 +568,10 @@ window.toggleTheme = function() {
 
 window.toggleContextPanel = function() {
     app.resultsRenderer.toggleContextPanel();
+};
+
+window.explainWithAI = function() {
+    app.explainWithAI();
 };
 
 // Results renderer global functions
