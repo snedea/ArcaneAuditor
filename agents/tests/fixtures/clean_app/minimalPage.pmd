@@ -1,7 +1,6 @@
 {
   "id": "minimalPage",
   "securityDomains": ["Everyone"],
-  "script": "<% const greeting = 'Hello'; let count = 0; %>",
   "presentation": {
     "title": {
       "type": "title",

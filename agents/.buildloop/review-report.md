@@ -3,62 +3,47 @@
 ## Verdict: FAIL
 
 ## Runtime Checks
-- Build: PASS (ruff: all checks passed)
-- Tests: PASS (56/56 pytest)
-- Lint: PASS (ruff clean on src/ and tests/)
-- Docker: SKIPPED (no compose files changed in this task)
+- Build: SKIPPED (no Python source files changed; fixture files are JSON/script)
+- Tests: PASS (19/19 scanner tests pass; `uv run pytest tests/test_scanner.py -q`)
+- Lint: SKIPPED (no Python source files changed)
+- Docker: SKIPPED (no compose files changed)
+- **clean_app scan**: PASS — exit code 0, `total_findings: 0` confirmed by running the tool
+- **dirty_app scan**: PASS — exit code 1, `total_findings: 11` confirmed by running the tool
 
 ## Findings
 
 ```json
 {
-  "high": [],
-  "medium": [
+  "high": [
     {
-      "file": "tests/fixtures/clean_app/minimalPage.pmd",
+      "file": "tests/fixtures/expected/dirty_app.json",
       "line": 4,
-      "issue": "Script declares 'const greeting' and 'let count' but neither variable is referenced anywhere in the script or presentation. When ScriptUnusedVariableRule is enabled (as in test-config.json which has all 42 rules on), this produces 2 ADVICE findings against the supposedly clean fixture. CLAUDE.md defines clean_app as 'minimal Extend app with zero violations' and mandates that every test 'verifies findings match expected output exactly'. Any runner test that uses test-config.json and checks for zero findings on clean_app will fail. Confirmed: running `uv run main.py review-app agents/tests/fixtures/clean_app --format json --quiet --config agents/tests/fixtures/test-config.json` exits 0 but returns total_findings: 2 (ScriptUnusedVariableRule for 'greeting' and 'count').",
+      "issue": "Findings order does not match actual tool output. The file records findings in this order: ScriptMagicNumberRule(42), ScriptMagicNumberRule(100), ScriptDeadCodeRule, ScriptVarUsageRule(count), ScriptVarUsageRule(unusedHelper), ScriptConsoleLogRule, ScriptStringConcatRule, then endpoint/widget rules. The tool actually outputs them as: ScriptStringConcatRule, ScriptVarUsageRule(count), ScriptVarUsageRule(unusedHelper), ScriptMagicNumberRule(42), ScriptMagicNumberRule(100), ScriptDeadCodeRule, ScriptConsoleLogRule, then endpoint/widget rules. Seven of eleven findings are in the wrong position. The plan (line 104) states 'findings are ordered by the tool's output order' but the file was written manually with a different order. P3.3 tests that do exact comparison against this file will fail on the first run.",
       "category": "logic"
     }
   ],
+  "medium": [],
   "low": [
     {
-      "file": ".buildloop/current-plan.md",
-      "line": 256,
-      "issue": "The plan's smoke-dirty verification command does not pass --config. Without it, the parent tool loads config/presets/development.json (the CWD-relative default), which disables ScriptConsoleLogRule and ScriptDeadCodeRule. The plan claims the command produces findings for both rules, but it does not: actual output shows 'Skipping disabled rule: ScriptConsoleLogRule' and 'Skipping disabled rule: ScriptDeadCodeRule'. The correct command is: `uv run main.py review-app agents/tests/fixtures/dirty_app --format json --quiet --config agents/tests/fixtures/test-config.json`. With test-config.json, all 6 expected violations do fire correctly. The fixture content is correct; the verification command in the plan is wrong.",
+      "file": "tests/fixtures/__pycache__/test-config.cpython-312.pyc",
+      "line": 0,
+      "issue": "Stray bytecode cache file exists in the fixtures directory. Python compiled something named 'test-config' to bytecode, which is unexpected for a JSON file. The ArcaneAuditor/.gitignore line 5 covers __pycache__/ so it will not be committed, but the artifact's presence is unexplained and suggests Python may have found a conftest or py file in the fixtures directory at some point.",
       "category": "inconsistency"
     }
   ],
   "validated": [
-    "All 6 fixture files match exact byte-for-byte expected content from the plan",
-    "56/56 pytest tests pass (test_scanner, test_models, test_config)",
-    "Ruff lint: all checks passed on src/ and tests/",
-    "clean_app exits 0, total_findings: 0 in default config mode (development.json preset)",
-    "dirty_app exits 1 in default config mode -- ScriptVarUsageRule (x2), ScriptMagicNumberRule (x2), ScriptStringConcatRule, EndpointFailOnStatusCodesRule, EndpointBaseUrlTypeRule, HardcodedWorkdayAPIRule, WidgetIdRequiredRule all fire correctly",
-    "With test-config.json: all 6 plan-specified dirty violations confirmed -- ScriptConsoleLogRule fires for console.info in dirtyPage.pmd:4, ScriptDeadCodeRule fires for unusedHelper in helpers.script:5",
-    "console.info (not console.log) in dirtyPage.pmd correctly triggers ScriptConsoleLogRule (ConsoleLogDetector checks info/warn/error/debug, not log)",
-    "helpers.script unusedHelper is top-level and not exported -- correctly detected by ScriptDeadCodeRule when enabled",
-    "minimalPod.pod template URL ${baseEndpoint} correctly passes HardcodedWorkdayAPIRule",
-    "minimalPod.pod failOnStatusCodes present -- correctly passes EndpointFailOnStatusCodesRule",
-    "dirtyPage.pmd text widget missing 'id' field -- correctly triggers WidgetIdRequiredRule at line 14",
-    "test-config.json exists at tests/fixtures/test-config.json with all 42 rules enabled"
+    "clean_app/minimalPage.pmd matches the plan's exact JSON spec (no script field, all widget ids present)",
+    "clean_app scan: exit code 0, zero findings across all 42 enabled rules -- ScriptUnusedVariableRule no longer triggers",
+    "dirty_app scan: exit code 1, exactly 11 findings -- all 6 required violation categories covered",
+    "All 11 dirty_app finding messages and file_path/line values in dirty_app.json are correct (only order is wrong)",
+    "clean_app.json content is correct: {exit_code: 0, findings: []}",
+    "Both expected/ files omit volatile summary/context fields as required by the plan",
+    "tests/fixtures/expected/ directory was created and contains both required files",
+    "clean_app fixture: 3 files (pmd: 1, pod: 1, script: 1)",
+    "dirty_app fixture: 3 files (pmd: 1, pod: 1, script: 1)",
+    "test-config.json enables all 42 rules including ScriptConsoleLogRule",
+    "19 existing scanner tests pass without regression",
+    "ArcaneAuditor/.gitignore line 5 covers __pycache__/ -- bytecode file will not be committed"
   ]
 }
 ```
-
-## Evidence for MEDIUM finding
-
-`minimalPage.pmd:4` script: `<% const greeting = 'Hello'; let count = 0; %>`
-
-- `greeting` is assigned `'Hello'` but the presentation uses the literal string `"Hello"` directly (`"value": "Hello"`). `greeting` is never read.
-- `count` is initialized to `0` and never incremented, compared, or referenced.
-
-Running with full rule set confirms:
-```
-"rule_id": "ScriptUnusedVariableRule", "message": "Unused variable 'greeting' in script", "file_path": "minimalPage.pmd", "line": 4
-"rule_id": "ScriptUnusedVariableRule", "message": "Unused variable 'count' in script",   "file_path": "minimalPage.pmd", "line": 4
-```
-
-Exit is still 0 (ADVICE-only), but `total_findings: 2` breaks any test asserting zero findings.
-
-**Fix**: Remove unused variables from the script, or reference them so they are actually used (e.g., bind `greeting` to the text widget value via a template expression).

@@ -1,0 +1,82 @@
+{
+  "exit_code": 1,
+  "findings": [
+    {
+      "rule_id": "ScriptMagicNumberRule",
+      "severity": "ADVICE",
+      "message": "File section 'script' contains magic number '42': 'var count = 0; const msg = 'Count: ' + count; console.info(msg); if (count > 42) { count = 100; }'. Consider using a named constant instead.",
+      "file_path": "dirtyPage.pmd",
+      "line": 4
+    },
+    {
+      "rule_id": "ScriptMagicNumberRule",
+      "severity": "ADVICE",
+      "message": "File section 'script' contains magic number '100': 'var count = 0; const msg = 'Count: ' + count; console.info(msg); if (count > 42) { count = 100; }'. Consider using a named constant instead.",
+      "file_path": "dirtyPage.pmd",
+      "line": 4
+    },
+    {
+      "rule_id": "ScriptDeadCodeRule",
+      "severity": "ADVICE",
+      "message": "Top-level variable 'unusedHelper' is declared but neither exported nor used internally. Consider removing if unused.",
+      "file_path": "helpers.script",
+      "line": 5
+    },
+    {
+      "rule_id": "ScriptVarUsageRule",
+      "severity": "ADVICE",
+      "message": "File section 'script' uses 'var' declaration for variable 'count'. Consider using 'let' or 'const' instead.",
+      "file_path": "dirtyPage.pmd",
+      "line": 4
+    },
+    {
+      "rule_id": "ScriptVarUsageRule",
+      "severity": "ADVICE",
+      "message": "File section 'script' uses 'var' declaration for variable 'unusedHelper'. Consider using 'let' or 'const' instead.",
+      "file_path": "helpers.script",
+      "line": 5
+    },
+    {
+      "rule_id": "ScriptConsoleLogRule",
+      "severity": "ACTION",
+      "message": "File section 'script' contains console.info statement. Remove debug statements from production code.",
+      "file_path": "dirtyPage.pmd",
+      "line": 4
+    },
+    {
+      "rule_id": "ScriptStringConcatRule",
+      "severity": "ADVICE",
+      "message": "File section 'script' uses string concatenation with + operator: ''Count: ' + count'. Consider using PMD template strings with backticks and { } syntax instead (e.g., `Hello {name}!`).",
+      "file_path": "dirtyPage.pmd",
+      "line": 4
+    },
+    {
+      "rule_id": "EndpointFailOnStatusCodesRule",
+      "severity": "ACTION",
+      "message": "Pod endpoint 'getHrData' is missing required 'failOnStatusCodes' field.",
+      "file_path": "dirtyPod.pod",
+      "line": 1
+    },
+    {
+      "rule_id": "EndpointBaseUrlTypeRule",
+      "severity": "ADVICE",
+      "message": "Pod endpoint 'getHrData' is pointing to a Workday API, but not leveraging a baseUrlType. Extract Workday endpoints to shared AMD data providers to avoid duplication.",
+      "file_path": "dirtyPod.pod",
+      "line": 1
+    },
+    {
+      "rule_id": "HardcodedWorkdayAPIRule",
+      "severity": "ACTION",
+      "message": "Pod endpoint 'getHrData' uses hardcoded *.workday.com URL: 'https://api.workday.com/common/v1/workers'. Use apiGatewayEndpoint instead of hardcoded Workday URLs for regional awareness.",
+      "file_path": "dirtyPod.pod",
+      "line": 7
+    },
+    {
+      "rule_id": "WidgetIdRequiredRule",
+      "severity": "ACTION",
+      "message": "Widget of type 'text' at body->children[0]->type: text is missing required 'id' field.",
+      "file_path": "dirtyPage.pmd",
+      "line": 14
+    }
+  ]
+}
