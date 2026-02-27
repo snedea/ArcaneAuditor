@@ -16,13 +16,6 @@
       "line": 4
     },
     {
-      "rule_id": "ScriptDeadCodeRule",
-      "severity": "ADVICE",
-      "message": "Top-level variable 'unusedHelper' is declared but neither exported nor used internally. Consider removing if unused.",
-      "file_path": "helpers.script",
-      "line": 5
-    },
-    {
       "rule_id": "ScriptVarUsageRule",
       "severity": "ADVICE",
       "message": "File section 'script' uses 'var' declaration for variable 'count'. Consider using 'let' or 'const' instead.",
@@ -33,6 +26,13 @@
       "rule_id": "ScriptVarUsageRule",
       "severity": "ADVICE",
       "message": "File section 'script' uses 'var' declaration for variable 'unusedHelper'. Consider using 'let' or 'const' instead.",
+      "file_path": "helpers.script",
+      "line": 5
+    },
+    {
+      "rule_id": "ScriptDeadCodeRule",
+      "severity": "ADVICE",
+      "message": "Top-level variable 'unusedHelper' is declared but neither exported nor used internally. Consider removing if unused.",
       "file_path": "helpers.script",
       "line": 5
     },

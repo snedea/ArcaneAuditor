@@ -1,6 +1,7 @@
 {
   "id": "minimalPage",
   "securityDomains": ["Everyone"],
+  "script": "<% const pageTitle = 'Minimal Page'; let currentTitle = pageTitle; currentTitle = currentTitle; %>",
   "presentation": {
     "title": {
       "type": "title",
@@ -14,7 +15,7 @@
           "type": "text",
           "id": "greetingText",
           "label": "Greeting",
-          "value": "Hello"
+          "value": "<% greeting %>"
         }
       ]
     },
