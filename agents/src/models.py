@@ -135,3 +135,7 @@ class ReporterError(ArcaneAgentError):
 
 class FixerError(ArcaneAgentError):
     """Raised when applying a fix template fails."""
+
+
+class ConfigError(ArcaneAgentError):
+    """Raised when configuration is missing, malformed, or fails validation."""

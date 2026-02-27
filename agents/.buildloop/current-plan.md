@@ -1,280 +1,243 @@
-# Plan: P1.2 -- Create src/models.py with Pydantic Models and Custom Exceptions
+# Plan: P1.3
 
-Date: 2026-02-26
-Version: v1
-Status: planning
+## Dependencies
+- list: [pyyaml>=6.0 (already in pyproject.toml -- no new deps needed)]
+- commands: []
 
-## Context
+## File Operations (in execution order)
 
-This is the second task in Phase 1 (Foundation). P1.1 (pyproject.toml, src/__init__.py, tests/__init__.py) is complete. This task creates the core data models that every other module depends on: scanner, runner, reporter, and fixer all consume or produce these models.
+### 1. MODIFY src/models.py
+- operation: MODIFY
+- reason: Add ConfigError exception so config.py can raise it for missing/invalid config files and invalid auditor paths
+- anchor: `class FixerError(ArcaneAgentError):`
 
-## Current State
+#### Functions
+- No new functions -- only add a new exception class after the existing ones.
 
-- `pyproject.toml` exists with pydantic>=2.0 as a dependency
-- `src/__init__.py` exists (one-line docstring)
-- `tests/__init__.py` exists (empty)
-- No `src/models.py` or `tests/test_models.py` exist yet
+#### Structs / Types
+- Add after the `FixerError` class (the last exception in the file):
+  ```python
+  class ConfigError(ArcaneAgentError):
+      """Raised when configuration is missing, malformed, or fails validation."""
+  ```
 
-## Parent Tool JSON Output (the source of truth for Finding fields)
+#### Wiring / Integration
+- `ConfigError` will be imported by `src/config.py` via `from src.models import AgentConfig, ConfigError`
 
-The parent Arcane Auditor at `../` outputs JSON with this structure:
+---
 
-```json
-{
-  "summary": {
-    "total_files": 3,
-    "total_rules": 42,
-    "total_findings": 2,
-    "findings_by_severity": {"ACTION": 1, "ADVICE": 1}
-  },
-  "findings": [
-    {
-      "rule_id": "ScriptConsoleLogRule",
-      "severity": "ACTION",
-      "message": "Console.log statement found in script",
-      "file_path": "myapp.pmd",
-      "line": 42
-    }
-  ],
-  "context": { ... }
-}
-```
+### 2. CREATE src/config.py
+- operation: CREATE
+- reason: Load AgentConfig from YAML or JSON file with defaults, apply env var overrides, validate auditor path
 
-Severity values are exactly `"ACTION"` and `"ADVICE"`. Exit codes: 0 (clean), 1 (issues found), 2 (usage error), 3 (runtime error).
-
-## Files to Create
-
-### 1. `src/models.py` (NEW)
-
-The single models file containing all Pydantic models, enums, and custom exceptions.
-
-#### Imports
-
+#### Imports / Dependencies
 ```python
 from __future__ import annotations
 
-from datetime import datetime
-from enum import Enum
+import json
+import logging
+import os
 from pathlib import Path
-from typing import Literal
 
-from pydantic import BaseModel, Field, SecretStr
+import yaml
+
+from src.models import AgentConfig, ConfigError
 ```
 
-#### Enums
+#### Functions
 
-**`Severity`** (str, Enum):
-- `ACTION = "ACTION"`
-- `ADVICE = "ADVICE"`
+- signature: `def load_config(config_path: Path | None = None) -> AgentConfig:`
+  - purpose: Load AgentConfig from a YAML or JSON file (or defaults if no path given), apply env var overrides, then validate.
+  - logic:
+    1. Initialize `raw: dict = {}` as an empty dict.
+    2. If `config_path` is not None:
+       a. If `config_path` does not exist (i.e., `not config_path.exists()`), raise `ConfigError(f"Config file not found: {config_path}")`.
+       b. Read the file text: `text = config_path.read_text(encoding="utf-8")`.
+       c. If `config_path.suffix` is `.yaml` or `.yml`, set `raw = yaml.safe_load(text)`. If `yaml.safe_load` returns `None` (empty file), set `raw = {}`.
+       d. If `config_path.suffix` is `.json`, set `raw = json.loads(text)`.
+       e. If `config_path.suffix` is anything else, raise `ConfigError(f"Unsupported config format: {config_path.suffix}. Use .yaml, .yml, or .json")`.
+    3. Apply environment variable overrides:
+       a. Read `github_token_env = os.environ.get("GITHUB_TOKEN", "").strip()`. If `github_token_env` is non-empty, set `raw["github_token"] = github_token_env`.
+       b. Read `auditor_path_env = os.environ.get("ARCANE_AUDITOR_PATH", "").strip()`. If `auditor_path_env` is non-empty, set `raw["auditor_path"] = auditor_path_env`.
+    4. Construct `config = AgentConfig(**raw)`. If Pydantic raises `ValidationError`, catch it and re-raise as `ConfigError(f"Invalid configuration: {e}")`.
+    5. Call `validate_config(config)`.
+    6. Log at DEBUG level: `logger.debug("Config loaded: auditor_path=%s, repos=%d", config.auditor_path, len(config.repos))`.
+    7. Return `config`.
+  - calls: `validate_config(config)`
+  - returns: `AgentConfig`
+  - error handling:
+    - `config_path` not None but file missing -> raise `ConfigError` (step 2a)
+    - unsupported file extension -> raise `ConfigError` (step 2e)
+    - `yaml.safe_load` raises `yaml.YAMLError` -> catch and re-raise as `ConfigError(f"Failed to parse YAML config: {e}")`
+    - `json.loads` raises `json.JSONDecodeError` -> catch and re-raise as `ConfigError(f"Failed to parse JSON config: {e}")`
+    - `AgentConfig(**raw)` raises `pydantic.ValidationError` -> catch and re-raise as `ConfigError(f"Invalid configuration: {e}")`
 
-**`ReportFormat`** (str, Enum):
-- `JSON = "json"`
-- `SARIF = "sarif"`
-- `GITHUB_ISSUES = "github_issues"`
-- `PR_COMMENT = "pr_comment"`
+- signature: `def validate_config(config: AgentConfig) -> None:`
+  - purpose: Check that the Arcane Auditor path exists and contains main.py. Raise ConfigError if not.
+  - logic:
+    1. Resolve the auditor path to absolute: `auditor_path = config.auditor_path.resolve()`.
+    2. If `not auditor_path.exists()`, raise `ConfigError(f"Arcane Auditor path does not exist: {auditor_path}")`.
+    3. If `not auditor_path.is_dir()`, raise `ConfigError(f"Arcane Auditor path is not a directory: {auditor_path}")`.
+    4. `main_py = auditor_path / "main.py"`. If `not main_py.exists()`, raise `ConfigError(f"main.py not found in Arcane Auditor path: {auditor_path}")`.
+    5. Log at DEBUG level: `logger.debug("Arcane Auditor validated at %s", auditor_path)`.
+    6. Return (None).
+  - calls: nothing external
+  - returns: `None`
+  - error handling: raises `ConfigError` on path or file missing (steps 2, 3, 4)
 
-**`Confidence`** (str, Enum):
-- `HIGH = "HIGH"`
-- `MEDIUM = "MEDIUM"`
-- `LOW = "LOW"`
+#### Module-level setup
+- After imports and before function definitions, add:
+  ```python
+  logger = logging.getLogger(__name__)
+  ```
 
-Use `str, Enum` (not StrEnum) for Python 3.10+ compat as stated in CLAUDE.md conventions, though pyproject.toml requires 3.12+. Using `str, Enum` is fine and conventional with Pydantic v2.
+#### Wiring / Integration
+- `load_config` is the only public entry point. It will be called by `src/cli.py` (future task P5.1) to build the `AgentConfig` used throughout the pipeline.
+- No other existing files need modification for this task.
 
-**`ExitCode`** (int, Enum):
-- `CLEAN = 0`
-- `ISSUES_FOUND = 1`
-- `USAGE_ERROR = 2`
-- `RUNTIME_ERROR = 3`
+---
 
-#### Models
+### 3. CREATE tests/test_config.py
+- operation: CREATE
+- reason: Every module must have a test file per CLAUDE.md convention
 
-**`Finding`** (BaseModel):
-Mirrors a single finding from the parent tool's JSON output.
-
-| Field | Type | Default | Notes |
-|-------|------|---------|-------|
-| `rule_id` | `str` | required | e.g. `"ScriptConsoleLogRule"` |
-| `severity` | `Severity` | required | `ACTION` or `ADVICE` |
-| `message` | `str` | required | Human-readable description |
-| `file_path` | `str` | required | Relative path to the file |
-| `line` | `int` | `0` | Line number (0 = unknown) |
-
-- Use `model_config = ConfigDict(frozen=True)` so findings are hashable/immutable.
-- Add a `description` property that returns `message` (the IMPL_PLAN mentions `description` as a field, but the parent tool's JSON uses `message` as the description). Use `@property` to alias it for convenience.
-
-**`ScanResult`** (BaseModel):
-Represents the full output of running Arcane Auditor on a repo/path.
-
-| Field | Type | Default | Notes |
-|-------|------|---------|-------|
-| `repo` | `str` | required | Repo name or local path |
-| `timestamp` | `datetime` | `Field(default_factory=datetime.utcnow)` | When scan ran |
-| `findings_count` | `int` | required | Total findings |
-| `findings` | `list[Finding]` | required | List of findings |
-| `exit_code` | `ExitCode` | required | Parent tool exit code |
-
-- Add a `@property` named `has_issues` that returns `self.exit_code == ExitCode.ISSUES_FOUND`.
-- Add a `@property` named `action_count` that returns count of ACTION-severity findings.
-- Add a `@property` named `advice_count` that returns count of ADVICE-severity findings.
-
-**`FixResult`** (BaseModel):
-Represents the result of applying a fix template to a finding.
-
-| Field | Type | Default | Notes |
-|-------|------|---------|-------|
-| `finding` | `Finding` | required | The finding being fixed |
-| `original_content` | `str` | required | File content before fix |
-| `fixed_content` | `str` | required | File content after fix |
-| `confidence` | `Confidence` | required | HIGH, MEDIUM, or LOW |
-
-- Add a `@property` named `is_auto_applicable` that returns `self.confidence == Confidence.HIGH`.
-
-**`AgentConfig`** (BaseModel):
-Configuration for the agent system.
-
-| Field | Type | Default | Notes |
-|-------|------|---------|-------|
-| `repos` | `list[str]` | `[]` | GitHub repos to scan |
-| `config_preset` | `str \| None` | `None` | Arcane Auditor config preset name |
-| `output_format` | `ReportFormat` | `ReportFormat.JSON` | Default output format |
-| `github_token` | `SecretStr \| None` | `None` | GitHub PAT, optional |
-| `auditor_path` | `Path` | `Path("../")` | Path to parent Arcane Auditor |
-
-- Use `SecretStr` for `github_token` to prevent accidental logging.
-- The `auditor_path` default assumes agents/ is a subdirectory of the parent project.
-
-#### Custom Exceptions
-
-All inherit from a common base for easy catch-all when needed.
-
-```python
-class ArcaneAgentError(Exception):
-    """Base exception for all agent errors."""
-
-class ScanError(ArcaneAgentError):
-    """Raised when scanning for Extend artifacts fails."""
-
-class RunnerError(ArcaneAgentError):
-    """Raised when invoking Arcane Auditor subprocess fails."""
-
-class ReporterError(ArcaneAgentError):
-    """Raised when formatting or delivering a report fails."""
-
-class FixerError(ArcaneAgentError):
-    """Raised when applying a fix template fails."""
-```
-
-Each exception:
-- Has a Google-style docstring (one line).
-- Inherits from `ArcaneAgentError` (not directly from `Exception`).
-- No custom `__init__` needed -- standard `Exception(message)` suffices.
-
-### 2. `tests/test_models.py` (NEW)
-
-Test file validating all models, enums, and exceptions.
-
-#### Imports
-
+#### Imports / Dependencies
 ```python
 from __future__ import annotations
 
-from datetime import datetime
+import json
+import os
 from pathlib import Path
 
 import pytest
+import yaml
 
-from src.models import (
-    AgentConfig,
-    ArcaneAgentError,
-    Confidence,
-    ExitCode,
-    Finding,
-    FixerError,
-    FixResult,
-    ReportFormat,
-    ReporterError,
-    RunnerError,
-    ScanError,
-    ScanResult,
-    Severity,
-)
+from src.config import load_config, validate_config
+from src.models import AgentConfig, ConfigError, ReportFormat
 ```
 
-#### Test Cases
+#### Test functions
 
-**Enum tests:**
-- `test_severity_values`: Assert `Severity.ACTION.value == "ACTION"` and `Severity.ADVICE.value == "ADVICE"`.
-- `test_report_format_values`: Assert all 4 ReportFormat enum values match expected strings.
-- `test_confidence_values`: Assert HIGH, MEDIUM, LOW string values.
-- `test_exit_code_values`: Assert 0, 1, 2, 3 integer values.
+- signature: `def test_load_config_defaults(tmp_path: Path) -> None:`
+  - purpose: Calling load_config(None) returns AgentConfig with defaults when ARCANE_AUDITOR_PATH points to a valid path.
+  - logic:
+    1. Create a fake auditor dir: `auditor_dir = tmp_path / "auditor"`, `auditor_dir.mkdir()`, `(auditor_dir / "main.py").write_text("# stub")`.
+    2. Set `os.environ["ARCANE_AUDITOR_PATH"] = str(auditor_dir)`.
+    3. Call `config = load_config(None)`.
+    4. Assert `config.repos == []`.
+    5. Assert `config.config_preset is None`.
+    6. Assert `config.output_format == ReportFormat.JSON`.
+    7. Assert `config.github_token is None`.
+    8. Clean up env var with `del os.environ["ARCANE_AUDITOR_PATH"]` (or use monkeypatch).
+  - note: Use `monkeypatch.setenv` from pytest fixtures to avoid leaving env vars behind.
 
-**Finding tests:**
-- `test_finding_creation`: Create a Finding with all fields, assert values match.
-- `test_finding_default_line`: Create a Finding without `line`, assert it defaults to 0.
-- `test_finding_frozen`: Create a Finding, attempt to mutate `rule_id`, assert `ValidationError` is raised.
-- `test_finding_from_parent_json`: Create a Finding using `model_validate()` with a dict matching the parent tool's JSON output format. Assert all fields parsed correctly.
-- `test_finding_invalid_severity`: Attempt to create a Finding with `severity="INVALID"`, assert `ValidationError`.
+- signature: `def test_load_config_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:`
+  - purpose: load_config reads a YAML file and populates AgentConfig fields.
+  - logic:
+    1. Create a fake auditor dir and `main.py` stub as in test above.
+    2. Write a YAML config file at `tmp_path / "config.yaml"` with content:
+       ```yaml
+       repos:
+         - owner/repo1
+       config_preset: production-ready
+       output_format: json
+       ```
+    3. Set `ARCANE_AUDITOR_PATH` env var to `str(auditor_dir)` via `monkeypatch.setenv`.
+    4. Call `config = load_config(tmp_path / "config.yaml")`.
+    5. Assert `config.repos == ["owner/repo1"]`.
+    6. Assert `config.config_preset == "production-ready"`.
+    7. Assert `config.output_format == ReportFormat.JSON`.
 
-**ScanResult tests:**
-- `test_scan_result_creation`: Create with required fields, assert values.
-- `test_scan_result_timestamp_default`: Create without explicit timestamp, assert `timestamp` is a `datetime` instance and is recent.
-- `test_scan_result_has_issues_property`: Create with `exit_code=ExitCode.ISSUES_FOUND`, assert `has_issues` is True. Create with `exit_code=ExitCode.CLEAN`, assert `has_issues` is False.
-- `test_scan_result_action_advice_counts`: Create with a mix of ACTION and ADVICE findings, assert `action_count` and `advice_count` return correct values.
+- signature: `def test_load_config_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:`
+  - purpose: load_config reads a JSON file and populates AgentConfig fields.
+  - logic:
+    1. Create a fake auditor dir and `main.py` stub.
+    2. Write a JSON config file at `tmp_path / "config.json"` with content `{"repos": ["a/b"], "auditor_path": str(auditor_dir)}`.
+    3. Call `config = load_config(tmp_path / "config.json")` (no env var override needed since auditor_path is in the JSON).
+    4. Assert `config.repos == ["a/b"]`.
 
-**FixResult tests:**
-- `test_fix_result_creation`: Create with all fields, assert values.
-- `test_fix_result_is_auto_applicable`: Assert True for HIGH confidence, False for MEDIUM and LOW.
+- signature: `def test_load_config_unsupported_extension(tmp_path: Path) -> None:`
+  - purpose: load_config raises ConfigError for unsupported file extensions.
+  - logic:
+    1. Create a file `tmp_path / "config.toml"` with any text content.
+    2. Call `load_config(tmp_path / "config.toml")` and expect it to raise `ConfigError`.
+    3. Assert the exception message contains "Unsupported config format".
 
-**AgentConfig tests:**
-- `test_agent_config_defaults`: Create with no args, assert `repos == []`, `config_preset is None`, `output_format == ReportFormat.JSON`, `github_token is None`.
-- `test_agent_config_with_token`: Create with `github_token="ghp_test123"`, assert `github_token.get_secret_value() == "ghp_test123"` and `str(github_token) != "ghp_test123"` (SecretStr masks the value).
-- `test_agent_config_auditor_path`: Create with `auditor_path=Path("/custom/path")`, assert it stores correctly.
+- signature: `def test_load_config_missing_file(tmp_path: Path) -> None:`
+  - purpose: load_config raises ConfigError when the config file does not exist.
+  - logic:
+    1. Call `load_config(tmp_path / "nonexistent.yaml")` and expect it to raise `ConfigError`.
+    2. Assert the exception message contains "Config file not found".
 
-**Exception tests:**
-- `test_exceptions_inherit_from_base`: Assert all four exceptions are subclasses of `ArcaneAgentError`.
-- `test_exceptions_inherit_from_exception`: Assert `ArcaneAgentError` is a subclass of `Exception`.
-- `test_exception_messages`: Raise each exception with a message, catch it, assert `str(exc) == message`.
-- `test_catch_all_base_exception`: Raise `ScanError`, catch with `except ArcaneAgentError`, assert it's caught.
+- signature: `def test_env_var_github_token_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:`
+  - purpose: GITHUB_TOKEN env var overrides github_token in the loaded config.
+  - logic:
+    1. Create fake auditor dir with `main.py`.
+    2. Write a minimal YAML config with no `github_token` field at `tmp_path / "config.yaml"`. Set `auditor_path` to `str(auditor_dir)` in the YAML.
+    3. Set `monkeypatch.setenv("GITHUB_TOKEN", "ghp_test_token")`.
+    4. Call `config = load_config(tmp_path / "config.yaml")`.
+    5. Assert `config.github_token` is not None.
+    6. Assert `config.github_token.get_secret_value() == "ghp_test_token"`.
 
-## Dependencies
+- signature: `def test_env_var_whitespace_github_token_ignored(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:`
+  - purpose: A whitespace-only GITHUB_TOKEN env var is not applied (guards against pattern 8).
+  - logic:
+    1. Create fake auditor dir with `main.py`.
+    2. Write minimal YAML config with `auditor_path` set to auditor dir.
+    3. Set `monkeypatch.setenv("GITHUB_TOKEN", "   ")`.
+    4. Call `config = load_config(tmp_path / "config.yaml")`.
+    5. Assert `config.github_token is None`.
 
-No new dependencies needed. All imports come from:
-- `pydantic` (already in pyproject.toml as `pydantic>=2.0`)
-- Python stdlib (`datetime`, `enum`, `pathlib`, `typing`)
-- `pytest` (already in dev dependencies)
+- signature: `def test_validate_config_missing_auditor_path(tmp_path: Path) -> None:`
+  - purpose: validate_config raises ConfigError when auditor_path does not exist.
+  - logic:
+    1. Create `config = AgentConfig(auditor_path=tmp_path / "nonexistent")`.
+    2. Call `validate_config(config)` and expect `ConfigError`.
+    3. Assert message contains "does not exist".
 
-## Docker / Config Changes
+- signature: `def test_validate_config_missing_main_py(tmp_path: Path) -> None:`
+  - purpose: validate_config raises ConfigError when auditor_path exists but contains no main.py.
+  - logic:
+    1. Create a directory: `empty_dir = tmp_path / "auditor"`, `empty_dir.mkdir()`.
+    2. Create `config = AgentConfig(auditor_path=empty_dir)`.
+    3. Call `validate_config(config)` and expect `ConfigError`.
+    4. Assert message contains "main.py not found".
 
-None required.
+- signature: `def test_validate_config_valid(tmp_path: Path) -> None:`
+  - purpose: validate_config returns None (no exception) when auditor_path and main.py both exist.
+  - logic:
+    1. Create `auditor_dir = tmp_path / "auditor"`, `auditor_dir.mkdir()`, `(auditor_dir / "main.py").write_text("# stub")`.
+    2. Create `config = AgentConfig(auditor_path=auditor_dir)`.
+    3. Call `validate_config(config)` -- assert it does not raise (no assertion needed beyond no exception).
 
-## Verification Steps
+- signature: `def test_load_config_invalid_yaml(tmp_path: Path) -> None:`
+  - purpose: load_config raises ConfigError for malformed YAML.
+  - logic:
+    1. Write a file at `tmp_path / "bad.yaml"` with content `": invalid: yaml: content: [unclosed"`.
+    2. Call `load_config(tmp_path / "bad.yaml")` and expect `ConfigError`.
+    3. Assert message contains "Failed to parse YAML config".
 
-From the `agents/` directory:
+- signature: `def test_load_config_empty_yaml_uses_defaults(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:`
+  - purpose: An empty YAML file results in default AgentConfig values (not an error).
+  - logic:
+    1. Create fake auditor dir with `main.py`.
+    2. Write an empty file at `tmp_path / "empty.yaml"` (zero bytes).
+    3. Set `monkeypatch.setenv("ARCANE_AUDITOR_PATH", str(auditor_dir))`.
+    4. Call `config = load_config(tmp_path / "empty.yaml")`.
+    5. Assert `config.repos == []`.
 
-```bash
-# 1. Verify the module imports cleanly
-uv run python -c "from src.models import Finding, ScanResult, FixResult, AgentConfig, ReportFormat, Severity, Confidence, ExitCode, ScanError, RunnerError, ReporterError, FixerError, ArcaneAgentError; print('All imports OK')"
+## Verification
+- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv sync`
+- lint: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.config import load_config, validate_config; print('import ok')"`
+- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/test_config.py -v`
+- smoke: Run `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.config import load_config; c = load_config(); print('auditor_path:', c.auditor_path.resolve())"` -- should print the resolved path to `../` (one directory up from `agents/`) without error, because `../main.py` exists at `/Users/name/homelab/ArcaneAuditor/main.py`.
 
-# 2. Run the tests
-uv run pytest tests/test_models.py -v
-
-# 3. Verify no type errors (optional, if mypy/pyright available)
-uv run python -c "
-from src.models import Finding, Severity
-f = Finding(rule_id='TestRule', severity=Severity.ACTION, message='test', file_path='test.pmd', line=1)
-print(f'Finding: {f.rule_id}, frozen={f.model_config.get(\"frozen\", False)}')
-print(f'Description property: {f.description}')
-"
-```
-
-All tests must pass. Zero findings from the test suite itself.
-
-## Implementation Notes for Builder
-
-1. **`from __future__ import annotations`** must be the first import in both files (per CLAUDE.md).
-2. **Frozen Finding model**: Use `model_config = ConfigDict(frozen=True)` from pydantic, not `class Config`.
-3. **SecretStr**: Import from `pydantic`, not a third-party lib.
-4. **Severity enum validation**: Pydantic v2 validates enum fields automatically when the type is `Severity`. No custom validator needed.
-5. **`description` property on Finding**: The IMPL_PLAN lists `description` as a field, but the parent tool's JSON has `rule_description` as a separate concept (the rule's class-level DESCRIPTION, not the finding's message). Map `description` as a property returning `self.message` to keep the interface the IMPL_PLAN expects without diverging from the parent JSON format.
-6. **No `print()` calls**: Per CLAUDE.md, use `logging` module only. Models shouldn't log at all.
-7. **Google-style docstrings**: Required on all public classes and the module itself.
+## Constraints
+- Do NOT add any new entries to `pyproject.toml` -- `pyyaml` is already present.
+- Do NOT modify `IMPL_PLAN.md`, `CLAUDE.md`, or `ARCHITECTURE.md`.
+- Do NOT add `print()` calls anywhere -- use `logging` only.
+- Do NOT use string paths -- all path operations must use `pathlib.Path`.
+- The `validate_config` function must resolve relative paths before checking existence (use `.resolve()`), so that the default `auditor_path=Path("../")` resolves correctly regardless of cwd.
+- Do NOT catch bare `Exception` -- only catch `yaml.YAMLError`, `json.JSONDecodeError`, and `pydantic.ValidationError` specifically.
+- The `load_config` function must apply env var overrides AFTER parsing the file, so env vars always win over file values.
+- Do NOT import from `pydantic` directly in config.py for anything other than catching `ValidationError`. The `AgentConfig` model lives in `src/models.py`.
