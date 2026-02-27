@@ -329,6 +329,7 @@ def run_analysis_background(job: AnalysisJob):
             "findings": [
                 {
                     "rule_id": finding.rule_id,
+                    "rule_description": finding.rule_description,
                     "severity": finding.severity,
                     "message": finding.message,
                     "file_path": finding.file_path,
