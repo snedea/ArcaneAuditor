@@ -1,53 +1,57 @@
-# Review Report — P6.5
+# Review Report — P7.1
 
-## Verdict: PASS
+## Verdict: FAIL
 
 ## Runtime Checks
-- Build: PASS (`uv run python -m py_compile tests/test_fixer.py` exits 0)
-- Tests: PASS (37/37 new tests pass; 301/301 total tests pass in 8.37s)
-- Lint: SKIPPED (no lint command configured in pyproject.toml per plan)
-- Docker: SKIPPED (no Docker files changed)
+- Build: PASS (`uv run python -m py_compile src/cli.py tests/test_fix_command.py` -- both clean)
+- Tests: PASS (319 passed, 0 failed -- full suite including new 18 tests)
+- Lint: PASS (`uv run ruff check src/cli.py tests/test_fix_command.py` -- all checks passed)
+- Docker: SKIPPED (no Docker files changed in this task)
 
 ## Findings
 
 ```json
 {
   "high": [],
-  "medium": [],
+  "medium": [
+    {
+      "file": "src/cli.py",
+      "line": 339,
+      "issue": "When --repo is used without --create-pr and without --target-dir, fixed files are silently discarded. output_dir is set to manifest.root_path (line 339), which for a GitHub clone equals manifest.temp_dir. apply_fixes writes into that directory, the user sees 'Applied N fix(es).' (line 348), and then the finally block at line 375-377 runs shutil.rmtree(manifest.temp_dir), deleting all fixed files. No warning is emitted. Confirmed by scanner.py:105+117-120 -- scan_github sets manifest.root_path = tmp_path and manifest.temp_dir = tmp_path (the same object). The --create-pr path is safe (push happens before finally), and --target-dir is safe (writes outside temp dir), but the --repo-only path produces useless output.",
+      "category": "logic"
+    }
+  ],
   "low": [
     {
-      "file": "tests/test_fixer.py",
-      "line": 271,
-      "issue": "remove_console_log_results uses AgentConfig(auditor_path=AUDITOR_PATH, config_preset=\"production-ready\") instead of _make_auditor_config() as specified in the plan. All other five end-to-end fixtures call _make_auditor_config(). If the production-ready preset is ever modified to disable ScriptConsoleLogRule, the fixture setup guard will raise AssertionError with the message 'ScriptConsoleLogRule finding not found in initial scan' rather than a clear test failure about config mismatch.",
+      "file": "src/cli.py",
+      "line": 100,
+      "issue": "The quiet parameter in _create_fix_pr signature is accepted but never read inside the function body. Plan step 8 for _create_fix_pr specifies: 'If not quiet, log the PR URL via typer.echo(f\"PR created: {url}\", err=True)'. That stderr informational message is absent. The quiet parameter is dead code. The PR URL is echoed unconditionally by the caller at line 371, which is correct for machine-readable output, but the quiet-suppressable status message is missing.",
       "category": "inconsistency"
     },
     {
-      "file": "tests/test_fixer.py",
-      "line": 274,
-      "issue": "remove_console_log_results writes 'console.info(...)' but the plan specifies 'console.log(...)'. RemoveConsoleLog handles both (regex matches log|warn|error|info|debug), so the test works, but the fixture does not match the exact content in the plan spec.",
-      "category": "inconsistency"
+      "file": "tests/test_fix_command.py",
+      "line": 1,
+      "issue": "Zero test coverage for _create_fix_pr. The function contains 4 subprocess calls each with distinct error handling, a GIT_ASKPASS tempfile lifecycle, and a PyGithub API call. None of this is exercised. The plan did not specify a TestFixPR class, so this is a plan gap rather than an implementation defect, but it is a notable audit gap for a function that touches secrets and external systems.",
+      "category": "resource-leak"
     },
     {
-      "file": "tests/test_fixer.py",
-      "line": 311,
-      "issue": "template_literal_results writes a .pmd file that includes an extra presentation block with body/section/bodySection not present in the plan spec. The addition is a defensive measure to prevent WidgetIdLowerCamelCaseRule from firing on a bare pmd and polluting the finding count, but the deviation from the plan is undocumented.",
-      "category": "inconsistency"
+      "file": "src/cli.py",
+      "line": 162,
+      "issue": "base='main' is hardcoded in repo_obj.create_pull(). Repos whose default branch is master, develop, or any other name will receive a GitHub API 422 (unprocessable entity) error, which is caught as FixerError and exits 3. The value is plan-specified but the limitation is undocumented and could surprise users of repos that do not use main as their default branch.",
+      "category": "hardcoded"
     }
   ],
   "validated": [
-    "All 37 tests (9 pre-existing + 2 TestLowConfidenceNotAutoApplied + 18 TestEndToEnd*) pass cleanly with no errors or skips",
-    "Full suite (301 tests) passes with no regressions in test_scanner, test_runner, test_reporter, test_cli, test_script_fixes, test_structure_fixes",
-    "Known Pattern #1 (assert result is not None before .fixed_content): all 6 module-scoped fixtures have the guard in place before accessing fix_result.fixed_content",
-    "Known Pattern #8 (str-Enum coercion): Confidence is a str+Enum subclass; mock_template.confidence = 'LOW'/'MEDIUM' raw strings correctly fail the HIGH filter in fixer.py:41",
-    "Known Pattern #5 (inspect.getattr_static): FixTemplateRegistry already uses this pattern; no new registry changes were made",
-    "AUDITOR_PATH = Path(__file__).parent.parent.parent correctly resolves to the parent Arcane Auditor directory from agents/tests/",
-    "All 6 module-scoped fixtures use tmp_path_factory (not tmp_path) per the scope='module' constraint",
-    "_make_auditor_config() is called inside each fixture body rather than injected as a fixture, per the constraint",
-    "endpoint_name_results fixture includes failOnStatusCodes pre-populated on the endpoint to prevent EndpointFailOnStatusCodesRule interference",
-    "All new test methods have explicit -> None return type annotations",
-    "No files other than tests/test_fixer.py were modified",
-    "No new package dependencies were added",
-    "TestFixFindings and TestApplyFixes classes are unchanged"
+    "Import block is complete and correct: subprocess, shutil, os, stat, github.Auth/Github/GithubException, src.fixer.apply_fixes/fix_findings, FixerError/ScanResult in models import",
+    "Boolean Typer options use typer.Option(False, ...) pattern throughout -- no is_flag=True",
+    "Validation order in fix command is correct: mutual exclusion checks before token extraction, token check before target_dir+create_pr check",
+    "_create_fix_pr uses GIT_ASKPASS tempfile (chmod 700, deleted in finally) to avoid token in argv -- same pattern as scan_github in scanner.py",
+    "manifest = None initialization at line 305 ensures the finally block at line 375 is safe even if scan_local/scan_github raises before manifest is assigned",
+    "typer.Exit propagates through the outer try and correctly triggers the finally block for temp_dir cleanup in all code paths",
+    "Re-audit manifest (from scan_local) never has temp_dir set (scanner.py:56 confirms scan_local returns ScanManifest without temp_dir), so no resource leak from re-audit",
+    "All 18 new tests pass; all 319 suite tests pass",
+    "fix --help smoke test shows --create-pr, --target-dir, and PATH as required by plan",
+    "_DefaultScanGroup.parse_args correctly passes 'fix' invocations through unchanged since 'fix' is in self.commands"
   ]
 }
 ```

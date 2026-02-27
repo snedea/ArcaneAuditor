@@ -1,370 +1,325 @@
-# Plan: P6.5
+# Plan: P7.1
 
 ## Dependencies
-- list: []
-- commands: []
-  (All required packages already installed via pyproject.toml. No new dependencies needed.)
+- list: no new dependencies required (all needed packages already in pyproject.toml: typer, pydantic, pygithub)
+- commands: none
+
+## Pre-flight Verification
+
+Before writing any code, confirm these items are NOT already present in `src/cli.py`:
+- A function named `fix` decorated with `@app.command()`
+- An import of `fix_findings` or `apply_fixes`
+
+If both are already present, skip all file operations and only update IMPL_PLAN.md.
 
 ## File Operations (in execution order)
 
-### 1. MODIFY tests/test_fixer.py
+### 1. MODIFY src/cli.py
 - operation: MODIFY
-- reason: Add end-to-end re-scan tests for each fix template, a LOW confidence filter test, and a no-new-violations test. The existing file has TestFixFindings and TestApplyFixes but no tests that run Arcane Auditor after applying a fix.
-- anchor: `from src.fixer import apply_fixes, fix_findings` (line 7 in existing file)
+- reason: Add the `fix` command that wires scan -> audit -> fix -> (optional) re-audit -> (optional) create-pr pipeline
 
-#### Imports / Dependencies
-Add the following imports after the existing import block (after line 16, before the `_finding` helper):
+#### anchor (existing code to locate insertion points)
+
+Import block anchor (line 14):
 ```python
-from src.models import AgentConfig, ScanManifest
+from src.models import ConfigError, ExitCode, ReportFormat, ReporterError, RunnerError, ScanError
+```
+
+End-of-file anchor (line 138-139):
+```python
+    raise typer.Exit(code=int(scan_result.exit_code))
+```
+
+#### Imports to ADD
+
+Add these two lines immediately after the existing `from src.models import ...` line (line 14):
+
+```python
+from src.fixer import apply_fixes, fix_findings
+from src.models import ConfigError, ExitCode, FixerError, ReportFormat, ReporterError, RunnerError, ScanError
+```
+
+Specifically: replace the existing line 14 with the above two lines. The first line adds the fixer imports. The second line is the same as the original but with `FixerError` added to the import list (inserted alphabetically between `ExitCode` and `ReportFormat`).
+
+#### Functions
+
+##### Function: `_create_fix_pr`
+
+Add this private helper function AFTER the `_error` function (after line 48) and BEFORE the `@app.command()` decorator for `scan` (line 50):
+
+- signature: `def _create_fix_pr(repo: str, token: str, source_dir: Path, written_files: list[Path], scan_result: ScanResult, quiet: bool) -> str`
+- purpose: Commit fixed files to a new branch in a GitHub repo clone and open a PR via PyGithub
+- logic:
+  1. Import `subprocess` at module level (add `import subprocess` to the imports block, after `import shutil` on line 6)
+  2. Create branch name: `branch_name = f"arcane-auditor/fix-{int(scan_result.timestamp.timestamp())}"`
+  3. Run `subprocess.run(["git", "-C", str(source_dir), "checkout", "-b", branch_name], capture_output=True, text=True, check=False)`. If returncode != 0, raise `FixerError(f"git checkout -b failed: {result.stderr.strip()}")`
+  4. Run `subprocess.run(["git", "-C", str(source_dir), "add"] + [str(f) for f in written_files], capture_output=True, text=True, check=False)`. If returncode != 0, raise `FixerError(f"git add failed: {result.stderr.strip()}")`
+  5. Build commit message: `commit_msg = f"fix: apply Arcane Auditor auto-fixes ({len(written_files)} files)"`. Run `subprocess.run(["git", "-C", str(source_dir), "commit", "-m", commit_msg], capture_output=True, text=True, check=False)`. If returncode != 0, raise `FixerError(f"git commit failed: {result.stderr.strip()}")`
+  6. Build push URL: `push_url = f"https://x-access-token:{token}@github.com/{repo}.git"`. Run `subprocess.run(["git", "-C", str(source_dir), "push", push_url, branch_name], capture_output=True, text=True, check=False)`. If returncode != 0, raise `FixerError(f"git push failed: {result.stderr.strip()}")`
+  7. Use PyGithub to create PR:
+     ```python
+     from github import Auth, Github, GithubException
+     with Github(auth=Auth.Token(token)) as gh:
+         try:
+             repo_obj = gh.get_repo(repo)
+             pr_body = _build_fix_pr_body(scan_result, written_files)
+             pr = repo_obj.create_pull(
+                 title=f"fix: Arcane Auditor auto-fixes ({len(written_files)} files)",
+                 body=pr_body,
+                 head=branch_name,
+                 base="main",
+             )
+             return pr.html_url
+         except GithubException as exc:
+             raise FixerError(f"GitHub API error creating PR: {exc}") from exc
+     ```
+  8. If not quiet, log the PR URL via `typer.echo(f"PR created: {url}", err=True)`
+- calls: `_build_fix_pr_body(scan_result, written_files)`
+- returns: `str` (the PR HTML URL)
+- error handling: Raise `FixerError` for any subprocess or GitHub API failure. Caller catches `FixerError`.
+
+##### Function: `_build_fix_pr_body`
+
+Add immediately before `_create_fix_pr`:
+
+- signature: `def _build_fix_pr_body(scan_result: ScanResult, written_files: list[Path]) -> str`
+- purpose: Build markdown body for the auto-fix PR
+- logic:
+  1. Create `lines: list[str] = []`
+  2. Append `"## Arcane Auditor Auto-Fixes"`
+  3. Append empty line
+  4. Append `f"Applied {len(written_files)} automatic fix(es) for {scan_result.findings_count} finding(s)."`
+  5. Append empty line
+  6. Append `"### Fixed Files"`
+  7. Append empty line
+  8. For each `f` in `written_files`: append `f"- {f}"`
+  9. Append empty line
+  10. Append `"### Original Findings"`
+  11. Append empty line
+  12. Append `"| Rule | Severity | File | Message |"`
+  13. Append `"| --- | --- | --- | --- |"`
+  14. For each finding `f` in `scan_result.findings`: append `f"| {f.rule_id} | {f.severity.value} | {f.file_path} | {f.message} |"`
+  15. Append empty line
+  16. Append `"---"`
+  17. Append `"*Auto-fixed by [Arcane Auditor](https://github.com/snedea/homelab) -- deterministic rule-based code review.*"`
+  18. Return `"\n".join(lines)`
+- calls: none
+- returns: `str`
+- error handling: none
+
+##### Function: `fix` (the Typer command)
+
+Add AFTER the `scan` command function (after line 139, at end of file):
+
+- signature:
+```python
+@app.command()
+def fix(
+    path: Optional[Path] = typer.Argument(None, help="Local path to scan and fix Workday Extend artifacts"),
+    repo: Optional[str] = typer.Option(None, "--repo", help="GitHub repo in owner/repo format (e.g. acme/payroll)"),
+    target_dir: Optional[Path] = typer.Option(None, "--target-dir", help="Write fixed files to this directory instead of modifying source"),
+    create_pr: bool = typer.Option(False, "--create-pr", help="Create a GitHub PR with the fixes (requires --repo and GITHUB_TOKEN)"),
+    config: Optional[str] = typer.Option(None, "--config", help="Arcane Auditor config preset name or path"),
+    quiet: bool = typer.Option(False, "--quiet", help="Suppress informational messages; only errors go to stderr"),
+) -> None:
+```
+- purpose: Orchestrate the full fix pipeline: scan -> audit -> fix -> apply -> (optional re-audit) -> (optional create PR)
+- logic (numbered steps):
+  1. Call `_configure_logging(quiet)`
+  2. Try `agent_config = load_config(None)`. Catch `ConfigError`, call `_error(str(exc))`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+  3. If `config is not None`: `agent_config = agent_config.model_copy(update={"config_preset": config})`
+  4. Validate mutual exclusion: if `path is None and repo is None`, call `_error("Must specify either PATH or --repo")`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+  5. If `path is not None and repo is not None`, call `_error("Cannot specify both PATH and --repo")`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+  6. If `create_pr and repo is None`, call `_error("--create-pr requires --repo")`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+  7. Extract token: `token: str = agent_config.github_token.get_secret_value() if agent_config.github_token is not None else ""`
+  8. If `create_pr and not token`, call `_error("--create-pr requires a GitHub token; set GITHUB_TOKEN env var")`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+  9. If `target_dir is not None and create_pr`, call `_error("Cannot specify both --target-dir and --create-pr")`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+  10. Begin try block. If `path is not None`: `manifest = scan_local(path)`. Else: `assert repo is not None` then `manifest = scan_github(repo, "main", token)`. Catch `ScanError`, call `_error(str(exc))`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+  11. Begin try block (with `finally` for temp_dir cleanup). Call `scan_result = run_audit(manifest, agent_config)`. Catch `RunnerError`, call `_error(str(exc))`, raise `typer.Exit(code=int(ExitCode.RUNTIME_ERROR))`
+  12. If `scan_result.exit_code == ExitCode.CLEAN`: if not quiet, `typer.echo("No findings to fix.", err=True)`. Raise `typer.Exit(code=0)`
+  13. Call `fix_results = fix_findings(scan_result, manifest.root_path)`. Catch `FixerError`, call `_error(str(exc))`, raise `typer.Exit(code=int(ExitCode.RUNTIME_ERROR))`
+  14. If `len(fix_results) == 0`: if not quiet, `typer.echo("No auto-fixable findings.", err=True)`. Raise `typer.Exit(code=int(scan_result.exit_code))`
+  15. Determine output directory: `output_dir = target_dir if target_dir is not None else manifest.root_path`
+  16. Call `written = apply_fixes(fix_results, output_dir)`. Catch `FixerError`, call `_error(str(exc))`, raise `typer.Exit(code=int(ExitCode.RUNTIME_ERROR))`
+  17. If not quiet: `typer.echo(f"Applied {len(written)} fix(es).", err=True)`
+  18. Determine re-audit source: `reaudit_dir = target_dir if target_dir is not None else manifest.root_path`. Call `reaudit_manifest = scan_local(reaudit_dir)`. Call `reaudit_result = run_audit(reaudit_manifest, agent_config)`. Catch `(ScanError, RunnerError)` as exc: log warning `logger.warning("Re-audit failed: %s", exc)`, set `reaudit_result = None`
+  19. If `reaudit_result is not None and not quiet`: compute `before = scan_result.findings_count`, `after = reaudit_result.findings_count`. `typer.echo(f"Re-audit: {before} -> {after} findings.", err=True)`
+  20. If `create_pr`:
+      - `assert repo is not None` (for type narrowing)
+      - Try `pr_url = _create_fix_pr(repo, token, manifest.root_path, written, scan_result, quiet)`. Catch `FixerError`, call `_error(str(exc))`, raise `typer.Exit(code=int(ExitCode.RUNTIME_ERROR))`
+      - `typer.echo(pr_url)`
+  21. In `finally` block: `if manifest.temp_dir is not None: shutil.rmtree(manifest.temp_dir, ignore_errors=True)`
+  22. Determine final exit code: if `reaudit_result is not None`, use `reaudit_result.exit_code`. Else use `scan_result.exit_code`. Raise `typer.Exit(code=int(final_exit_code))`
+
+- calls: `_configure_logging`, `load_config`, `scan_local`, `scan_github`, `run_audit`, `fix_findings`, `apply_fixes`, `_create_fix_pr`, `scan_local` (for re-audit)
+- returns: None (exits via typer.Exit)
+- error handling: Each stage has specific exception handling as described in the logic steps above
+
+#### Wiring / Integration
+- The `fix` command is registered on the same `app = typer.Typer(...)` instance via `@app.command()` decorator
+- No changes needed to `pyproject.toml` -- the entry point `src.cli:app` already exposes all commands on the Typer app
+- The `fix` command reuses the same helper functions `_configure_logging` and `_error` as the `scan` command
+
+#### Complete import block after modification
+
+The final import section of `src/cli.py` (lines 1-18) should be:
+
+```python
+"""Entry point for the arcane-agent CLI; wires scan -> runner -> reporter pipeline."""
+
+from __future__ import annotations
+
+import logging
+import shutil
+import subprocess
+from enum import Enum
+from pathlib import Path
+from typing import Optional
+
+import typer
+from github import Auth, Github, GithubException
+
+from src.config import load_config
+from src.fixer import apply_fixes, fix_findings
+from src.models import ConfigError, ExitCode, FixerError, ReportFormat, ReporterError, RunnerError, ScanError, ScanResult
+from src.reporter import format_github_issues, format_pr_comment, report_findings
 from src.runner import run_audit
-from fix_templates.script_fixes import RemoveConsoleLog, TemplateLiteralFix, VarToLetConst
-from fix_templates.structure_fixes import (
-    AddFailOnStatusCodes,
-    LowerCamelCaseEndpointName,
-    LowerCamelCaseWidgetId,
+from src.scanner import scan_github, scan_local
+```
+
+Note: `ScanResult` is added to the models import (needed for type annotation in `_build_fix_pr_body`). `subprocess` is added. `from github import Auth, Github, GithubException` is added for `_create_fix_pr`.
+
+### 2. CREATE tests/test_fix_command.py
+- operation: CREATE
+- reason: Unit tests for the new `fix` CLI command, following the pattern in tests/test_cli.py
+
+#### Imports
+
+```python
+"""Tests for the fix command in src/cli module."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from pathlib import Path
+from unittest.mock import patch, MagicMock
+
+import pytest
+from typer.testing import CliRunner
+
+from src.cli import app
+from src.models import (
+    AgentConfig,
+    ExitCode,
+    Finding,
+    FixerError,
+    FixResult,
+    Confidence,
+    ScanManifest,
+    ScanResult,
+    Severity,
 )
 ```
 
-Also add this constant after the existing imports, before the helper functions:
+#### Module-level setup
+
 ```python
-AUDITOR_PATH: Path = Path(__file__).parent.parent.parent
+runner = CliRunner()
 ```
 
-#### Module-level helper function
-Add this helper function after the existing `_fix_result` helper (after line 53 in the existing file):
+#### Helper functions
 
-- signature: `def _make_auditor_config() -> AgentConfig:`
-  - purpose: Return an AgentConfig pointing at the real parent Arcane Auditor tool.
-  - logic:
-    1. Return `AgentConfig(auditor_path=AUDITOR_PATH)`
-  - returns: `AgentConfig`
-  - error handling: None
+Reuse the same helpers from test_cli.py (duplicated here to keep tests self-contained):
 
-#### New Class: TestLowConfidenceNotAutoApplied
-Add after the existing `TestApplyFixes` class (after line 183).
+- `_make_config(tmp_path: Path) -> AgentConfig`: Same as test_cli.py. Create `auditor_dir = tmp_path / "auditor"`, mkdir, write `(auditor_dir / "main.py").write_text("# stub")`, return `AgentConfig(auditor_path=auditor_dir)`.
 
-Tests that fix_findings skips any template whose confidence is not HIGH.
+- `_make_manifest(tmp_path: Path) -> ScanManifest`: Return `ScanManifest(root_path=tmp_path)`.
 
-**Test methods:**
+- `_make_scan_result(exit_code: ExitCode = ExitCode.ISSUES_FOUND) -> ScanResult`: Return `ScanResult(repo="test/repo", timestamp=datetime.now(UTC), findings_count=1, findings=[Finding(rule_id="ScriptVarUsageRule", severity=Severity.ACTION, message="Use let/const", file_path="app/test.script", line=1)], exit_code=exit_code)`. Note: default is ISSUES_FOUND (not CLEAN) because the fix command is interesting when there ARE findings.
 
-- `test_low_confidence_template_is_skipped(self, tmp_path: Path) -> None:`
-  - logic:
-    1. Write `tmp_path / "test.script"` with content `"var x = 1;\n"`
-    2. Construct `finding = _finding(rule_id="ScriptVarUsageRule", file_path="test.script", line=1)`
-    3. Create `mock_template = MagicMock()` with `mock_template.confidence = "LOW"` and `mock_template.match.return_value = True`
-    4. Create `mock_registry = MagicMock()` with `mock_registry.find_matching.return_value = [mock_template]`
-    5. `with patch("src.fixer.FixTemplateRegistry", return_value=mock_registry):`
-    6. Call `result = fix_findings(_scan_result([finding]), tmp_path)`
-    7. Assert `result == []`
-    8. Assert `mock_template.apply.assert_not_called()`
+- `_make_fix_results() -> list[FixResult]`: Return `[FixResult(finding=Finding(rule_id="ScriptVarUsageRule", severity=Severity.ACTION, message="Use let/const", file_path="app/test.script", line=1), original_content="var x = 1;", fixed_content="let x = 1;", confidence=Confidence.HIGH)]`.
 
-- `test_medium_and_low_templates_both_skipped_leaving_no_results(self, tmp_path: Path) -> None:`
-  - logic:
-    1. Write `tmp_path / "test.script"` with content `"var x = 1;\n"`
-    2. Construct `finding = _finding(rule_id="ScriptVarUsageRule", file_path="test.script", line=1)`
-    3. Create `mock_low = MagicMock()` with `mock_low.confidence = "LOW"` and `mock_low.match.return_value = True`
-    4. Create `mock_med = MagicMock()` with `mock_med.confidence = "MEDIUM"` and `mock_med.match.return_value = True`
-    5. Create `mock_registry = MagicMock()` with `mock_registry.find_matching.return_value = [mock_low, mock_med]`
-    6. `with patch("src.fixer.FixTemplateRegistry", return_value=mock_registry):`
-    7. Call `result = fix_findings(_scan_result([finding]), tmp_path)`
-    8. Assert `result == []`
-    9. Assert `mock_low.apply.assert_not_called()`
-    10. Assert `mock_med.apply.assert_not_called()`
+#### Test Classes and Methods
 
-#### New Class: TestEndToEndVarToLetConst
-Add after `TestLowConfidenceNotAutoApplied`.
+##### Class: `TestFixArgumentValidation`
 
-Uses a module-scoped fixture to run Arcane Auditor before and after fix. All methods in this class consume the same fixture result.
+- `test_no_path_no_repo_exits_2(self, tmp_path: Path) -> None`:
+  Patch `src.cli.load_config` to return `_make_config(tmp_path)`. Invoke `runner.invoke(app, ["fix"])`. Assert `result.exit_code == 2`. Assert `"Must specify either PATH or --repo"` in `result.output`.
 
-**Module-scoped fixture** (place at module level, before the class, decorated with `@pytest.fixture(scope="module")`):
+- `test_path_and_repo_together_exits_2(self, tmp_path: Path) -> None`:
+  Patch `src.cli.load_config`. Invoke `runner.invoke(app, ["fix", str(tmp_path), "--repo", "owner/repo"])`. Assert `result.exit_code == 2`. Assert `"Cannot specify both PATH and --repo"` in `result.output`.
 
-- signature: `def var_to_let_results(tmp_path_factory: pytest.TempPathFactory) -> tuple[ScanResult, ScanResult, str]:`
-  - purpose: Create minimal violation, scan, apply VarToLetConst, overwrite file, re-scan. Return tuple of (initial_result, fixed_result, rule_id).
-  - logic:
-    1. `config = _make_auditor_config()`
-    2. `source_dir = tmp_path_factory.mktemp("var_to_let")`
-    3. `violation_file = source_dir / "test.script"`
-    4. Write `violation_file` with content:
-       ```
-       var testCount = 0;\n{\n  "count": testCount\n}\n
-       ```
-       (exact string: `"var testCount = 0;\n{\n  \"count\": testCount\n}\n"`)
-    5. `manifest = ScanManifest(root_path=source_dir)`
-    6. `initial_result = run_audit(manifest, config)`
-    7. `findings = [f for f in initial_result.findings if f.rule_id == "ScriptVarUsageRule"]`
-    8. Assert `len(findings) >= 1` with message `"ScriptVarUsageRule finding not found in initial scan"`
-    9. `finding = findings[0]`
-    10. `content = violation_file.read_text(encoding="utf-8")`
-    11. `template = VarToLetConst()`
-    12. `fix_result = template.apply(finding, content)`
-    13. Assert `fix_result is not None` with message `"VarToLetConst.apply() returned None"`
-    14. `violation_file.write_text(fix_result.fixed_content, encoding="utf-8")`
-    15. `fixed_result = run_audit(manifest, config)`
-    16. Return `(initial_result, fixed_result, "ScriptVarUsageRule")`
-  - returns: `tuple[ScanResult, ScanResult, str]`
-  - error handling: Assertions with descriptive messages serve as test setup guards.
+- `test_create_pr_without_repo_exits_2(self, tmp_path: Path) -> None`:
+  Patch `src.cli.load_config`. Invoke `runner.invoke(app, ["fix", str(tmp_path), "--create-pr"])`. Assert `result.exit_code == 2`. Assert `"--create-pr requires --repo"` in `result.output`.
 
-**Test methods** (all receive `var_to_let_results` fixture):
+- `test_create_pr_without_token_exits_2(self, tmp_path: Path) -> None`:
+  Patch `src.cli.load_config` to return `_make_config(tmp_path)` (no token). Invoke `runner.invoke(app, ["fix", "--repo", "owner/repo", "--create-pr"])`. Assert `result.exit_code == 2`. Assert `"GITHUB_TOKEN"` in `result.output`.
 
-- `test_violation_present_in_initial_scan(self, var_to_let_results: tuple[ScanResult, ScanResult, str]) -> None:`
-  - logic:
-    1. `initial_result, _, rule_id = var_to_let_results`
-    2. `matches = [f for f in initial_result.findings if f.rule_id == rule_id]`
-    3. Assert `len(matches) >= 1`
+- `test_target_dir_and_create_pr_exits_2(self, tmp_path: Path) -> None`:
+  Create config with `github_token="fake-token"`: `AgentConfig(auditor_path=tmp_path / "auditor", github_token="fake-token")`. Create auditor stub. Patch `src.cli.load_config`. Invoke `runner.invoke(app, ["fix", "--repo", "owner/repo", "--target-dir", str(tmp_path), "--create-pr"])`. Assert `result.exit_code == 2`. Assert `"Cannot specify both --target-dir and --create-pr"` in `result.output`.
 
-- `test_violation_absent_after_fix(self, var_to_let_results: tuple[ScanResult, ScanResult, str]) -> None:`
-  - logic:
-    1. `_, fixed_result, rule_id = var_to_let_results`
-    2. `matches = [f for f in fixed_result.findings if f.rule_id == rule_id]`
-    3. Assert `len(matches) == 0`
+##### Class: `TestFixPipelineLocal`
 
-- `test_fix_does_not_introduce_new_violations(self, var_to_let_results: tuple[ScanResult, ScanResult, str]) -> None:`
-  - logic:
-    1. `initial_result, fixed_result, _ = var_to_let_results`
-    2. Assert `fixed_result.findings_count <= initial_result.findings_count`
+- `test_clean_scan_exits_0(self, tmp_path: Path) -> None`:
+  Patch `load_config`, `scan_local` returning `_make_manifest(tmp_path)`, `run_audit` returning `_make_scan_result(ExitCode.CLEAN)`. Invoke `runner.invoke(app, ["fix", str(tmp_path)])`. Assert `result.exit_code == 0`.
 
-#### New Class: TestEndToEndRemoveConsoleLog
-Add after `TestEndToEndVarToLetConst`.
+- `test_clean_scan_prints_no_findings(self, tmp_path: Path) -> None`:
+  Same patches as above. Assert `"No findings to fix"` in `result.output`.
 
-**Module-scoped fixture** (at module level before the class):
+- `test_fix_findings_called_when_issues_found(self, tmp_path: Path) -> None`:
+  Patch `load_config`, `scan_local`, `run_audit` returning `_make_scan_result(ExitCode.ISSUES_FOUND)`, `fix_findings` returning `_make_fix_results()`, `apply_fixes` returning `[Path("app/test.script")]`, and second `scan_local` + second `run_audit` (for re-audit) returning clean result. Invoke `runner.invoke(app, ["fix", str(tmp_path)])`. Assert `fix_findings` was called once with `(scan_result, tmp_path)`.
 
-- signature: `def remove_console_log_results(tmp_path_factory: pytest.TempPathFactory) -> tuple[ScanResult, ScanResult, str]:`
-  - purpose: Create minimal violation, scan, apply RemoveConsoleLog, overwrite file, re-scan.
-  - logic:
-    1. `config = _make_auditor_config()`
-    2. `source_dir = tmp_path_factory.mktemp("remove_console_log")`
-    3. `violation_file = source_dir / "test.script"`
-    4. Write `violation_file` with content:
-       ```
-       console.log('debug');\n{\n  "result": null\n}\n
-       ```
-       (exact string: `"console.log('debug');\n{\n  \"result\": null\n}\n"`)
-    5. `manifest = ScanManifest(root_path=source_dir)`
-    6. `initial_result = run_audit(manifest, config)`
-    7. `findings = [f for f in initial_result.findings if f.rule_id == "ScriptConsoleLogRule"]`
-    8. Assert `len(findings) >= 1` with message `"ScriptConsoleLogRule finding not found in initial scan"`
-    9. `finding = findings[0]`
-    10. `content = violation_file.read_text(encoding="utf-8")`
-    11. `template = RemoveConsoleLog()`
-    12. `fix_result = template.apply(finding, content)`
-    13. Assert `fix_result is not None` with message `"RemoveConsoleLog.apply() returned None"`
-    14. `violation_file.write_text(fix_result.fixed_content, encoding="utf-8")`
-    15. `fixed_result = run_audit(manifest, config)`
-    16. Return `(initial_result, fixed_result, "ScriptConsoleLogRule")`
-  - returns: `tuple[ScanResult, ScanResult, str]`
+- `test_no_fixable_findings_prints_message(self, tmp_path: Path) -> None`:
+  Patch `load_config`, `scan_local`, `run_audit` returning ISSUES_FOUND, `fix_findings` returning `[]`. Invoke `runner.invoke(app, ["fix", str(tmp_path)])`. Assert `"No auto-fixable findings"` in `result.output`. Assert `result.exit_code == 1`.
 
-**Test methods** (same three-test pattern as TestEndToEndVarToLetConst):
-- `test_violation_present_in_initial_scan(self, remove_console_log_results: ...) -> None:` - same logic pattern
-- `test_violation_absent_after_fix(self, remove_console_log_results: ...) -> None:` - same logic pattern
-- `test_fix_does_not_introduce_new_violations(self, remove_console_log_results: ...) -> None:` - same logic pattern
+- `test_apply_fixes_called_with_target_dir(self, tmp_path: Path) -> None`:
+  Create `target = tmp_path / "output"`. Patch all pipeline functions. Invoke `runner.invoke(app, ["fix", str(tmp_path), "--target-dir", str(target)])`. Assert `apply_fixes` was called with `(_make_fix_results(), target)`.
 
-#### New Class: TestEndToEndTemplateLiteralFix
-Add after `TestEndToEndRemoveConsoleLog`.
+- `test_apply_fixes_called_with_source_dir_when_no_target(self, tmp_path: Path) -> None`:
+  Patch all pipeline functions. Invoke `runner.invoke(app, ["fix", str(tmp_path)])`. Assert `apply_fixes` was called with `(_make_fix_results(), tmp_path)`.
 
-**Module-scoped fixture** (at module level before the class):
+- `test_reaudit_runs_after_fix(self, tmp_path: Path) -> None`:
+  Patch `load_config`, `scan_local` (called twice -- first for initial scan, second for re-audit), `run_audit` (called twice), `fix_findings`, `apply_fixes`. Use `side_effect` lists for `scan_local` and `run_audit` to return different values on successive calls. Invoke `runner.invoke(app, ["fix", str(tmp_path)])`. Assert `run_audit` was called exactly 2 times.
 
-- signature: `def template_literal_results(tmp_path_factory: pytest.TempPathFactory) -> tuple[ScanResult, ScanResult, str]:`
-  - purpose: Create minimal pmd violation, scan, apply TemplateLiteralFix, overwrite file, re-scan.
-  - logic:
-    1. `config = _make_auditor_config()`
-    2. `source_dir = tmp_path_factory.mktemp("template_literal")`
-    3. `violation_file = source_dir / "test.pmd"`
-    4. Write `violation_file` with content (a valid pmd JSON string, exactly):
-       ```json
-       {
-         "id": "testPage",
-         "securityDomains": ["Everyone"],
-         "script": "<% const greeting = 'Hello ' + name; %>"
-       }
-       ```
-       Note: in Python, write this as:
-       ```python
-       '{\n  "id": "testPage",\n  "securityDomains": ["Everyone"],\n  "script": "<% const greeting = \'Hello \' + name; %>"\n}\n'
-       ```
-       Or use a triple-quoted string. Keep the single quotes inside the script field as-is.
-    5. `manifest = ScanManifest(root_path=source_dir)`
-    6. `initial_result = run_audit(manifest, config)`
-    7. `findings = [f for f in initial_result.findings if f.rule_id == "ScriptStringConcatRule"]`
-    8. Assert `len(findings) >= 1` with message `"ScriptStringConcatRule finding not found in initial scan"`
-    9. `finding = findings[0]`
-    10. `content = violation_file.read_text(encoding="utf-8")`
-    11. `template = TemplateLiteralFix()`
-    12. `fix_result = template.apply(finding, content)`
-    13. Assert `fix_result is not None` with message `"TemplateLiteralFix.apply() returned None"`
-    14. `violation_file.write_text(fix_result.fixed_content, encoding="utf-8")`
-    15. `fixed_result = run_audit(manifest, config)`
-    16. Return `(initial_result, fixed_result, "ScriptStringConcatRule")`
-  - returns: `tuple[ScanResult, ScanResult, str]`
+##### Class: `TestFixExitCodes`
 
-**Test methods**: same three-test pattern.
+- `test_reaudit_clean_exits_0(self, tmp_path: Path) -> None`:
+  Patch so initial audit returns ISSUES_FOUND, fixes are applied, re-audit returns CLEAN. Invoke. Assert `result.exit_code == 0`.
 
-#### New Class: TestEndToEndLowerCamelCaseWidgetId
-Add after `TestEndToEndTemplateLiteralFix`.
+- `test_reaudit_still_issues_exits_1(self, tmp_path: Path) -> None`:
+  Patch so initial audit returns ISSUES_FOUND, fixes applied, re-audit returns ISSUES_FOUND. Assert `result.exit_code == 1`.
 
-**Module-scoped fixture** (at module level before the class):
+- `test_scan_error_exits_2(self, tmp_path: Path) -> None`:
+  Patch `scan_local` to raise `ScanError("not found")`. Assert `result.exit_code == 2`.
 
-- signature: `def widget_id_results(tmp_path_factory: pytest.TempPathFactory) -> tuple[ScanResult, ScanResult, str]:`
-  - purpose: Create pmd with PascalCase widget id, scan, apply LowerCamelCaseWidgetId, overwrite, re-scan.
-  - logic:
-    1. `config = _make_auditor_config()`
-    2. `source_dir = tmp_path_factory.mktemp("widget_id")`
-    3. `violation_file = source_dir / "test.pmd"`
-    4. Write `violation_file` with content (valid pmd JSON):
-       ```json
-       {
-         "id": "testPage",
-         "securityDomains": ["Everyone"],
-         "presentation": {
-           "body": {
-             "type": "section",
-             "id": "MyWidget",
-             "children": []
-           }
-         }
-       }
-       ```
-    5. `manifest = ScanManifest(root_path=source_dir)`
-    6. `initial_result = run_audit(manifest, config)`
-    7. `findings = [f for f in initial_result.findings if f.rule_id == "WidgetIdLowerCamelCaseRule"]`
-    8. Assert `len(findings) >= 1` with message `"WidgetIdLowerCamelCaseRule finding not found in initial scan"`
-    9. `finding = findings[0]`
-    10. `content = violation_file.read_text(encoding="utf-8")`
-    11. `template = LowerCamelCaseWidgetId()`
-    12. `fix_result = template.apply(finding, content)`
-    13. Assert `fix_result is not None` with message `"LowerCamelCaseWidgetId.apply() returned None"`
-    14. `violation_file.write_text(fix_result.fixed_content, encoding="utf-8")`
-    15. `fixed_result = run_audit(manifest, config)`
-    16. Return `(initial_result, fixed_result, "WidgetIdLowerCamelCaseRule")`
-  - returns: `tuple[ScanResult, ScanResult, str]`
+- `test_runner_error_exits_3(self, tmp_path: Path) -> None`:
+  Patch `run_audit` to raise `RunnerError("crash")`. Assert `result.exit_code == 3`.
 
-**Test methods**: same three-test pattern.
+- `test_fixer_error_exits_3(self, tmp_path: Path) -> None`:
+  Patch `fix_findings` to raise `FixerError("write fail")`. Assert `result.exit_code == 3`.
 
-#### New Class: TestEndToEndLowerCamelCaseEndpointName
-Add after `TestEndToEndLowerCamelCaseWidgetId`.
+##### Class: `TestFixQuietFlag`
 
-**Module-scoped fixture** (at module level before the class):
-
-- signature: `def endpoint_name_results(tmp_path_factory: pytest.TempPathFactory) -> tuple[ScanResult, ScanResult, str]:`
-  - purpose: Create pod with PascalCase endpoint name, scan, apply LowerCamelCaseEndpointName, overwrite, re-scan.
-  - logic:
-    1. `config = _make_auditor_config()`
-    2. `source_dir = tmp_path_factory.mktemp("endpoint_name")`
-    3. `violation_file = source_dir / "test.pod"`
-    4. Write `violation_file` with content (valid pod JSON):
-       ```json
-       {
-         "podId": "testPod",
-         "seed": {
-           "endPoints": [
-             {
-               "name": "GetHrData",
-               "url": "https://example.com/api",
-               "failOnStatusCodes": [{"code": 400}, {"code": 403}]
-             }
-           ]
-         }
-       }
-       ```
-       Note: include `failOnStatusCodes` so EndpointFailOnStatusCodesRule does NOT also fire on this fixture, keeping the violation count isolated to the rule under test.
-    5. `manifest = ScanManifest(root_path=source_dir)`
-    6. `initial_result = run_audit(manifest, config)`
-    7. `findings = [f for f in initial_result.findings if f.rule_id == "EndpointNameLowerCamelCaseRule"]`
-    8. Assert `len(findings) >= 1` with message `"EndpointNameLowerCamelCaseRule finding not found in initial scan"`
-    9. `finding = findings[0]`
-    10. `content = violation_file.read_text(encoding="utf-8")`
-    11. `template = LowerCamelCaseEndpointName()`
-    12. `fix_result = template.apply(finding, content)`
-    13. Assert `fix_result is not None` with message `"LowerCamelCaseEndpointName.apply() returned None"`
-    14. `violation_file.write_text(fix_result.fixed_content, encoding="utf-8")`
-    15. `fixed_result = run_audit(manifest, config)`
-    16. Return `(initial_result, fixed_result, "EndpointNameLowerCamelCaseRule")`
-  - returns: `tuple[ScanResult, ScanResult, str]`
-
-**Test methods**: same three-test pattern.
-
-#### New Class: TestEndToEndAddFailOnStatusCodes
-Add after `TestEndToEndLowerCamelCaseEndpointName`.
-
-**Module-scoped fixture** (at module level before the class):
-
-- signature: `def fail_on_status_codes_results(tmp_path_factory: pytest.TempPathFactory) -> tuple[ScanResult, ScanResult, str]:`
-  - purpose: Create pod with endpoint missing failOnStatusCodes, scan, apply AddFailOnStatusCodes, overwrite, re-scan.
-  - logic:
-    1. `config = _make_auditor_config()`
-    2. `source_dir = tmp_path_factory.mktemp("fail_on_status_codes")`
-    3. `violation_file = source_dir / "test.pod"`
-    4. Write `violation_file` with content (valid pod JSON):
-       ```json
-       {
-         "podId": "testPod",
-         "seed": {
-           "endPoints": [
-             {
-               "name": "testEndpoint",
-               "url": "https://example.com/api"
-             }
-           ]
-         }
-       }
-       ```
-    5. `manifest = ScanManifest(root_path=source_dir)`
-    6. `initial_result = run_audit(manifest, config)`
-    7. `findings = [f for f in initial_result.findings if f.rule_id == "EndpointFailOnStatusCodesRule"]`
-    8. Assert `len(findings) >= 1` with message `"EndpointFailOnStatusCodesRule finding not found in initial scan"`
-    9. `finding = findings[0]`
-    10. `content = violation_file.read_text(encoding="utf-8")`
-    11. `template = AddFailOnStatusCodes()`
-    12. `fix_result = template.apply(finding, content)`
-    13. Assert `fix_result is not None` with message `"AddFailOnStatusCodes.apply() returned None"`
-    14. `violation_file.write_text(fix_result.fixed_content, encoding="utf-8")`
-    15. `fixed_result = run_audit(manifest, config)`
-    16. Return `(initial_result, fixed_result, "EndpointFailOnStatusCodesRule")`
-  - returns: `tuple[ScanResult, ScanResult, str]`
-
-**Test methods**: same three-test pattern.
-
-#### Wiring / Integration
-- The six module-scoped fixtures (`var_to_let_results`, `remove_console_log_results`, `template_literal_results`, `widget_id_results`, `endpoint_name_results`, `fail_on_status_codes_results`) are defined at module level in `tests/test_fixer.py`.
-- Each is consumed by its corresponding `TestEndToEnd*` class via pytest fixture injection.
-- Each `TestEndToEnd*` class has exactly three test methods: `test_violation_present_in_initial_scan`, `test_violation_absent_after_fix`, `test_fix_does_not_introduce_new_violations`.
-- Fixtures use `tmp_path_factory` (not `tmp_path`) because they are module-scoped.
-- The `_make_auditor_config()` helper is called inside each fixture (not injected as a fixture itself) to keep setup self-contained.
-
-#### Complete structure of additions to test_fixer.py (in order):
-
-1. **After line 16** (after the existing import block): add 6 new import lines + `AUDITOR_PATH` constant
-2. **After the existing `_fix_result` helper** (after line 53): add `_make_auditor_config()` helper
-3. **After the existing `TestApplyFixes` class** (after line 183): add in order:
-   - `TestLowConfidenceNotAutoApplied` class
-   - `var_to_let_results` fixture
-   - `TestEndToEndVarToLetConst` class
-   - `remove_console_log_results` fixture
-   - `TestEndToEndRemoveConsoleLog` class
-   - `template_literal_results` fixture
-   - `TestEndToEndTemplateLiteralFix` class
-   - `widget_id_results` fixture
-   - `TestEndToEndLowerCamelCaseWidgetId` class
-   - `endpoint_name_results` fixture
-   - `TestEndToEndLowerCamelCaseEndpointName` class
-   - `fail_on_status_codes_results` fixture
-   - `TestEndToEndAddFailOnStatusCodes` class
+- `test_quiet_suppresses_info_messages(self, tmp_path: Path) -> None`:
+  Patch full pipeline to produce fixes. Invoke with `--quiet`. Assert `"Applied"` NOT in `result.output`. Assert `"Re-audit"` NOT in `result.output`.
 
 ## Verification
 - build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv sync`
-- lint: (no lint command configured; skip)
-- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/test_fixer.py -v`
-- smoke: After running tests, confirm output shows all TestEndToEnd* tests pass and none skip. The end-to-end tests will be slow (12 Arcane Auditor subprocess invocations) but must all pass.
+- lint: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m py_compile src/cli.py`
+- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/test_fix_command.py -v`
+- smoke: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m src.cli fix --help` -- expect exit 0, output contains `--create-pr`, `--target-dir`, and `PATH`
 
 ## Constraints
-- Do NOT modify any file other than `tests/test_fixer.py`.
-- Do NOT add any new Python package dependencies.
-- Do NOT modify the existing `TestFixFindings` or `TestApplyFixes` classes or their tests.
-- Do NOT hardcode line numbers or message strings that come from Arcane Auditor output. Use the actual finding returned by `run_audit` to feed into `template.apply()`.
-- All fixtures MUST use `tmp_path_factory` (not `tmp_path`) because they have `scope="module"`.
-- Each module-scoped fixture MUST write the fixed content back to the same `violation_file` path (overwriting), then call `run_audit` on the same `manifest` (same `source_dir`). Do NOT create a separate "fixed" directory.
-- The fixture MUST contain the two assertions (`assert len(findings) >= 1` and `assert fix_result is not None`) as test-setup guards. If these fail, the fixture raises AssertionError and all three dependent tests are ERROR (not FAIL) — this is acceptable and expected for setup failures.
-- The `_make_auditor_config()` helper MUST be called inside the fixture function body, not injected as a pytest fixture, to avoid fixture-scope incompatibilities.
-- All new test method signatures MUST include explicit return type `-> None`.
-- All new code MUST include `from __future__ import annotations` — this is already at line 1 of the existing file, so no action needed.
-- The violation file for `TestEndToEndLowerCamelCaseEndpointName` MUST include `failOnStatusCodes` pre-populated on the endpoint to prevent `EndpointFailOnStatusCodesRule` from also firing and interfering with the finding count assertions.
-- Assert `fix_result is not None` BEFORE accessing `fix_result.fixed_content` in every fixture (per Known Pattern #1).
+- Do NOT modify src/models.py -- all needed models and exceptions already exist
+- Do NOT modify src/fixer.py -- the fix_findings and apply_fixes functions are already complete
+- Do NOT modify src/scanner.py or src/runner.py
+- Do NOT modify src/reporter.py
+- Do NOT modify ARCHITECTURE.md, CLAUDE.md, or IMPL_PLAN.md
+- Do NOT add new dependencies to pyproject.toml
+- Do NOT modify existing tests in tests/test_cli.py
+- Do NOT use `is_flag=True` for boolean Typer options -- use `typer.Option(False, "--flag-name", ...)` pattern
+- The `fix` command must NOT accept `--format`, `--output`, or `--pr` flags (those are scan-only)
+- The `_create_fix_pr` function must use subprocess git commands (not PyGithub) for git operations (clone is already done by scan_github, so only branch/add/commit/push are needed)
+- The `_create_fix_pr` function must use PyGithub only for the `create_pull` API call
+- All functions must have Google-style docstrings
+- All files must start with `from __future__ import annotations`
