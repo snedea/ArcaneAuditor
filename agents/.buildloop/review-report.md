@@ -1,46 +1,47 @@
 # Review Report — P6.4
 
-## Verdict: FAIL
+## Verdict: PASS
 
 ## Runtime Checks
-- Build: PASS (`py_compile` clean)
-- Tests: PASS (264 passed, 0 failed)
-- Lint: PASS (`ruff check` clean)
-- Docker: SKIPPED (no Docker files changed)
+- Build: PASS (`uv run python -c "from src.fixer import fix_findings, apply_fixes; print('import ok')"` — clean)
+- Tests: PASS (17/17 passed, `uv run pytest tests/test_fixer.py -v`, 0.06s)
+- Lint: PASS (`uv run ruff check src/fixer.py tests/test_fixer.py` — "All checks passed!")
+- Docker: SKIPPED (no compose files changed in this task)
 
 ## Findings
 
 ```json
 {
   "high": [],
-  "medium": [
-    {
-      "file": "src/fixer.py",
-      "line": 28,
-      "issue": "fix_findings joins source_dir with finding.file_path without validating for path traversal. A finding with file_path='../../etc/passwd' passes the exists() check and read_text() executes, reading arbitrary files outside source_dir. apply_fixes blocks the corresponding write (lines 102-104 check is_absolute() and '..' in candidate.parts), but fix_findings has no such guard. The read half exposes sensitive file content to template.apply() and the returned FixResult — even though apply_fixes would then raise FixerError before writing. This is an asymmetric defense: write is guarded, read is not.",
-      "category": "security"
-    }
-  ],
+  "medium": [],
   "low": [
     {
-      "file": "src/fixer.py",
-      "line": 9,
-      "issue": "Finding is absent from the import statement. The plan specifies 'from src.models import Confidence, Finding, FixerError, FixResult, ScanResult'. No runtime crash because Finding is not used in any type annotation evaluated at runtime in this module, but the omission is an inconsistency with the plan and may surprise future readers.",
+      "file": ".buildloop/current-plan.md",
+      "line": 319,
+      "issue": "Smoke check says 'confirm all 15 tests pass' but 17 tests are defined (9 in TestFixFindings + 8 in TestApplyFixes). The plan undercounted. Implementation is correct — 17 tests pass.",
       "category": "inconsistency"
+    },
+    {
+      "file": "src/fixer.py",
+      "line": 41,
+      "issue": "Comparison `t.confidence == Confidence.HIGH` compares a Literal[\"HIGH\"] raw string (ABC class attribute) against a Confidence enum member. Works correctly because Confidence(str, Enum) makes Confidence.HIGH == \"HIGH\" True via str.__eq__. Cognitive gap for future readers (known pattern #7) but no runtime defect.",
+      "category": "style"
     }
   ],
   "validated": [
-    "t.confidence == Confidence.HIGH comparison is correct: all concrete templates set confidence = 'HIGH' (plain str), Confidence is a str,Enum, so str.__eq__ returns True on comparison with the string 'HIGH'",
-    "fix_findings error handling: file-not-found (exists() guard), OSError on read (try/except with warning+continue), template exceptions (bare except with warning+continue) — all handled and never propagate",
-    "apply_fixes error handling: OSError raises FixerError as specified; silently ignoring write failures is impossible",
-    "apply_fixes path safety: candidate.is_absolute() and '..' in candidate.parts correctly block absolute paths and traversal sequences respectively (confirmed with Path('../../etc/passwd').parts == ('..', '..', 'etc', 'passwd'))",
-    "Deduplication in apply_fixes: seen set uses file_path_str as key; first FixResult for a file wins; subsequent duplicates are logged and skipped",
-    "seen.add() called after successful write and before written.append() — ordering correct; FixerError on write failure propagates immediately so seen consistency is not affected",
-    "FixTemplateRegistry instantiated fresh per fix_findings call, matching the plan",
-    "fix_findings does not modify source files in place; apply_fixes exclusively handles writes to target_dir",
-    "Module docstring, logger = logging.getLogger(__name__), from __future__ import annotations all present",
-    "Smoke test passes: fix_findings with empty ScanResult returns []",
-    "264 existing tests pass with no regressions"
+    "src/fixer.py exists and both public functions (fix_findings, apply_fixes) are present with correct signatures matching the plan spec verbatim",
+    "fix_findings: FixTemplateRegistry instantiated once per call, iterates findings, builds file_path from source_dir / finding.file_path, skips missing files with WARNING log, catches OSError on read with WARNING log, filters to HIGH confidence only, calls template.apply() in try/except Exception, skips None results, returns list — all 13 spec steps implemented correctly",
+    "apply_fixes: deduplication (first fix wins, WARNING on skip), path safety guard rejects absolute paths and '..' in Path.parts before attempting any write, OSError from both mkdir and write_text is caught and re-raised as FixerError, seen set and written list maintained correctly — all spec steps correct",
+    "Path traversal detection: '..' in candidate.parts correctly catches '../outside.script' (parts: ('..', 'outside.script')) and 'subdir/../../outside.script' (parts: ('subdir', '..', '..', 'outside.script'))",
+    "17 tests across TestFixFindings (9) and TestApplyFixes (8): all pass — empty input, missing file, no matching template, HIGH template applied, file-not-modified-on-disk, MEDIUM template skipped, exception suppressed, None return skipped, multiple findings, empty apply_fixes, write to target, nested dirs created, path list returned, dedup, absolute path FixerError, traversal FixerError, write OSError wrapped as FixerError",
+    "Mock patches use 'src.fixer.FixTemplateRegistry' (the name as imported in fixer.py's namespace) — correct per plan constraint",
+    "test_raises_FixerError_on_write_failure patches pathlib.Path.write_text globally; mkdir is unaffected (no write_text call), OSError propagates to the except block and is wrapped correctly",
+    "Confidence str-vs-enum comparison verified: 'HIGH' == Confidence.HIGH is True, 'MEDIUM' == Confidence.HIGH is False — mock templates with raw string confidence values behave correctly in the filter",
+    "No files are written to disk by fix_findings — confirmed by test_does_not_modify_file_on_disk and by code review (no write calls in fix_findings)",
+    "from __future__ import annotations present as first import in both src/fixer.py and tests/test_fixer.py — convention satisfied",
+    "Google-style docstrings on both public functions in src/fixer.py — convention satisfied",
+    "logging module used (not print) in src/fixer.py — convention satisfied",
+    "pathlib.Path used everywhere, no string paths — convention satisfied"
   ]
 }
 ```
