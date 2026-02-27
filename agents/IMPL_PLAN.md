@@ -31,8 +31,8 @@
 
 ## Phase 5: CLI -- Orchestration Entry Point
 
-- [ ] P5.1: Create src/cli.py with Typer app. Implement `scan` command that accepts: path (positional, optional), --repo (GitHub repo), --pr (PR number), --format (json|sarif|summary|github-issues|pr-comment), --output (file path), --config (Arcane Auditor config preset), --quiet flag. Wire scan -> runner -> reporter pipeline
-- [ ] P5.2: Implement `scan` command orchestration -- if path given, use scan_local; if --repo given, use scan_github; if --pr given, validate --repo is also given. After scanning, run audit, then format. Write to --output file or stdout. Return appropriate exit codes (mirror parent tool: 0, 1, 2, 3)
+- [x] P5.1: Create src/cli.py with Typer app. Implement `scan` command that accepts: path (positional, optional), --repo (GitHub repo), --pr (PR number), --format (json|sarif|summary|github-issues|pr-comment), --output (file path), --config (Arcane Auditor config preset), --quiet flag. Wire scan -> runner -> reporter pipeline
+- [x] P5.2: Implement `scan` command orchestration -- if path given, use scan_local; if --repo given, use scan_github; if --pr given, validate --repo is also given. After scanning, run audit, then format. Write to --output file or stdout. Return appropriate exit codes (mirror parent tool: 0, 1, 2, 3)
 - [ ] P5.3: Write tests/test_cli.py -- test scan with local fixture path, test scan with --format json produces valid output, test scan with --format summary produces text output, test missing --repo when --pr given returns exit 2, test --help produces usage text
 
 ## Phase 6: Fix Templates -- Deterministic Fixes (The Loop Closer)
