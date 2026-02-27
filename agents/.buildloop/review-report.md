@@ -1,12 +1,12 @@
-# Review Report — P3.2
+# Review Report — P3.3
 
 ## Verdict: PASS
 
 ## Runtime Checks
-- Build: PASS (`uv run python -m py_compile src/runner.py` -- no errors)
-- Tests: PASS (61/61 passed, 0.09s -- no regressions in test_config, test_models, test_scanner)
-- Lint: PASS (`uv run ruff check src/runner.py` -- all checks passed)
-- Docker: SKIPPED (no Docker files changed in this task)
+- Build: PASS (uv sync clean, py_compile passes)
+- Tests: PASS (23/23 passed in 1.11s -- `uv run pytest tests/test_runner.py -v`)
+- Lint: SKIPPED (no linter configured in pyproject.toml, consistent with plan)
+- Docker: SKIPPED (no Docker files changed)
 
 ## Findings
 
@@ -16,23 +16,28 @@
   "medium": [],
   "low": [
     {
-      "file": "src/runner.py",
-      "line": 87,
-      "issue": "Docstring refers to 'auditor_path' as a concept accessible inside _build_cmd, but the function receives no auditor_path argument. The note 'The parent tool resolves relative paths against its own cwd (auditor_path)' is correct guidance but the parenthetical is ambiguous -- a reader of _build_cmd alone cannot see where that cwd comes from. A reference to run_audit's cwd= argument would be clearer.",
-      "category": "style"
+      "file": "tests/fixtures/expected/dirty_app.json",
+      "line": 5,
+      "issue": "Fixture order does not match actual tool output. File starts with EndpointFailOnStatusCodesRule but real tool output (verified by running the tool) starts with ScriptStringConcatRule. The plan (current-plan.md line 354-358) explicitly required overwriting this file with actual tool output if order differs. Builder removed the disabled-rule findings correctly (9 findings, count is right) but did not reorder to match actual output. No test references this file so test execution is unaffected, but the fixture is misleading for future reference.",
+      "category": "inconsistency"
     }
   ],
   "validated": [
-    "src/runner.py:101 -- whitespace-only preset is stripped to '' before truthiness check, satisfying known pattern #2. Smoke test 3 confirmed '--config' is absent when preset='  '.",
-    "src/runner.py:97-100 -- base command list is identical to the pre-refactor inline block. No args were added or removed.",
-    "src/runner.py:102-103 -- cmd.extend(['--config', preset]) correctly appends two separate list items, not a single joined string. This is safe from shell injection (shell=False, list form).",
-    "src/runner.py:31 -- run_audit now delegates to _build_cmd; all remaining subprocess.run args (cwd=auditor_path, timeout=300, capture_output=True, text=True, check=False) are unchanged.",
-    "src/runner.py:79-104 -- _build_cmd is placed exactly between run_audit and _parse_json_output as required by the plan.",
-    "src/models.py:126 -- AgentConfig.config_preset: str | None = None exists; models.py was not modified (plan constraint satisfied).",
-    "Known pattern #9 satisfied: cwd=auditor_path (the project root), scan target passed as positional CLI arg. _build_cmd does not set cwd.",
-    "Exit code 2 (USAGE_ERROR) is already handled in run_audit:53-57 -- an invalid --config value from the parent tool will surface as RunnerError with the usage error message.",
-    "No new imports or dependencies introduced.",
-    "All four plan smoke tests pass without assertion errors."
+    "23/23 tests pass (uv run pytest tests/test_runner.py -v: 23 passed in 1.11s)",
+    "Syntax clean: uv run python -m py_compile tests/test_runner.py returns OK",
+    "All imports resolve: src.models exports AgentConfig, ExitCode, RunnerError, ScanManifest, ScanResult, Severity -- all present in models.py",
+    "Path anchoring correct: AUDITOR_PATH and all fixture paths use Path(__file__).parent, not relative strings (test_runner.py:12-15)",
+    "Mock patch target is 'src.runner.subprocess.run' as required (test_runner.py:119, 127, 139, 147, 156) -- patches at the point of use, not in stdlib",
+    "No ordered list comparison in findings assertions: all use set membership ({f.rule_id for f in ...}) or filtered lists; no result.findings[N] index access",
+    "clean_result and dirty_result fixtures are scope='module' (test_runner.py:24, 31), preventing per-test tool invocations",
+    "No duplicate function or method definitions found in test_runner.py",
+    "clean_app fixture: real tool run exits 0 with zero findings (verified by direct subprocess run)",
+    "dirty_app fixture: real tool run exits 1 with exactly 9 findings: 3 ACTION (EndpointFailOnStatusCodesRule, HardcodedWorkdayAPIRule, WidgetIdRequiredRule), 6 ADVICE -- matches all test assertions in TestRunAuditDirtyApp",
+    "Builder correctly deviated from plan by omitting tests for ScriptConsoleLogRule and ScriptDeadCodeRule (both disabled in parent tool at runtime: 'Skipping disabled rule: ScriptConsoleLogRule', 'Skipping disabled rule: ScriptDeadCodeRule') -- these tests would have failed if included",
+    "Builder correctly updated hardcoded counts: test_findings_count_is_nine (not eleven), test_action_findings_count_is_three (not four), test_advice_findings_count_is_six (not seven) -- all match actual tool output",
+    "timeout test: RunnerError raised with 'timed out' in message when subprocess.TimeoutExpired is injected (test_runner.py:116-131); path included in error message",
+    "invalid path test: RunnerError raised with 'usage error' when returncode=2 is injected (test_runner.py:136-160); path and stderr included in error message",
+    "runner.py:56 uses (result.stdout.strip() or result.stderr.strip()) -- stderr correctly appears in error when stdout is empty, test_exit_code_2_with_stderr_message validates this correctly"
   ]
 }
 ```
