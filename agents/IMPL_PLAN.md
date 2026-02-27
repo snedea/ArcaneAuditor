@@ -17,7 +17,7 @@
 
 ## Phase 3: Runner -- Execute Arcane Auditor
 
-- [ ] P3.1: Create src/runner.py with run_audit(scan_manifest: ScanManifest, config: AgentConfig) -> ScanResult function. Invoke parent `uv run main.py review-app <path> --format json --quiet` as subprocess. Parse JSON stdout into Finding models. Handle all 4 exit codes (0, 1, 2, 3). Set timeout of 300 seconds
+- [x] P3.1: Create src/runner.py with run_audit(scan_manifest: ScanManifest, config: AgentConfig) -> ScanResult function. Invoke parent `uv run main.py review-app <path> --format json --quiet` as subprocess. Parse JSON stdout into Finding models. Handle all 4 exit codes (0, 1, 2, 3). Set timeout of 300 seconds
 - [ ] P3.2: Add support for passing config presets to the runner -- if config.config_preset is set, pass `--config <preset>` to the CLI. Support both built-in presets (development, production-ready) and custom config file paths
 - [ ] P3.3: Write tests/test_runner.py -- test with clean_app fixture (expect exit 0, zero findings), test with dirty_app fixture (expect exit 1, specific findings matching known violations), test timeout handling, test invalid path handling (expect exit 2)
 

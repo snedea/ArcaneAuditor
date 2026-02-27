@@ -28,11 +28,11 @@ def run_audit(scan_manifest: ScanManifest, config: AgentConfig) -> ScanResult:
         RunnerError: If the subprocess fails, times out, or produces unparseable output.
     """
     auditor_path = config.auditor_path.resolve()
-    cmd: list[str] = [
-        "uv", "run", "main.py", "review-app",
-        str(scan_manifest.root_path), "--format", "json", "--quiet",
-    ]
-    logger.debug("run_audit: path=%s auditor=%s", scan_manifest.root_path, auditor_path)
+    cmd = _build_cmd(scan_manifest, config)
+    logger.debug(
+        "run_audit: path=%s auditor=%s preset=%s",
+        scan_manifest.root_path, auditor_path, config.config_preset,
+    )
 
     try:
         result = subprocess.run(
@@ -74,6 +74,34 @@ def run_audit(scan_manifest: ScanManifest, config: AgentConfig) -> ScanResult:
     repo = scan_manifest.repo if scan_manifest.repo is not None else str(scan_manifest.root_path)
 
     return ScanResult(repo=repo, findings_count=len(findings), findings=findings, exit_code=exit_code)
+
+
+def _build_cmd(scan_manifest: ScanManifest, config: AgentConfig) -> list[str]:
+    """Build the subprocess command list for invoking Arcane Auditor.
+
+    Includes --config <preset> when config.config_preset is set to a non-empty string.
+    Preset values may be:
+    - A built-in preset name: 'development' or 'production-ready'
+    - An absolute path to a custom JSON config file
+
+    Note: The parent tool resolves relative paths against its own cwd (auditor_path).
+    Use absolute paths for custom config files to avoid ambiguity.
+
+    Args:
+        scan_manifest: The scan manifest describing what to audit.
+        config: Agent configuration, including optional config_preset.
+
+    Returns:
+        A list of strings suitable for passing to subprocess.run.
+    """
+    cmd: list[str] = [
+        "uv", "run", "main.py", "review-app",
+        str(scan_manifest.root_path), "--format", "json", "--quiet",
+    ]
+    preset = config.config_preset.strip() if config.config_preset is not None else ""
+    if preset:
+        cmd.extend(["--config", preset])
+    return cmd
 
 
 def _parse_json_output(stdout: str, path: Path) -> dict:

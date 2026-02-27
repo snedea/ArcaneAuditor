@@ -1,12 +1,12 @@
-# Review Report -- P3.1
+# Review Report — P3.2
 
 ## Verdict: PASS
 
 ## Runtime Checks
-- Build: PASS (`uv run python -m py_compile src/runner.py` -- syntax OK; `from src.runner import run_audit` -- import OK)
-- Tests: PASS (61 tests, 0 failures -- all pre-existing test_config, test_models, test_scanner suites green)
-- Lint: PASS (`uv run ruff check src/runner.py` -- all checks passed; flake8 SKIPPED -- not installed in venv)
-- Docker: SKIPPED (no compose files changed)
+- Build: PASS (`uv run python -m py_compile src/runner.py` -- no errors)
+- Tests: PASS (61/61 passed, 0.09s -- no regressions in test_config, test_models, test_scanner)
+- Lint: PASS (`uv run ruff check src/runner.py` -- all checks passed)
+- Docker: SKIPPED (no Docker files changed in this task)
 
 ## Findings
 
@@ -17,32 +17,22 @@
   "low": [
     {
       "file": "src/runner.py",
-      "line": 92,
-      "issue": "_parse_json_output finds the first '{' in stdout. If pre-JSON noise contains a bare '{' (e.g. a path like '/tmp/{uuid}/app/'), raw_decode starts parsing from there, fails with JSONDecodeError, and raises RunnerError instead of finding the real JSON object further down. Plan specifies this behavior explicitly, so it is per-spec, but callers may see confusing 'Failed to parse' errors for valid output if the parent tool ever emits paths with '{' before the report.",
-      "category": "inconsistency"
-    },
-    {
-      "file": "src/runner.py",
-      "line": 133,
-      "issue": "ValidationError is caught outside the for-loop, so the first bad Finding item aborts the entire list -- previously-validated items are silently discarded. Matches the plan spec ('ValidationError on any item -> raise RunnerError'), but the error message does not indicate which item index failed, making diagnosis harder when a large findings list has one malformed entry.",
-      "category": "error-handling"
+      "line": 87,
+      "issue": "Docstring refers to 'auditor_path' as a concept accessible inside _build_cmd, but the function receives no auditor_path argument. The note 'The parent tool resolves relative paths against its own cwd (auditor_path)' is correct guidance but the parenthetical is ambiguous -- a reader of _build_cmd alone cannot see where that cwd comes from. A reference to run_audit's cwd= argument would be clearer.",
+      "category": "style"
     }
   ],
   "validated": [
-    "All 6 imports from src.models (AgentConfig, ExitCode, Finding, RunnerError, ScanManifest, ScanResult) resolve to real symbols in models.py",
-    "ExitCode(int, Enum) comparisons with result.returncode (int) are correct: int-subclass equality works for ==, not-in, and ExitCode() constructor",
-    "All 4 exit codes handled: 0 and 1 proceed to JSON parsing, 2 raises RunnerError with stdout/stderr, 3 raises RunnerError with stderr/stdout, any other value raises RunnerError with the raw code",
-    "subprocess.run called with capture_output=True, text=True, check=False, timeout=300, cwd=auditor_path -- exactly matches plan constraints",
-    "TimeoutExpired and OSError are both caught in the try block and converted to RunnerError",
-    "auditor_path = config.auditor_path.resolve() produces an absolute Path, valid for subprocess cwd",
-    "scan_manifest.root_path is converted to str() for the cmd list -- correct for subprocess argv elements",
-    "repo fallback: scan_manifest.repo if not None, else str(scan_manifest.root_path) -- matches plan spec",
-    "ScanResult constructor fields (repo, findings_count, findings, exit_code) match ScanResult model definition; timestamp uses its default_factory",
-    "_parse_json_output smoke test passed: correctly extracts JSON from noisy multi-line stdout",
-    "No print() calls -- all output goes through logging.getLogger(__name__)",
-    "from __future__ import annotations present as first import",
-    "Private helpers _parse_json_output and _build_findings are not exported; run_audit is the only public symbol",
-    "No new pip dependencies introduced -- only stdlib json, subprocess, logging, pathlib plus already-declared pydantic"
+    "src/runner.py:101 -- whitespace-only preset is stripped to '' before truthiness check, satisfying known pattern #2. Smoke test 3 confirmed '--config' is absent when preset='  '.",
+    "src/runner.py:97-100 -- base command list is identical to the pre-refactor inline block. No args were added or removed.",
+    "src/runner.py:102-103 -- cmd.extend(['--config', preset]) correctly appends two separate list items, not a single joined string. This is safe from shell injection (shell=False, list form).",
+    "src/runner.py:31 -- run_audit now delegates to _build_cmd; all remaining subprocess.run args (cwd=auditor_path, timeout=300, capture_output=True, text=True, check=False) are unchanged.",
+    "src/runner.py:79-104 -- _build_cmd is placed exactly between run_audit and _parse_json_output as required by the plan.",
+    "src/models.py:126 -- AgentConfig.config_preset: str | None = None exists; models.py was not modified (plan constraint satisfied).",
+    "Known pattern #9 satisfied: cwd=auditor_path (the project root), scan target passed as positional CLI arg. _build_cmd does not set cwd.",
+    "Exit code 2 (USAGE_ERROR) is already handled in run_audit:53-57 -- an invalid --config value from the parent tool will surface as RunnerError with the usage error message.",
+    "No new imports or dependencies introduced.",
+    "All four plan smoke tests pass without assertion errors."
   ]
 }
 ```

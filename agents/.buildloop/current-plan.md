@@ -1,128 +1,113 @@
-# Plan: P3.1
+# Plan: P3.2
 
 ## Dependencies
-- list: [] (no new packages -- uses stdlib json, subprocess, logging only)
-- commands: [] (no install commands required)
+- list: []
+- commands: []
+  (No new packages required. All imports already present in runner.py.)
 
 ## File Operations (in execution order)
 
-### 1. CREATE src/runner.py
-- operation: CREATE
-- reason: Implements run_audit() to invoke the parent Arcane Auditor subprocess and parse its JSON output into ScanResult
+### 1. MODIFY src/runner.py
+- operation: MODIFY
+- reason: Add `--config <preset>` to the subprocess command when `config.config_preset` is set
 
 #### Imports / Dependencies
-- `from __future__ import annotations`
-- `import json`
-- `import logging`
-- `import subprocess`
-- `from pathlib import Path`
-- `from pydantic import ValidationError`
-- `from src.models import AgentConfig, ExitCode, Finding, RunnerError, ScanManifest, ScanResult`
-
-#### Structs / Types (if applicable)
-- None (all models already defined in src/models.py)
-
-#### Module-level
-- `logger = logging.getLogger(__name__)`
+No new imports needed. All required imports (`logging`, `subprocess`, `pathlib.Path`, models) are already present.
 
 #### Functions
 
-**Function 1:**
-- signature: `def run_audit(scan_manifest: ScanManifest, config: AgentConfig) -> ScanResult`
-  - purpose: Invoke Arcane Auditor on the manifest's root_path, parse JSON output, return ScanResult
+- signature: `_build_cmd(scan_manifest: ScanManifest, config: AgentConfig) -> list[str]`
+  - purpose: Construct the subprocess command list for invoking Arcane Auditor, including optional `--config` flag
   - logic:
-    1. Resolve `auditor_path = config.auditor_path.resolve()`
-    2. Build `cmd: list[str] = ["uv", "run", "main.py", "review-app", str(scan_manifest.root_path), "--format", "json", "--quiet"]`
-    3. Log at DEBUG: `logger.debug("run_audit: path=%s auditor=%s", scan_manifest.root_path, auditor_path)`
-    4. Enter a try/except block:
-       - Call `result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=300, cwd=auditor_path)`
-       - Catch `subprocess.TimeoutExpired`: raise `RunnerError(f"Arcane Auditor timed out after 300 seconds for path: {scan_manifest.root_path}")`
-       - Catch `OSError as exc`: raise `RunnerError(f"Failed to invoke Arcane Auditor subprocess: {exc}") from exc`
-    5. Log at DEBUG: `logger.debug("run_audit: returncode=%d stdout_len=%d stderr_len=%d", result.returncode, len(result.stdout), len(result.stderr))`
-    6. If `result.returncode == ExitCode.USAGE_ERROR` (value 2): raise `RunnerError(f"Arcane Auditor usage error (exit 2) for path '{scan_manifest.root_path}': {(result.stdout.strip() or result.stderr.strip())[:500]}")`
-    7. If `result.returncode == ExitCode.RUNTIME_ERROR` (value 3): raise `RunnerError(f"Arcane Auditor runtime error (exit 3) for path '{scan_manifest.root_path}': {(result.stderr.strip() or result.stdout.strip())[:500]}")`
-    8. If `result.returncode not in (ExitCode.CLEAN, ExitCode.ISSUES_FOUND)` (i.e., not 0 or 1): raise `RunnerError(f"Arcane Auditor returned unexpected exit code {result.returncode} for path '{scan_manifest.root_path}'")`
-    9. Call `data = _parse_json_output(result.stdout, scan_manifest.root_path)` (see Function 2 below)
-    10. Call `findings = _build_findings(data, scan_manifest.root_path)` (see Function 3 below)
-    11. Set `exit_code = ExitCode(result.returncode)`
-    12. Set `repo = scan_manifest.repo if scan_manifest.repo is not None else str(scan_manifest.root_path)`
-    13. Return `ScanResult(repo=repo, findings_count=len(findings), findings=findings, exit_code=exit_code)`
-  - calls:
-    - `subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=300, cwd=auditor_path)`
-    - `_parse_json_output(result.stdout, scan_manifest.root_path)`
-    - `_build_findings(data, scan_manifest.root_path)`
+    1. Initialize `cmd` as `["uv", "run", "main.py", "review-app", str(scan_manifest.root_path), "--format", "json", "--quiet"]`
+    2. Evaluate `preset = config.config_preset.strip() if config.config_preset is not None else ""`
+    3. If `preset` is truthy (non-empty after strip), append `"--config"` to `cmd`, then append `preset` to `cmd`
+    4. Return `cmd`
+  - calls: nothing
+  - returns: `list[str]` — the complete command list ready for `subprocess.run`
+  - error handling: none — pure list construction, no I/O
+
+- signature: `run_audit(scan_manifest: ScanManifest, config: AgentConfig) -> ScanResult` (existing, MODIFY body only)
+  - purpose: unchanged — invoke Arcane Auditor subprocess and parse results
+  - logic: Replace the inline `cmd` construction block with a call to `_build_cmd(scan_manifest, config)`. All other logic remains identical.
+    1. Set `auditor_path = config.auditor_path.resolve()`
+    2. Call `cmd = _build_cmd(scan_manifest, config)` (replaces the previous inline `cmd: list[str] = [...]` block)
+    3. Call `logger.debug("run_audit: path=%s auditor=%s preset=%s", scan_manifest.root_path, auditor_path, config.config_preset)`  (replace existing debug log line to include preset)
+    4. All remaining logic (subprocess.run, exit code handling, _parse_json_output, _build_findings, ScanResult construction) is unchanged
+  - calls: `_build_cmd(scan_manifest, config)`, then all existing helpers unchanged
   - returns: `ScanResult`
-  - error handling:
-    - `subprocess.TimeoutExpired` -> raise `RunnerError`
-    - `OSError` -> raise `RunnerError`
-    - exit code 2 -> raise `RunnerError`
-    - exit code 3 -> raise `RunnerError`
-    - any unexpected exit code -> raise `RunnerError`
-    - JSON parse failure (from `_parse_json_output`) -> `RunnerError` propagates
-    - Pydantic validation failure (from `_build_findings`) -> `RunnerError` propagates
-
-**Function 2:**
-- signature: `def _parse_json_output(stdout: str, path: Path) -> dict`
-  - purpose: Extract and parse the JSON object from noisy stdout (parent tool emits non-JSON lines even with --quiet)
-  - logic:
-    1. Find first `{` with `idx = stdout.find("{")`
-    2. If `idx == -1`: raise `RunnerError(f"No JSON found in Arcane Auditor stdout for path '{path}'. stdout snippet: {stdout[:300]!r}")`
-    3. Create `decoder = json.JSONDecoder()`
-    4. Try: `data, _ = decoder.raw_decode(stdout, idx)`
-    5. Catch `json.JSONDecodeError as exc`: raise `RunnerError(f"Failed to parse Arcane Auditor JSON output for path '{path}': {exc}") from exc`
-    6. If `not isinstance(data, dict)`: raise `RunnerError(f"Arcane Auditor JSON output is not an object for path '{path}'")`
-    7. Return `data`
-  - calls: `json.JSONDecoder().raw_decode(stdout, idx)`
-  - returns: `dict` -- the parsed JSON object (expected keys: "summary", "findings")
-  - error handling:
-    - No `{` in stdout -> raise `RunnerError`
-    - `json.JSONDecodeError` -> raise `RunnerError`
-    - Parsed value is not a dict -> raise `RunnerError`
-
-**Function 3:**
-- signature: `def _build_findings(data: dict, path: Path) -> list[Finding]`
-  - purpose: Validate and construct Finding models from the parsed JSON data
-  - logic:
-    1. Extract `raw_findings = data.get("findings", [])`
-    2. If `not isinstance(raw_findings, list)`: raise `RunnerError(f"'findings' key in Arcane Auditor output is not a list for path '{path}'")`
-    3. Initialize `findings: list[Finding] = []`
-    4. Try: for each `item` in `raw_findings`, call `findings.append(Finding.model_validate(item))`
-    5. Catch `ValidationError as exc`: raise `RunnerError(f"Failed to validate Finding from Arcane Auditor output for path '{path}': {exc}") from exc`
-    6. Return `findings`
-  - calls: `Finding.model_validate(item)` for each item in raw_findings
-  - returns: `list[Finding]`
-  - error handling:
-    - `"findings"` value not a list -> raise `RunnerError`
-    - `pydantic.ValidationError` on any item -> raise `RunnerError`
+  - error handling: unchanged from existing implementation
 
 #### Wiring / Integration
-- `run_audit` is the public API; `_parse_json_output` and `_build_findings` are private helpers called only by `run_audit`
-- Imports `ScanManifest`, `AgentConfig`, `ScanResult`, `Finding`, `ExitCode`, `RunnerError` from `src.models`
-- No circular imports: `src.models` has no imports from `src.runner`
-- `run_audit` will be imported by `src.cli` (Phase 5) as `from src.runner import run_audit`
+`_build_cmd` is a module-private helper (underscore prefix). It is called only from `run_audit`. No other files need changes.
+
+#### Exact diff description
+
+**Remove** this block (lines 31-34 of the current file):
+```
+    cmd: list[str] = [
+        "uv", "run", "main.py", "review-app",
+        str(scan_manifest.root_path), "--format", "json", "--quiet",
+    ]
+    logger.debug("run_audit: path=%s auditor=%s", scan_manifest.root_path, auditor_path)
+```
+
+**Replace with**:
+```
+    cmd = _build_cmd(scan_manifest, config)
+    logger.debug(
+        "run_audit: path=%s auditor=%s preset=%s",
+        scan_manifest.root_path, auditor_path, config.config_preset,
+    )
+```
+
+**Add** the following new private function immediately before the existing `_parse_json_output` function (i.e., after the closing of `run_audit` and before `def _parse_json_output`):
+
+```python
+def _build_cmd(scan_manifest: ScanManifest, config: AgentConfig) -> list[str]:
+    """Build the subprocess command list for invoking Arcane Auditor.
+
+    Includes --config <preset> when config.config_preset is set to a non-empty string.
+    Preset values may be:
+    - A built-in preset name: 'development' or 'production-ready'
+    - An absolute path to a custom JSON config file
+
+    Note: The parent tool resolves relative paths against its own cwd (auditor_path).
+    Use absolute paths for custom config files to avoid ambiguity.
+
+    Args:
+        scan_manifest: The scan manifest describing what to audit.
+        config: Agent configuration, including optional config_preset.
+
+    Returns:
+        A list of strings suitable for passing to subprocess.run.
+    """
+    cmd: list[str] = [
+        "uv", "run", "main.py", "review-app",
+        str(scan_manifest.root_path), "--format", "json", "--quiet",
+    ]
+    preset = config.config_preset.strip() if config.config_preset is not None else ""
+    if preset:
+        cmd.extend(["--config", preset])
+    return cmd
+```
 
 ## Verification
-- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.runner import run_audit; print('import OK')"`
-- lint: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m py_compile src/runner.py && echo 'syntax OK'`
-- test: no existing tests for runner yet (P3.3 creates tests/test_runner.py)
-- smoke: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "
-from src.runner import run_audit, _parse_json_output
-from pathlib import Path
-# Test _parse_json_output extracts JSON from noisy stdout
-noisy = 'Scanning directory: /foo\nFound 3 files\n{\n  \"summary\": {},\n  \"findings\": []\n}\nTotal time: 1.2s'
-data = _parse_json_output(noisy, Path('/foo'))
-assert data == {'summary': {}, 'findings': []}, f'Got {data}'
-print('_parse_json_output OK')
-"`
+- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.runner import run_audit, _build_cmd; print('import ok')"`
+- lint: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m py_compile src/runner.py && echo 'syntax ok'`
+- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/ -v` (no runner-specific tests exist yet per IMPL_PLAN P3.3, but existing scanner tests must still pass)
+- smoke:
+  1. Run `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.models import AgentConfig, ScanManifest; from src.runner import _build_cmd; from pathlib import Path; m = ScanManifest(root_path=Path('/tmp')); c = AgentConfig(); print(_build_cmd(m, c))"` and verify output is `['uv', 'run', 'main.py', 'review-app', '/tmp', '--format', 'json', '--quiet']`
+  2. Run `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.models import AgentConfig, ScanManifest; from src.runner import _build_cmd; from pathlib import Path; m = ScanManifest(root_path=Path('/tmp')); c = AgentConfig(config_preset='development'); print(_build_cmd(m, c))"` and verify output is `['uv', 'run', 'main.py', 'review-app', '/tmp', '--format', 'json', '--quiet', '--config', 'development']`
+  3. Run `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.models import AgentConfig, ScanManifest; from src.runner import _build_cmd; from pathlib import Path; m = ScanManifest(root_path=Path('/tmp')); c = AgentConfig(config_preset='  '); print(_build_cmd(m, c))"` and verify output does NOT include `--config` (whitespace-only preset is ignored)
+  4. Run `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.models import AgentConfig, ScanManifest; from src.runner import _build_cmd; from pathlib import Path; m = ScanManifest(root_path=Path('/tmp')); c = AgentConfig(config_preset='/abs/path/to/config.json'); print(_build_cmd(m, c))"` and verify output ends with `['--config', '/abs/path/to/config.json']`
 
 ## Constraints
-- Do NOT modify src/models.py, src/scanner.py, src/config.py, pyproject.toml, or any test files
-- Do NOT add any new pip dependencies -- stdlib json, subprocess, and logging are sufficient
-- Do NOT use print() -- use logging.getLogger(__name__) only
-- Do NOT use string paths -- use pathlib.Path everywhere
-- The subprocess cwd MUST be set to config.auditor_path.resolve() so that `uv run main.py` resolves correctly relative to the parent project
-- The timeout MUST be exactly 300 seconds (not 299, not 301)
-- subprocess.run() MUST use check=False -- parse exit codes manually; never use check=True
-- The function names _parse_json_output and _build_findings are private (underscore prefix); run_audit is the only public export
-- Do NOT pre-validate scan_manifest.total_count -- let exit code 2 handle empty manifests
-- The `repo` field in ScanResult: use scan_manifest.repo if it is not None, otherwise use str(scan_manifest.root_path)
+- Do NOT modify src/models.py — `AgentConfig.config_preset: str | None = None` already exists and requires no changes
+- Do NOT modify src/config.py
+- Do NOT modify any test files
+- Do NOT add any new dependencies to pyproject.toml
+- The `_build_cmd` function must use `.strip()` on `config.config_preset` before checking truthiness — a whitespace-only string must not produce a `--config` argument (follows known pattern #2 from reference data)
+- The `_build_cmd` function must be placed between the closing of `run_audit` and the existing `def _parse_json_output` function
+- Do NOT change the subprocess.run call signature, timeout, cwd, or error handling in `run_audit`
+- The parent tool's `--config` flag is documented as accepting both preset names and file paths; no validation of the preset value is performed in the agent — the parent tool will exit 2 if the value is invalid, and `run_audit` already handles exit code 2 as `RunnerError`
