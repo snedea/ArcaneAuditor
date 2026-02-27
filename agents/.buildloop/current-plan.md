@@ -1,38 +1,44 @@
 # Plan: P5.1
 
+## Context
+
+`src/cli.py` and `tests/test_cli.py` were created in a WIP commit. Both files appear
+substantially complete but the task is not checked off in IMPL_PLAN.md. This plan
+describes the required final state of each file so the builder can verify correctness,
+fill any gaps, and confirm the test suite passes.
+
 ## Dependencies
-- list: [no new dependencies -- typer>=0.16.1 already in pyproject.toml]
-- commands: []
+
+- list: [typer>=0.16.1, pydantic>=2.0, pygithub>=2.1.1, pyyaml>=6.0]
+- commands: ["uv sync --all-extras"]
 
 ## File Operations (in execution order)
 
-### 1. CREATE src/cli.py
-- operation: CREATE
-- reason: Entry point for the arcane-agent CLI; wires scan -> runner -> reporter pipeline behind a Typer `scan` command
+### 1. MODIFY src/cli.py
+
+- operation: MODIFY
+- reason: Verify and complete the WIP implementation of the `scan` command
+- anchor: `app = typer.Typer(name="arcane-agent", help="Autonomous agent for Arcane Auditor deterministic code review.")`
 
 #### Imports / Dependencies
-- `from __future__ import annotations`
-- `import logging`
-- `import shutil`
-- `import sys`
-- `from enum import Enum`
-- `from pathlib import Path`
-- `from typing import Optional`
-- `import typer`
-- `from src.config import load_config`
-- `from src.models import AgentConfig, ConfigError, ExitCode, ReportFormat, ReporterError, RunnerError, ScanError`
-- `from src.reporter import format_github_issues, format_pr_comment, report_findings`
-- `from src.runner import run_audit`
-- `from src.scanner import scan_github, scan_local`
+
+```python
+from __future__ import annotations
+import logging
+import shutil
+from enum import Enum
+from pathlib import Path
+from typing import Optional
+import typer
+from src.config import load_config
+from src.models import ConfigError, ExitCode, ReportFormat, ReporterError, RunnerError, ScanError
+from src.reporter import format_github_issues, format_pr_comment, report_findings
+from src.runner import run_audit
+from src.scanner import scan_github, scan_local
+```
 
 #### Structs / Types
 
-Module-level logger:
-```python
-logger = logging.getLogger(__name__)
-```
-
-CliFormat enum (maps CLI-facing hyphenated values to be used as Typer choices):
 ```python
 class CliFormat(str, Enum):
     JSON = "json"
@@ -40,10 +46,7 @@ class CliFormat(str, Enum):
     SUMMARY = "summary"
     GITHUB_ISSUES = "github-issues"
     PR_COMMENT = "pr-comment"
-```
 
-Mapping dict from CliFormat to ReportFormat (module-level constant):
-```python
 _FORMAT_MAP: dict[CliFormat, ReportFormat] = {
     CliFormat.JSON: ReportFormat.JSON,
     CliFormat.SARIF: ReportFormat.SARIF,
@@ -53,95 +56,158 @@ _FORMAT_MAP: dict[CliFormat, ReportFormat] = {
 }
 ```
 
-Typer app instance (module-level):
-```python
-app = typer.Typer(name="arcane-agent", help="Autonomous agent for Arcane Auditor deterministic code review.")
-```
-
 #### Functions
 
 - signature: `def _configure_logging(quiet: bool) -> None`
-  - purpose: Set up root logger level; WARNING if quiet, INFO otherwise
+  - purpose: Set root logging level to WARNING (quiet=True) or INFO (quiet=False)
   - logic:
-    1. Compute `level = logging.WARNING if quiet else logging.INFO`
+    1. Set `level = logging.WARNING if quiet else logging.INFO`
     2. Call `logging.basicConfig(level=level, format="%(levelname)s: %(message)s")`
-  - calls: `logging.basicConfig`
-  - returns: `None`
+  - calls: logging.basicConfig
+  - returns: None
   - error handling: none
 
 - signature: `def _error(msg: str) -> None`
-  - purpose: Print an error message to stderr unconditionally
+  - purpose: Write an "Error: <msg>" line to stderr via typer.echo
   - logic:
     1. Call `typer.echo(f"Error: {msg}", err=True)`
-  - calls: `typer.echo`
-  - returns: `None`
+  - calls: typer.echo
+  - returns: None
   - error handling: none
 
-- signature: `@app.command()\ndef scan(path: Optional[Path], repo: Optional[str], pr: Optional[int], format: CliFormat, output: Optional[Path], config: Optional[str], quiet: bool) -> None`
-  - purpose: Main CLI command -- validates args, runs scan/audit/report pipeline, writes output, exits with appropriate code
-  - Typer parameter declarations (exact, use these as-is):
-    ```python
-    path: Optional[Path] = typer.Argument(None, help="Local path to scan for Workday Extend artifacts"),
-    repo: Optional[str] = typer.Option(None, "--repo", help="GitHub repo in owner/repo format (e.g. acme/payroll)"),
-    pr: Optional[int] = typer.Option(None, "--pr", help="GitHub PR number (requires --repo)"),
-    format: CliFormat = typer.Option(CliFormat.JSON, "--format", help="Output format: json, sarif, summary, github-issues, pr-comment"),
-    output: Optional[Path] = typer.Option(None, "--output", help="Write output to this file path instead of stdout"),
-    config: Optional[str] = typer.Option(None, "--config", help="Arcane Auditor config preset name or path (e.g. production-ready)"),
-    quiet: bool = typer.Option(False, "--quiet", help="Suppress informational messages; only errors go to stderr"),
-    ```
+- signature: `def scan(path: Optional[Path], repo: Optional[str], pr: Optional[int], format: CliFormat, output: Optional[Path], config: Optional[str], quiet: bool) -> None`
+  - purpose: Typer command that orchestrates the full scan -> audit -> report pipeline
+  - Typer decorators for all parameters:
+    - `path`: `typer.Argument(None, help="Local path to scan for Workday Extend artifacts")`
+    - `repo`: `typer.Option(None, "--repo", help="GitHub repo in owner/repo format (e.g. acme/payroll)")`
+    - `pr`: `typer.Option(None, "--pr", help="GitHub PR number (requires --repo)")`
+    - `format`: `typer.Option(CliFormat.JSON, "--format", help="Output format: json, sarif, summary, github-issues, pr-comment")`
+    - `output`: `typer.Option(None, "--output", help="Write output to this file path instead of stdout")`
+    - `config`: `typer.Option(None, "--config", help="Arcane Auditor config preset name or path (e.g. production-ready)")`
+    - `quiet`: `typer.Option(False, "--quiet", help="Suppress informational messages; only errors go to stderr")`
   - logic:
-    1. Call `_configure_logging(quiet)`.
-    2. Call `agent_config = load_config(None)` wrapped in `try/except ConfigError as exc`. On `ConfigError`, call `_error(str(exc))` and `raise typer.Exit(code=int(ExitCode.USAGE_ERROR))`.
-    3. If `config is not None`, replace `agent_config` with `agent_config.model_copy(update={"config_preset": config})`.
-    4. **Argument validation** -- check all four conditions in order, printing error and raising `typer.Exit(code=int(ExitCode.USAGE_ERROR))` for each:
-       - If `path is None and repo is None`: call `_error("Must specify either PATH or --repo")`, raise exit 2.
-       - If `path is not None and repo is not None`: call `_error("Cannot specify both PATH and --repo")`, raise exit 2.
-       - If `pr is not None and repo is None`: call `_error("--pr requires --repo")`, raise exit 2.
-       - If `format == CliFormat.GITHUB_ISSUES and repo is None`: call `_error("--format github-issues requires --repo")`, raise exit 2.
-       - If `format == CliFormat.PR_COMMENT and repo is None`: call `_error("--format pr-comment requires --repo")`, raise exit 2.
-       - If `format == CliFormat.PR_COMMENT and pr is None`: call `_error("--format pr-comment requires --pr")`, raise exit 2.
-    5. Extract token: `token: str = agent_config.github_token.get_secret_value() if agent_config.github_token is not None else ""`.
-    6. If `format in (CliFormat.GITHUB_ISSUES, CliFormat.PR_COMMENT) and not token`: call `_error("GitHub token required for --format github-issues / pr-comment; set GITHUB_TOKEN env var")`, raise exit 2.
-    7. **Scan phase** -- call the appropriate scanner inside `try/except ScanError as exc`:
-       - If `path is not None`: call `manifest = scan_local(path)`.
-       - Else: call `manifest = scan_github(repo, "main", token)`.
-       - On `ScanError`: call `_error(str(exc))`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`.
-    8. **Audit phase** -- inside `try/except RunnerError as exc` with a `finally` block:
-       - In `try`: call `scan_result = run_audit(manifest, agent_config)`.
-       - On `RunnerError`: call `_error(str(exc))`, raise `typer.Exit(code=int(ExitCode.RUNTIME_ERROR))`.
-       - In `finally`: if `manifest.temp_dir is not None`, call `shutil.rmtree(manifest.temp_dir, ignore_errors=True)`.
-    9. **Report phase** -- inside `try/except ReporterError as exc`:
-       - If `format == CliFormat.GITHUB_ISSUES`: call `urls = format_github_issues(scan_result, repo, token)`, then set `formatted: str = "\n".join(urls) if urls else "No issues created."`.
-       - Elif `format == CliFormat.PR_COMMENT`: call `formatted = format_pr_comment(scan_result, repo, pr, token)`.
-       - Else: call `formatted = report_findings(scan_result, _FORMAT_MAP[format])`.
-       - On `ReporterError`: call `_error(str(exc))`, raise `typer.Exit(code=int(ExitCode.RUNTIME_ERROR))`.
-    10. **Write output**:
-        - If `output is not None`: call `output.write_text(formatted, encoding="utf-8")`. Then if `not quiet`, call `typer.echo(f"Output written to {output}", err=True)`.
-        - Else: call `typer.echo(formatted)`.
-    11. **Exit**: call `raise typer.Exit(code=int(scan_result.exit_code))`.
-  - calls: `_configure_logging`, `load_config`, `agent_config.model_copy`, `_error`, `scan_local`, `scan_github`, `run_audit`, `shutil.rmtree`, `format_github_issues`, `format_pr_comment`, `report_findings`, `typer.echo`, `typer.Exit`
-  - returns: `None` (exits via `typer.Exit`)
-  - error handling: `ConfigError` -> exit 2, `ScanError` -> exit 2, `RunnerError` -> exit 3, `ReporterError` -> exit 3
+    1. Call `_configure_logging(quiet)`
+    2. Call `load_config(None)` in a try block; on `ConfigError`: call `_error(str(exc))`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+    3. If `config is not None`: call `agent_config.model_copy(update={"config_preset": config})` and reassign to `agent_config`
+    4. If `path is None and repo is None`: call `_error("Must specify either PATH or --repo")`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+    5. If `path is not None and repo is not None`: call `_error("Cannot specify both PATH and --repo")`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+    6. If `pr is not None and repo is None`: call `_error("--pr requires --repo")`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+    7. If `format == CliFormat.GITHUB_ISSUES and repo is None`: call `_error("--format github-issues requires --repo")`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+    8. If `format == CliFormat.PR_COMMENT and repo is None`: call `_error("--format pr-comment requires --repo")`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+    9. If `format == CliFormat.PR_COMMENT and pr is None`: call `_error("--format pr-comment requires --pr")`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+    10. Extract token: `token = agent_config.github_token.get_secret_value() if agent_config.github_token is not None else ""`
+    11. If `format in (CliFormat.GITHUB_ISSUES, CliFormat.PR_COMMENT) and not token`: call `_error("GitHub token required for --format github-issues / pr-comment; set GITHUB_TOKEN env var")`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+    12. In a try block: if `path is not None`, call `scan_local(path)` -> `manifest`; else call `scan_github(repo, "main", token)` -> `manifest`. On `ScanError`: call `_error(str(exc))`, raise `typer.Exit(code=int(ExitCode.USAGE_ERROR))`
+    13. In a try/finally block: call `run_audit(manifest, agent_config)` -> `scan_result`. On `RunnerError`: call `_error(str(exc))`, raise `typer.Exit(code=int(ExitCode.RUNTIME_ERROR))`. In `finally`: if `manifest.temp_dir is not None`, call `shutil.rmtree(manifest.temp_dir, ignore_errors=True)`
+    14. In a try block:
+        - If `format == CliFormat.GITHUB_ISSUES`: call `format_github_issues(scan_result, repo, token)` -> `urls`; set `formatted = "\n".join(urls) if urls else "No issues created."`
+        - Elif `format == CliFormat.PR_COMMENT`: call `format_pr_comment(scan_result, repo, pr, token)` -> `formatted`
+        - Else: call `report_findings(scan_result, _FORMAT_MAP[format])` -> `formatted`
+        - On `ReporterError`: call `_error(str(exc))`, raise `typer.Exit(code=int(ExitCode.RUNTIME_ERROR))`
+    15. If `output is not None`: call `output.write_text(formatted, encoding="utf-8")`; if not `quiet`, call `typer.echo(f"Output written to {output}", err=True)`. Else: call `typer.echo(formatted)`
+    16. Raise `typer.Exit(code=int(scan_result.exit_code))`
+  - calls: _configure_logging, load_config, scan_local, scan_github, run_audit, format_github_issues, format_pr_comment, report_findings, shutil.rmtree, typer.echo, typer.Exit
+  - returns: None (Typer exits via typer.Exit)
+  - error handling: ConfigError -> exit 2, ScanError -> exit 2, RunnerError -> exit 3, ReporterError -> exit 3
 
 #### Wiring / Integration
-- `pyproject.toml` line 15 already declares `arcane-agent = "src.cli:app"` -- no change needed
-- `src/cli.py` imports from `src.config`, `src.models`, `src.reporter`, `src.runner`, `src.scanner` -- all exist
-- `app` is the Typer application instance referenced by the entry point
+
+- `app = typer.Typer(name="arcane-agent", ...)` is defined at module level
+- `scan` is registered on `app` via `@app.command()`
+- `src/__main__.py` already imports `app` from `src.cli` and calls `app()` -- no changes needed there
+- `pyproject.toml` already has `arcane-agent = "src.cli:app"` as a script entry point -- no changes needed
+
+### 2. MODIFY tests/test_cli.py
+
+- operation: MODIFY
+- reason: Verify the WIP test implementation covers all required cases from IMPL_PLAN P5.3
+- anchor: `runner = CliRunner()`
+
+#### Imports / Dependencies
+
+```python
+from __future__ import annotations
+from datetime import UTC, datetime
+from pathlib import Path
+from unittest.mock import patch
+import pytest
+from typer.testing import CliRunner
+from src.cli import app
+from src.models import AgentConfig, ExitCode, ScanManifest, ScanResult
+```
+
+#### Required test classes and methods
+
+The following test classes and methods MUST be present. Verify each exists in the file.
+If any are missing, add them using the mock helpers `_make_config`, `_make_scan_result`,
+and `_make_manifest` already defined in the file.
+
+**Helper functions (module-level):**
+- `_make_config(tmp_path: Path) -> AgentConfig` -- creates a temp dir with stub main.py, returns AgentConfig with auditor_path pointing to it
+- `_make_scan_result(exit_code: ExitCode = ExitCode.CLEAN) -> ScanResult` -- returns minimal clean ScanResult
+- `_make_manifest(tmp_path: Path) -> ScanManifest` -- returns ScanManifest with root_path=tmp_path
+
+**class TestArgumentValidation:**
+- `test_no_path_no_repo_exits_2` -- invoke `app []`, expect exit_code == 2
+- `test_no_path_no_repo_prints_error` -- invoke `app []`, expect "Must specify either PATH or --repo" in output
+- `test_path_and_repo_together_exits_2` -- invoke with both path and --repo, expect exit_code == 2
+- `test_path_and_repo_together_prints_error` -- expect "Cannot specify both PATH and --repo" in output
+- `test_pr_without_repo_exits_2` -- invoke with path + --pr 42, expect exit_code == 2
+- `test_pr_without_repo_prints_error` -- expect "--pr requires --repo" in output
+- `test_github_issues_format_without_repo_exits_2` -- invoke with path + --format github-issues, expect exit_code == 2
+- `test_pr_comment_format_without_repo_exits_2` -- invoke with path + --format pr-comment, expect exit_code == 2
+- `test_pr_comment_format_without_pr_exits_2` -- invoke with --repo + --format pr-comment (no --pr), expect exit_code == 2
+- `test_pr_comment_format_without_pr_prints_error` -- expect "--format pr-comment requires --pr" in output
+- `test_github_issues_without_token_exits_2` -- invoke with --repo + --format github-issues + no token, expect exit_code == 2
+- `test_github_issues_without_token_prints_error` -- expect "GITHUB_TOKEN" in output
+
+**class TestConfigError:**
+- `test_config_error_exits_2` -- patch load_config to raise ConfigError, expect exit_code == 2
+- `test_config_error_message_emitted` -- expect ConfigError message text in output
+
+**class TestPipelineLocalPath:**
+- `test_scan_local_called_with_path` -- patch scan_local, verify it is called with the supplied Path
+- `test_run_audit_called_with_manifest_and_config` -- verify run_audit called with manifest + config
+- `test_report_findings_called_for_json_format` -- verify report_findings is called for default json format
+- `test_output_written_to_file` -- pass --output to a tmp file, verify file exists with correct content
+
+**class TestExitCodePropagation:**
+- `test_exit_code_clean_is_0` -- scan_result.exit_code == CLEAN -> process exit 0
+- `test_exit_code_issues_found_is_1` -- scan_result.exit_code == ISSUES_FOUND -> process exit 1
+- `test_scan_error_exits_2` -- ScanError -> exit 2
+- `test_runner_error_exits_3` -- RunnerError -> exit 3
+- `test_reporter_error_exits_3` -- ReporterError raised by report_findings -> exit 3
+
+**class TestQuietFlag:**
+- `test_quiet_suppresses_output_written_message` -- --quiet prevents "Output written to" from appearing
+- `test_without_quiet_output_written_message_present` -- without --quiet, "Output written to" appears
+
+**class TestConfigPreset:**
+- `test_config_preset_applied_to_agent_config` -- verify --config "production-ready" causes run_audit to receive agent_config.config_preset == "production-ready"
+
+#### Wiring / Integration
+
+- All tests use `typer.testing.CliRunner` (NOT pytest's capsys or subprocess)
+- All tests patch `src.cli.load_config` to avoid real filesystem validation
+- All tests patch `src.cli.scan_local` or `src.cli.scan_github` to avoid real network/disk calls
+- All tests patch `src.cli.run_audit` to avoid invoking the actual Arcane Auditor subprocess
+- GitHub format tests patch `src.cli.format_github_issues` or `src.cli.format_pr_comment` to avoid real GitHub API calls
 
 ## Verification
+
 - build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv sync`
-- lint: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from src.cli import app; print('import ok')"`
-- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/ -x -q`
-- smoke: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m src.cli --help` -- expect Typer usage output showing `scan` command; then `uv run python -m src.cli scan --help` -- expect usage showing `PATH`, `--repo`, `--pr`, `--format`, `--output`, `--config`, `--quiet`
+- lint: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "import ast, sys; ast.parse(open('src/cli.py').read()); ast.parse(open('tests/test_cli.py').read()); print('syntax OK')"`
+- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/test_cli.py -v`
+- smoke: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m src --help 2>&1 | grep -q "scan" && echo "scan command registered OK"`
 
 ## Constraints
-- Do NOT modify `src/models.py`, `src/config.py`, `src/runner.py`, `src/reporter.py`, `src/scanner.py`
-- Do NOT modify `pyproject.toml` -- `arcane-agent = "src.cli:app"` is already correct
-- Do NOT add new dependencies beyond what is in pyproject.toml
-- Do NOT implement a `fix` or `watch` command -- those are Phase 6/7 tasks
-- The `--format` choices presented to the user must be `json`, `sarif`, `summary`, `github-issues`, `pr-comment` (hyphenated, not underscored)
-- Branch for `scan_github` is hardcoded to `"main"` -- do NOT add a `--branch` option (not in scope for P5.1)
-- Temp dir cleanup for `scan_github` results must happen in the `finally` block of the audit phase, not in a separate cleanup step
-- Errors must always print to stderr via `typer.echo(..., err=True)` regardless of `--quiet`
-- `--quiet` only suppresses the "Output written to ..." informational message, not errors
-- Use `logging` module for debug/info logging, never `print()`
+
+- Do NOT modify src/models.py, src/runner.py, src/scanner.py, src/reporter.py, or src/config.py
+- Do NOT modify pyproject.toml or src/__main__.py
+- Do NOT add new dependencies beyond those already in pyproject.toml
+- Do NOT add a `fix` or `watch` command -- those belong to P7.1 and P7.2
+- Do NOT use print() anywhere in src/cli.py -- use typer.echo() for user output and logging module for debug/info
+- The `scan` command must call `shutil.rmtree(manifest.temp_dir, ignore_errors=True)` in a `finally` block to clean up GitHub clones even if run_audit raises
+- The `--format` default must be `CliFormat.JSON` (not `summary` or any other value)
+- The `--quiet` flag must use `typer.Option(False, "--quiet", ...)` -- NOT `is_flag=True` (Typer handles booleans natively)
+- All test patches must target `src.cli.<name>` (the imported name in cli.py), NOT the source module path
