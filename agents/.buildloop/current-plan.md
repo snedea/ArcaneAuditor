@@ -1,189 +1,153 @@
-# Plan: P5.3
+# Plan: P6.1
 
 ## Dependencies
-- list: [] (no new packages required; pytest and typer are already in pyproject.toml dev dependencies)
-- commands: [] (no install commands needed)
+- list: [] (no new packages -- abc, importlib, inspect, pkgutil are stdlib)
+- commands: [] (nothing to install)
 
 ## File Operations (in execution order)
 
-### 1. MODIFY tests/test_cli.py
-- operation: MODIFY
-- reason: Add integration tests for local fixture scan, JSON/summary format output, and --help; the test for --pr without --repo already exists
-
-#### Pre-modification audit (BUILDER MUST CHECK BEFORE EDITING)
-
-The following test already exists in TestArgumentValidation and MUST NOT be added again:
-- `test_pr_without_repo_exits_2` at line 74
-
-Do NOT add any test named `test_pr_without_repo_exits_2` or any test that duplicates:
-- "test missing --repo when --pr given returns exit 2"
-
-The existing module-level `runner = CliRunner()` is at line 15. Do NOT redefine it.
+### 1. CREATE fix_templates/__init__.py
+- operation: CREATE
+- reason: Makes fix_templates a proper Python package; re-exports FixTemplateRegistry for convenient import
 
 #### Imports / Dependencies
-Add exactly one import line to the existing import block (after the current `from pathlib import Path` line, before `from unittest.mock import patch`):
+- `from fix_templates.base import FixTemplate, FixTemplateRegistry`
+
+#### Wiring / Integration
+- Exposes `FixTemplate` and `FixTemplateRegistry` at the `fix_templates` package level so callers can do `from fix_templates import FixTemplateRegistry` without knowing internal layout.
+- No logic in this file -- only the two re-export lines and a module docstring.
+
+#### File body (complete)
 ```python
-import json
-```
+"""Fix template package for Arcane Auditor agent.
 
-#### Module-level Constants
-Add the following four module-level constants immediately after the existing line `runner = CliRunner()` (line 15). Use `Path(__file__).parent` to construct all paths, not string literals or os.getcwd():
+Auto-discovers FixTemplate subclasses and provides FixTemplateRegistry
+for applying deterministic fixes to findings.
+"""
 
-```python
-FIXTURES_DIR: Path = Path(__file__).parent / "fixtures"
-CLEAN_APP_FIXTURE: Path = FIXTURES_DIR / "clean_app"
-DIRTY_APP_FIXTURE: Path = FIXTURES_DIR / "dirty_app"
-AUDITOR_PATH: Path = Path(__file__).parent.parent.parent  # resolves to ArcaneAuditor/ containing main.py
-```
-
-#### Anchor for import insertion
-The exact line to insert `import json` after is:
-```
 from __future__ import annotations
-```
-Insert `import json` immediately after that line (it must come before the other imports as stdlib comes first, but adding after `from __future__` as a new stdlib import is correct).
 
-Actually, insert `import json` between the existing `import pytest` line and the `from typer.testing import CliRunner` line so it stays grouped with stdlib imports. The exact anchor is:
-```
-import pytest
-from typer.testing import CliRunner
-```
-Insert `import json` between these two lines.
+from fix_templates.base import FixTemplate, FixTemplateRegistry
 
-#### Anchor for constant insertion
-The exact line after which to insert the constants block is:
+__all__ = ["FixTemplate", "FixTemplateRegistry"]
 ```
-runner = CliRunner()
+
+---
+
+### 2. CREATE fix_templates/base.py
+- operation: CREATE
+- reason: Defines the FixTemplate ABC and FixTemplateRegistry auto-discovery class
+
+#### Imports / Dependencies
+- `from __future__ import annotations`
+- `import importlib`
+- `import inspect`
+- `import logging`
+- `import pkgutil`
+- `from abc import ABC, abstractmethod`
+- `from typing import Literal`
+- `import fix_templates`
+- `from src.models import Finding, FixResult`
+
+#### Structs / Types
+
+```python
+# No new Pydantic models needed -- FixResult already exists in src/models.py.
+# The Confidence enum already exists in src/models.py.
+# FixTemplate is an ABC (not a Pydantic model) because its methods are behavioral, not data.
 ```
-Insert the four constant definitions immediately after this line, before the first blank line separating it from `_make_config`.
 
 #### Functions
 
-##### TestIntegrationLocalScan class
-Add this class at the END of the file, after the last existing class (`TestConfigPreset`).
+- **class FixTemplate(ABC)**
+  - purpose: Abstract base class that every fix template must subclass
+  - class attributes:
+    - `confidence: Literal["HIGH", "MEDIUM", "LOW"]` -- concrete subclasses MUST set this at the class level (no default)
+  - abstract methods:
+    1. `match(self, finding: Finding) -> bool`
+       - purpose: Return True if this template can handle the given finding
+       - logic:
+         1. Inspect `finding.rule_id` (and optionally `finding.severity`) to determine applicability
+         2. Return True or False -- no side effects
+       - returns: `bool`
+       - error handling: must not raise; return False on any unexpected input
+    2. `apply(self, finding: Finding, source_content: str) -> FixResult | None`
+       - purpose: Apply the fix to source_content and return a FixResult, or None if the fix cannot be applied safely
+       - logic:
+         1. Inspect `source_content` and `finding` to locate the construct to fix
+         2. Produce `fixed_content` (the modified source string)
+         3. If the fix cannot be applied (e.g., content is malformed, ambiguous match), return None
+         4. Construct and return `FixResult(finding=finding, original_content=source_content, fixed_content=fixed_content, confidence=Confidence[self.confidence])`
+       - returns: `FixResult | None`
+       - error handling: catch any exception during regex/string manipulation, log it at WARNING level, return None
 
-```python
-# ---------------------------------------------------------------------------
-# Integration tests -- real fixture paths, real parent tool
-# ---------------------------------------------------------------------------
+- **class FixTemplateRegistry**
+  - purpose: Discovers all concrete FixTemplate subclasses in the fix_templates package and provides lookup by finding
+  - `__init__(self) -> None`
+    - logic:
+      1. Set `self._templates: list[FixTemplate] = []`
+      2. Call `self._templates = self._discover_templates()`
+    - returns: None
 
+  - `_discover_templates(self) -> list[FixTemplate]`
+    - purpose: Walk all modules under the fix_templates package and collect instantiated concrete FixTemplate subclasses
+    - logic:
+      1. Import `fix_templates` package (already imported at module level)
+      2. Call `pkgutil.walk_packages(fix_templates.__path__, prefix=fix_templates.__name__ + ".")` to iterate all sub-modules
+      3. For each `(_, module_name, _)` tuple yielded:
+         a. Call `importlib.import_module(module_name)` to import the module; wrap in try/except ImportError, log WARNING and continue on failure
+         b. Call `inspect.getmembers(module, inspect.isclass)` to get all classes in that module
+         c. For each `(_, cls)` in the result:
+            - Skip if `cls is FixTemplate` (don't register the ABC itself)
+            - Skip if `inspect.isabstract(cls)` is True (skip any other abstract intermediates)
+            - Skip if `not issubclass(cls, FixTemplate)` (only register FixTemplate subclasses)
+            - Skip if the class does not define `confidence` as a class-level attribute (guard against misconfigured templates)
+            - Instantiate `cls()` and append to `discovered`
+      4. Log at DEBUG level: `"FixTemplateRegistry: discovered %d templates"` with count
+      5. Return `discovered`
+    - returns: `list[FixTemplate]`
+    - error handling: ImportError per module is caught and logged at WARNING; does not abort discovery
 
-class TestIntegrationLocalScan:
-```
+  - `find_matching(self, finding: Finding) -> list[FixTemplate]`
+    - purpose: Return all registered templates whose match() returns True for the given finding
+    - logic:
+      1. Iterate `self._templates`
+      2. For each template, call `template.match(finding)` in a try/except Exception block; log WARNING and skip on exception
+      3. Collect templates where match returned True into result list
+      4. Return result list (may be empty)
+    - returns: `list[FixTemplate]`
+    - error handling: per-template exceptions are caught, logged at WARNING, template is skipped
 
-Methods inside this class:
-
-- signature: `def test_scan_clean_fixture_exits_0(self) -> None:`
-  - purpose: Verify the full pipeline exits 0 when scanning the clean fixture with no findings
-  - logic:
-    1. Call `runner.invoke(app, [str(CLEAN_APP_FIXTURE)], env={"ARCANE_AUDITOR_PATH": str(AUDITOR_PATH)})`
-    2. Assert `result.exit_code == 0`
-  - returns: None (assertion-based)
-  - error handling: none; let assertion fail naturally if exit code is wrong
-
-- signature: `def test_scan_dirty_fixture_exits_1(self) -> None:`
-  - purpose: Verify the full pipeline exits 1 when scanning the dirty fixture that has ACTION findings
-  - logic:
-    1. Call `runner.invoke(app, [str(DIRTY_APP_FIXTURE)], env={"ARCANE_AUDITOR_PATH": str(AUDITOR_PATH)})`
-    2. Assert `result.exit_code == 1`
-  - returns: None
-  - error handling: none
-
-- signature: `def test_scan_format_json_produces_valid_json(self) -> None:`
-  - purpose: Verify that `--format json` produces stdout that parses as a JSON object
-  - logic:
-    1. Instantiate `local_runner = CliRunner(mix_stderr=False)` (local variable, not module-level, to get separate stdout/stderr streams so JSON is not contaminated by logging output)
-    2. Call `result = local_runner.invoke(app, [str(CLEAN_APP_FIXTURE), "--format", "json", "--quiet"], env={"ARCANE_AUDITOR_PATH": str(AUDITOR_PATH)})`
-    3. Assert `result.exit_code == 0`
-    4. Call `parsed = json.loads(result.output)`
-    5. Assert `isinstance(parsed, dict)`
-  - returns: None
-  - error handling: none; json.loads raises JSONDecodeError on invalid output which will fail the test
-
-- signature: `def test_scan_format_json_output_has_required_keys(self) -> None:`
-  - purpose: Verify that the JSON output from `--format json` contains all required top-level ScanResult fields
-  - logic:
-    1. Instantiate `local_runner = CliRunner(mix_stderr=False)`
-    2. Call `result = local_runner.invoke(app, [str(CLEAN_APP_FIXTURE), "--format", "json", "--quiet"], env={"ARCANE_AUDITOR_PATH": str(AUDITOR_PATH)})`
-    3. Assert `result.exit_code == 0`
-    4. Call `parsed = json.loads(result.output)`
-    5. Assert `parsed.keys() >= {"repo", "timestamp", "findings_count", "findings", "exit_code"}`
-  - returns: None
-  - error handling: none
-
-- signature: `def test_scan_format_summary_produces_text_output(self) -> None:`
-  - purpose: Verify that `--format summary` produces human-readable text containing the "Arcane Auditor" header
-  - logic:
-    1. Call `result = runner.invoke(app, [str(CLEAN_APP_FIXTURE), "--format", "summary", "--quiet"], env={"ARCANE_AUDITOR_PATH": str(AUDITOR_PATH)})`
-    2. Assert `result.exit_code == 0`
-    3. Assert `"Arcane Auditor" in result.output`
-  - returns: None
-  - error handling: none
-
-- signature: `def test_scan_format_summary_contains_total_findings_line(self) -> None:`
-  - purpose: Verify the summary format output contains the "Total findings:" line produced by format_summary
-  - logic:
-    1. Call `result = runner.invoke(app, [str(CLEAN_APP_FIXTURE), "--format", "summary", "--quiet"], env={"ARCANE_AUDITOR_PATH": str(AUDITOR_PATH)})`
-    2. Assert `result.exit_code == 0`
-    3. Assert `"Total findings:" in result.output`
-  - returns: None
-  - error handling: none
-
-##### TestHelp class
-Add this class at the END of the file, after `TestIntegrationLocalScan`.
-
-```python
-# ---------------------------------------------------------------------------
-# --help flag
-# ---------------------------------------------------------------------------
-
-
-class TestHelp:
-```
-
-Methods inside this class:
-
-- signature: `def test_help_exits_0(self) -> None:`
-  - purpose: Verify invoking `--help` exits with code 0
-  - logic:
-    1. Call `result = runner.invoke(app, ["--help"])`
-    2. Assert `result.exit_code == 0`
-  - returns: None
-  - error handling: none
-
-- signature: `def test_help_output_contains_usage(self) -> None:`
-  - purpose: Verify the --help output contains the word "Usage" (standard CLI usage header)
-  - logic:
-    1. Call `result = runner.invoke(app, ["--help"])`
-    2. Assert `"Usage" in result.output`
-  - returns: None
-  - error handling: none
-
-- signature: `def test_help_output_contains_format_option(self) -> None:`
-  - purpose: Verify the --help output documents the --format option (confirms scan command options are shown)
-  - logic:
-    1. Call `result = runner.invoke(app, ["--help"])`
-    2. Assert `"--format" in result.output`
-  - returns: None
-  - error handling: none
+  - `templates` property
+    - purpose: Read-only view of all discovered templates
+    - logic: Return `list(self._templates)` (copy to prevent external mutation)
+    - returns: `list[FixTemplate]`
 
 #### Wiring / Integration
-- `TestIntegrationLocalScan` uses the module-level `runner = CliRunner()` and locally instantiated `CliRunner(mix_stderr=False)` -- no new module-level state
-- `AUDITOR_PATH` resolves to the parent ArcaneAuditor directory the same way `AUDITOR_PATH` is defined in `test_runner.py` (line 15 there: `AUDITOR_PATH: Path = Path(__file__).parent.parent.parent`)
-- The `env` kwarg passed to `runner.invoke()` patches `os.environ` for the duration of the call, so `load_config()` in `config.py` will read the patched `ARCANE_AUDITOR_PATH` value via `os.environ.get("ARCANE_AUDITOR_PATH", "")`
+- `fix_templates/base.py` imports `from src.models import Finding, FixResult, Confidence`
+- `fix_templates/__init__.py` re-exports `FixTemplate` and `FixTemplateRegistry` from this file
+- Future template files (e.g., `fix_templates/script_fixes.py`) will import `FixTemplate` from `fix_templates.base` and subclass it
+- `src/fixer.py` (P6.4) will instantiate `FixTemplateRegistry()` and call `find_matching(finding)` on it
+
+---
 
 ## Verification
-- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv sync`
-- lint: (no linter configured; skip)
-- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/test_cli.py -v`
-- smoke: Run `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/test_cli.py::TestIntegrationLocalScan -v` and confirm all 6 tests pass; run `uv run pytest tests/test_cli.py::TestHelp -v` and confirm all 3 pass; confirm total test count increases by 9 vs before the edit
+- build: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -c "from fix_templates import FixTemplate, FixTemplateRegistry; r = FixTemplateRegistry(); print('templates:', r.templates)"`
+- lint: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run python -m py_compile fix_templates/__init__.py fix_templates/base.py && echo OK`
+- test: `cd /Users/name/homelab/ArcaneAuditor/agents && uv run pytest tests/ -x -q` (no new test file for P6.1 -- tests come in P6.5; existing suite must still pass)
+- smoke:
+  1. Run `uv run python -c "from fix_templates import FixTemplateRegistry; r = FixTemplateRegistry(); print(len(r.templates), 'templates discovered')"` -- should print `0 templates discovered` (no concrete templates exist yet)
+  2. Run `uv run python -c "from fix_templates.base import FixTemplate; import inspect; print(inspect.isabstract(FixTemplate))"` -- should print `True`
+  3. Run `uv run python -c "from fix_templates import FixTemplate, FixTemplateRegistry"` with no error
 
 ## Constraints
-- Do NOT modify `src/cli.py`, `src/models.py`, `src/runner.py`, `src/reporter.py`, `src/scanner.py`, or `src/config.py`
+- Do NOT create `src/fixer.py` -- that is P6.4
+- Do NOT create `fix_templates/script_fixes.py` or `fix_templates/structure_fixes.py` -- those are P6.2 and P6.3
+- Do NOT modify `src/models.py` -- `Finding`, `FixResult`, and `Confidence` are already defined there
+- Do NOT modify `pyproject.toml` -- no new dependencies are needed
 - Do NOT modify `CLAUDE.md`, `ARCHITECTURE.md`, or `IMPL_PLAN.md`
-- Do NOT add any new package dependencies to `pyproject.toml`
-- Do NOT add a test named `test_pr_without_repo_exits_2` -- it already exists at line 74 of `tests/test_cli.py` in class `TestArgumentValidation`
-- Do NOT add a module-level `AUDITOR_PATH` that duplicates an existing definition -- check the file first; as of this plan the file does not yet have it
-- The only file to edit is `tests/test_cli.py`
-- Do NOT use `os.getcwd()` or string literals for fixture paths -- use `Path(__file__).parent` as shown
-- The `CliRunner(mix_stderr=False)` instances in the JSON tests must be instantiated locally inside the test method body, not at module level, to avoid interfering with the existing module-level `runner = CliRunner()` that other test classes rely on
+- The `confidence` attribute on `FixTemplate` must be a class-level `Literal["HIGH", "MEDIUM", "LOW"]` annotation -- not an instance variable, not a Pydantic field
+- `FixTemplate` must be a plain `ABC` subclass (not a Pydantic `BaseModel`) because its interface is behavioral
+- The registry must silently skip templates that fail to import or instantiate -- discovery errors must never abort the entire registry initialization
+- Use `logging` module only -- no `print()` calls anywhere in these files
+- Include `from __future__ import annotations` as the first import in every .py file

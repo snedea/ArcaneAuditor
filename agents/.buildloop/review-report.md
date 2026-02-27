@@ -1,46 +1,63 @@
-# Review Report — P5.3
+# Review Report — P6.1
 
-## Verdict: PASS
+## Verdict: FAIL
 
 ## Runtime Checks
-- Build: PASS (uv sync -- no new dependencies, existing env valid)
-- Tests: PASS (35/35 passed in 3.39s)
-- Lint: SKIPPED (no linter configured per plan constraints)
-- Docker: SKIPPED (no Docker files changed)
+- Build: PASS (py_compile clean on both files)
+- Tests: PASS (177 passed, 0 failures)
+- Lint: SKIPPED (flake8/ruff not installed in venv)
+- Docker: SKIPPED (no compose files changed)
 
 ## Findings
 
 ```json
 {
   "high": [],
-  "medium": [],
+  "medium": [
+    {
+      "file": "fix_templates/base.py",
+      "line": 47,
+      "issue": "except ImportError only catches ImportError, but importlib.import_module can raise SyntaxError, NameError, or other Exception subclasses for malformed/broken template modules. These escape the handler, propagate out of _discover_templates(), and crash FixTemplateRegistry.__init__(). The plan constraint states explicitly: 'The registry must silently skip templates that fail to import or instantiate -- discovery errors must never abort the entire registry initialization.' Confirmed with live test: a template file with a syntax error raises SyntaxError that is NOT caught, aborting all discovery.",
+      "category": "crash"
+    }
+  ],
   "low": [
     {
-      "file": "tests/test_cli.py",
-      "line": 417,
-      "issue": "Inconsistent result.stdout vs result.output within TestIntegrationLocalScan. Lines 417 and 424 use result.stdout (pure stdout in Click 8.2+) while lines 431 and 437 use result.output (mixed stdout+stderr interleaved stream). Both are correct for their respective assertions but the inconsistency is unexplained and could confuse a future reader about which attribute to use.",
-      "category": "style"
-    },
-    {
-      "file": "tests/test_cli.py",
-      "line": 6,
-      "issue": "Plan specified inserting 'import json' between 'import pytest' and 'from typer.testing import CliRunner' (i.e., in the third-party section). Implementation correctly placed it in the stdlib section between 'from datetime...' and 'from pathlib...', which is actually more correct. Minor plan/implementation spec divergence; no runtime impact.",
+      "file": "fix_templates/base.py",
+      "line": 13,
+      "issue": "Plan specifies 'from src.models import Finding, FixResult, Confidence' but Confidence is not imported. It is unused in base.py so this is not a functional bug, but concrete templates implementing apply() need Confidence to construct FixResult and will have to import it separately. Minor inconsistency with the plan's stated imports.",
       "category": "inconsistency"
     }
   ],
   "validated": [
-    "All 35 tests pass: 26 pre-existing + 9 new (6 in TestIntegrationLocalScan, 3 in TestHelp)",
-    "AUDITOR_PATH = Path(__file__).parent.parent.parent correctly resolves to ArcaneAuditor/ (contains main.py)",
-    "All fixture paths use Path(__file__).parent -- no os.getcwd() or bare string literals",
-    "Plan required CliRunner(mix_stderr=False) for JSON tests; this parameter does not exist in Click 8.3.1 / Typer 0.24.1 (raises TypeError). Builder correctly omitted it and substituted result.stdout (pure stdout in Click 8.2+) which achieves the same JSON isolation goal. No bug.",
-    "result.stdout in Click 8.3.1 returns decoded stdout_bytes only; result.output returns interleaved stdout+stderr. JSON tests use result.stdout (correct). Summary tests use result.output (correct -- typer.echo(formatted) writes to stdout which is in the mixed stream, and containment checks work).",
-    "env={'ARCANE_AUDITOR_PATH': str(AUDITOR_PATH)} in runner.invoke(): Click's isolation context patches os.environ for the duration of the call; subprocess.run() in runner.py inherits the patched os.environ. Config correctly reads ARCANE_AUDITOR_PATH from env (config.py:67). Wire-up is correct.",
-    "No duplicate test_pr_without_repo_exits_2 added -- pre-existing test at line 78 was preserved intact.",
-    "Module-level runner = CliRunner() not redefined; 9 new tests split correctly between module-level runner and method-local invocations.",
-    "Error messages in TestArgumentValidation use result.output (mixed stream) which includes stderr. _error() calls typer.echo(..., err=True), writing to stderr. result.output in Click 8.2+ includes stderr, so containment assertions are correct.",
-    "test_scan_format_json_output_has_required_keys checks parsed.keys() >= {'repo','timestamp','findings_count','findings','exit_code'} -- the >= (superset) operator is correct for this assertion. The JSON does contain exactly these 5 keys (action_count and advice_count are @property computed fields excluded from model_dump per Pydantic v2 behavior; test correctly does not assert their presence or absence).",
-    "TestHelp tests invoke app with ['--help']. With a single @app.command() decorator, Typer exposes the scan command directly at app level. --help shows scan options including --format. Confirmed by test passing.",
-    "import json correctly placed in stdlib section alongside other stdlib imports."
+    "fix_templates/__init__.py matches the plan spec exactly: docstring, from __future__ import annotations, re-export of FixTemplate and FixTemplateRegistry, __all__.",
+    "fix_templates/base.py: FixTemplate is a plain ABC (not Pydantic BaseModel) with confidence as annotation-only class attribute (no default) and two abstractmethods match() and apply() -- matches plan.",
+    "inspect.isabstract(FixTemplate) returns True -- ABC is not accidentally concrete.",
+    "Circular import (base.py imports fix_templates package, which imports base.py) is safe in practice: fix_templates.__path__ is set before __init__.py executes, and _discover_templates() only uses it at runtime, not import time. Smoke tests confirm no circular import error.",
+    "FixTemplateRegistry._discover_templates() uses inspect.getattr_static to avoid triggering descriptors when checking the confidence attribute -- correctly guards against misconfigured templates.",
+    "hasattr(cls, 'confidence') checked before inspect.getattr_static call -- prevents AttributeError from getattr_static on annotation-only attributes.",
+    "isinstance(inspect.getattr_static(cls, 'confidence'), str) correctly accepts both plain string literals ('HIGH') and Confidence enum values (since Confidence inherits str).",
+    "find_matching() wraps each template.match() call in try/except Exception and logs + skips on failure -- matches plan.",
+    "templates property returns list(self._templates) (defensive copy) -- matches plan.",
+    "Smoke test 1: 'from fix_templates import FixTemplate, FixTemplateRegistry; r = FixTemplateRegistry(); print(r.templates)' prints [] -- correct.",
+    "Smoke test 2: '0 templates discovered' printed -- correct since no concrete templates exist yet.",
+    "Smoke test 3: inspect.isabstract(FixTemplate) prints True -- correct.",
+    "All 177 existing tests pass -- no regressions."
   ]
 }
+```
+
+## Fix Required
+
+**fix_templates/base.py:47** -- Change `except ImportError:` to `except Exception:` so that SyntaxError, NameError, and any other import-time exception is caught and logged rather than aborting discovery. The log message should include the exception type for diagnosability:
+
+```python
+except Exception as exc:
+    logger.warning(
+        "Failed to import fix template module %s: %s: %s",
+        module_name,
+        type(exc).__name__,
+        exc,
+    )
+    continue
 ```
