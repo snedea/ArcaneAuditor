@@ -96,7 +96,7 @@ def _build_cmd(scan_manifest: ScanManifest, config: AgentConfig) -> list[str]:
     """
     cmd: list[str] = [
         "uv", "run", "main.py", "review-app",
-        str(scan_manifest.root_path), "--format", "json", "--quiet",
+        str(scan_manifest.root_path.resolve()), "--format", "json", "--quiet",
     ]
     preset = config.config_preset.strip() if config.config_preset is not None else ""
     if preset:
