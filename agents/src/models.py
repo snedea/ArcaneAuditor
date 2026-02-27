@@ -26,6 +26,7 @@ class ReportFormat(str, Enum):
     SARIF = "sarif"
     GITHUB_ISSUES = "github_issues"
     PR_COMMENT = "pr_comment"
+    SUMMARY = "summary"
 
 
 class Confidence(str, Enum):

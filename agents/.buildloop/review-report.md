@@ -1,43 +1,49 @@
-# Review Report — P3.3
+# Review Report — P4.1
 
-## Verdict: PASS
+## Verdict: FAIL
 
 ## Runtime Checks
-- Build: PASS (uv sync clean, py_compile passes)
-- Tests: PASS (23/23 passed in 1.11s -- `uv run pytest tests/test_runner.py -v`)
-- Lint: SKIPPED (no linter configured in pyproject.toml, consistent with plan)
-- Docker: SKIPPED (no Docker files changed)
+- Build: PASS (py_compile clean on src/reporter.py and src/models.py)
+- Tests: PASS (84 passed, 0 failed)
+- Lint: PASS (ruff check -- no issues; flake8 unavailable, substituted ruff)
+- Docker: SKIPPED (no compose files changed in this task)
 
 ## Findings
 
 ```json
 {
   "high": [],
-  "medium": [],
+  "medium": [
+    {
+      "file": "src/reporter.py",
+      "line": 72,
+      "issue": "format_summary gates the detail sections on `findings_count == 0` (stored field) while the header on lines 66-69 uses `action_count` and `advice_count` (computed properties from the `findings` list). When they disagree, the output is contradictory. Confirmed: ScanResult(findings_count=0, findings=[Finding(severity=ACTION, ...)]) produces a header reading 'Total findings: 0  (ACTION: 1, ADVICE: 0)' immediately followed by 'No findings. Application is clean.' Pydantic has no validator enforcing findings_count == len(findings), so this path is reachable via model_validate from untrusted JSON. Runner always sets findings_count=len(findings) so normal automated paths are unaffected, but any direct construction or JSON round-trip with mismatched counts produces actively misleading output.",
+      "category": "logic"
+    }
+  ],
   "low": [
     {
-      "file": "tests/fixtures/expected/dirty_app.json",
-      "line": 5,
-      "issue": "Fixture order does not match actual tool output. File starts with EndpointFailOnStatusCodesRule but real tool output (verified by running the tool) starts with ScriptStringConcatRule. The plan (current-plan.md line 354-358) explicitly required overwriting this file with actual tool output if order differs. Builder removed the disabled-rule findings correctly (9 findings, count is right) but did not reorder to match actual output. No test references this file so test execution is unaffected, but the fixture is misleading for future reference.",
-      "category": "inconsistency"
+      "file": "src/reporter.py",
+      "line": 11,
+      "issue": "`logger = logging.getLogger(__name__)` is defined but never called anywhere in the module. No debug/info/warning/error log statements exist in reporter.py. CLAUDE.md says to use logging, not print(), but having a logger declared and never invoked leaves the module silent during dispatch and formatting. Not a crash risk, but the declaration is dead code.",
+      "category": "style"
+    },
+    {
+      "file": "src/reporter.py",
+      "line": 14,
+      "issue": "Parameter named `format` shadows the Python builtin `format`. Plan-specified signature, so this is an inherited design choice rather than an implementation error. Ruff A002 in strict mode would flag this.",
+      "category": "style"
     }
   ],
   "validated": [
-    "23/23 tests pass (uv run pytest tests/test_runner.py -v: 23 passed in 1.11s)",
-    "Syntax clean: uv run python -m py_compile tests/test_runner.py returns OK",
-    "All imports resolve: src.models exports AgentConfig, ExitCode, RunnerError, ScanManifest, ScanResult, Severity -- all present in models.py",
-    "Path anchoring correct: AUDITOR_PATH and all fixture paths use Path(__file__).parent, not relative strings (test_runner.py:12-15)",
-    "Mock patch target is 'src.runner.subprocess.run' as required (test_runner.py:119, 127, 139, 147, 156) -- patches at the point of use, not in stdlib",
-    "No ordered list comparison in findings assertions: all use set membership ({f.rule_id for f in ...}) or filtered lists; no result.findings[N] index access",
-    "clean_result and dirty_result fixtures are scope='module' (test_runner.py:24, 31), preventing per-test tool invocations",
-    "No duplicate function or method definitions found in test_runner.py",
-    "clean_app fixture: real tool run exits 0 with zero findings (verified by direct subprocess run)",
-    "dirty_app fixture: real tool run exits 1 with exactly 9 findings: 3 ACTION (EndpointFailOnStatusCodesRule, HardcodedWorkdayAPIRule, WidgetIdRequiredRule), 6 ADVICE -- matches all test assertions in TestRunAuditDirtyApp",
-    "Builder correctly deviated from plan by omitting tests for ScriptConsoleLogRule and ScriptDeadCodeRule (both disabled in parent tool at runtime: 'Skipping disabled rule: ScriptConsoleLogRule', 'Skipping disabled rule: ScriptDeadCodeRule') -- these tests would have failed if included",
-    "Builder correctly updated hardcoded counts: test_findings_count_is_nine (not eleven), test_action_findings_count_is_three (not four), test_advice_findings_count_is_six (not seven) -- all match actual tool output",
-    "timeout test: RunnerError raised with 'timed out' in message when subprocess.TimeoutExpired is injected (test_runner.py:116-131); path included in error message",
-    "invalid path test: RunnerError raised with 'usage error' when returncode=2 is injected (test_runner.py:136-160); path and stderr included in error message",
-    "runner.py:56 uses (result.stdout.strip() or result.stderr.strip()) -- stderr correctly appears in error when stdout is empty, test_exit_code_2_with_stderr_message validates this correctly"
+    "All 5 ReportFormat enum members dispatched correctly: JSON->format_json, SUMMARY->format_summary, SARIF/GITHUB_ISSUES/PR_COMMENT each raise ReporterError with specific messages",
+    "Final `raise ReporterError(f'Unsupported report format: {format!r}')` at line 38 correctly handles values outside the enum (confirmed: passing raw string 'bogus' raises ReporterError)",
+    "SUMMARY = 'summary' added to ReportFormat in models.py line 29 -- enum now has 5 members",
+    "format_json uses model_dump(mode='json') which correctly serializes datetime to ISO 8601 with Z suffix, Path to str, and Enum to .value -- confirmed via smoke test",
+    "format_summary correctly handles empty findings: Counter on empty generator raises no exception, sections produce empty output cleanly",
+    "Unused imports from plan (defaultdict, Severity) correctly omitted from implementation -- no unused-import lint issues",
+    "84 tests pass including scanner and runner tests -- no regressions from models.py modification",
+    "Module-level imports resolve without circular dependency: reporter.py imports from src.models only"
   ]
 }
 ```
