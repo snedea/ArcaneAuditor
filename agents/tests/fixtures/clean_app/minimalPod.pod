@@ -5,7 +5,7 @@
     "endPoints": [
       {
         "name": "getWorkerData",
-        "url": "<% `{apiGatewayEndpoint}/workers/me` %>",
+        "url": "<% `{baseEndpoint}/workers/me` %>",
         "failOnStatusCodes": [{ "code": 400 }, { "code": 403 }]
       }
     ],
