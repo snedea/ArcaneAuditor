@@ -119,6 +119,23 @@ def test_env_var_whitespace_github_token_ignored(tmp_path: Path, monkeypatch: py
     assert config.github_token is None
 
 
+def test_env_var_whitespace_arcane_auditor_path_ignored(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A whitespace-only ARCANE_AUDITOR_PATH env var is not applied."""
+    auditor_dir = tmp_path / "auditor"
+    auditor_dir.mkdir()
+    (auditor_dir / "main.py").write_text("# stub")
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(yaml.dump({"auditor_path": str(auditor_dir)}))
+
+    monkeypatch.setenv("ARCANE_AUDITOR_PATH", "   ")
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+    config = load_config(tmp_path / "config.yaml")
+
+    assert str(config.auditor_path) == str(auditor_dir)
+
+
 def test_validate_config_missing_auditor_path(tmp_path: Path) -> None:
     """validate_config raises ConfigError when auditor_path does not exist."""
     config = AgentConfig(auditor_path=tmp_path / "nonexistent")

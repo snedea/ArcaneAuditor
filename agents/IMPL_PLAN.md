@@ -6,7 +6,7 @@
 
 - [x] P1.1: Create pyproject.toml with dependencies (typer, pydantic>=2.0, pygithub, pytest) and project metadata. Create src/__init__.py and tests/__init__.py. Verify with `uv sync`
 - [x] P1.2: Create src/models.py with Pydantic models -- ScanResult (repo, timestamp, findings_count, findings, exit_code), Finding (rule_id, description, severity, message, line, file_path), FixResult (finding, original_content, fixed_content, confidence), AgentConfig (repos list, config_preset, output_format, github_token optional), ReportFormat enum (JSON, SARIF, GITHUB_ISSUES, PR_COMMENT). Include custom exceptions: ScanError, RunnerError, ReporterError, FixerError
-- [ ] P1.3: Create src/config.py -- load AgentConfig from a YAML or JSON file, with defaults. Support environment variable overrides for GITHUB_TOKEN and ARCANE_AUDITOR_PATH. Validate that the parent Arcane Auditor path exists and main.py is present
+- [x] P1.3: Create src/config.py -- load AgentConfig from a YAML or JSON file, with defaults. Support environment variable overrides for GITHUB_TOKEN and ARCANE_AUDITOR_PATH. Validate that the parent Arcane Auditor path exists and main.py is present
 
 ## Phase 2: Scanner -- Find Extend Artifacts
 

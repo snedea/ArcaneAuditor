@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 
 
 # --- Enums ---
@@ -112,6 +112,21 @@ class AgentConfig(BaseModel):
     output_format: ReportFormat = ReportFormat.JSON
     github_token: SecretStr | None = None
     auditor_path: Path = Path("../")
+
+    @field_validator("github_token", mode="before")
+    @classmethod
+    def coerce_empty_token_to_none(cls, v: object) -> object:
+        """Coerce empty or whitespace-only github_token values to None.
+
+        Args:
+            v: The raw value before SecretStr coercion.
+
+        Returns:
+            None if the value is an empty/whitespace string, otherwise the original value.
+        """
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
 
 
 # --- Custom Exceptions ---
