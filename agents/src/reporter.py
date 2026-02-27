@@ -36,7 +36,9 @@ def report_findings(scan_result: ScanResult, format: ReportFormat) -> str:
             "GitHub Issues format requires repo and token -- call format_github_issues() directly"
         )
     elif format == ReportFormat.PR_COMMENT:
-        raise ReporterError("PR Comment format not yet implemented")
+        raise ReporterError(
+            "PR Comment format requires repo, pr_number, and token -- call format_pr_comment() directly"
+        )
     elif format == ReportFormat.SUMMARY:
         return format_summary(scan_result)
 
@@ -363,3 +365,85 @@ def _build_advice_issue_body(findings: list[Finding]) -> str:
     lines.append("---")
     lines.append("*Found by [Arcane Auditor](https://github.com/snedea/homelab) -- deterministic rule-based code review.*")
     return "\n".join(lines)
+
+
+def _build_pr_comment_body(scan_result: ScanResult) -> str:
+    """Build the full markdown body for a PR comment summarizing scan results.
+
+    Args:
+        scan_result: The scan result to format.
+
+    Returns:
+        The full markdown body string for the PR comment.
+    """
+    lines: list[str] = []
+    lines.append("## Arcane Auditor Results")
+    lines.append("")
+    if scan_result.findings_count == 0:
+        lines.append("No findings. This application is clean.")
+        lines.append("")
+        lines.append("---")
+        lines.append("*Found by [Arcane Auditor](https://github.com/snedea/homelab) -- deterministic rule-based code review.*")
+        return "\n".join(lines)
+    action_findings: list[Finding] = [f for f in scan_result.findings if f.severity == Severity.ACTION]
+    advice_findings: list[Finding] = [f for f in scan_result.findings if f.severity == Severity.ADVICE]
+    lines.append(f"**{scan_result.findings_count} findings** (ACTION: {scan_result.action_count}, ADVICE: {scan_result.advice_count})")
+    lines.append("")
+    if action_findings:
+        lines.append("### ACTION Findings")
+        lines.append("")
+        lines.append("| Rule | File | Line | Message |")
+        lines.append("| --- | --- | --- | --- |")
+        for f in action_findings:
+            safe_path = f.file_path.replace("|", r"\|").replace("\n", " ")
+            safe_msg = f.message.replace("|", r"\|").replace("\n", " ")
+            lines.append(f"| {f.rule_id} | {safe_path} | {f.line} | {safe_msg} |")
+        lines.append("")
+    if advice_findings:
+        lines.append("<details>")
+        lines.append(f"<summary>ADVICE Findings ({len(advice_findings)})</summary>")
+        lines.append("")
+        lines.append("| Rule | File | Line | Message |")
+        lines.append("| --- | --- | --- | --- |")
+        for f in advice_findings:
+            safe_path = f.file_path.replace("|", r"\|").replace("\n", " ")
+            safe_msg = f.message.replace("|", r"\|").replace("\n", " ")
+            lines.append(f"| {f.rule_id} | {safe_path} | {f.line} | {safe_msg} |")
+        lines.append("")
+        lines.append("</details>")
+        lines.append("")
+    lines.append("---")
+    lines.append("*Found by [Arcane Auditor](https://github.com/snedea/homelab) -- deterministic rule-based code review.*")
+    return "\n".join(lines)
+
+
+def format_pr_comment(scan_result: ScanResult, repo: str, pr_number: int, token: str) -> str:
+    """Post a single comment on a GitHub PR summarizing all findings.
+
+    Args:
+        scan_result: The scan result containing findings.
+        repo: The GitHub repo in "owner/name" format.
+        pr_number: The pull request number.
+        token: A GitHub personal access token with repo scope.
+
+    Returns:
+        The HTML URL of the created PR comment.
+
+    Raises:
+        ReporterError: If any GitHub API call fails.
+    """
+    with Github(auth=Auth.Token(token)) as gh:
+        try:
+            repo_obj = gh.get_repo(repo)
+        except GithubException as exc:
+            raise ReporterError(f"GitHub API error accessing repo {repo!r}: {exc}") from exc
+        try:
+            pr = repo_obj.get_pull(pr_number)
+        except GithubException as exc:
+            raise ReporterError(f"GitHub API error accessing PR #{pr_number} in {repo!r}: {exc}") from exc
+        body: str = _build_pr_comment_body(scan_result)
+        try:
+            comment = pr.create_issue_comment(body)
+        except GithubException as exc:
+            raise ReporterError(f"GitHub API error posting comment on PR #{pr_number} in {repo!r}: {exc}") from exc
+        return comment.html_url
