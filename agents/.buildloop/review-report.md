@@ -1,52 +1,55 @@
 # Review Report — P6.3
 
-## Verdict: FAIL
+## Verdict: PASS
 
 ## Runtime Checks
-- Build: PASS (`uv run python -c "from fix_templates.structure_fixes import ..."` exits clean)
-- Tests: PASS (219 passed in 4.52s — no regressions)
-- Lint: PASS (`ruff check fix_templates/structure_fixes.py` — all checks passed)
-- Docker: SKIPPED (no compose files changed in this task)
+- Build: PASS (py_compile succeeded on both structure_fixes.py and test_structure_fixes.py)
+- Tests: PASS (45/45 passed, 0.05s — `uv run pytest tests/test_structure_fixes.py -v`)
+- Lint: SKIPPED (no ruff/flake8 config in pyproject.toml; plan confirms skip)
+- Docker: SKIPPED (no Docker files changed)
 
 ## Findings
 
 ```json
 {
   "high": [],
-  "medium": [
-    {
-      "file": "fix_templates/structure_fixes.py",
-      "line": 299,
-      "issue": "Sort key in _add_missing_codes crashes unhandled. `ep[\"failOnStatusCodes\"].sort(key=lambda e: int(e.get(\"code\", 0)) ...)` calls int() inside the lambda without exception handling. When an existing entry has {\"code\": null} (JSON null -> Python None), int(None) raises TypeError. When an entry has {\"code\": \"abc\"} (non-numeric string), int(\"abc\") raises ValueError. Both propagate unhandled through _fix_endpoint_in_data and apply(). The apply() method only catches json.JSONDecodeError, so this crash escapes to the caller. The documented contract -- 'apply() returns FixResult | None' -- is violated. Verified: reproducing with source containing {\"code\": null} raises TypeError from apply().",
-      "category": "crash"
-    }
-  ],
+  "medium": [],
   "low": [
     {
-      "file": "fix_templates/structure_fixes.py",
-      "line": 155,
-      "issue": "LowerCamelCaseEndpointName.apply() calls self._MSG_RE.search() on a pattern anchored with '^'. With no MULTILINE flag, search() with '^' only matches at position 0 -- functionally identical to .match() for single-line inputs, but misleading. Should use .match() for idiomatic clarity.",
+      "file": "tests/test_structure_fixes.py",
+      "line": 5,
+      "issue": "`import pytest` is present but never referenced anywhere in the file. No pytest.raises, pytest.mark, or pytest.fixture usage exists. AST analysis confirms it is unused. Would be flagged F401 if lint were enabled.",
+      "category": "style"
+    },
+    {
+      "file": "tests/test_structure_fixes.py",
+      "line": 258,
+      "issue": "`data = json.loads(result.fixed_content)` is called without a prior `assert result is not None` guard. Every other multi-step test in this file (e.g. lines 182, 204) includes the guard. If apply() ever returns None here, the test raises AttributeError instead of a clear assertion failure, masking the real cause.",
       "category": "style"
     },
     {
       "file": "fix_templates/structure_fixes.py",
-      "line": 103,
-      "issue": "The guard 'if \"<\" in invalid_id: return None' in LowerCamelCaseWidgetId.apply() checks for any '<' character, but _to_lower_camel_case() only checks for '<%'. The docstring attributes both to 'script syntax'. In practice _to_lower_camel_case() returns None for any value containing '<' anyway (no pattern matches), so the guard is redundant -- but the inconsistency between the two checks is misleading.",
+      "line": 31,
+      "issue": "Docstring for `_to_lower_camel_case` says 'value contains \\u2018<\\u2019' but the actual check on line 43 is `if \"<%\" in value` (two-char sequence). For an input like `\"less<than\"`, the early-return guard does NOT fire (no `<%`), though the function still returns None via the final fallthrough since `<` is excluded from all character classes. The docstring is misleading about which exact characters trigger the guard.",
       "category": "inconsistency"
     }
   ],
   "validated": [
-    "All three classes import cleanly and register in FixTemplateRegistry (registry smoke test passed: ['RemoveConsoleLog', 'TemplateLiteralFix', 'VarToLetConst', 'AddFailOnStatusCodes', 'LowerCamelCaseEndpointName', 'LowerCamelCaseWidgetId'])",
-    "confidence: Literal['HIGH'] = 'HIGH' is a class-level string attribute on all three classes; registry discovery check passes (inspect.getattr_static returns 'HIGH', isinstance(..., str) is True)",
-    "_to_lower_camel_case correctly returns None for: empty string, '<%' template syntax, all-uppercase identifiers without separators, values that start with a digit, and values with no recognized form",
-    "_to_lower_camel_case separator branch correctly lowercases before split, so mixed-case intermediates are normalized (documented known limitation in docstring)",
-    "LowerCamelCaseWidgetId.apply() and LowerCamelCaseEndpointName.apply() both use re.escape() on the extracted identifier when building field_re, preventing regex injection from special characters in the identifier value",
-    "Replacement f-strings are safe: fixed_id/fixed_name always match _LOWER_CAMEL_RE (only [a-zA-Z0-9]), so no backslash or backreference characters appear in the substitution string",
-    "AddFailOnStatusCodes._extract_endpoint_and_codes correctly handles both message subtypes; missing_codes empty-set guard is present",
-    "AddFailOnStatusCodes._add_missing_codes existing_codes loop correctly wraps int() in try/except (ValueError, TypeError) -- the bug is only in the subsequent sort call",
-    "All three apply() methods guard against finding.line == 0 and finding.line > len(lines) before accessing the lines list",
-    "AddFailOnStatusCodes uses json.loads/json.dumps as required by the plan; LowerCamelCaseWidgetId and LowerCamelCaseEndpointName use line-targeted regex replacement as required",
-    "All 219 existing tests pass with no regressions introduced by the new module"
+    "All 45 tests collected and passed with 0 failures",
+    "Both files compile cleanly under Python 3.12 (py_compile)",
+    "`from __future__ import annotations` is the first import in both test_structure_fixes.py and structure_fixes.py (CLAUDE.md requirement)",
+    "All test methods carry `-> None` return type annotations (type-hints-everywhere requirement)",
+    "`_finding()` helper includes the `message` parameter with default 'test', matching the plan's constraint that this differs from test_script_fixes.py",
+    "AddFailOnStatusCodes tests use `json.dumps(..., indent=2) + '\\n'` (not raw strings) to construct source_content, matching the plan constraint and the apply() serialization format",
+    "FixTemplateRegistry discovery test correctly asserts presence of all three templates without over-constraining the total count",
+    "Registry find_matching tests assert `len(matches) == 1` — confirmed no duplicate discovery because each class lives in exactly one module and __init__.py does not re-export concrete templates",
+    "LowerCamelCaseWidgetId: `<` guard in apply() (line 103) is broader than `<%` guard in _to_lower_camel_case (line 43) — intentional defense-in-depth, documented in LowerCamelCaseWidgetId class docstring",
+    "LowerCamelCaseEndpointName has no explicit `<` guard but relies on _to_lower_camel_case returning None for any value with `<` via regex fallthrough — verified with `_to_lower_camel_case('Less<than')` returning None",
+    "_add_missing_codes sorts the failOnStatusCodes list ascending after appending; test_apply_codes_are_sorted_ascending_in_output verifies output is [400, 403]",
+    "AddFailOnStatusCodes.apply() final equality check `if fixed_content == source_content: return None` (line 316-317) correctly handles the idempotent case where no codes were actually missing",
+    "ExitCode defined as `int, Enum` subclass in models.py (known pattern #10 satisfied)",
+    "No new dependencies added to pyproject.toml",
+    "No modifications to structure_fixes.py, base.py, __init__.py, models.py, or any other existing file"
   ]
 }
 ```
