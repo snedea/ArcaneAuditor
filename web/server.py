@@ -25,11 +25,14 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # FastAPI imports
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Response
+from fastapi import FastAPI, Request, UploadFile, File, HTTPException, Form, Response
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import uvicorn
 
 # Anthropic SDK for direct API calls (temperature control)
@@ -302,6 +305,11 @@ async def periodic_cleanup():
         cleanup_orphaned_files()
         cleanup_old_jobs()
 
+# Rate limiting (in-memory, per-IP)
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Add CORS middleware
 _cors_origins = os.environ.get(
     "CORS_ORIGINS", "https://arcane.llam.ai"
@@ -508,8 +516,10 @@ def run_analysis_background(job: AnalysisJob):
 
 
 @app.post("/api/upload")
+@limiter.limit("5/minute")
 async def upload_file(
-    files: list[UploadFile] = File(...), 
+    request: Request,
+    files: list[UploadFile] = File(...),
     config: str = Form("default")
 ):
     """
@@ -828,9 +838,10 @@ def _build_numbered_user_message(findings_data: dict) -> tuple[str, list]:
 
 
 @app.post("/api/explain")
-async def explain_findings(request: ExplainRequest):
+@limiter.limit("10/minute")
+async def explain_findings(request: Request, body: ExplainRequest):
     """Send analysis findings to Claude for AI-powered explanation."""
-    findings = request.findings
+    findings = body.findings
 
     if not findings:
         raise HTTPException(status_code=400, detail="No findings provided")
@@ -972,28 +983,29 @@ def strip_code_fences(text: str) -> str:
 
 
 @app.post("/api/autofix")
-async def autofix_finding(request: AutofixRequest):
+@limiter.limit("10/minute")
+async def autofix_finding(request: Request, body: AutofixRequest):
     """Use Anthropic API to auto-fix a single finding in a file.
 
     Accepts the full file content and a finding description, returns the
     corrected file content.  Temperature is set to 0 for maximum fidelity.
     """
-    if not request.file_content.strip():
+    if not body.file_content.strip():
         raise HTTPException(status_code=400, detail="Empty file content")
 
-    if not request.finding:
+    if not body.finding:
         raise HTTPException(status_code=400, detail="No finding provided")
 
     # Build user message with file path, finding details, and full content
-    finding = request.finding
+    finding = body.finding
     user_msg = (
-        f"File: {request.file_path}\n\n"
+        f"File: {body.file_path}\n\n"
         f"Finding to fix:\n"
         f"  Rule: {finding.get('rule_id', '')}\n"
         f"  Severity: {finding.get('severity', '')}\n"
         f"  Line: {finding.get('line', '')}\n"
         f"  Message: {finding.get('message', '')}\n\n"
-        f"Full file content:\n{request.file_content}"
+        f"Full file content:\n{body.file_content}"
     )
 
     try:
@@ -1009,7 +1021,7 @@ async def autofix_finding(request: AutofixRequest):
         # Strip code fences if LLM wrapped the output
         fixed_content = strip_code_fences(fixed_content)
 
-        return {"fixed_content": fixed_content, "file_path": request.file_path}
+        return {"fixed_content": fixed_content, "file_path": body.file_path}
 
     except anthropic.APITimeoutError:
         raise HTTPException(status_code=504, detail="Autofix timed out")

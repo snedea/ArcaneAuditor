@@ -279,6 +279,10 @@ class ArcaneAuditorApp {
                 body: formData,
             });
 
+            if (response.status === 429) {
+                throw new Error('Rate limit reached — wait a minute before uploading again');
+            }
+
             const data = await response.json();
 
             if (response.ok) {
@@ -326,6 +330,10 @@ class ArcaneAuditorApp {
                 method: 'POST',
                 body: formData
             });
+
+            if (response.status === 429) {
+                throw new Error('Rate limit reached — wait a minute before uploading again');
+            }
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -477,6 +485,12 @@ class ArcaneAuditorApp {
             });
 
             const data = await response.json();
+
+            if (response.status === 429) {
+                console.warn('Rate limited on /api/explain — will retry on next analysis');
+                fab.style.display = 'none';
+                return;
+            }
 
             if (!response.ok) {
                 throw new Error(data.detail || 'AI explanation failed');
@@ -780,6 +794,10 @@ class ArcaneAuditorApp {
                 data = await response.json();
             } catch {
                 throw new Error(`Server returned invalid response (HTTP ${response.status})`);
+            }
+
+            if (response.status === 429) {
+                throw new Error('Rate limit reached — wait a minute before trying again');
             }
 
             if (!response.ok) {
