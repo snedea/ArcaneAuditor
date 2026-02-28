@@ -137,9 +137,15 @@
                 </div>
             </section>
 
-            <!-- AI explanation loading indicator (shown above findings while LLM is working) -->
-            <div id="ai-explain-status" class="ai-explain-status" style="display: none;"></div>
         </main>
+    </div>
+
+    <!-- Fixed AI loading indicator in bottom-left corner (mirrors theme toggle) -->
+    <div id="ai-loading-fab" class="ai-loading-fab" style="display: none;">
+        <button class="btn btn-secondary" disabled>
+            <span class="ai-loading-spinner"></span>
+            <span>AI</span>
+        </button>
     </div>
 
     <script type="module" src="/static/js/magic-mode.js"></script>

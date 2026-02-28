@@ -134,7 +134,7 @@ class ArcaneAuditorApp {
         document.getElementById('error-section').style.display = 'none';
         document.getElementById('results-section').style.display = 'none';
         document.getElementById('context-section').style.display = 'none';
-        document.getElementById('ai-explain-status').style.display = 'none';
+        document.getElementById('ai-loading-fab').style.display = 'none';
     }
 
     // File handling methods
@@ -414,12 +414,10 @@ class ArcaneAuditorApp {
     async explainWithAI() {
         if (!this.currentResult || !this.currentResult.findings.length) return;
 
-        const status = document.getElementById('ai-explain-status');
+        const fab = document.getElementById('ai-loading-fab');
 
-        // Show a single loading line
-        status.style.display = 'block';
-        status.textContent = '🤖 AI explanations loading...';
-        status.className = 'ai-explain-status loading';
+        // Show spinning FAB in bottom-left corner
+        fab.style.display = 'block';
 
         try {
             const response = await fetch('/api/explain', {
@@ -451,16 +449,13 @@ class ArcaneAuditorApp {
                 }
                 // Re-render findings with inline explanations
                 this.resultsRenderer.renderFindings();
-                // Hide the status line — explanations are now inline
-                status.style.display = 'none';
-            } else {
-                // Non-structured response — show it as a status message
-                status.textContent = '🤖 AI explanation loaded (see below)';
-                status.className = 'ai-explain-status done';
             }
+            // Hide FAB — done (structured or fallback)
+            fab.style.display = 'none';
         } catch (error) {
-            status.textContent = `AI explanations unavailable: ${error.message}`;
-            status.className = 'ai-explain-status error';
+            // Hide FAB on error too — no lingering spinner
+            fab.style.display = 'none';
+            console.error('AI explanation failed:', error.message);
         }
     }
 
@@ -599,7 +594,7 @@ class ArcaneAuditorApp {
         document.getElementById('selected-files-list').style.display = 'none';
         
         // Reset AI explain status
-        document.getElementById('ai-explain-status').style.display = 'none';
+        document.getElementById('ai-loading-fab').style.display = 'none';
 
         // Reset renderers
         this.resultsRenderer.resetForNewUpload();

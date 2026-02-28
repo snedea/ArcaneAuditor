@@ -193,7 +193,7 @@ export class ResultsRenderer {
                                             <div class="finding-explanation">
                                                 <span class="finding-explanation-ai-label">AI</span>
                                                 <div class="finding-explanation-badges">
-                                                    <span class="finding-explanation-badge ${expl.priority || 'medium'}">${(expl.priority || 'medium').toUpperCase()} PRIORITY</span>
+                                                    <span class="finding-explanation-badge ${finding.severity.toLowerCase()}">${finding.severity.toUpperCase()}</span>
                                                 </div>
                                                 <p class="finding-explanation-text">${this.escapeHtml(expl.explanation || '')}</p>
                                                 ${expl.suggestion ? `<p class="finding-explanation-suggestion">Suggestion: ${this.escapeHtml(expl.suggestion)}</p>` : ''}
