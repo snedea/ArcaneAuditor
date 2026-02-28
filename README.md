@@ -268,7 +268,14 @@ The AI behavior is controlled by two plain-text prompt files. Edit them to chang
 | [`prompts/explain_system.md`](prompts/explain_system.md) | AI Explain | How findings are explained and prioritized |
 | [`prompts/autofix_system.md`](prompts/autofix_system.md) | Auto-Fix | How the LLM generates corrected files |
 
-**Live updates**: Edit a prompt file on GitHub and push to `main` — a [CI/CD workflow](.github/workflows/deploy-prompts.yml) automatically pulls the change to the server. The server hot-reloads prompts on each request, so the new behavior takes effect immediately with no restart or rebuild.
+**Live updates** — edit a prompt on GitHub, see it live on the next request:
+
+```mermaid
+flowchart LR
+    A["Edit prompt\non GitHub"] --> B["Push to main"] --> C["CI/CD pulls\nto server"] --> D["Hot-reloaded\nnext request"]
+```
+
+No restart or rebuild required. See the [deploy workflow](.github/workflows/deploy-prompts.yml) for details.
 
 ---
 
