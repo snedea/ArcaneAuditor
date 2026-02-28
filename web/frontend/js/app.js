@@ -10,7 +10,7 @@ class ArcaneAuditorApp {
         this.currentResult = null;
         this.filteredFindings = [];
         this.expandedFiles = new Set();
-        this.findingExplanations = new Map(); // key: "rule_id::file_path::line" → explanation obj
+        this.findingExplanations = new Map(); // key: "index::rule_id::file_path::line" → explanation obj
         this.uploadedFileName = null;
         this.selectedFiles = []; // For multiple file uploads
         this.currentFilters = {

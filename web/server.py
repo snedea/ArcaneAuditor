@@ -700,15 +700,22 @@ def parse_structured_explanation(raw_text: str) -> list | None:
         parsed = json.loads(candidate)
         if not isinstance(parsed, list):
             return None
-        # Validate each item has the required fields
+        # Validate each item has the required fields with correct types
         required = {"index", "explanation", "suggestion", "priority"}
+        valid_priorities = {"high", "medium", "low"}
         validated = []
         for item in parsed:
-            if isinstance(item, dict) and required.issubset(item.keys()):
-                validated.append(item)
-            else:
-                # If any item is malformed, reject the whole response
+            if not isinstance(item, dict) or not required.issubset(item.keys()):
                 return None
+            if not isinstance(item["index"], int):
+                return None
+            if not isinstance(item["explanation"], str):
+                return None
+            if not isinstance(item["suggestion"], str):
+                return None
+            if item["priority"] not in valid_priorities:
+                return None
+            validated.append(item)
         return validated
     except (json.JSONDecodeError, ValueError):
         pass

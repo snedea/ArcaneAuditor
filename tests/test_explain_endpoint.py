@@ -121,6 +121,31 @@ class TestParseStructuredExplanation:
         result = parse_structured_explanation(raw)
         assert result is None
 
+    def test_wrong_index_type_returns_none(self):
+        """index must be an int, not a string."""
+        raw = '[{"index": "zero", "explanation": "x", "suggestion": "y", "priority": "high"}]'
+        result = parse_structured_explanation(raw)
+        assert result is None
+
+    def test_wrong_explanation_type_returns_none(self):
+        """explanation must be a string."""
+        raw = '[{"index": 0, "explanation": 42, "suggestion": "y", "priority": "high"}]'
+        result = parse_structured_explanation(raw)
+        assert result is None
+
+    def test_invalid_priority_value_returns_none(self):
+        """priority must be high/medium/low."""
+        raw = '[{"index": 0, "explanation": "x", "suggestion": "y", "priority": "urgent"}]'
+        result = parse_structured_explanation(raw)
+        assert result is None
+
+    def test_valid_priorities_accepted(self):
+        """All three valid priority values are accepted."""
+        for p in ("high", "medium", "low"):
+            raw = f'[{{"index": 0, "explanation": "x", "suggestion": "y", "priority": "{p}"}}]'
+            result = parse_structured_explanation(raw)
+            assert result is not None, f"priority={p} should be accepted"
+
 
 class TestExplainEndpoint:
     """Tests for /api/explain."""
