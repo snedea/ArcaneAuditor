@@ -110,6 +110,17 @@ export class FindingsUI {
                 container.scrollTop = offsetInContent - container.clientHeight / 2 + highlighted.offsetHeight / 2;
             }
         });
+
+        // Also scroll diff views to first changed row
+        document.querySelectorAll('.diff-scroll').forEach(container => {
+            const firstChange = container.querySelector('.diff-removed, .diff-added, .diff-modified');
+            if (firstChange) {
+                const containerRect = container.getBoundingClientRect();
+                const changeRect = firstChange.getBoundingClientRect();
+                const offsetInContent = changeRect.top - containerRect.top + container.scrollTop;
+                container.scrollTop = offsetInContent - container.clientHeight / 2 + firstChange.offsetHeight / 2;
+            }
+        });
     }
 
     /**

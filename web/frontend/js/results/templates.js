@@ -1,13 +1,14 @@
 // results/templates.js - Pure HTML template functions
 
-import { 
-    getSeverityIcon, 
-    getSeverityCounts, 
+import {
+    getSeverityIcon,
+    getSeverityCounts,
     getOrderedSeverityEntries,
     getFileTypeFromPath,
     groupFindingsByFile,
     sortFindingsInGroup,
-    sortFileGroups
+    sortFileGroups,
+    computeLineDiff
 } from '../utils.js';
 
 export const Templates = {
@@ -234,13 +235,52 @@ export const Templates = {
                 <div class="finding-details">
                     <span class="finding-line-number"><strong>Line:</strong> ${finding.line}</span>
                 </div>
-                ${finding.snippet ? `
+                ${finding.snippet ? (() => {
+                    // Show diff view for resolved findings when content actually changed
+                    const originalContent = app ? app.originalFileContents.get(finding.file_path) : null;
+                    const editedContent = app ? app.editedFileContents.get(finding.file_path) : null;
+                    if (isResolved && originalContent && editedContent && originalContent !== editedContent) {
+                        const diffRows = computeLineDiff(originalContent, editedContent);
+                        const buildPanel = (side) => diffRows.map(row => {
+                            const isLeft = side === 'left';
+                            const lineNo = isLeft ? row.oldLineNo : row.newLineNo;
+                            const text = isLeft ? row.oldText : row.newText;
+                            const no = lineNo != null ? String(lineNo).padStart(4) : '';
+                            let cls, prefix;
+                            if (row.type === 'unchanged') { cls = 'diff-unchanged'; prefix = ' '; }
+                            else if (row.type === 'removed') { cls = isLeft ? 'diff-removed' : 'diff-empty'; prefix = isLeft ? '−' : ' '; }
+                            else if (row.type === 'added') { cls = isLeft ? 'diff-empty' : 'diff-added'; prefix = isLeft ? ' ' : '+'; }
+                            else { cls = isLeft ? 'diff-removed' : 'diff-added'; prefix = isLeft ? '−' : '+'; }
+                            const content = (row.type === 'removed' && !isLeft) || (row.type === 'added' && isLeft) ? '' : escapeHtml(text);
+                            return `<tr class="${cls}"><td class="diff-lineno">${no}</td><td class="diff-prefix">${prefix}</td><td class="diff-code">${content}</td></tr>`;
+                        }).join('');
+                        return `
+                <div class="finding-diff">
+                    <div class="diff-panels">
+                        <div class="diff-panel">
+                            <div class="diff-panel-header">Original</div>
+                            <div class="diff-scroll">
+                                <table class="diff-table">${buildPanel('left')}</table>
+                            </div>
+                        </div>
+                        <div class="diff-panel-divider"></div>
+                        <div class="diff-panel">
+                            <div class="diff-panel-header">Fixed</div>
+                            <div class="diff-scroll">
+                                <table class="diff-table">${buildPanel('right')}</table>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+                    }
+                    // Default: single-panel snippet
+                    return `
                 <div class="finding-snippet${isResolved ? ' snippet-fixed' : ''}">
                     <pre><code>${finding.snippet.lines.map(l =>
                         `<span class="snippet-line${l.highlight ? (isResolved ? ' snippet-highlight-fixed' : ' snippet-highlight') : ''}"><span class="snippet-lineno">${String(l.number).padStart(4)}</span>${escapeHtml(l.text)}</span>`
                     ).join('\n')}</code></pre>
-                </div>
-                ` : ''}
+                </div>`;
+                })() : ''}
                 ${(() => {
                     const dw = diffWarnings.get(origIdx);
                     if (!dw) return '';

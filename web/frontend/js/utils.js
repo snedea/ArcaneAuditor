@@ -206,3 +206,115 @@ export function saveSortBy(sortBy) {
 export function saveSortFilesBy(sortFilesBy) {
     localStorage.setItem('arcane-auditor-sort-files-by', sortFilesBy);
 }
+
+/**
+ * Compute a side-by-side line diff between two strings using LCS.
+ * Returns an array of row objects:
+ *   { type: 'unchanged'|'removed'|'added'|'modified',
+ *     oldLineNo, oldText, newLineNo, newText }
+ */
+export function computeLineDiff(original, fixed) {
+    const oldLines = original.split('\n');
+    const newLines = fixed.split('\n');
+    const m = oldLines.length;
+    const n = newLines.length;
+
+    // Build LCS length table
+    const dp = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1));
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            if (oldLines[i - 1] === newLines[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+            } else {
+                dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
+    }
+
+    // Backtrack to produce edit ops
+    const ops = [];
+    let i = m, j = n;
+    while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
+            ops.push({ op: 'equal', oldIdx: i - 1, newIdx: j - 1 });
+            i--; j--;
+        } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+            ops.push({ op: 'add', newIdx: j - 1 });
+            j--;
+        } else {
+            ops.push({ op: 'remove', oldIdx: i - 1 });
+            i--;
+        }
+    }
+    ops.reverse();
+
+    // Merge consecutive remove+add pairs into 'modified' rows
+    const rows = [];
+    let k = 0;
+    while (k < ops.length) {
+        const curr = ops[k];
+        if (curr.op === 'equal') {
+            rows.push({
+                type: 'unchanged',
+                oldLineNo: curr.oldIdx + 1,
+                oldText: oldLines[curr.oldIdx],
+                newLineNo: curr.newIdx + 1,
+                newText: newLines[curr.newIdx],
+            });
+            k++;
+        } else if (curr.op === 'remove') {
+            // Collect consecutive removes
+            const removes = [];
+            while (k < ops.length && ops[k].op === 'remove') {
+                removes.push(ops[k]);
+                k++;
+            }
+            // Collect consecutive adds
+            const adds = [];
+            while (k < ops.length && ops[k].op === 'add') {
+                adds.push(ops[k]);
+                k++;
+            }
+            // Pair them up as 'modified', leftover as pure remove/add
+            const paired = Math.min(removes.length, adds.length);
+            for (let p = 0; p < paired; p++) {
+                rows.push({
+                    type: 'modified',
+                    oldLineNo: removes[p].oldIdx + 1,
+                    oldText: oldLines[removes[p].oldIdx],
+                    newLineNo: adds[p].newIdx + 1,
+                    newText: newLines[adds[p].newIdx],
+                });
+            }
+            for (let p = paired; p < removes.length; p++) {
+                rows.push({
+                    type: 'removed',
+                    oldLineNo: removes[p].oldIdx + 1,
+                    oldText: oldLines[removes[p].oldIdx],
+                    newLineNo: null,
+                    newText: '',
+                });
+            }
+            for (let p = paired; p < adds.length; p++) {
+                rows.push({
+                    type: 'added',
+                    oldLineNo: null,
+                    oldText: '',
+                    newLineNo: adds[p].newIdx + 1,
+                    newText: newLines[adds[p].newIdx],
+                });
+            }
+        } else {
+            // standalone add
+            rows.push({
+                type: 'added',
+                oldLineNo: null,
+                oldText: '',
+                newLineNo: curr.newIdx + 1,
+                newText: newLines[curr.newIdx],
+            });
+            k++;
+        }
+    }
+    return rows;
+}

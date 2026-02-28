@@ -1253,8 +1253,7 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
 }
 
 .finding-resolved .finding-header {
-    text-decoration: line-through;
-    text-decoration-color: #10b981;
+    text-decoration: none;
 }
 
 .resolved-badge {
@@ -1280,8 +1279,7 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
 }
 
 .finding-dismissed .finding-header {
-    text-decoration: line-through;
-    text-decoration-color: #6b7280;
+    text-decoration: none;
 }
 
 .dismissed-badge {
@@ -1557,6 +1555,144 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
     background: rgba(248, 113, 113, 0.1);
     border-left-color: #f87171;
     color: #fca5a5;
+}
+
+/* ===== Side-by-side diff view (auto-fix) ===== */
+
+/* ===== Two-panel side-by-side diff ===== */
+
+.finding-diff {
+    margin: 8px 0 4px 30px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.diff-panels {
+    display: flex;
+}
+
+.diff-panel {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.diff-panel-header {
+    padding: 4px 12px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.diff-panel-divider {
+    width: 1px;
+    background: var(--border-color);
+    flex-shrink: 0;
+}
+
+.diff-scroll {
+    max-height: 360px;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-muted) transparent;
+}
+
+.diff-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.diff-scroll::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 4px;
+}
+
+.diff-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.diff-table {
+    min-width: 100%;
+    border-collapse: collapse;
+}
+
+.diff-table td {
+    padding: 0;
+    vertical-align: top;
+    white-space: pre;
+}
+
+.diff-lineno {
+    width: 3.5em;
+    text-align: right;
+    padding-right: 0.5em !important;
+    color: var(--text-secondary);
+    opacity: 0.5;
+    user-select: none;
+}
+
+.diff-prefix {
+    width: 1.2em;
+    text-align: center;
+    user-select: none;
+    font-weight: 700;
+}
+
+.diff-code {
+    padding-left: 0.5em !important;
+    padding-right: 0.5em !important;
+}
+
+/* Row colors — light theme */
+.diff-removed td {
+    background: rgba(255, 220, 220, 0.45);
+}
+.diff-removed .diff-prefix {
+    color: #b91c1c;
+}
+
+.diff-added td {
+    background: rgba(220, 255, 228, 0.45);
+}
+.diff-added .diff-prefix {
+    color: #15803d;
+}
+
+.diff-empty td {
+    background: var(--bg-tertiary);
+}
+
+/* Row colors — dark theme */
+[data-theme="dark"] .diff-removed td {
+    background: rgba(248, 113, 113, 0.12);
+}
+[data-theme="dark"] .diff-removed .diff-prefix {
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .diff-added td {
+    background: rgba(52, 211, 153, 0.12);
+}
+[data-theme="dark"] .diff-added .diff-prefix {
+    color: #6ee7b7;
+}
+
+[data-theme="dark"] .diff-empty td {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Unchanged rows */
+.diff-unchanged td {
+    background: var(--bg-primary);
 }
 
 .file-all-fixed-badge.has-warnings {

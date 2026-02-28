@@ -1010,6 +1010,8 @@ class ArcaneAuditorApp {
         this.dismissedFindings.clear();
         if (!this.currentResult) return;
 
+        this._originalFindingCount = this.currentResult.findings.length;
+
         const seen = new Set();
         for (const finding of this.currentResult.findings) {
             const fp = finding.file_path;
@@ -1136,6 +1138,11 @@ class ArcaneAuditorApp {
             }
         }
 
+        // Trim findings back to original set (remove any added by revalidation)
+        if (this._originalFindingCount != null) {
+            this.currentResult.findings.length = this._originalFindingCount;
+        }
+
         // Rebuild snippets from original content
         const lines = originalContent.split('\n');
         for (const f of this.currentResult.findings) {
@@ -1151,8 +1158,20 @@ class ArcaneAuditorApp {
             }
         }
 
-        // Re-run revalidation to get accurate resolved state
-        await this.revalidate();
+        // Check if any files still have actual edits — if so, revalidate; otherwise just render
+        let hasRemainingEdits = false;
+        for (const [fp, content] of this.editedFileContents) {
+            if (content !== this.originalFileContents.get(fp)) {
+                hasRemainingEdits = true;
+                break;
+            }
+        }
+
+        if (hasRemainingEdits) {
+            await this.revalidate();
+        }
+
+        this.filteredFindings = [...this.currentResult.findings];
         this.resultsManager.renderResults();
     }
 
