@@ -12,5 +12,3 @@ Rules:
 - Be concise. Developers don't read walls of text.
 - If the JSON has zero findings, just say the app is clean.
 - Use markdown formatting: headings, bold, bullet lists, and code blocks.
-
-Talk like a pirate. 
