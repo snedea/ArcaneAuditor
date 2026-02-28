@@ -241,3 +241,80 @@ class TestAutofixPromptLoading:
         prompt_arg = cmd[sp_idx + 1]
         # Should contain content from the prompt file
         assert len(prompt_arg) > 20
+
+    def test_prompt_includes_lowercamelcase_rule(self):
+        """Verify the prompt mandates lowerCamelCase for variables."""
+        prompt = get_autofix_system_prompt()
+        assert "lowerCamelCase" in prompt
+
+    def test_prompt_includes_failonstatus_format(self):
+        """Verify the prompt mandates dict format for failOnStatusCodes."""
+        prompt = get_autofix_system_prompt()
+        assert "failOnStatusCodes" in prompt
+        assert '"code"' in prompt
+
+
+class TestSequentialAutofix:
+    """Tests simulating sequential Fix-All behavior (multiple fixes on same file)."""
+
+    @patch("web.server.subprocess.run")
+    def test_sequential_fixes_use_updated_content(self, mock_run):
+        """Each fix call should accept the file content from the prior fix."""
+        first_fix = '{"id": "myPage", "fixed": "first"}'
+        second_fix = '{"id": "myPage", "fixed": "second"}'
+        mock_run.side_effect = [
+            _mock_completed(stdout=first_fix),
+            _mock_completed(stdout=second_fix),
+        ]
+
+        # First fix: original content → first_fix
+        resp1 = client.post("/api/autofix", json={
+            "file_path": "test.pod",
+            "file_content": SAMPLE_FILE_CONTENT,
+            "finding": SAMPLE_FINDING,
+        })
+        assert resp1.status_code == 200
+        assert resp1.json()["fixed_content"] == first_fix
+
+        # Second fix: pass first_fix as input → second_fix
+        resp2 = client.post("/api/autofix", json={
+            "file_path": "test.pod",
+            "file_content": first_fix,
+            "finding": {"rule_id": "AnotherRule", "severity": "ADVICE",
+                        "message": "Another issue", "line": 1},
+        })
+        assert resp2.status_code == 200
+        assert resp2.json()["fixed_content"] == second_fix
+
+        # Verify both calls used different input content
+        call1_input = mock_run.call_args_list[0][1]["input"]
+        call2_input = mock_run.call_args_list[1][1]["input"]
+        assert "hardcoded" in call1_input  # original content
+        assert "first" in call2_input      # updated content
+
+    @patch("web.server.subprocess.run")
+    def test_fix_failure_midway_does_not_corrupt(self, mock_run):
+        """If one fix in a batch fails, earlier fixes remain valid."""
+        good_fix = '{"id": "myPage", "fixed": true}'
+        mock_run.side_effect = [
+            _mock_completed(stdout=good_fix),
+            _mock_completed(stdout="", returncode=1, stderr="rate limited"),
+        ]
+
+        # First fix succeeds
+        resp1 = client.post("/api/autofix", json={
+            "file_path": "test.pod",
+            "file_content": SAMPLE_FILE_CONTENT,
+            "finding": SAMPLE_FINDING,
+        })
+        assert resp1.status_code == 200
+        assert resp1.json()["fixed_content"] == good_fix
+
+        # Second fix fails
+        resp2 = client.post("/api/autofix", json={
+            "file_path": "test.pod",
+            "file_content": good_fix,
+            "finding": {"rule_id": "AnotherRule", "severity": "ADVICE",
+                        "message": "Another issue", "line": 1},
+        })
+        assert resp2.status_code == 502

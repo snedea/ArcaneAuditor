@@ -152,7 +152,6 @@ export class ResultsRenderer {
                     const resolvedCount = fileFindingIndices.filter(i => this.app.resolvedFindings.has(i)).length;
                     const totalCount = fileFindings.length;
                     const allResolved = resolvedCount === totalCount && totalCount > 0;
-                    const hasEditorContent = this.app.editedFileContents.has(filePath);
                     const fileAutofixBusy = fileFindingIndices.some(i => this.app.autofixInProgress.has(i));
                     const escapedFilePath = filePath.replace(/"/g, '&quot;').replace(/'/g, "\\'");
 
@@ -167,7 +166,7 @@ export class ResultsRenderer {
                                     </div>
                                 </div>
                                 <div class="file-header-right">
-                                    ${allResolved && hasEditorContent ? `
+                                    ${allResolved ? `
                                         <span class="file-all-fixed-badge">All Fixed</span>
                                     ` : (() => {
                                         const unresolvedIndices = fileFindingIndices.filter(i => i >= 0 && !this.app.resolvedFindings.has(i));
