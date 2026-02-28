@@ -68,7 +68,7 @@ export class FindingsUI {
             exportBar.innerHTML = `
                 <span class="export-zip-message">${message}</span>
                 <button class="export-zip-btn" onclick="exportAllZip()">
-                    Export Fixed Files (.zip)
+                    Export Files (.zip)
                 </button>
             `;
             findingsContent.parentElement.insertBefore(exportBar, findingsContent);

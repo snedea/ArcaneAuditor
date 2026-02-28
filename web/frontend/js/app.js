@@ -1297,7 +1297,7 @@ class ArcaneAuditorApp {
             const baseName = this.uploadedFileName
                 ? this.uploadedFileName.replace(/\.zip$/i, '')
                 : 'fixed_files';
-            a.download = `${baseName}_fixed.zip`;
+            a.download = `${baseName}_reviewed.zip`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
