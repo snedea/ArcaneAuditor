@@ -275,6 +275,7 @@ flowchart TD
     F --> G{"All findings\nresolved?"}
     G -- No --> E
     G -- Yes --> H["Export\n_fixed.zip"]
+    H --> I(["Done"])
 
     style A fill:#e2e8f0,stroke:#475569,color:#1e293b
     style B fill:#e2e8f0,stroke:#475569,color:#1e293b
@@ -284,6 +285,7 @@ flowchart TD
     style D fill:#ddd6fe,stroke:#7c3aed,color:#4c1d95
     style E fill:#ddd6fe,stroke:#7c3aed,color:#4c1d95
     style G fill:#e2e8f0,stroke:#475569,color:#1e293b
+    style I fill:#e2e8f0,stroke:#475569,color:#1e293b
 ```
 
 > **Legend**: Gray = deterministic, Purple = AI-powered
