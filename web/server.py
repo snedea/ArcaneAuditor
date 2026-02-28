@@ -184,6 +184,12 @@ class RevalidateRequest(BaseModel):
     files: Dict[str, str]   # file_path -> modified content
     config: str              # config path used for original analysis
 
+class AutofixRequest(BaseModel):
+    """Request model for AI autofix of a single finding."""
+    file_path: str       # e.g., "test.pmd"
+    file_content: str    # full file content
+    finding: dict        # {rule_id, message, line, severity}
+
 class ExplainRequest(BaseModel):
     """Request model for AI explanation."""
     findings: dict
@@ -191,6 +197,9 @@ class ExplainRequest(BaseModel):
 # Mtime-cached prompt loader: re-reads file only when it changes on disk
 _explain_prompt_cache = {"mtime": 0.0, "content": ""}
 EXPLAIN_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "explain_system.md"
+
+_autofix_prompt_cache = {"mtime": 0.0, "content": ""}
+AUTOFIX_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "autofix_system.md"
 
 def get_explain_system_prompt() -> str:
     """Load system prompt from file, re-reading only when mtime changes."""
@@ -206,6 +215,23 @@ def get_explain_system_prompt() -> str:
         return (
             "You are a code reviewer. Return ONLY a JSON array. "
             "Each object must have: index (int), explanation (str), suggestion (str), priority (high/medium/low)."
+        )
+
+
+def get_autofix_system_prompt() -> str:
+    """Load autofix system prompt from file, re-reading only when mtime changes."""
+    try:
+        current_mtime = AUTOFIX_PROMPT_PATH.stat().st_mtime
+        if current_mtime != _autofix_prompt_cache["mtime"]:
+            _autofix_prompt_cache["content"] = AUTOFIX_PROMPT_PATH.read_text(encoding="utf-8").strip()
+            _autofix_prompt_cache["mtime"] = current_mtime
+            print(f"Reloaded autofix prompt from {AUTOFIX_PROMPT_PATH}")
+        return _autofix_prompt_cache["content"]
+    except FileNotFoundError:
+        print(f"Warning: {AUTOFIX_PROMPT_PATH} not found, using fallback prompt", file=sys.stderr)
+        return (
+            "You are a code fixer. Return ONLY the complete corrected file content. "
+            "Fix ONLY the specific finding described. No preamble, no code fences, no explanation."
         )
 
 
@@ -907,6 +933,84 @@ async def revalidate(request: RevalidateRequest):
             "summary": {"total_findings": 0, "rules_executed": 0, "by_severity": {"action": 0, "advice": 0}},
             "errors": errors + [{"file_path": "_global", "error": str(e)}],
         }
+
+
+def strip_code_fences(text: str) -> str:
+    """Strip markdown code fences from LLM output if present."""
+    import re
+    stripped = text.strip()
+    fence_match = re.match(r"^```(?:\w*)\s*\n([\s\S]*?)```\s*$", stripped)
+    if fence_match:
+        return fence_match.group(1).strip()
+    return stripped
+
+
+@app.post("/api/autofix")
+async def autofix_finding(request: AutofixRequest):
+    """Use Claude CLI to auto-fix a single finding in a file.
+
+    Accepts the full file content and a finding description, returns the
+    corrected file content.
+    """
+    if not request.file_content.strip():
+        raise HTTPException(status_code=400, detail="Empty file content")
+
+    if not request.finding:
+        raise HTTPException(status_code=400, detail="No finding provided")
+
+    model = os.environ.get("LLM_MODEL", "claude-sonnet-4-6")
+
+    # Build user message with file path, finding details, and full content
+    finding = request.finding
+    user_msg = (
+        f"File: {request.file_path}\n\n"
+        f"Finding to fix:\n"
+        f"  Rule: {finding.get('rule_id', '')}\n"
+        f"  Severity: {finding.get('severity', '')}\n"
+        f"  Line: {finding.get('line', '')}\n"
+        f"  Message: {finding.get('message', '')}\n\n"
+        f"Full file content:\n{request.file_content}"
+    )
+
+    try:
+        result = await asyncio.to_thread(
+            subprocess.run,
+            [
+                "claude",
+                "--print",
+                "--model", model,
+                "--max-turns", "1",
+                "--system-prompt", get_autofix_system_prompt(),
+            ],
+            input=user_msg,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+
+        if result.returncode != 0:
+            error_msg = result.stderr.strip() or "Claude CLI returned non-zero exit code"
+            print(f"Claude CLI autofix error: {error_msg}", file=sys.stderr)
+            raise HTTPException(status_code=502, detail=f"Autofix failed: {error_msg}")
+
+        fixed_content = result.stdout.strip()
+        if not fixed_content:
+            raise HTTPException(status_code=502, detail="AI returned empty response")
+
+        # Strip code fences if LLM wrapped the output
+        fixed_content = strip_code_fences(fixed_content)
+
+        return {"fixed_content": fixed_content, "file_path": request.file_path}
+
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="Autofix timed out (120s limit)")
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail="Claude CLI not available in this environment")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Autofix endpoint error: {e}", file=sys.stderr)
+        raise HTTPException(status_code=500, detail=f"Autofix failed: {str(e)}")
 
 
 @app.get("/", response_class=HTMLResponse)

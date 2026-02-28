@@ -14,12 +14,11 @@ class ArcaneAuditorApp {
         this.uploadedFileName = null;
         this.selectedFiles = []; // For multiple file uploads
 
-        // Inline editor state
-        this.editedFileContents = new Map();    // file_path → current edited content
-        this.originalFileContents = new Map();  // file_path → original content (for reset)
+        // File contents and fix state
+        this.editedFileContents = new Map();    // file_path → current content (updated by autofix)
+        this.originalFileContents = new Map();  // file_path → original content
         this.resolvedFindings = new Set();       // set of original finding indices that are resolved
-        this.revalidationTimer = null;           // debounce timer
-        this.parseErrors = new Map();            // file_path → error message string
+        this.autofixInProgress = new Set();      // finding indices currently being auto-fixed
         this.isRevalidating = false;
 
         this.currentFilters = {
@@ -625,7 +624,6 @@ class ArcaneAuditorApp {
         this.editedFileContents.clear();
         this.originalFileContents.clear();
         this.resolvedFindings.clear();
-        this.parseErrors.clear();
         if (!this.currentResult) return;
 
         // Collect unique file_paths and reconstruct full content from snippet lines
@@ -639,11 +637,6 @@ class ArcaneAuditorApp {
             this.editedFileContents.set(fp, content);
             this.originalFileContents.set(fp, content);
         }
-    }
-
-    scheduleRevalidation() {
-        if (this.revalidationTimer) clearTimeout(this.revalidationTimer);
-        this.revalidationTimer = setTimeout(() => this.revalidate(), 500);
     }
 
     async revalidate() {
@@ -669,16 +662,6 @@ class ArcaneAuditorApp {
             if (!response.ok) {
                 console.error('Revalidation failed:', result);
                 return;
-            }
-
-            // Store parse errors
-            this.parseErrors.clear();
-            if (result.errors) {
-                for (const err of result.errors) {
-                    if (err.file_path && err.file_path !== '_global') {
-                        this.parseErrors.set(err.file_path, err.error);
-                    }
-                }
             }
 
             this.diffFindings(result.findings);
@@ -709,6 +692,95 @@ class ArcaneAuditorApp {
         }
     }
 
+    /**
+     * Reconstruct file content from snippet data for a given file path.
+     * Returns the content string or null if no snippet is available.
+     */
+    getFileContentFromSnippets(filePath) {
+        if (!this.currentResult) return null;
+        for (const f of this.currentResult.findings) {
+            if (f.file_path === filePath && f.snippet && f.snippet.lines) {
+                return f.snippet.lines.map(l => l.text).join('\n');
+            }
+        }
+        return null;
+    }
+
+    async autofix(findingIndex) {
+        if (!this.currentResult || findingIndex < 0 || findingIndex >= this.currentResult.findings.length) return;
+
+        const finding = this.currentResult.findings[findingIndex];
+        const filePath = finding.file_path;
+
+        // Get file content: try editedFileContents first, then reconstruct from snippets
+        let fileContent = this.editedFileContents.get(filePath);
+        if (!fileContent) {
+            fileContent = this.getFileContentFromSnippets(filePath);
+            if (fileContent) {
+                // Populate for future use
+                this.editedFileContents.set(filePath, fileContent);
+                this.originalFileContents.set(filePath, fileContent);
+            }
+        }
+        if (!fileContent) {
+            alert('Cannot auto-fix: file content not available. Try re-uploading.');
+            return;
+        }
+
+        // Mark as in progress and re-render
+        this.autofixInProgress.add(findingIndex);
+        this.resultsRenderer.renderFindings();
+
+        try {
+            const response = await fetch('/api/autofix', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    file_path: filePath,
+                    file_content: fileContent,
+                    finding: {
+                        rule_id: finding.rule_id,
+                        message: finding.message,
+                        line: finding.line,
+                        severity: finding.severity,
+                    },
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || 'Autofix failed');
+            }
+
+            // Store the fixed content
+            this.editedFileContents.set(filePath, data.fixed_content);
+
+            // Update snippet data for all findings in this file so they show the fixed code
+            const fixedLines = data.fixed_content.split('\n');
+            for (const f of this.currentResult.findings) {
+                if (f.file_path === filePath) {
+                    f.snippet = {
+                        start_line: 1,
+                        lines: fixedLines.map((text, i) => ({
+                            number: i + 1,
+                            text,
+                            highlight: (i + 1) === f.line,
+                        })),
+                    };
+                }
+            }
+
+            await this.revalidate();
+        } catch (error) {
+            console.error('Autofix failed:', error.message);
+            alert(`Auto-fix failed: ${error.message}`);
+        } finally {
+            this.autofixInProgress.delete(findingIndex);
+            this.resultsRenderer.renderFindings();
+        }
+    }
+
     exportFile(filePath) {
         const content = this.editedFileContents.get(filePath);
         if (!content) return;
@@ -734,13 +806,11 @@ class ArcaneAuditorApp {
         this.uploadedFileName = null;
         this.selectedFiles = [];
 
-        // Clear editor state
+        // Clear fix state
         this.editedFileContents.clear();
         this.originalFileContents.clear();
         this.resolvedFindings.clear();
-        this.parseErrors.clear();
-        if (this.revalidationTimer) clearTimeout(this.revalidationTimer);
-        this.revalidationTimer = null;
+        this.autofixInProgress.clear();
         this.isRevalidating = false;
 
         // Reset file inputs
@@ -824,6 +894,10 @@ window.updateSortFilesBy = function(value) {
 
 window.exportFile = function(filePath) {
     app.exportFile(filePath);
+};
+
+window.autofix = function(findingIndex) {
+    app.autofix(findingIndex);
 };
 
 export default app;
