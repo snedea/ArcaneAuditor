@@ -1839,6 +1839,7 @@ header p {
 }
 
 .finding-snippet {
+    position: relative; /* anchor for offsetTop measurement in scroll-to-highlight */
     margin: 8px 0 4px 30px;
     border-radius: 6px;
     max-height: 220px;

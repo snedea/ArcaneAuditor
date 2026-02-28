@@ -220,10 +220,13 @@ export class ResultsRenderer {
         document.querySelectorAll('.finding-snippet').forEach(container => {
             const highlighted = container.querySelector('.snippet-highlight');
             if (highlighted) {
-                // Position the highlighted line roughly in the middle of the visible area
-                const containerHeight = container.clientHeight;
-                const highlightTop = highlighted.offsetTop;
-                container.scrollTop = highlightTop - containerHeight / 2 + highlighted.offsetHeight / 2;
+                // Use getBoundingClientRect for reliable offset regardless of DOM nesting
+                const containerRect = container.getBoundingClientRect();
+                const highlightRect = highlighted.getBoundingClientRect();
+                // Distance from top of scrollable content to the highlighted line
+                const offsetInContent = highlightRect.top - containerRect.top + container.scrollTop;
+                // Center the highlighted line vertically
+                container.scrollTop = offsetInContent - container.clientHeight / 2 + highlighted.offsetHeight / 2;
             }
         });
     }
