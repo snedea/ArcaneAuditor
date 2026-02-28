@@ -29,8 +29,19 @@ export class ResultsRenderer {
     renderSummary() {
         const summary = document.getElementById('summary');
         const result = this.app.currentResult;
-        
-        const severityCounts = getSeverityCounts(result.findings);
+
+        // Compute live counts from unresolved findings
+        let liveTotal = 0;
+        let liveActions = 0;
+        let liveAdvices = 0;
+        for (let i = 0; i < result.findings.length; i++) {
+            if (!this.app.resolvedFindings.has(i)) {
+                liveTotal++;
+                const sev = (result.findings[i].severity || '').toUpperCase();
+                if (sev === 'ACTION') liveActions++;
+                else if (sev === 'ADVICE') liveAdvices++;
+            }
+        }
 
         summary.innerHTML = `
             <h4>📈 Summary</h4>
@@ -42,7 +53,7 @@ export class ResultsRenderer {
             ` : ''}
             <div class="summary-grid">
                 <div class="summary-item">
-                    <div class="summary-number summary-number-blue">${result.summary?.total_findings || result.findings.length}</div>
+                    <div class="summary-number summary-number-blue">${liveTotal}</div>
                     <div class="summary-label">Issues Found</div>
                 </div>
                 <div class="summary-item">
@@ -50,13 +61,13 @@ export class ResultsRenderer {
                     <div class="summary-label">Rules Enabled</div>
                 </div>
                 <div class="summary-item magic-summary-card action">
-                    <div class="count">${result.summary?.by_severity?.action || 0}</div>
+                    <div class="count">${liveActions}</div>
                     <div class="label">
                         <span class="icon">${getSeverityIcon('ACTION')}</span> Actions
                     </div>
                 </div>
                 <div class="summary-item magic-summary-card advice">
-                    <div class="count">${result.summary?.by_severity?.advice || 0}</div>
+                    <div class="count">${liveAdvices}</div>
                     <div class="label">
                         <span class="icon">${getSeverityIcon('ADVICE')}</span> Advices
                     </div>
@@ -72,6 +83,9 @@ export class ResultsRenderer {
     }
 
     renderFindings() {
+        // Update summary counters to reflect resolved findings
+        this.renderSummary();
+
         const findings = document.getElementById('findings');
 
         if (this.app.filteredFindings.length === 0) {
