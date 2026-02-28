@@ -10,6 +10,7 @@ class ArcaneAuditorApp {
         this.currentResult = null;
         this.filteredFindings = [];
         this.expandedFiles = new Set();
+        this.findingExplanations = new Map(); // key: "rule_id::file_path::line" → explanation obj
         this.uploadedFileName = null;
         this.selectedFiles = []; // For multiple file uploads
         this.currentFilters = {
@@ -447,10 +448,30 @@ class ArcaneAuditorApp {
             }
 
             explainLoading.style.display = 'none';
-            explainContent.innerHTML = this.renderMarkdown(data.explanation);
 
-            // Replace button with "explained" state
-            explainBtn.textContent = '✅ Explained';
+            if (data.format === 'structured' && data.explanations && data.findings_order) {
+                // Structured response: map explanations to findings
+                // Key includes the original index to avoid collisions when
+                // multiple findings share the same rule_id+file_path+line.
+                this.findingExplanations.clear();
+                for (const expl of data.explanations) {
+                    const idx = expl.index;
+                    if (idx >= 0 && idx < data.findings_order.length) {
+                        const f = data.findings_order[idx];
+                        const key = `${idx}::${f.rule_id}::${f.file_path}::${f.line}`;
+                        this.findingExplanations.set(key, expl);
+                    }
+                }
+                // Re-render findings with inline explanations
+                this.resultsRenderer.renderFindings();
+                // Hide the old explain section (no markdown fallback needed)
+                explainSection.style.display = 'none';
+                explainBtn.textContent = '✅ Explained';
+            } else {
+                // Markdown fallback: render in old section
+                explainContent.innerHTML = this.renderMarkdown(data.explanation);
+                explainBtn.textContent = '✅ Explained';
+            }
         } catch (error) {
             explainLoading.style.display = 'none';
             explainError.style.display = 'block';
@@ -584,6 +605,7 @@ class ArcaneAuditorApp {
         this.hideAllSections();
         document.getElementById('upload-section').style.display = 'block';
         this.currentResult = null;
+        this.findingExplanations.clear();
         this.uploadedFileName = null;
         this.selectedFiles = [];
         

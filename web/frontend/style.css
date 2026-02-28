@@ -1841,9 +1841,16 @@ header p {
 .finding-snippet {
     margin: 8px 0 4px 30px;
     border-radius: 6px;
-    overflow-x: auto;
+    max-height: 220px;
+    overflow: hidden;
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
+    transition: border-color 0.2s;
+}
+
+.finding-snippet:hover {
+    overflow: auto;
+    border-color: var(--text-secondary);
 }
 
 .finding-snippet pre {
@@ -1889,6 +1896,67 @@ header p {
 
 [data-theme="dark"] .snippet-highlight {
     background: rgba(255, 220, 100, 0.08);
+}
+
+/* Inline AI Explanation (per-finding) */
+.finding-explanation {
+    margin: 10px 0 4px 30px;
+    padding: 10px 14px;
+    border-left: 3px solid var(--arcane-purple);
+    background: var(--arcane-glow);
+    border-radius: 0 6px 6px 0;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.finding-explanation-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+}
+
+.finding-explanation-badge.high {
+    background: #dc2626;
+    color: #fff;
+}
+
+.finding-explanation-badge.medium {
+    background: #d97706;
+    color: #fff;
+}
+
+.finding-explanation-badge.low {
+    background: #16a34a;
+    color: #fff;
+}
+
+[data-theme="dark"] .finding-explanation-badge.high {
+    background: #ef4444;
+}
+
+[data-theme="dark"] .finding-explanation-badge.medium {
+    background: #f59e0b;
+    color: #1a1a1a;
+}
+
+[data-theme="dark"] .finding-explanation-badge.low {
+    background: #22c55e;
+    color: #1a1a1a;
+}
+
+.finding-explanation-text {
+    margin: 0 0 4px 0;
+}
+
+.finding-explanation-suggestion {
+    margin: 4px 0 0 0;
+    color: var(--text-primary);
 }
 
 .no-issues {

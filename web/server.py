@@ -195,7 +195,10 @@ def get_explain_system_prompt() -> str:
         return _explain_prompt_cache["content"]
     except FileNotFoundError:
         print(f"Warning: {EXPLAIN_PROMPT_PATH} not found, using fallback prompt", file=sys.stderr)
-        return "You are a code reviewer. Triage, explain, and suggest fixes for the findings."
+        return (
+            "You are a code reviewer. Return ONLY a JSON array. "
+            "Each object must have: index (int), explanation (str), suggestion (str), priority (high/medium/low)."
+        )
 
 
 @asynccontextmanager
@@ -254,14 +257,14 @@ def cleanup_old_jobs():
                         file_path.unlink()
                         print(f"Cleaned up remaining file: {file_path.name}")
 
-def extract_snippet(source_map: dict, file_path: str, line: int, context_lines: int = 3) -> dict | None:
+def extract_snippet(source_map: dict, file_path: str, line: int, context_lines: int | None = None) -> dict | None:
     """Extract source lines around a finding's line number.
 
     Args:
         source_map: Dict mapping file_path -> list of source lines
         file_path: Path of the file the finding is in
         line: 1-based line number of the finding
-        context_lines: Number of lines to show above and below
+        context_lines: Number of lines above/below, or None for the full file
     Returns:
         Dict with 'lines' and 'start_line', or None if snippet cannot be extracted.
     """
@@ -269,8 +272,12 @@ def extract_snippet(source_map: dict, file_path: str, line: int, context_lines: 
     if not lines or line < 1:
         return None
     line_idx = line - 1  # Convert to 0-based
-    start = max(0, line_idx - context_lines)
-    end = min(len(lines), line_idx + context_lines + 1)
+    if context_lines is None:
+        start = 0
+        end = len(lines)
+    else:
+        start = max(0, line_idx - context_lines)
+        end = min(len(lines), line_idx + context_lines + 1)
     snippet_lines = []
     for i in range(start, end):
         snippet_lines.append({
@@ -658,6 +665,82 @@ async def download_excel(job_id: str):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Excel generation failed: {str(e)}")
 
+def parse_structured_explanation(raw_text: str) -> list | None:
+    """Try to extract a JSON array from LLM output.
+
+    Handles:
+    - Raw JSON array
+    - JSON wrapped in ```json ... ``` code fences
+    - JSON preceded by preamble text
+
+    Returns the parsed list on success, or None if parsing fails.
+    """
+    text = raw_text.strip()
+    if not text:
+        return None
+
+    # Strip code fences if present
+    if "```" in text:
+        import re
+        fence_match = re.search(r"```(?:json)?\s*\n?([\s\S]*?)```", text)
+        if fence_match:
+            text = fence_match.group(1).strip()
+
+    # Find the outermost [...] bracket pair
+    start = text.find("[")
+    if start == -1:
+        return None
+    # Find matching closing bracket from the end
+    end = text.rfind("]")
+    if end == -1 or end <= start:
+        return None
+
+    candidate = text[start : end + 1]
+    try:
+        parsed = json.loads(candidate)
+        if not isinstance(parsed, list):
+            return None
+        # Validate each item has the required fields
+        required = {"index", "explanation", "suggestion", "priority"}
+        validated = []
+        for item in parsed:
+            if isinstance(item, dict) and required.issubset(item.keys()):
+                validated.append(item)
+            else:
+                # If any item is malformed, reject the whole response
+                return None
+        return validated
+    except (json.JSONDecodeError, ValueError):
+        pass
+    return None
+
+
+def _build_numbered_user_message(findings_data: dict) -> tuple[str, list]:
+    """Build a numbered user message and return (message, findings_list).
+
+    The findings_list preserves the original order so we can map
+    structured responses back by index.
+    """
+    findings_list = findings_data.get("findings", [])
+    summary = findings_data.get("summary", {})
+
+    lines = [
+        "Here are the Arcane Auditor findings for a Workday Extend application.",
+        f"Summary: {json.dumps(summary)}",
+        "",
+    ]
+    for i, f in enumerate(findings_list):
+        lines.append(
+            f"Finding #{i}: rule_id={f.get('rule_id','')}, "
+            f"file_path={f.get('file_path','')}, "
+            f"line={f.get('line','')}, "
+            f"severity={f.get('severity','')}, "
+            f"message={f.get('message','')}"
+        )
+
+    return "\n".join(lines), findings_list
+
+
 @app.post("/api/explain")
 async def explain_findings(request: ExplainRequest):
     """Send analysis findings to Claude for AI-powered explanation."""
@@ -667,11 +750,7 @@ async def explain_findings(request: ExplainRequest):
         raise HTTPException(status_code=400, detail="No findings provided")
 
     model = os.environ.get("LLM_MODEL", "claude-sonnet-4-6")
-    user_msg = (
-        "Here are the Arcane Auditor findings for a Workday Extend application. "
-        "Triage, explain, and suggest fixes.\n\n"
-        f"```json\n{json.dumps(findings, indent=2)}\n```"
-    )
+    user_msg, findings_list = _build_numbered_user_message(findings)
 
     try:
         result = await asyncio.to_thread(
@@ -698,7 +777,24 @@ async def explain_findings(request: ExplainRequest):
         if not explanation:
             raise HTTPException(status_code=502, detail="AI returned empty response")
 
-        return {"explanation": explanation}
+        # Try structured JSON parsing first
+        structured = parse_structured_explanation(explanation)
+        if structured is not None:
+            return {
+                "explanations": structured,
+                "format": "structured",
+                "findings_order": [
+                    {
+                        "rule_id": f.get("rule_id", ""),
+                        "file_path": f.get("file_path", ""),
+                        "line": f.get("line", 0),
+                    }
+                    for f in findings_list
+                ],
+            }
+
+        # Fallback: return raw markdown
+        return {"explanation": explanation, "format": "markdown"}
 
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=504, detail="AI explanation timed out (120s limit)")

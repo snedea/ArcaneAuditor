@@ -165,7 +165,15 @@ export class ResultsRenderer {
                             
                             ${isExpanded ? `
                                 <div class="file-findings">
-                                    ${sortFindingsInGroup(fileFindings, this.app.currentFilters.sortBy).map((finding, index) => `
+                                    ${sortFindingsInGroup(fileFindings, this.app.currentFilters.sortBy).map((finding, index) => {
+                                        // Use the finding's position in the original results array as the key prefix
+                                        // to avoid collisions when duplicate rule_id+file_path+line exist.
+                                        const origIdx = this.app.currentResult
+                                            ? this.app.currentResult.findings.indexOf(finding)
+                                            : -1;
+                                        const explKey = `${origIdx}::${finding.rule_id}::${finding.file_path}::${finding.line}`;
+                                        const expl = this.app.findingExplanations.get(explKey);
+                                        return `
                                         <div class="finding ${finding.severity.toLowerCase()}">
                                             <div class="finding-header">
                                                 ${getSeverityIcon(finding.severity)}
@@ -181,8 +189,15 @@ export class ResultsRenderer {
                                                 ).join('\n')}</code></pre>
                                             </div>
                                             ` : ''}
+                                            ${expl ? `
+                                            <div class="finding-explanation">
+                                                <span class="finding-explanation-badge ${expl.priority || 'medium'}">${(expl.priority || 'medium').toUpperCase()}</span>
+                                                <p class="finding-explanation-text">${this.escapeHtml(expl.explanation || '')}</p>
+                                                ${expl.suggestion ? `<p class="finding-explanation-suggestion"><strong>Suggestion:</strong> ${this.escapeHtml(expl.suggestion)}</p>` : ''}
+                                            </div>
+                                            ` : ''}
                                         </div>
-                                    `).join('')}
+                                    `;}).join('')}
                                 </div>
                             ` : ''}
                         </div>
@@ -193,6 +208,21 @@ export class ResultsRenderer {
         
         // Update filter options after HTML is rendered
         this.updateFilterOptions();
+
+        // Auto-scroll each snippet so the highlighted line is visible
+        this.scrollSnippetsToHighlight();
+    }
+
+    scrollSnippetsToHighlight() {
+        document.querySelectorAll('.finding-snippet').forEach(container => {
+            const highlighted = container.querySelector('.snippet-highlight');
+            if (highlighted) {
+                // Position the highlighted line roughly in the middle of the visible area
+                const containerHeight = container.clientHeight;
+                const highlightTop = highlighted.offsetTop;
+                container.scrollTop = highlightTop - containerHeight / 2 + highlighted.offsetHeight / 2;
+            }
+        });
     }
 
     // Filter and sort methods
