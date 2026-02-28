@@ -248,9 +248,6 @@ flowchart TD
 
 ### See It in Action
 
-<details>
-<summary>📸 AI Features Gallery</summary>
-
 **AI Explanations & Auto-Fix Buttons**
 Each finding gets an AI-generated explanation with priority, plus one-click Auto-Fix and Dismiss controls.
 ![AI Explain Summary](assets/screenshots/ai-features/ai-explain-summary.png)
@@ -275,8 +272,6 @@ Download all fixed files as a single `_reviewed.zip` archive, gated on revalidat
 Thematic loading states while the engine works its magic.
 ![Loading - Decoding](assets/screenshots/ai-features/loading-decoding.png)
 ![Loading - Sifting](assets/screenshots/ai-features/loading-sifting.png)
-
-</details>
 
 ### Customizing AI Prompts
 
