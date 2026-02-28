@@ -799,6 +799,15 @@ class ArcaneAuditorApp {
     async autofixFile(filePath) {
         if (!this.currentResult) return;
 
+        // Rules that remove code should run LAST — they're most likely to
+        // undo additive fixes (e.g., removing console.info can revert a
+        // magic-number extraction done by an earlier fix).
+        const removalRules = new Set([
+            'ScriptConsoleLogRule',
+            'ScriptUnusedVariableRule',
+            'ScriptDeadCodeRule',
+        ]);
+
         const maxPasses = 3;
         for (let pass = 0; pass < maxPasses; pass++) {
             // Collect unresolved findings for this file
@@ -813,6 +822,13 @@ class ArcaneAuditorApp {
             if (pass > 0) {
                 console.log(`Fix All pass ${pass + 1}: ${indices.length} findings still unresolved`);
             }
+
+            // Sort: additive fixes first, removal fixes last
+            indices.sort((a, b) => {
+                const aRemoval = removalRules.has(this.currentResult.findings[a].rule_id) ? 1 : 0;
+                const bRemoval = removalRules.has(this.currentResult.findings[b].rule_id) ? 1 : 0;
+                return aRemoval - bRemoval;
+            });
 
             // Fix sequentially — each fix changes the file content for the next
             for (const idx of indices) {
