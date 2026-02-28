@@ -190,7 +190,7 @@ export class ResultsRenderer {
                                             </div>
                                             ` : ''}
                                             ${expl ? `
-                                            <div class="finding-explanation">
+                                            <div class="finding-explanation ${finding.severity.toLowerCase()}">
                                                 <span class="finding-explanation-ai-label">AI</span>
                                                 <div class="finding-explanation-badges">
                                                     <span class="finding-explanation-badge ${finding.severity.toLowerCase()}">${finding.severity.toUpperCase()}</span>

@@ -1936,8 +1936,22 @@ header p {
     position: relative;
 }
 
+.finding-explanation.action {
+    border-color: #b91c1c;
+    border-left-color: #dc2626;
+    background: linear-gradient(135deg, rgba(185, 28, 28, 0.08) 0%, transparent 100%);
+    box-shadow: 0 1px 4px rgba(185, 28, 28, 0.12);
+}
+
 [data-theme="dark"] .finding-explanation {
     box-shadow: 0 1px 6px rgba(159, 122, 234, 0.2);
+}
+
+[data-theme="dark"] .finding-explanation.action {
+    border-color: rgba(239, 68, 68, 0.5);
+    border-left-color: #ef4444;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%);
+    box-shadow: 0 1px 6px rgba(239, 68, 68, 0.2);
 }
 
 /* "AI" label in top-right corner */
@@ -1953,6 +1967,14 @@ header p {
     border-radius: 0 8px 0 6px;
     letter-spacing: 0.08em;
     opacity: 0.85;
+}
+
+.finding-explanation.action .finding-explanation-ai-label {
+    background: #b91c1c;
+}
+
+[data-theme="dark"] .finding-explanation.action .finding-explanation-ai-label {
+    background: #dc2626;
 }
 
 .finding-explanation-badges {
