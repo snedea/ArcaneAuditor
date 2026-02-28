@@ -808,9 +808,11 @@ class ArcaneAuditorApp {
             // Store the fixed content
             this.editedFileContents.set(filePath, data.fixed_content);
 
-            // Store diff warning if the LLM removed suspicious lines
+            // Store or clear diff warning based on whether the LLM removed suspicious lines
             if (data.diff_warning) {
                 this.diffWarnings.set(findingIndex, data.diff_warning);
+            } else {
+                this.diffWarnings.delete(findingIndex);
             }
 
             // Update snippet data for all findings in this file so they show the fixed code

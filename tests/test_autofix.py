@@ -420,3 +420,43 @@ class TestDiffWarning:
         body = resp.json()
         assert "diff_warning" in body
         assert body["diff_warning"] is None
+
+    def test_no_warning_on_python_comment_removal(self):
+        """Python/shell # comments removed → None."""
+        original = "# This is a Python comment\nimport os\n# Another comment"
+        fixed = "import os"
+        assert compute_diff_warning(original, fixed) is None
+
+    def test_no_warning_on_sql_comment_removal(self):
+        """SQL/Lua -- comments removed → None."""
+        original = "-- SQL comment\nSELECT 1;\n-- another"
+        fixed = "SELECT 1;"
+        assert compute_diff_warning(original, fixed) is None
+
+    def test_no_warning_on_html_comment_removal(self):
+        """XML/HTML <!-- --> comment markers removed → None."""
+        original = "<!-- start -->\n<div>hi</div>\n-->"
+        fixed = "<div>hi</div>"
+        assert compute_diff_warning(original, fixed) is None
+
+    def test_consumed_match_prevents_double_pairing(self):
+        """Each added line can only pair with one removed line.
+
+        Two removed lines that are both similar to a single added line:
+        the second one should be flagged because the added line is consumed.
+        """
+        original = (
+            "function alpha() { return 1; }\n"
+            "function bravo() { return 2; }\n"
+            "function charlie() { return 3; }\n"
+        )
+        # Only one added line that could match either bravo or charlie
+        fixed = (
+            "function alpha() { return 1; }\n"
+            "function bravoUpdated() { return 2; }\n"
+        )
+        result = compute_diff_warning(original, fixed)
+        # bravo matches bravoUpdated (consumed), charlie has no match → warning
+        assert result is not None
+        assert result["removed_line_count"] == 1
+        assert any("charlie" in line for line in result["removed_lines"])

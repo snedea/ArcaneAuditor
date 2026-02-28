@@ -267,26 +267,37 @@ def compute_diff_warning(original: str, fixed: str) -> Optional[dict]:
         elif line.startswith("+") and not line.startswith("+++"):
             added.append(line[1:])
 
-    # Filter out non-suspicious removals
+    # Filter out non-suspicious removals.
+    # Each added line can only pair with one removed line (consumed on match)
+    # to prevent a single added line from hiding multiple unrelated removals.
+    available_added = list(range(len(added)))  # indices of unconsumed added lines
     suspicious = []
     for r in removed:
         stripped = r.strip()
         # Blank / whitespace-only
         if not stripped:
             continue
-        # Comment-only lines
-        if stripped.startswith("//") or stripped.startswith("/*") or stripped.startswith("*") or stripped == "*/":
+        # Comment-only lines (C/JS, Python/shell, SQL/Lua, XML/HTML)
+        if (stripped.startswith("//") or stripped.startswith("/*")
+                or stripped.startswith("*") or stripped == "*/"
+                or stripped.startswith("#")
+                or stripped.startswith("--")
+                or stripped.startswith("<!--") or stripped == "-->"):
             continue
         # Very short lines (closing braces, parens)
         if len(stripped) < 4:
             continue
-        # Check if any added line is similar enough (modified/moved, not deleted)
-        matched = False
-        for a in added:
-            if difflib.SequenceMatcher(None, stripped, a.strip()).ratio() > 0.4:
-                matched = True
-                break
-        if not matched:
+        # Check if any unconsumed added line is similar enough (modified/moved)
+        best_idx = -1
+        best_ratio = 0.0
+        for ai in available_added:
+            ratio = difflib.SequenceMatcher(None, stripped, added[ai].strip()).ratio()
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_idx = ai
+        if best_ratio > 0.4 and best_idx >= 0:
+            available_added.remove(best_idx)  # consume the match
+        else:
             suspicious.append(r)
 
     if not suspicious:

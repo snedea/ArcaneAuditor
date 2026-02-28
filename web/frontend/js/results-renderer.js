@@ -255,10 +255,11 @@ export class ResultsRenderer {
                                                 if (!dw) return '';
                                                 const plural = dw.removed_line_count === 1 ? 'line' : 'lines';
                                                 const linesDelta = dw.total_lines_original - dw.total_lines_fixed;
+                                                const deltaLabel = linesDelta > 0 ? `&minus;${linesDelta}` : linesDelta < 0 ? `+${Math.abs(linesDelta)}` : '0';
                                                 return `
                                                 <div class="diff-warning">
                                                     <div class="diff-warning-header">
-                                                        &#9888; Auto-fix removed ${dw.removed_line_count} non-trivial ${plural} (${dw.total_lines_original} &#8594; ${dw.total_lines_fixed} lines, &minus;${linesDelta})
+                                                        &#9888; Auto-fix removed ${dw.removed_line_count} non-trivial ${plural} (${dw.total_lines_original} &#8594; ${dw.total_lines_fixed} lines, ${deltaLabel})
                                                     </div>
                                                     <details class="diff-warning-details">
                                                         <summary>Show removed lines</summary>
