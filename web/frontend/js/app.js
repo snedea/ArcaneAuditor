@@ -673,20 +673,30 @@ class ArcaneAuditorApp {
         }
     }
 
+    /**
+     * Build a stable comparison key for a finding.
+     * Strips long quoted strings (code context) from messages so that
+     * keys don't shift when surrounding code changes.  Short values
+     * like '42' or 'maxCount' are kept as stable identifiers.
+     */
+    _stableFindingKey(f) {
+        const stableMsg = f.message.replace(/'[^']{20,}'/g, "'...'");
+        return `${f.rule_id}::${f.file_path}::${stableMsg}`;
+    }
+
     diffFindings(newFindings) {
-        // Build set of keys from new findings: rule_id::file_path::message
+        // Build set of stable keys from new findings
         const newKeys = new Set();
         for (const f of newFindings) {
-            newKeys.add(`${f.rule_id}::${f.file_path}::${f.message}`);
+            newKeys.add(this._stableFindingKey(f));
         }
 
-        // For each original finding, if its key is absent from new set → resolved
+        // For each original finding, if its stable key is absent → resolved
         this.resolvedFindings.clear();
         if (!this.currentResult) return;
         for (let i = 0; i < this.currentResult.findings.length; i++) {
             const f = this.currentResult.findings[i];
-            const key = `${f.rule_id}::${f.file_path}::${f.message}`;
-            if (!newKeys.has(key)) {
+            if (!newKeys.has(this._stableFindingKey(f))) {
                 this.resolvedFindings.add(i);
             }
         }
@@ -784,7 +794,10 @@ class ArcaneAuditorApp {
     async autofixFile(filePath) {
         if (!this.currentResult) return;
 
-        // Collect unresolved finding indices for this file
+        // Snapshot unresolved finding indices BEFORE any fixes run.
+        // Do NOT re-check resolvedFindings mid-batch — earlier fixes can
+        // shift code context in messages, causing siblings to appear
+        // falsely "resolved" via key mismatch in diffFindings().
         const indices = [];
         for (let i = 0; i < this.currentResult.findings.length; i++) {
             if (this.currentResult.findings[i].file_path === filePath && !this.resolvedFindings.has(i)) {
@@ -794,8 +807,6 @@ class ArcaneAuditorApp {
 
         // Fix sequentially — each fix changes the file content for the next
         for (const idx of indices) {
-            // Re-check: may have been resolved by a prior fix in this batch
-            if (this.resolvedFindings.has(idx)) continue;
             await this.autofix(idx);
         }
     }
