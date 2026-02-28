@@ -208,6 +208,9 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Vibe check output (generated analysis, not source)
+.vibe-check/
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
