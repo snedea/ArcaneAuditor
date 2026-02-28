@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from web.server import (
     app,
+    compute_diff_warning,
     get_autofix_system_prompt,
     strip_code_fences,
     AUTOFIX_PROMPT_PATH,
@@ -334,3 +335,88 @@ class TestSequentialAutofix:
                         "message": "Another issue", "line": 1},
         })
         assert resp2.status_code == 500
+
+
+class TestDiffWarning:
+    """Tests for compute_diff_warning() and its integration into the autofix endpoint."""
+
+    def test_no_warning_clean_fix(self):
+        """Only the targeted finding line changes → None."""
+        original = 'var myVar = "hello";\nvar x = 42;\nvar y = 100;'
+        fixed = 'var myVar = "hello";\nconst MAGIC_NUM = 42;\nvar y = 100;'
+        assert compute_diff_warning(original, fixed) is None
+
+    def test_warning_on_unrelated_removal(self):
+        """Extra function removed → warning with count."""
+        original = (
+            "function doStuff() { return 1; }\n"
+            "function helper() { return 2; }\n"
+            "var x = 42;\n"
+        )
+        fixed = "function doStuff() { return 1; }\nconst MAGIC = 42;\n"
+        result = compute_diff_warning(original, fixed)
+        assert result is not None
+        assert result["removed_line_count"] == 1
+        assert any("helper" in line for line in result["removed_lines"])
+
+    def test_no_warning_on_comment_removal(self):
+        """Comment-only lines removed → None."""
+        original = "// This is a comment\n/* block */\nvar x = 1;"
+        fixed = "var x = 1;"
+        assert compute_diff_warning(original, fixed) is None
+
+    def test_no_warning_on_blank_line_removal(self):
+        """Blank/whitespace lines removed → None."""
+        original = "var x = 1;\n\n   \n\nvar y = 2;"
+        fixed = "var x = 1;\nvar y = 2;"
+        assert compute_diff_warning(original, fixed) is None
+
+    def test_no_warning_on_reformatted_line(self):
+        """Line modified (high similarity) → None."""
+        original = 'var myVariable = "hello world";'
+        fixed = 'const myVariable = "hello world";'
+        assert compute_diff_warning(original, fixed) is None
+
+    def test_no_warning_on_short_lines(self):
+        """Closing braces/parens removed → None."""
+        original = "function foo() {\n  return 1;\n}\n}\n)"
+        fixed = "function foo() {\n  return 1;\n}"
+        assert compute_diff_warning(original, fixed) is None
+
+    @patch("web.server._get_anthropic_client")
+    def test_endpoint_includes_diff_warning(self, mock_get_client):
+        """Integration: LLM returns content with extra removals → response has diff_warning."""
+        # LLM removes the helper function
+        fixed_with_removal = '{\n  "id": "myPage"\n}'
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = _mock_api_response(fixed_with_removal)
+        mock_get_client.return_value = mock_client
+
+        resp = client.post("/api/autofix", json={
+            "file_path": "test.pod",
+            "file_content": SAMPLE_FILE_CONTENT,
+            "finding": SAMPLE_FINDING,
+        })
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "diff_warning" in body
+        # SAMPLE_FILE_CONTENT has endPoints block removed → should trigger warning
+        assert body["diff_warning"] is not None
+        assert body["diff_warning"]["removed_line_count"] >= 1
+
+    @patch("web.server._get_anthropic_client")
+    def test_endpoint_null_diff_warning_when_clean(self, mock_get_client):
+        """Integration: clean fix → diff_warning is None."""
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = _mock_api_response(FIXED_FILE_CONTENT)
+        mock_get_client.return_value = mock_client
+
+        resp = client.post("/api/autofix", json={
+            "file_path": "test.pod",
+            "file_content": SAMPLE_FILE_CONTENT,
+            "finding": SAMPLE_FINDING,
+        })
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "diff_warning" in body
+        assert body["diff_warning"] is None

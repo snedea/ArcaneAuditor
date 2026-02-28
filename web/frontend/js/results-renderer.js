@@ -185,9 +185,10 @@ export class ResultsRenderer {
                                     </div>
                                 </div>
                                 <div class="file-header-right">
-                                    ${allResolved ? `
-                                        <span class="file-all-fixed-badge">All Fixed</span>
-                                    ` : (() => {
+                                    ${allResolved ? (() => {
+                                        const hasWarnings = fileFindingIndices.some(i => this.app.diffWarnings.has(i));
+                                        return `<span class="file-all-fixed-badge${hasWarnings ? ' has-warnings' : ''}">All Fixed${hasWarnings ? ' (with warnings)' : ''}</span>`;
+                                    })() : (() => {
                                         const unresolvedIndices = fileFindingIndices.filter(i => i >= 0 && !this.app.resolvedFindings.has(i));
                                         const unresolvedCount = unresolvedIndices.length;
                                         if (unresolvedCount >= 1) {
@@ -249,6 +250,22 @@ export class ResultsRenderer {
                                                 ).join('\n')}</code></pre>
                                             </div>
                                             ` : ''}
+                                            ${(() => {
+                                                const dw = this.app.diffWarnings.get(origIdx);
+                                                if (!dw) return '';
+                                                const plural = dw.removed_line_count === 1 ? 'line' : 'lines';
+                                                const linesDelta = dw.total_lines_original - dw.total_lines_fixed;
+                                                return `
+                                                <div class="diff-warning">
+                                                    <div class="diff-warning-header">
+                                                        &#9888; Auto-fix removed ${dw.removed_line_count} non-trivial ${plural} (${dw.total_lines_original} &#8594; ${dw.total_lines_fixed} lines, &minus;${linesDelta})
+                                                    </div>
+                                                    <details class="diff-warning-details">
+                                                        <summary>Show removed lines</summary>
+                                                        <pre class="diff-warning-code">${dw.removed_lines.map(l => this.escapeHtml(l)).join('\n')}</pre>
+                                                    </details>
+                                                </div>`;
+                                            })()}
                                             ${!isResolved ? (() => {
                                                 const isLoading = this.app.autofixInProgress.has(origIdx);
                                                 const isDisabled = fileAutofixBusy && !isLoading;

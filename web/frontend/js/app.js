@@ -19,6 +19,7 @@ class ArcaneAuditorApp {
         this.originalFileContents = new Map();  // file_path → original content
         this.resolvedFindings = new Set();       // set of original finding indices that are resolved
         this.autofixInProgress = new Set();      // finding indices currently being auto-fixed
+        this.diffWarnings = new Map();              // findingIndex → diff_warning object from autofix
         this.isRevalidating = false;
         this.lastRevalidationFindingCount = null; // total findings from latest revalidation (null = not yet run)
 
@@ -807,6 +808,11 @@ class ArcaneAuditorApp {
             // Store the fixed content
             this.editedFileContents.set(filePath, data.fixed_content);
 
+            // Store diff warning if the LLM removed suspicious lines
+            if (data.diff_warning) {
+                this.diffWarnings.set(findingIndex, data.diff_warning);
+            }
+
             // Update snippet data for all findings in this file so they show the fixed code
             const fixedLines = data.fixed_content.split('\n');
             for (const f of this.currentResult.findings) {
@@ -927,6 +933,7 @@ class ArcaneAuditorApp {
         this.originalFileContents.clear();
         this.resolvedFindings.clear();
         this.autofixInProgress.clear();
+        this.diffWarnings.clear();
         this.isRevalidating = false;
         this.lastRevalidationFindingCount = null;
 

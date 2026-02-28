@@ -9,6 +9,7 @@ import json
 import os
 import sys
 import io
+import difflib
 import re as _re_module
 import tempfile
 import threading
@@ -245,6 +246,58 @@ def get_autofix_system_prompt() -> str:
             "You are a code fixer. Return ONLY the complete corrected file content. "
             "Fix ONLY the specific finding described. No preamble, no code fences, no explanation."
         )
+
+
+def compute_diff_warning(original: str, fixed: str) -> Optional[dict]:
+    """Compare original and fixed file content; return a warning if suspicious lines were removed.
+
+    A "suspicious removal" is a non-trivial line that was deleted without being
+    modified or moved (i.e. no sufficiently-similar added line exists).
+    """
+    orig_lines = original.splitlines()
+    fixed_lines = fixed.splitlines()
+
+    diff = list(difflib.unified_diff(orig_lines, fixed_lines, lineterm=""))
+
+    removed = []
+    added = []
+    for line in diff:
+        if line.startswith("-") and not line.startswith("---"):
+            removed.append(line[1:])
+        elif line.startswith("+") and not line.startswith("+++"):
+            added.append(line[1:])
+
+    # Filter out non-suspicious removals
+    suspicious = []
+    for r in removed:
+        stripped = r.strip()
+        # Blank / whitespace-only
+        if not stripped:
+            continue
+        # Comment-only lines
+        if stripped.startswith("//") or stripped.startswith("/*") or stripped.startswith("*") or stripped == "*/":
+            continue
+        # Very short lines (closing braces, parens)
+        if len(stripped) < 4:
+            continue
+        # Check if any added line is similar enough (modified/moved, not deleted)
+        matched = False
+        for a in added:
+            if difflib.SequenceMatcher(None, stripped, a.strip()).ratio() > 0.4:
+                matched = True
+                break
+        if not matched:
+            suspicious.append(r)
+
+    if not suspicious:
+        return None
+
+    return {
+        "removed_line_count": len(suspicious),
+        "removed_lines": suspicious[:10],
+        "total_lines_original": len(orig_lines),
+        "total_lines_fixed": len(fixed_lines),
+    }
 
 
 # Shared Anthropic API helper
@@ -1021,7 +1074,8 @@ async def autofix_finding(request: Request, body: AutofixRequest):
         # Strip code fences if LLM wrapped the output
         fixed_content = strip_code_fences(fixed_content)
 
-        return {"fixed_content": fixed_content, "file_path": body.file_path}
+        diff_warning = compute_diff_warning(body.file_content, fixed_content)
+        return {"fixed_content": fixed_content, "file_path": body.file_path, "diff_warning": diff_warning}
 
     except anthropic.APITimeoutError:
         raise HTTPException(status_code=504, detail="Autofix timed out")
