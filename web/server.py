@@ -9,8 +9,11 @@ import json
 import os
 import subprocess
 import sys
+import io
+import re as _re_module
 import tempfile
 import threading
+import zipfile
 import time
 import uuid
 import asyncio
@@ -189,6 +192,10 @@ class AutofixRequest(BaseModel):
     file_path: str       # e.g., "test.pmd"
     file_content: str    # full file content
     finding: dict        # {rule_id, message, line, severity}
+
+class ExportZipRequest(BaseModel):
+    """Request model for exporting fixed files as a ZIP archive."""
+    files: Dict[str, str]  # file_path → fixed content
 
 class ExplainRequest(BaseModel):
     """Request model for AI explanation."""
@@ -1011,6 +1018,33 @@ async def autofix_finding(request: AutofixRequest):
     except Exception as e:
         print(f"Autofix endpoint error: {e}", file=sys.stderr)
         raise HTTPException(status_code=500, detail=f"Autofix failed: {str(e)}")
+
+
+@app.post("/api/export-zip")
+async def export_zip(request: ExportZipRequest):
+    """Bundle fixed files into a ZIP archive and return it for download.
+
+    Strips UUID job-ID prefixes from filenames so the exported files have
+    their original names (e.g. ``dirtyPage.pmd`` instead of
+    ``abcd1234_dirtyPage.pmd``).
+    """
+    if not request.files:
+        raise HTTPException(status_code=400, detail="No files provided")
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for raw_path, content in request.files.items():
+            # Strip UUID prefix from the filename
+            basename = raw_path.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+            clean_name = _re_module.sub(r"^[a-f0-9-]+_", "", basename)
+            zf.writestr(clean_name, content)
+
+    buf.seek(0)
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=fixed_files.zip"},
+    )
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -12,3 +12,8 @@ Rules:
 - If the finding is about missing attributes or properties, add them with sensible defaults.
 - Never remove functional code unless the finding specifically calls for removal.
 - Never add comments explaining the fix.
+
+Workday Extend conventions (your fixes MUST follow these):
+- All script variables and constants MUST use lowerCamelCase. Never use UPPER_SNAKE_CASE, snake_case, or PascalCase. Example: `const maxCount = 42;` not `const MAX_COUNT = 42;`.
+- `failOnStatusCodes` entries MUST be objects with a `code` field: `[{"code": 400}, {"code": 403}]`. Never use plain integers like `[400, 403]`.
+- When extracting a magic number to a named constant, use `const` with a lowerCamelCase name placed immediately before the line that uses it.

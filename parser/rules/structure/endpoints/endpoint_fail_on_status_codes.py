@@ -61,18 +61,26 @@ class EndpointFailOnStatusCodesRule(StructureRuleBase):
         codes_found = set()
         for i, status_code_entry in enumerate(fail_on_status_codes):
             if isinstance(status_code_entry, dict):
-                # Only check for 'code' field, ignore 'codeName' entirely
+                # Check for 'code' field, ignore 'codeName' entirely
                 if 'code' in status_code_entry:
                     code = status_code_entry['code']
-                    # Convert to integer to handle both string and int values
                     try:
                         code_int = int(code)
                         codes_found.add(code_int)
                     except (ValueError, TypeError):
                         print(f"Warning: Invalid status code value '{code}' at index {i} in endpoint '{endpoint_name}' - must be a number")
                         continue
-                # Silently ignore entries with 'codeName' or other unexpected structures
                 continue
+            elif isinstance(status_code_entry, (int, float)):
+                # Accept plain integer entries like [400, 403]
+                codes_found.add(int(status_code_entry))
+            elif isinstance(status_code_entry, str):
+                # Accept string entries like ["400", "403"]
+                try:
+                    codes_found.add(int(status_code_entry))
+                except ValueError:
+                    print(f"Warning: Invalid status code string '{status_code_entry}' at index {i} in endpoint '{endpoint_name}'")
+                    continue
             else:
                 print(f"Warning: Unexpected failOnStatusCodes entry type at index {i} in endpoint '{endpoint_name}': {type(status_code_entry)} - {status_code_entry}")
                 continue

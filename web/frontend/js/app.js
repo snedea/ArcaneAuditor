@@ -781,21 +781,63 @@ class ArcaneAuditorApp {
         }
     }
 
-    exportFile(filePath) {
-        const content = this.editedFileContents.get(filePath);
-        if (!content) return;
-        // Strip any UUID prefix from path, use just the base filename
-        const rawName = filePath.split(/[/\\]/).pop() || filePath;
-        const fileName = rawName.replace(/^[a-f0-9-]+_/, '');
-        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+    async autofixFile(filePath) {
+        if (!this.currentResult) return;
+
+        // Collect unresolved finding indices for this file
+        const indices = [];
+        for (let i = 0; i < this.currentResult.findings.length; i++) {
+            if (this.currentResult.findings[i].file_path === filePath && !this.resolvedFindings.has(i)) {
+                indices.push(i);
+            }
+        }
+
+        // Fix sequentially — each fix changes the file content for the next
+        for (const idx of indices) {
+            // Re-check: may have been resolved by a prior fix in this batch
+            if (this.resolvedFindings.has(idx)) continue;
+            await this.autofix(idx);
+        }
+    }
+
+    async exportAllZip() {
+        if (this.editedFileContents.size === 0) return;
+
+        // Build files map: file_path → content
+        const files = {};
+        for (const [fp, content] of this.editedFileContents) {
+            files[fp] = content;
+        }
+
+        try {
+            const response = await fetch('/api/export-zip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ files }),
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Export failed');
+            }
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            // Use the original upload name (minus .zip) + _fixed.zip, or generic
+            const baseName = this.uploadedFileName
+                ? this.uploadedFileName.replace(/\.zip$/i, '')
+                : 'fixed_files';
+            a.download = `${baseName}_fixed.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Export ZIP failed:', error.message);
+            alert(`Export failed: ${error.message}`);
+        }
     }
 
     resetForNewUpload() {
@@ -892,12 +934,16 @@ window.updateSortFilesBy = function(value) {
     app.resultsRenderer.updateSortFilesBy(value);
 };
 
-window.exportFile = function(filePath) {
-    app.exportFile(filePath);
+window.exportAllZip = function() {
+    app.exportAllZip();
 };
 
 window.autofix = function(findingIndex) {
     app.autofix(findingIndex);
+};
+
+window.autofixFile = function(filePath) {
+    app.autofixFile(filePath);
 };
 
 export default app;

@@ -3338,24 +3338,56 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
     background: #059669;
 }
 
-/* Export file button (in file header) */
-.export-file-btn {
-    font-size: 0.8rem;
-    padding: 6px 14px;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
+/* "All Fixed" badge in file header */
+.file-all-fixed-badge {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 10px;
+    background: #10b981;
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+/* Export ZIP bar (shown when all findings resolved) */
+.export-zip-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 14px 20px;
+    margin-bottom: 16px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(5, 150, 105, 0.08));
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.export-zip-message {
+    font-weight: 600;
+    color: #10b981;
+    font-size: 0.95rem;
+}
+
+[data-theme="dark"] .export-zip-message {
+    color: #34d399;
+}
+
+.export-zip-btn {
+    font-size: 0.85rem;
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: none;
     background: #10b981;
     color: #ffffff;
-    border-color: #059669;
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 700;
     transition: all 0.2s ease;
 }
 
-.export-file-btn:hover {
+.export-zip-btn:hover {
     background: #059669;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 2px 12px rgba(16, 185, 129, 0.35);
 }
 
 /* Fix progress badge in file header */
@@ -3370,7 +3402,37 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
     color: #34d399;
 }
 
-/* ===== Auto-fix button ===== */
+/* ===== Fix All button (file header) ===== */
+
+.fix-all-btn {
+    font-size: 0.78rem;
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--arcane-purple);
+    background: var(--arcane-purple);
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.fix-all-btn:hover:not(:disabled) {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.fix-all-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.fix-all-btn.loading {
+    cursor: wait;
+}
+
+/* ===== Auto-fix button (per finding) ===== */
 
 .finding-actions {
     margin: 8px 0 0 30px;

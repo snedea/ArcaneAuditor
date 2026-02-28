@@ -86,6 +86,11 @@ export class ResultsRenderer {
         const groupedFindings = groupFindingsByFile(this.app.filteredFindings);
         const sortedGroupedFindings = sortFileGroups(groupedFindings, this.app.currentFilters.sortFilesBy);
 
+        // Check if ALL findings are resolved (for export button)
+        const totalFindings = this.app.currentResult ? this.app.currentResult.findings.length : 0;
+        const allGlobalResolved = totalFindings > 0 && this.app.resolvedFindings.size === totalFindings;
+        const hasAnyEdited = this.app.editedFileContents.size > 0;
+
         findings.innerHTML = `
             <div class="findings-header">
                 <div class="expand-collapse-buttons">
@@ -123,6 +128,15 @@ export class ResultsRenderer {
                 </div>
             </div>
 
+            ${allGlobalResolved && hasAnyEdited ? `
+            <div class="export-zip-bar">
+                <span class="export-zip-message">All findings fixed!</span>
+                <button class="export-zip-btn" onclick="exportAllZip()">
+                    Export Fixed Files (.zip)
+                </button>
+            </div>
+            ` : ''}
+
             <div class="findings-content">
                 ${Object.entries(sortedGroupedFindings).map(([filePath, fileFindings]) => {
                     const isExpanded = this.app.expandedFiles.has(filePath);
@@ -154,10 +168,19 @@ export class ResultsRenderer {
                                 </div>
                                 <div class="file-header-right">
                                     ${allResolved && hasEditorContent ? `
-                                        <button class="export-file-btn" onclick="event.stopPropagation(); exportFile('${escapedFilePath}')">
-                                            Export Fixed File
-                                        </button>
-                                    ` : ''}
+                                        <span class="file-all-fixed-badge">All Fixed</span>
+                                    ` : (() => {
+                                        const unresolvedIndices = fileFindingIndices.filter(i => i >= 0 && !this.app.resolvedFindings.has(i));
+                                        const unresolvedCount = unresolvedIndices.length;
+                                        if (unresolvedCount > 1) {
+                                            return `<button class="fix-all-btn${fileAutofixBusy ? ' loading' : ''}"
+                                                onclick="event.stopPropagation(); autofixFile('${escapedFilePath}')"
+                                                ${fileAutofixBusy ? 'disabled' : ''}>
+                                                ${fileAutofixBusy ? '&#9203; Fixing...' : `Fix All (${unresolvedCount})`}
+                                            </button>`;
+                                        }
+                                        return '';
+                                    })()}
                                     ${resolvedCount > 0 ? `
                                         <span class="file-fix-progress">${resolvedCount}/${totalCount} fixed</span>
                                     ` : ''}

@@ -94,5 +94,84 @@ class TestEndpointFailOnStatusCodesRule:
         assert "outboundVariable" not in findings[0].message
 
 
+    def test_plain_integer_status_codes_accepted(self):
+        """Test that plain integer failOnStatusCodes entries are accepted."""
+        from parser.models import PMDModel
+
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content="",
+            inboundEndpoints=[{
+                "name": "getUser",
+                "url": "/workers/me",
+                "failOnStatusCodes": [400, 401, 403, 404, 500]
+            }]
+        )
+        self.context.pmds["testPage"] = pmd_model
+
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+
+    def test_string_status_codes_accepted(self):
+        """Test that string failOnStatusCodes entries are accepted."""
+        from parser.models import PMDModel
+
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content="",
+            inboundEndpoints=[{
+                "name": "getUser",
+                "url": "/workers/me",
+                "failOnStatusCodes": ["400", "403"]
+            }]
+        )
+        self.context.pmds["testPage"] = pmd_model
+
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+
+    def test_mixed_format_status_codes_accepted(self):
+        """Test that mixed dict/int failOnStatusCodes entries all work."""
+        from parser.models import PMDModel
+
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content="",
+            inboundEndpoints=[{
+                "name": "getUser",
+                "url": "/workers/me",
+                "failOnStatusCodes": [{"code": 400}, 403]
+            }]
+        )
+        self.context.pmds["testPage"] = pmd_model
+
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 0
+
+    def test_plain_integers_missing_required_codes(self):
+        """Test that plain integer format still detects missing required codes."""
+        from parser.models import PMDModel
+
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content="",
+            inboundEndpoints=[{
+                "name": "getUser",
+                "url": "/workers/me",
+                "failOnStatusCodes": [500, 502]
+            }]
+        )
+        self.context.pmds["testPage"] = pmd_model
+
+        findings = list(self.rule.analyze(self.context))
+        assert len(findings) == 1
+        assert "400" in findings[0].message
+        assert "403" in findings[0].message
+
+
 if __name__ == '__main__':
     pytest.main([__file__])
