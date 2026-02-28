@@ -263,6 +263,8 @@ python explain.py myapp.zip
 
 ## 🔄 How It Works
 
+Arcane Auditor separates **what finds issues** from **what fixes them**. The 42 validation rules are fully deterministic — they produce the same results every time, with no AI involved. AI is only used in two optional steps: explaining findings in plain English, and generating code fixes.
+
 ```mermaid
 flowchart TD
     A["Upload files\n(.zip or individual)"] --> B["Parse & validate\n42 deterministic rules"]
@@ -288,7 +290,15 @@ flowchart TD
     style I fill:#e2e8f0,stroke:#475569,color:#1e293b
 ```
 
-> **Legend**: Gray = deterministic, Purple = AI-powered
+| Step | Type | What happens |
+|------|------|-------------|
+| **Upload** | Deterministic | Files extracted and prepared for analysis |
+| **Parse & Validate** | Deterministic | 42 rules run against the code — same input always produces same findings |
+| **Display** | Deterministic | Findings shown with source snippets and highlighted lines |
+| **AI Explain** | AI (Claude) | Optional — generates plain-English explanations and fix suggestions |
+| **Auto-Fix** | AI (Claude) | Sends the file + finding to Claude CLI, receives corrected file back |
+| **Re-validate** | Deterministic | Runs the same 42 rules on the fixed file to confirm the fix worked |
+| **Export** | Deterministic | Bundles all fixed files into a `_fixed.zip` download |
 
 ---
 
