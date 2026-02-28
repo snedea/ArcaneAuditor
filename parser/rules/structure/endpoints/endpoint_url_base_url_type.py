@@ -44,15 +44,19 @@ class EndpointBaseUrlTypeRule(StructureRuleBase):
         
         if not url:
             return
-        
-        # Check for hardcoded workday.com or apiGatewayEndpoint
+
+        # If baseUrlType is already set, the endpoint is properly configured
+        if base_url_type:
+            return
+
+        # Check for hardcoded workday.com or apiGatewayEndpoint without baseUrlType
         hardcoded_patterns = ['workday.com', 'apigatewayendpoint']
         found_patterns = []
-        
+
         for pattern in hardcoded_patterns:
             if pattern in url.lower():
                 found_patterns.append(pattern)
-        
+
         if found_patterns:
             line_number = self._get_endpoint_url_line_number(model, endpoint_name, endpoint_type)
             
