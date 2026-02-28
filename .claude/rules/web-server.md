@@ -12,7 +12,7 @@ FastAPI application serving the web UI and REST API.
 | `/api/upload` | POST | Upload ZIP or files, returns job ID |
 | `/api/job/{id}` | GET | Poll job status and results |
 | `/api/configs` | GET | List available analysis configurations |
-| `/api/explain` | POST | AI explanation of findings (temp 0.3) |
+| `/api/explain` | POST | AI explanation of findings (temp 1.0) |
 | `/api/autofix` | POST | AI auto-fix single finding (temp 0) |
 | `/api/revalidate` | POST | Re-run rules on modified file content |
 | `/api/export-zip` | POST | Bundle fixed files into ZIP download |

@@ -54,7 +54,7 @@ agents/              → Separate CLI agent system (has its own CLAUDE.md)
 - **Prompts are hot-reloadable**: mtime-cached, no restart needed to update
 - **LLM calls use Anthropic SDK directly**: `_call_claude()` in server.py wraps `asyncio.to_thread()`
 - **Autofix uses temperature 0**: deterministic output for code fixes
-- **Explain uses temperature 0.3**: slight creativity for explanations
+- **Explain uses temperature 1.0**: witty, varied commentary on findings
 - **Frontend is vanilla JS**: ES6 modules in `web/frontend/js/`, no framework, no build step
 - **AST caching**: ProjectContext caches parsed ASTs by content hash
 

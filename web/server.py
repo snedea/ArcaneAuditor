@@ -841,7 +841,7 @@ async def explain_findings(request: ExplainRequest):
         explanation = await _call_claude(
             system_prompt=get_explain_system_prompt(),
             user_message=user_msg,
-            temperature=0.3,
+            temperature=1.0,
         )
 
         if not explanation:
