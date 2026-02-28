@@ -18,11 +18,26 @@
             </div>
         </header>
 
-        <!-- Fixed theme toggle in bottom corner -->
+        <!-- Fixed theme toggle in bottom-right corner -->
         <div class="theme-toggle-fixed">
             <button id="theme-toggle" class="btn btn-secondary" onclick="toggleTheme()">
                 <span id="theme-icon">🌙</span>
                 <span id="theme-text">Dark</span>
+            </button>
+        </div>
+
+        <!-- Fixed AI loading pill in bottom-left corner -->
+        <div id="ai-loading-fab" class="ai-loading-fab" style="display: none;">
+            <button class="btn btn-secondary" disabled>
+                <div class="crystal-ball">
+                    <div class="crystal-ball-inner">
+                        <div class="crystal-ball-wisp wisp-1"></div>
+                        <div class="crystal-ball-wisp wisp-2"></div>
+                        <div class="crystal-ball-wisp wisp-3"></div>
+                    </div>
+                    <div class="crystal-ball-shine"></div>
+                </div>
+                <span id="ai-loading-text"></span>
             </button>
         </div>
 
@@ -45,7 +60,7 @@
                         <input type="file" id="file-input" accept=".zip" style="display: none;">
                         <input type="file" id="files-input" accept=".pmd,.pod,.amd,.smd,.script" multiple style="display: none;">
                         <p class="upload-hint">Supported: ZIP files or individual .pmd, .pod, .amd, .smd, .script files</p>
-                        
+
                         <!-- Selected Files List -->
                         <div id="selected-files-list" class="selected-files-list" style="display: none;">
                             <h4>Selected Files:</h4>
@@ -56,7 +71,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Configuration Selection -->
                 <div class="config-selection">
                     <h3>⚙️ Analysis Configuration</h3>
@@ -64,7 +79,7 @@
                         <!-- Configuration options will be populated by JavaScript -->
                     </div>
                 </div>
-                
+
                 <!-- Configuration Breakdown Modal -->
                 <div id="config-breakdown-modal" class="modal" style="display: none;">
                     <div class="modal-content">
@@ -138,19 +153,6 @@
             </section>
 
         </main>
-    </div>
-
-    <!-- Fixed AI loading orb in bottom-left corner -->
-    <div id="ai-loading-fab" class="ai-loading-fab" style="display: none;">
-        <div class="crystal-ball">
-            <div class="crystal-ball-inner">
-                <div class="crystal-ball-wisp wisp-1"></div>
-                <div class="crystal-ball-wisp wisp-2"></div>
-                <div class="crystal-ball-wisp wisp-3"></div>
-            </div>
-            <div class="crystal-ball-shine"></div>
-            <div class="crystal-ball-base"></div>
-        </div>
     </div>
 
     <script type="module" src="/static/js/magic-mode.js"></script>

@@ -411,12 +411,40 @@ class ArcaneAuditorApp {
         this.resultsRenderer.collapseAllFiles();
     }
 
+    static AI_LOADING_PHRASES = [
+        'Scrying the code',
+        'Consulting the archmage',
+        'Brewing insight potion',
+        'Reading the runes',
+        'Channeling the Weave',
+        'Summoning dragon wisdom',
+        'Decoding ancient scrolls',
+        'Casting divination',
+        'Invoking elder sight',
+        'Attuning the crystal',
+        'Unraveling the hex',
+        'Whispering to wyrms',
+        'Forging arcane links',
+        'Gazing into the abyss',
+        'Conjuring clarity',
+        'Awakening the oracle',
+        'Sifting through omens',
+        'Parsing the prophecy',
+        'Taming wild magic',
+        'Communing with spirits',
+    ];
+
     async explainWithAI() {
         if (!this.currentResult || !this.currentResult.findings.length) return;
 
         const fab = document.getElementById('ai-loading-fab');
+        const label = document.getElementById('ai-loading-text');
 
-        // Show spinning FAB in bottom-left corner
+        // Pick a random phrase
+        const phrases = ArcaneAuditorApp.AI_LOADING_PHRASES;
+        label.textContent = phrases[Math.floor(Math.random() * phrases.length)];
+
+        // Show pill in bottom-left corner
         fab.style.display = 'block';
 
         try {
