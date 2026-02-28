@@ -1385,16 +1385,18 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
 /* ===== Fix All button (file header) ===== */
 
 .fix-all-btn {
-    font-size: 0.78rem;
-    padding: 4px 12px;
-    border-radius: 6px;
-    border: 1px solid var(--arcane-purple);
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    border-radius: 12px;
+    border: 2px solid var(--arcane-purple);
     background: var(--arcane-purple);
     color: #fff;
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 700;
     transition: all 0.2s ease;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
 }
 
 .fix-all-btn:hover:not(:disabled) {
