@@ -49,6 +49,17 @@ Layered config system protects your customizations during updates. Your personal
 
 ---
 
+## 📸 Screenshots
+
+| | |
+|---|---|
+| ![Landing Page](docs/screenshots/01-landing.png) | ![Results Summary](docs/screenshots/02-results-summary.png) |
+| **Upload & Configure** — drag-and-drop ZIP or individual files, pick a built-in config | **Results Summary** — 9 issues found across 3 files, with severity breakdown |
+| ![Findings Detail](docs/screenshots/03-findings.png) | ![Auto-Fix](docs/screenshots/05-autofix.png) |
+| **Findings Detail** — code snippets with highlighted lines, per-finding actions | **AI Auto-Fix** — one-click fixes with FIXED badges, Fix All for entire files |
+
+---
+
 ## 📋 Prerequisites
 
 ### **UV Package Manager** ⭐
