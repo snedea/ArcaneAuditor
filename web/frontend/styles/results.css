@@ -935,14 +935,34 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
 /* ===== Code Snippet Styles ===== */
 
 .finding-snippet {
+    position: relative;
     margin: 8px 0 4px 30px;
-    padding: 8px 0;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
     border-radius: 6px;
-    overflow-x: auto;
-    font-size: 0.82rem;
-    line-height: 1.6;
+    max-height: 220px;
+    overflow: auto;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    transition: border-color 0.2s;
+    scrollbar-width: none;
+}
+
+.finding-snippet::-webkit-scrollbar {
+    display: none;
+}
+
+.finding-snippet:hover {
+    border-color: var(--text-secondary);
+    scrollbar-width: thin;
+}
+
+.finding-snippet:hover::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+}
+
+.finding-snippet:hover::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 3px;
 }
 
 .finding-snippet code {
