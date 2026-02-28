@@ -757,7 +757,12 @@ class ArcaneAuditorApp {
                 }),
             });
 
-            const data = await response.json();
+            let data;
+            try {
+                data = await response.json();
+            } catch {
+                throw new Error(`Server returned invalid response (HTTP ${response.status})`);
+            }
 
             if (!response.ok) {
                 throw new Error(data.detail || 'Autofix failed');
