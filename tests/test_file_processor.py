@@ -190,6 +190,68 @@ def test_large_file_handling():
     finally:
         zip_path.unlink(missing_ok=True)
 
+def test_macos_artifacts_excluded_from_zip():
+    """Test that macOS __MACOSX directories and ._ resource fork files are excluded."""
+    with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp_zip:
+        zip_path = Path(tmp_zip.name)
+
+    try:
+        test_files = {
+            'dirty_app/helpers.script': 'function helper() { return true; }',
+            'dirty_app/main.pmd': '{"key": "value"}',
+            '__MACOSX/dirty_app/._helpers.script': 'macOS resource fork',
+            '__MACOSX/._dirty_app': 'macOS resource fork',
+            'dirty_app/._hidden.script': 'dot-underscore resource fork at file level',
+        }
+
+        create_test_zip(zip_path, test_files)
+
+        processor = FileProcessor()
+        result = processor.process_zip_file(zip_path)
+
+        result_keys = set(result.keys())
+        # Only the two real files should be present
+        assert 'dirty_app/helpers.script' in result_keys
+        assert 'dirty_app/main.pmd' in result_keys
+        # macOS artifacts must be excluded
+        assert not any('__MACOSX' in k for k in result_keys), \
+            f"__MACOSX files leaked through: {[k for k in result_keys if '__MACOSX' in k]}"
+        assert not any(Path(k).name.startswith('._') for k in result_keys), \
+            f"._ files leaked through: {[k for k in result_keys if Path(k).name.startswith('._')]}"
+        assert len(result) == 2, f"Expected 2 files, got {len(result)}: {list(result_keys)}"
+
+    finally:
+        zip_path.unlink(missing_ok=True)
+
+
+def test_macos_artifacts_excluded_from_directory():
+    """Test that macOS artifacts are excluded when processing a directory."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+
+        # Create real files
+        (tmp_path / 'app').mkdir()
+        (tmp_path / 'app' / 'main.script').write_text('function main() {}')
+        (tmp_path / 'app' / 'config.pod').write_text('{"config": true}')
+
+        # Create macOS artifacts
+        (tmp_path / '__MACOSX').mkdir()
+        (tmp_path / '__MACOSX' / '._main.script').write_text('resource fork')
+        (tmp_path / 'app' / '._config.pod').write_text('resource fork')
+
+        processor = FileProcessor()
+        result = processor.process_directory(tmp_path)
+
+        result_keys = set(result.keys())
+        assert 'app/main.script' in result_keys
+        assert 'app/config.pod' in result_keys
+        assert not any('__MACOSX' in k for k in result_keys), \
+            f"__MACOSX files leaked through: {result_keys}"
+        assert not any(Path(k).name.startswith('._') for k in result_keys), \
+            f"._ files leaked through: {result_keys}"
+        assert len(result) == 2, f"Expected 2 files, got {len(result)}: {list(result_keys)}"
+
+
 def main():
     """Run all tests."""
     print("🚀 Starting Simplified File Processor Tests")
