@@ -174,6 +174,13 @@ export class ResultsRenderer {
                                             <div class="finding-details">
                                                 <span><strong>Line:</strong> ${finding.line}</span>
                                             </div>
+                                            ${finding.snippet ? `
+                                            <div class="finding-snippet">
+                                                <pre><code>${finding.snippet.lines.map(l =>
+                                                    `<span class="snippet-line${l.highlight ? ' snippet-highlight' : ''}"><span class="snippet-lineno">${String(l.number).padStart(4)}</span>${this.escapeHtml(l.text)}</span>`
+                                                ).join('\n')}</code></pre>
+                                            </div>
+                                            ` : ''}
                                         </div>
                                     `).join('')}
                                 </div>
@@ -570,6 +577,13 @@ export class ResultsRenderer {
             contextContent.classList.add('collapsed');
             contextToggle.classList.remove('expanded');
         }
+    }
+
+    // HTML escaping for source snippets
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     // Reset method

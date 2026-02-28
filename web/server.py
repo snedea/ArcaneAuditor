@@ -254,6 +254,60 @@ def cleanup_old_jobs():
                         file_path.unlink()
                         print(f"Cleaned up remaining file: {file_path.name}")
 
+def extract_snippet(source_map: dict, file_path: str, line: int, context_lines: int = 3) -> dict | None:
+    """Extract source lines around a finding's line number.
+
+    Args:
+        source_map: Dict mapping file_path -> list of source lines
+        file_path: Path of the file the finding is in
+        line: 1-based line number of the finding
+        context_lines: Number of lines to show above and below
+    Returns:
+        Dict with 'lines' and 'start_line', or None if snippet cannot be extracted.
+    """
+    lines = source_map.get(file_path)
+    if not lines or line < 1:
+        return None
+    line_idx = line - 1  # Convert to 0-based
+    start = max(0, line_idx - context_lines)
+    end = min(len(lines), line_idx + context_lines + 1)
+    snippet_lines = []
+    for i in range(start, end):
+        snippet_lines.append({
+            "number": i + 1,
+            "text": lines[i],
+            "highlight": (i == line_idx)
+        })
+    if not snippet_lines:
+        return None
+    return {"lines": snippet_lines, "start_line": start + 1}
+
+
+def build_source_map(context) -> dict:
+    """Build a file_path -> lines mapping from all models in a ProjectContext.
+
+    This captures source content before context is discarded, enabling
+    snippet extraction for findings.
+    """
+    source_map = {}
+    for pmd in context.pmds.values():
+        if pmd.source_content and pmd.file_path:
+            source_map[pmd.file_path] = pmd.source_content.split('\n')
+    for pod in context.pods.values():
+        if pod.source_content and pod.file_path:
+            source_map[pod.file_path] = pod.source_content.split('\n')
+    for script in context.scripts.values():
+        # ScriptModel stores content in .source, not .source_content
+        content = getattr(script, 'source_content', None) or getattr(script, 'source', None)
+        if content and script.file_path:
+            source_map[script.file_path] = content.split('\n')
+    if context.amd and hasattr(context.amd, 'source_content') and context.amd.source_content:
+        source_map[context.amd.file_path] = context.amd.source_content.split('\n')
+    if context.smd and hasattr(context.smd, 'source_content') and context.smd.source_content:
+        source_map[context.smd.file_path] = context.smd.source_content.split('\n')
+    return source_map
+
+
 def run_analysis_background(job: AnalysisJob):
     """Run analysis in background thread."""
     try:
@@ -323,7 +377,10 @@ def run_analysis_background(job: AnalysisJob):
         print(f"  Config loading: {config_time:.2f}s")
         print(f"  Analysis: {analysis_time:.2f}s")
         print(f"  Total: {total_time:.2f}s")
-            
+
+        # Build source content map from context models for snippet extraction
+        source_map = build_source_map(context)
+
         # Convert findings to serializable format
         result = {
             "findings": [
@@ -333,7 +390,8 @@ def run_analysis_background(job: AnalysisJob):
                     "severity": finding.severity,
                     "message": finding.message,
                     "file_path": finding.file_path,
-                    "line": finding.line
+                    "line": finding.line,
+                    "snippet": extract_snippet(source_map, finding.file_path, finding.line)
                     }
                     for finding in findings
             ],
