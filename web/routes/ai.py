@@ -198,12 +198,31 @@ async def _call_claude(
 # ---------------------------------------------------------------------------
 
 def strip_code_fences(text: str) -> str:
-    """Strip markdown code fences from LLM output if present."""
+    """Strip markdown code fences and LLM preamble from autofix output."""
     import re
     stripped = text.strip()
+
+    # Strip code fences
     fence_match = re.match(r"^```(?:\w*)\s*\n([\s\S]*?)```\s*$", stripped)
     if fence_match:
-        return fence_match.group(1).strip()
+        stripped = fence_match.group(1).strip()
+
+    # Strip LLM preamble: any text before the first line that looks like
+    # actual file content (JSON opening brace, or script keyword/identifier).
+    # The autofix prompt says "no preamble" but models sometimes leak reasoning.
+    lines = stripped.split('\n')
+    for i, line in enumerate(lines):
+        trimmed = line.strip()
+        if not trimmed:
+            continue
+        # JSON files start with {, script files start with code tokens
+        if (trimmed.startswith('{')
+                or trimmed.startswith('[')
+                or re.match(r'^(const |let |var |function |import |export |//|/\*|<%)', trimmed)):
+            if i > 0:
+                stripped = '\n'.join(lines[i:])
+            break
+
     return stripped
 
 
