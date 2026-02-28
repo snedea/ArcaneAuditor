@@ -86,6 +86,24 @@ export class FindingsUI {
         // Update filter options after HTML is rendered
         // Note: File header clicks are handled by delegated event listener in app.js
         this.updateFilterOptions();
+
+        // Auto-scroll each snippet so the highlighted line is visible
+        this.scrollSnippetsToHighlight();
+    }
+
+    /**
+     * Scroll each code snippet so the highlighted error line is centered in view
+     */
+    scrollSnippetsToHighlight() {
+        document.querySelectorAll('.finding-snippet').forEach(container => {
+            const highlighted = container.querySelector('.snippet-highlight, .snippet-highlight-fixed');
+            if (highlighted) {
+                const containerRect = container.getBoundingClientRect();
+                const highlightRect = highlighted.getBoundingClientRect();
+                const offsetInContent = highlightRect.top - containerRect.top + container.scrollTop;
+                container.scrollTop = offsetInContent - container.clientHeight / 2 + highlighted.offsetHeight / 2;
+            }
+        });
     }
 
     /**

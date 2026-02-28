@@ -249,20 +249,16 @@ export const Templates = {
                         </details>
                     </div>`;
                 })()}
-                ${expl ? (() => {
-                    const cardId = `explain-card-${origIdx}`;
-                    const priorityIcon = expl.priority === 'high' ? '🔴' : expl.priority === 'medium' ? '🟡' : '🟢';
-                    const copyBtn = `<button class="explain-copy-btn" onclick="copyExplainCard('${cardId}')" title="Copy to clipboard">📋 Copy</button>`;
-                    return `
-                    <div class="explain-card" id="${cardId}">
-                        <div class="explain-card-header">
-                            <span class="explain-priority">${priorityIcon} ${expl.priority}</span>
-                            ${copyBtn}
+                ${expl ? `
+                    <div class="finding-explanation ${finding.severity.toLowerCase()}">
+                        <span class="finding-explanation-ai-label">AI</span>
+                        <div class="finding-explanation-badges">
+                            <span class="finding-explanation-badge ${finding.severity.toLowerCase()}">${finding.severity.toUpperCase()}</span>
                         </div>
-                        <div class="explain-card-body">${escapeHtml(expl.explanation)}</div>
-                        <div class="explain-card-suggestion"><strong>Suggestion:</strong> ${escapeHtml(expl.suggestion)}</div>
-                    </div>`;
-                })() : ''}
+                        <p class="finding-explanation-text">${escapeHtml(expl.explanation || '')}</p>
+                        ${expl.suggestion ? `<p class="finding-explanation-suggestion">Suggestion: ${escapeHtml(expl.suggestion)}</p>` : ''}
+                    </div>
+                ` : ''}
                 ${!isResolved ? `
                 <div class="finding-actions">
                     <button class="autofix-btn${isLoading ? ' loading' : ''}"
