@@ -291,9 +291,8 @@ flowchart TD
     D --> C
     C --> E{"Auto-Fix\n(per finding or Fix All)"}
     E --> F["Re-validate\nfixed content"]
-    F --> C
-    F --> G{"All findings\nresolved?"}
-    G -- No --> E
+    F -->|"Merge new findings\ninto live list"| G{"Revalidation\n0 findings?"}
+    G -- "No (up to 3 passes)" --> E
     G -- Yes --> H["Export\n_fixed.zip"]
     H --> I(["Done"])
 
@@ -314,8 +313,9 @@ flowchart TD
 | **Parse & Validate** | Deterministic | 42 rules run against the code — same input always produces same findings |
 | **Display** | Deterministic | Findings shown with source snippets and highlighted lines |
 | **AI Explain** | AI (Claude) | Optional — generates plain-English explanations and fix suggestions |
-| **Auto-Fix** | AI (Claude) | Sends the file + finding to Claude CLI, receives corrected file back |
+| **Auto-Fix** | AI (Anthropic API) | Sends the file + finding to Claude (temperature 0), receives corrected file back |
 | **Re-validate** | Deterministic | Runs the same 42 rules on the fixed file to confirm the fix worked |
+| **Fix All** | AI + Deterministic | Processes all findings for a file: additive fixes first, removals last, up to 3 convergence passes. New findings introduced by fixes are merged into the live list and retried. Export is gated on revalidation returning 0 findings, not just original findings being marked resolved. |
 | **Export** | Deterministic | Bundles all fixed files into a `_fixed.zip` download |
 
 ---
@@ -329,7 +329,7 @@ flowchart TD
 - **📊 Real-time Results**: Quick analysis with detailed violation reports
 - **📥 Excel Export**: Comprehensive reports with context information
 - **🌙 Theme Support**: Dark and light modes
-- **🤖 AI Auto-Fix**: Per-finding or per-file auto-correction via Claude CLI
+- **🤖 AI Auto-Fix**: Per-finding or per-file auto-correction via Anthropic API (temperature 0)
 - **📦 ZIP Export**: Download all fixed files as a single archive
 
 ### Starting the Server

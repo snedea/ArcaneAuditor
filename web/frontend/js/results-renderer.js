@@ -86,9 +86,14 @@ export class ResultsRenderer {
         const groupedFindings = groupFindingsByFile(this.app.filteredFindings);
         const sortedGroupedFindings = sortFileGroups(groupedFindings, this.app.currentFilters.sortFilesBy);
 
-        // Check if ALL findings are resolved (for export button)
+        // Check if ALL findings are resolved (for export button).
+        // Use revalidation finding count as ground truth when available —
+        // this catches new findings introduced by LLM fixes that aren't
+        // in the original list.
         const totalFindings = this.app.currentResult ? this.app.currentResult.findings.length : 0;
-        const allGlobalResolved = totalFindings > 0 && this.app.resolvedFindings.size === totalFindings;
+        const allOriginalResolved = totalFindings > 0 && this.app.resolvedFindings.size === totalFindings;
+        const revalClean = this.app.lastRevalidationFindingCount === 0;
+        const allGlobalResolved = allOriginalResolved && (this.app.lastRevalidationFindingCount === null || revalClean);
         const hasAnyEdited = this.app.editedFileContents.size > 0;
 
         findings.innerHTML = `

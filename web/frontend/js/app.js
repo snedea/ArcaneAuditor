@@ -20,6 +20,7 @@ class ArcaneAuditorApp {
         this.resolvedFindings = new Set();       // set of original finding indices that are resolved
         this.autofixInProgress = new Set();      // finding indices currently being auto-fixed
         this.isRevalidating = false;
+        this.lastRevalidationFindingCount = null; // total findings from latest revalidation (null = not yet run)
 
         this.currentFilters = {
             severity: 'all',
@@ -664,6 +665,7 @@ class ArcaneAuditorApp {
                 return;
             }
 
+            this.lastRevalidationFindingCount = result.findings.length;
             this.diffFindings(result.findings);
             this.resultsRenderer.renderFindings();
         } catch (error) {
@@ -691,13 +693,27 @@ class ArcaneAuditorApp {
             newKeys.add(this._stableFindingKey(f));
         }
 
-        // For each original finding, if its stable key is absent → resolved
+        // For each tracked finding, if its stable key is absent → resolved
         this.resolvedFindings.clear();
         if (!this.currentResult) return;
+
+        const existingKeys = new Set();
         for (let i = 0; i < this.currentResult.findings.length; i++) {
             const f = this.currentResult.findings[i];
+            existingKeys.add(this._stableFindingKey(f));
             if (!newKeys.has(this._stableFindingKey(f))) {
                 this.resolvedFindings.add(i);
+            }
+        }
+
+        // Merge NEW findings (introduced by LLM fixes) into the live list
+        // so Fix All and the UI can see and target them.
+        for (const f of newFindings) {
+            const key = this._stableFindingKey(f);
+            if (!existingKeys.has(key)) {
+                this.currentResult.findings.push(f);
+                existingKeys.add(key);
+                // New finding is unresolved (not added to resolvedFindings)
             }
         }
     }
@@ -799,14 +815,15 @@ class ArcaneAuditorApp {
     async autofixFile(filePath) {
         if (!this.currentResult) return;
 
-        // Rules that remove code should run LAST — they're most likely to
-        // undo additive fixes (e.g., removing console.info can revert a
+        // Detect removal-type findings heuristically: if the rule ID or
+        // message suggests code removal, it should run LAST to avoid undoing
+        // additive fixes (e.g., removing console.info can revert a
         // magic-number extraction done by an earlier fix).
-        const removalRules = new Set([
-            'ScriptConsoleLogRule',
-            'ScriptUnusedVariableRule',
-            'ScriptDeadCodeRule',
-        ]);
+        const isRemovalFinding = (f) => {
+            const id = (f.rule_id || '').toLowerCase();
+            const msg = (f.message || '').toLowerCase();
+            return /unused|dead.?code|console.?log|remove|debug.?statement/.test(id + ' ' + msg);
+        };
 
         const maxPasses = 3;
         for (let pass = 0; pass < maxPasses; pass++) {
@@ -825,8 +842,8 @@ class ArcaneAuditorApp {
 
             // Sort: additive fixes first, removal fixes last
             indices.sort((a, b) => {
-                const aRemoval = removalRules.has(this.currentResult.findings[a].rule_id) ? 1 : 0;
-                const bRemoval = removalRules.has(this.currentResult.findings[b].rule_id) ? 1 : 0;
+                const aRemoval = isRemovalFinding(this.currentResult.findings[a]) ? 1 : 0;
+                const bRemoval = isRemovalFinding(this.currentResult.findings[b]) ? 1 : 0;
                 return aRemoval - bRemoval;
             });
 
@@ -891,6 +908,7 @@ class ArcaneAuditorApp {
         this.resolvedFindings.clear();
         this.autofixInProgress.clear();
         this.isRevalidating = false;
+        this.lastRevalidationFindingCount = null;
 
         // Reset file inputs
         const fileInput = document.getElementById('file-input');
