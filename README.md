@@ -294,7 +294,17 @@ No restart or rebuild required. See the [deploy workflow](.github/workflows/depl
 
 ## 🔄 How It Works
 
-Arcane Auditor separates **what finds issues** from **what fixes them**. The 42 validation rules are fully deterministic — they produce the same results every time, with no AI involved. AI is only used in two optional steps: explaining findings in plain English, and generating code fixes.
+### The Deterministic Sandwich
+
+Auditing is best left to deterministic tools. Arcane Auditor's 42 rules are exactly that — same input, same findings, every time, no AI involved. But *explaining* what a finding means and *generating* a fix are inherently subjective tasks. Any two senior developers would phrase them differently. That's where AI belongs: not as the auditor, but as the translator and the mechanic.
+
+The architecture enforces a strict boundary:
+
+> **Deterministic rules find the issues. AI explains and fixes them. Deterministic rules verify the fix.**
+
+The AI autofix receives the *deterministic finding* directly (rule ID, severity, line number, message) — never the AI-generated explanation. The two LLM features are independent branches off the same deterministic source of truth. After every fix, the same 42 rules re-run on the modified code. If the fix didn't work — or introduced a new problem — the auditor catches it. Export is gated on revalidation returning zero findings, not on the AI's self-assessment.
+
+This isn't a compromise. It's separation of concerns.
 
 ```mermaid
 flowchart TD
@@ -325,11 +335,11 @@ flowchart TD
 | **Upload** | Deterministic | Files extracted and prepared for analysis |
 | **Parse & Validate** | Deterministic | 42 rules run against the code — same input always produces same findings |
 | **Display** | Deterministic | Findings shown with source snippets and highlighted lines |
-| **AI Explain** | AI (Claude) | Optional — generates plain-English explanations and fix suggestions |
-| **Auto-Fix** | AI (Anthropic API) | Sends the file + finding to Claude (temperature 0), receives corrected file back |
-| **Re-validate** | Deterministic | Runs the same 42 rules on the fixed file to confirm the fix worked |
-| **Fix All** | AI + Deterministic | Processes all findings for a file: additive fixes first, removals last, up to 3 convergence passes. New findings introduced by fixes are merged into the live list and retried. Export is gated on revalidation returning 0 findings, not just original findings being marked resolved. |
-| **Export** | Deterministic | Bundles all fixed files into a `_fixed.zip` download |
+| **AI Explain** | AI (optional) | Generates plain-English explanations and fix suggestions. Does not feed into autofix. |
+| **Auto-Fix** | AI (temp 0) | Receives the deterministic finding + full file. Returns corrected file. |
+| **Re-validate** | Deterministic | Runs the same 42 rules on the fixed file — the auditor checks the mechanic's work |
+| **Fix All** | AI + Deterministic | Additive fixes first, removals last, up to 3 convergence passes. New findings from fixes are merged and retried. Export gated on 0 findings from revalidation. |
+| **Export** | Deterministic | Bundles all fixed files into a `_fixed.zip` — only after the auditor signs off |
 
 ---
 
