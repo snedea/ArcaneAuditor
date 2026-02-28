@@ -259,6 +259,15 @@ python explain.py myapp.zip
 
 > The LLM layer is purely additive -- Arcane Auditor's core analysis runs the same 42 deterministic rules regardless. The LLM just explains the results.
 
+### Customizing AI Prompts
+
+The AI behavior is controlled by two plain-text prompt files. Edit them to change tone, add domain-specific guidance, or adjust fix strategies. Changes take effect on the next request — no restart required.
+
+| File | Controls | Purpose |
+|------|----------|---------|
+| [`prompts/explain_system.md`](prompts/explain_system.md) | AI Explain | How findings are explained and prioritized |
+| [`prompts/autofix_system.md`](prompts/autofix_system.md) | Auto-Fix | How the LLM generates corrected files |
+
 ---
 
 ## 🔄 How It Works
