@@ -93,7 +93,7 @@ export class ResultsRenderer {
         const totalFindings = this.app.currentResult ? this.app.currentResult.findings.length : 0;
         const allOriginalResolved = totalFindings > 0 && this.app.resolvedFindings.size === totalFindings;
         const revalClean = this.app.lastRevalidationFindingCount === 0;
-        const allGlobalResolved = allOriginalResolved && (this.app.lastRevalidationFindingCount === null || revalClean);
+        const allGlobalResolved = allOriginalResolved && revalClean;
         const hasAnyEdited = this.app.editedFileContents.size > 0;
 
         findings.innerHTML = `

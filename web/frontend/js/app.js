@@ -667,6 +667,8 @@ class ArcaneAuditorApp {
 
             this.lastRevalidationFindingCount = result.findings.length;
             this.diffFindings(result.findings);
+            // Refresh filteredFindings so newly merged findings appear in the UI
+            this.filteredFindings = [...this.currentResult.findings];
             this.resultsRenderer.renderFindings();
         } catch (error) {
             console.error('Revalidation error:', error);
