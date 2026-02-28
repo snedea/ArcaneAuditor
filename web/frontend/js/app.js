@@ -464,7 +464,53 @@ class ArcaneAuditorApp {
     }
 
     renderMarkdown(text) {
-        // Simple markdown to HTML converter
+        // Split into sections by numbered headings (### 1. or ## 1.)
+        // Everything before the first numbered heading is "preamble"
+        const sections = [];
+        let currentSection = null;
+        const lines = text.split('\n');
+
+        for (const line of lines) {
+            const numberedHeading = line.match(/^(#{2,4})\s+(\d+)\.\s+(.+)$/);
+            if (numberedHeading) {
+                if (currentSection) sections.push(currentSection);
+                currentSection = { title: line, body: [] };
+            } else if (currentSection) {
+                currentSection.body.push(line);
+            } else {
+                // Preamble (before any numbered section)
+                if (!sections.length || sections[sections.length - 1].title !== null) {
+                    sections.push({ title: null, body: [] });
+                }
+                sections[sections.length - 1].body.push(line);
+            }
+        }
+        if (currentSection) sections.push(currentSection);
+
+        // Render each section
+        const renderedSections = sections.map((section, idx) => {
+            const rawText = section.title
+                ? section.title + '\n' + section.body.join('\n')
+                : section.body.join('\n');
+            const html = this._markdownToHtml(rawText.trim());
+            if (!html) return '';
+
+            // Numbered sections get cards with copy buttons
+            if (section.title) {
+                const cardId = `explain-card-${idx}`;
+                return `<div class="explain-card" id="${cardId}">` +
+                    `<button class="explain-copy-btn" onclick="copyExplainCard('${cardId}')" title="Copy to clipboard">📋 Copy</button>` +
+                    html +
+                    `</div>`;
+            }
+            // Preamble/summary gets a plain card
+            return `<div class="explain-card explain-card-summary">${html}</div>`;
+        });
+
+        return renderedSections.join('\n');
+    }
+
+    _markdownToHtml(text) {
         let html = text
             // Escape HTML entities first
             .replace(/&/g, '&amp;')
@@ -479,6 +525,9 @@ class ArcaneAuditorApp {
         // Inline code
         html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
+        // Blockquotes
+        html = html.replace(/^&gt;\s*(.+)$/gm, '<blockquote>$1</blockquote>');
+
         // Headings
         html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
         html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
@@ -490,31 +539,20 @@ class ArcaneAuditorApp {
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
-        // Tables - convert markdown tables to HTML
+        // Tables
         html = html.replace(/((?:^\|.+\|$\n?)+)/gm, (tableBlock) => {
             const rows = tableBlock.trim().split('\n').filter(r => r.trim());
             if (rows.length < 2) return tableBlock;
-
-            // Check if second row is a separator (|---|---|)
             const isSeparator = /^\|[\s:-]+\|/.test(rows[1]);
             if (!isSeparator) return tableBlock;
-
-            let tableHtml = '<table>';
-
-            // Header row
-            const headerCells = rows[0].split('|').filter(c => c.trim() !== '');
-            tableHtml += '<thead><tr>';
-            headerCells.forEach(cell => {
+            let tableHtml = '<table><thead><tr>';
+            rows[0].split('|').filter(c => c.trim() !== '').forEach(cell => {
                 tableHtml += `<th>${cell.trim()}</th>`;
             });
-            tableHtml += '</tr></thead>';
-
-            // Body rows (skip separator at index 1)
-            tableHtml += '<tbody>';
+            tableHtml += '</tr></thead><tbody>';
             for (let i = 2; i < rows.length; i++) {
-                const cells = rows[i].split('|').filter(c => c.trim() !== '');
                 tableHtml += '<tr>';
-                cells.forEach(cell => {
+                rows[i].split('|').filter(c => c.trim() !== '').forEach(cell => {
                     tableHtml += `<td>${cell.trim()}</td>`;
                 });
                 tableHtml += '</tr>';
@@ -526,23 +564,21 @@ class ArcaneAuditorApp {
         // Horizontal rules
         html = html.replace(/^---$/gm, '<hr>');
 
-        // Unordered lists (handle nested with indentation)
+        // Unordered lists
         html = html.replace(/^(\s*)[-*] (.+)$/gm, (_, indent, content) => {
             const depth = Math.floor(indent.length / 2);
             return `<li class="md-depth-${depth}">${content}</li>`;
         });
-        // Wrap consecutive <li> elements in <ul>
         html = html.replace(/((?:<li[^>]*>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
 
         // Ordered lists
         html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-        // Wrap consecutive numbered <li> that aren't inside <ul>
         html = html.replace(/(?:^|(?<=<\/ul>)\n)((?:<li>.*<\/li>\n?)+)/gm, '<ol>$1</ol>');
 
-        // Paragraphs - wrap lines that aren't already wrapped in block elements
-        html = html.replace(/^(?!<[houple]|<li|<pre|<hr|<t)(.+)$/gm, '<p>$1</p>');
+        // Paragraphs
+        html = html.replace(/^(?!<[houplbt]|<li|<pre|<hr|<t)(.+)$/gm, '<p>$1</p>');
 
-        // Clean up extra newlines
+        // Clean up
         html = html.replace(/\n{2,}/g, '\n');
 
         return html;
@@ -605,6 +641,19 @@ window.toggleContextPanel = function() {
 
 window.explainWithAI = function() {
     app.explainWithAI();
+};
+
+window.copyExplainCard = function(cardId) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+
+    // Get plain text content (strip HTML)
+    const text = card.innerText.replace(/^📋 Copy\s*/, '').replace(/^✅ Copied!\s*/, '');
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = card.querySelector('.explain-copy-btn');
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+    });
 };
 
 // Results renderer global functions

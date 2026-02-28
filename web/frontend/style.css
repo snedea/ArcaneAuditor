@@ -2873,3 +2873,97 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
 .explain-content tr:hover {
     background: var(--arcane-glow);
 }
+
+/* Explain cards — matches file-group hover pattern */
+.explain-card {
+    position: relative;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 10px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.explain-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px var(--shadow-hover);
+}
+
+[data-theme="light"] .explain-card:hover,
+:not([data-theme]) .explain-card:hover {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .explain-card {
+    background: #1e293b;
+    border-color: #475569;
+}
+
+[data-theme="dark"] .explain-card:hover {
+    background: #2a3647;
+    border-color: #818cf8;
+    box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
+}
+
+.explain-card-summary {
+    background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .explain-card-summary {
+    background: #253447;
+}
+
+/* Card heading — remove top margin for first heading in card */
+.explain-card > h1:first-child,
+.explain-card > h2:first-child,
+.explain-card > h3:first-child,
+.explain-card > h4:first-child {
+    margin-top: 0;
+}
+
+/* Copy button */
+.explain-copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.8em;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: background 0.15s ease, color 0.15s ease;
+    opacity: 0;
+    z-index: 1;
+}
+
+.explain-card:hover .explain-copy-btn {
+    opacity: 1;
+}
+
+.explain-copy-btn:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--arcane-purple);
+}
+
+[data-theme="dark"] .explain-copy-btn {
+    background: #334155;
+    border-color: #475569;
+}
+
+[data-theme="dark"] .explain-copy-btn:hover {
+    background: #475569;
+    color: #f1f5f9;
+}
+
+.explain-content blockquote {
+    border-left: 3px solid var(--arcane-purple);
+    padding: 8px 16px;
+    margin: 8px 0;
+    color: var(--text-secondary);
+    background: var(--arcane-glow);
+    border-radius: 0 6px 6px 0;
+}
