@@ -10,11 +10,12 @@ from unittest.mock import patch, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from web.server import (
-    app,
+from web.server import app
+from web.routes.ai import (
     get_explain_system_prompt,
     parse_structured_explanation,
     EXPLAIN_PROMPT_PATH,
+    _get_anthropic_client,
 )
 
 client = TestClient(app)
@@ -150,7 +151,7 @@ class TestParseStructuredExplanation:
 class TestExplainEndpoint:
     """Tests for /api/explain."""
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_structured_response(self, mock_get_client):
         mock_client = MagicMock()
         mock_client.messages.create.return_value = _mock_api_response(STRUCTURED_RESPONSE)
@@ -166,7 +167,7 @@ class TestExplainEndpoint:
         assert "findings_order" in body
         assert body["findings_order"][0]["rule_id"] == "HardcodedWorkdayAPIRule"
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_markdown_fallback(self, mock_get_client):
         """Non-JSON output falls back to markdown format."""
         mock_client = MagicMock()
@@ -180,7 +181,7 @@ class TestExplainEndpoint:
         assert "explanation" in body
         assert "Explanation" in body["explanation"]
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_api_called_with_correct_params(self, mock_get_client):
         mock_client = MagicMock()
         mock_client.messages.create.return_value = _mock_api_response(STRUCTURED_RESPONSE)
@@ -194,7 +195,7 @@ class TestExplainEndpoint:
         assert "Finding #0" in call_kwargs["messages"][0]["content"]
         assert len(call_kwargs["system"]) > 20
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_model_env_override(self, mock_get_client):
         mock_client = MagicMock()
         mock_client.messages.create.return_value = _mock_api_response(STRUCTURED_RESPONSE)
@@ -215,7 +216,7 @@ class TestExplainEndpoint:
         resp = client.post("/api/explain", json={})
         assert resp.status_code == 422  # Pydantic validation error
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_empty_response(self, mock_get_client):
         mock_client = MagicMock()
         mock_client.messages.create.return_value = _mock_api_response("")
@@ -225,7 +226,7 @@ class TestExplainEndpoint:
         assert resp.status_code == 502
         assert "empty response" in resp.json()["detail"]
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_auth_error(self, mock_get_client):
         mock_client = MagicMock()
         mock_client.messages.create.side_effect = anthropic.AuthenticationError(
@@ -237,7 +238,7 @@ class TestExplainEndpoint:
         assert resp.status_code == 503
         assert "API key" in resp.json()["detail"]
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_timeout(self, mock_get_client):
         mock_client = MagicMock()
         mock_client.messages.create.side_effect = anthropic.APITimeoutError(request=MagicMock())
@@ -247,7 +248,7 @@ class TestExplainEndpoint:
         assert resp.status_code == 504
         assert "timed out" in resp.json()["detail"]
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_markdown_response_is_stripped(self, mock_get_client):
         """Verify leading/trailing whitespace is stripped from markdown fallback."""
         mock_client = MagicMock()
@@ -260,7 +261,7 @@ class TestExplainEndpoint:
         assert body["format"] == "markdown"
         assert body["explanation"] == "Some explanation"
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_format_field_always_present(self, mock_get_client):
         """Both structured and markdown responses include a format field."""
         mock_client = MagicMock()
@@ -294,7 +295,7 @@ class TestPromptLoading:
             assert "code reviewer" in prompt  # fallback prompt
             assert "JSON" in prompt  # fallback now also requests JSON
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_prompt_passed_to_api(self, mock_get_client):
         """Verify the file-loaded prompt reaches the API call."""
         mock_client = MagicMock()

@@ -19,11 +19,45 @@ class WidgetIdRequiredRule(StructureRuleBase):
     
     DESCRIPTION = "Ensures all widgets have an 'id' field set (structure validation for PMD and POD files)"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {
+        'excluded_widget_types': {'type': 'list', 'default': [], 'description': 'Additional widget types to exclude from ID requirements'}
+    }
+    
+    DOCUMENTATION = {
+        'why': '''Widget IDs are essential for referencing widgets in scripts (to get/set values, show/hide, etc.) and for debugging. Without IDs, you can't interact with widgets programmatically, making dynamic behavior impossible. IDs also help identify widgets in error messages and make code maintenance much easier when you need to find where a widget is defined or used. There are also known issues where missing IDs will result in logs not showing the data someone may expect (i.e. a panelList widget may not log its values without all IDs set).
+
+**Smart Exclusions:**
+Built-in widget types that don't require IDs: `footer`, `item`, `group`, `title`, `pod`, `cardContainer`, `card`, `instanceList`, `taskReference`, `editTasks`, `multiSelectCalendar`, `bpExtender`, `hub`, and column objects (which use `columnId` instead).''',
+        'catches': [
+            'Widgets missing required `id` field'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "type": "richText",  // ❌ Missing id field
+  "label": "Welcome",
+  "value": "Hello, user!"
+}
+```
+
+**Fix:**
+
+```json
+{
+  "type": "richText",
+  "id": "welcomeMessage",  // ✅ Added id field
+  "label": "Welcome",
+  "value": "Hello, user!"
+}
+```''',
+        'recommendation': 'Always include an `id` field for widgets that need to be referenced in scripts or for debugging. This enables programmatic interaction and makes code maintenance easier.'
+    }
     
     # Widget types that do not require or support ID values (built-in exclusions)
     BUILT_IN_WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {
         'footer', 'item', 'group', 'title', 'pod', 'cardContainer', 'card',
-        'instanceList', 'taskReference', 'editTasks', 'multiSelectCalendar',
+        'taskReference', 'editTasks', 'multiSelectCalendar',
         'bpExtender', 'hub'
     }
     
@@ -82,6 +116,13 @@ class WidgetIdRequiredRule(StructureRuleBase):
                 # Use generic traversal for each section
                 for widget, path, index, parent_type, container_name in self.traverse_presentation_structure(section_data, section_name):
                     yield from self._check_widget_id(widget, pmd_model.file_path, pmd_model, section_name, path, index, None, parent_type, container_name)
+            elif isinstance(section_data, list):
+                # Handle tabs list (tabs is a list of section widgets)
+                for i, tab_item in enumerate(section_data):
+                    if isinstance(tab_item, dict):
+                        tab_path = f"{section_name}.{i}"
+                        for widget, path, index, parent_type, container_name in self.traverse_presentation_structure(tab_item, tab_path):
+                            yield from self._check_widget_id(widget, pmd_model.file_path, pmd_model, section_name, path, index, None, parent_type, container_name)
 
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyzes the template widgets within a POD model."""
@@ -338,8 +379,47 @@ class WidgetIdRequiredRule(StructureRuleBase):
             
             # Build readable path by following the technical path and using readable identifiers
             if pmd_model and pmd_model.presentation:
-                current_data = pmd_model.presentation.__dict__.get(section, {})
-                display_prefix = self._build_path_from_data(current_data, path_parts[1:], display_prefix)
+                section_data = pmd_model.presentation.__dict__.get(section)
+                
+                # Handle tabs (which is a list, not a dict)
+                if isinstance(section_data, list):
+                    # Path format: "tabs.0.children.0" or "tabs.0" 
+                    # Path may start with section name, so skip it if present
+                    path_start_idx = 0
+                    if path_parts and path_parts[0] == section:
+                        path_start_idx = 1
+                    
+                    if path_start_idx < len(path_parts) and path_parts[path_start_idx].isdigit():
+                        # First part after section is tab index
+                        try:
+                            tab_index = int(path_parts[path_start_idx])
+                            if 0 <= tab_index < len(section_data):
+                                tab_item = section_data[tab_index]
+                                if isinstance(tab_item, dict):
+                                    # Get readable identifier for the tab
+                                    tab_id = self._get_readable_identifier(tab_item, tab_index)
+                                    display_prefix = f"{section}[{tab_index}]->{tab_id}"
+                                    # Continue building path from the tab item, skipping section and tab index
+                                    remaining_parts = path_parts[path_start_idx + 1:]
+                                    if remaining_parts:
+                                        display_prefix = self._build_path_from_data(tab_item, remaining_parts, display_prefix)
+                                    # If no remaining parts, we're at the tab itself, so just return the tab info
+                                else:
+                                    display_prefix = f"{section}[{tab_index}]"
+                            else:
+                                display_prefix = section
+                        except (ValueError, IndexError):
+                            display_prefix = section
+                    else:
+                        # Path doesn't have expected format, fallback
+                        display_prefix = section
+                elif isinstance(section_data, dict):
+                    # Regular dict section (body, title, footer, etc.)
+                    # Path may start with section name, so skip it if present
+                    path_start_idx = 1 if path_parts and path_parts[0] == section else 0
+                    display_prefix = self._build_path_from_data(section_data, path_parts[path_start_idx:], display_prefix)
+                else:
+                    display_prefix = section
             elif pod_model and pod_model.seed and pod_model.seed.template:
                 current_data = pod_model.seed.template
                 display_prefix = self._build_path_from_data(current_data, path_parts, display_prefix)

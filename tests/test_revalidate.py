@@ -66,8 +66,8 @@ CLEAN_SCRIPT_CONTENT = """\
 
 MALFORMED_JSON = "{ this is not valid json !!!"
 
-# Config path that exists in presets
-DEFAULT_CONFIG = "config/presets/development.json"
+# Config path that exists in presets (v1.4.0 moved presets under config/rules/)
+DEFAULT_CONFIG = "config/rules/presets/development.json"
 
 
 class TestRevalidateEndpoint:

@@ -1,0 +1,895 @@
+name: 🚀 Release (Build + Sign + Notarize)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+
+  # 🪟 WINDOWS BUILD -----------------------------------------------------------
+  windows-build:
+    name: 🏗️ Windows Build
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.6"
+
+      - name: 🏗️ Build Windows executables
+        shell: pwsh
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "🏗️  WINDOWS BUILD START" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "📅 Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+          Write-Host ""
+          
+          pwsh ./scripts/build.ps1
+          
+          Write-Host ""
+          Write-Host "========================================" -ForegroundColor Green
+          Write-Host "✅ BUILD COMPLETE - Listing outputs:" -ForegroundColor Green
+          Write-Host "========================================" -ForegroundColor Green
+          if (Test-Path dist) {
+            Get-ChildItem dist -Recurse | ForEach-Object {
+              $size = if ($_.PSIsContainer) { "DIR" } else { "$([math]::Round($_.Length/1MB, 2)) MB" }
+              Write-Host "  📄 $($_.FullName) [$size]"
+            }
+          } else {
+            Write-Error "❌ CRITICAL: dist/ folder not found after build!"
+            exit 1
+          }
+
+      - name: 📦 Upload unsigned Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-windows
+          path: dist/*.exe
+
+
+  # 🔏 WINDOWS EV SIGN --------------------------------------------------------
+  windows-sign:
+    name: 🔏 Windows EV Signing
+    runs-on: self-hosted
+    needs: windows-build
+
+    steps:
+      - name: 📥 Download unsigned executables
+        uses: actions/download-artifact@v4
+        with:
+          name: unsigned-windows
+          path: ./unsigned
+
+      - name: 🔍 Verify downloads
+        shell: pwsh
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "🔍 DOWNLOAD VERIFICATION" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "📂 Downloaded unsigned files:"
+          Get-ChildItem -Recurse ./unsigned | ForEach-Object {
+            $size = if ($_.PSIsContainer) { "DIR" } else { "$([math]::Round($_.Length/1MB, 2)) MB" }
+            Write-Host "  📄 $($_.FullName) [$size]"
+          }
+          
+          if (-not (Test-Path ./unsigned/*.exe)) {
+            Write-Host ""
+            Write-Host "❌❌❌ CRITICAL ERROR ❌❌❌" -ForegroundColor Red
+            Write-Host "No executables found in ./unsigned" -ForegroundColor Red
+            Write-Host "Expected to find: *.exe files" -ForegroundColor Red
+            exit 1
+          }
+          Write-Host "✅ Download verification passed" -ForegroundColor Green
+
+      - name: 🔏 Sign executables (local EV cert)
+        shell: pwsh
+        run: |
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "🔏 WINDOWS CODE SIGNING" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+          
+          $ErrorActionPreference = "Stop"
+          $thumb = "A5EBA89B65F776DB3DEB350BD3681BFF52AFE2E8"
+          $exeFiles = Get-ChildItem ./unsigned -Filter *.exe
+
+          Write-Host "🔍 Found $($exeFiles.Count) executable(s) to sign"
+          Write-Host ""
+
+          if ($exeFiles.Count -eq 0) {
+            Write-Host "❌❌❌ CRITICAL ERROR ❌❌❌" -ForegroundColor Red
+            Write-Host "No executables to sign" -ForegroundColor Red
+            exit 1
+          }
+
+          $signedCount = 0
+          foreach ($f in $exeFiles) {
+            Write-Host "----------------------------------------"
+            Write-Host "🔏 Signing: $($f.Name)" -ForegroundColor Yellow
+            Write-Host "   Path: $($f.FullName)"
+            Write-Host "   Size: $([math]::Round($f.Length/1MB, 2)) MB"
+            Write-Host "   Thumbprint: $thumb"
+            
+            try {
+              & signtool.exe sign `
+                /sha1 $thumb `
+                /fd sha256 /td sha256 `
+                /tr http://timestamp.digicert.com `
+                $f.FullName
+              
+              if ($LASTEXITCODE -ne 0) {
+                throw "signtool.exe returned exit code $LASTEXITCODE"
+              }
+              
+              Write-Host "✅ Successfully signed: $($f.Name)" -ForegroundColor Green
+              $signedCount++
+            }
+            catch {
+              Write-Host "❌❌❌ SIGNING FAILED ❌❌❌" -ForegroundColor Red
+              Write-Host "File: $($f.Name)" -ForegroundColor Red
+              Write-Host "Error: $_" -ForegroundColor Red
+              throw
+            }
+          }
+
+          Write-Host ""
+          Write-Host "========================================" -ForegroundColor Cyan
+          Write-Host "🔍 SIGNATURE VERIFICATION" -ForegroundColor Cyan
+          Write-Host "========================================" -ForegroundColor Cyan
+          
+          $verifiedCount = 0
+          foreach ($f in $exeFiles) {
+            Write-Host "🔍 Verifying: $($f.Name)"
+            
+            try {
+              & signtool.exe verify /pa $f.FullName
+              
+              if ($LASTEXITCODE -ne 0) {
+                throw "Verification failed with exit code $LASTEXITCODE"
+              }
+              
+              Write-Host "✅ Verified: $($f.Name)" -ForegroundColor Green
+              $verifiedCount++
+            }
+            catch {
+              Write-Host "❌❌❌ VERIFICATION FAILED ❌❌❌" -ForegroundColor Red
+              Write-Host "File: $($f.Name)" -ForegroundColor Red
+              Write-Host "Error: $_" -ForegroundColor Red
+              throw
+            }
+          }
+
+          Write-Host ""
+          Write-Host "========================================" -ForegroundColor Green
+          Write-Host "✅ WINDOWS SIGNING COMPLETE" -ForegroundColor Green
+          Write-Host "========================================" -ForegroundColor Green
+          Write-Host "📊 Summary:"
+          Write-Host "   Total files: $($exeFiles.Count)"
+          Write-Host "   Signed: $signedCount"
+          Write-Host "   Verified: $verifiedCount"
+
+      - name: 📤 Upload signed Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-windows
+          path: ./unsigned/*.exe
+
+
+  # 🍎 MAC BUILD + SIGN + NOTARIZE --------------------------------------------
+  mac-build-sign:
+    name: 🍎 macOS Build + Sign + Notarize
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.6"
+
+      - name: 🏗️ Build macOS executables
+        run: |
+          echo "========================================"
+          echo "🏗️  macOS BUILD START"
+          echo "========================================"
+          echo "📅 Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+          echo ""
+          
+          bash ./scripts/build.sh
+          
+          echo ""
+          echo "========================================"
+          echo "✅ BUILD COMPLETE - Listing outputs:"
+          echo "========================================"
+          if [ -d dist ]; then
+            find dist -type f -o -type d | while read item; do
+              if [ -f "$item" ]; then
+                size=$(du -h "$item" | cut -f1)
+                echo "  📄 $item [$size]"
+              else
+                echo "  📁 $item/"
+              fi
+            done
+          else
+            echo "❌❌❌ CRITICAL: dist/ folder not found after build!"
+            exit 1
+          fi
+          
+          echo ""
+          echo "🔧 Setting executable permissions on CLI binary..."
+          if [ -f "dist/ArcaneAuditorCLI" ]; then
+            chmod +x dist/ArcaneAuditorCLI
+            echo "✅ CLI binary is now executable"
+            ls -l dist/ArcaneAuditorCLI
+          else
+            echo "⚠️  CLI binary not found (may be expected)"
+          fi
+
+      - name: 🔏 Import Developer ID certificate
+        env:
+          MAC_CERT: ${{ secrets.MACOS_CERTIFICATE }}
+          MAC_CERT_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "========================================"
+          echo "🔏 KEYCHAIN SETUP"
+          echo "========================================"
+          echo "📅 Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+          
+          echo "🔑 Decoding certificate..."
+          echo "$MAC_CERT" | base64 --decode > cert.p12
+          
+          echo "🔐 Creating build keychain..."
+          security create-keychain -p password build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p password build.keychain
+          
+          echo "📥 Importing certificate..."
+          security import cert.p12 -k build.keychain -P "$MAC_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k password build.keychain
+          
+          rm cert.p12
+          echo "✅ Certificate imported successfully"
+          
+          echo ""
+          echo "🔍 Available signing identities:"
+          security find-identity -v -p codesigning
+          echo ""
+
+      - name: 🔍 Pre-signing verification
+        run: |
+          echo "========================================"
+          echo "🔍 PRE-SIGNING VERIFICATION"
+          echo "========================================"
+          
+          APP="dist/ArcaneAuditor.app"
+          CLI="dist/ArcaneAuditorCLI"
+          
+          if [ ! -d "$APP" ]; then
+            echo "❌❌❌ CRITICAL: $APP not found!"
+            echo "Contents of dist/:"
+            ls -la dist/ || echo "dist/ doesn't exist"
+            exit 1
+          fi
+          
+          echo "✅ Found: $APP"
+          echo "   Size: $(du -sh "$APP" | cut -f1)"
+          
+          if [ -f "$CLI" ]; then
+            echo "✅ Found: $CLI"
+            echo "   Size: $(du -h "$CLI" | cut -f1)"
+          else
+            echo "⚠️  WARNING: CLI binary not found at $CLI"
+            echo "   This may be expected if CLI wasn't built"
+          fi
+          
+          echo ""
+          echo "📦 .app bundle structure:"
+          find "$APP" -maxdepth 3 -type f -o -type d | head -20
+
+      - name: 🔏 Sign .app bundle (comprehensive signing)
+        env:
+          MAC_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: |
+          set -e
+          echo "========================================"
+          echo "🔏 SIGNING .APP BUNDLE"
+          echo "========================================"
+          echo "📅 Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+          echo "🔑 Identity: $MAC_IDENTITY"
+          echo ""
+          
+          APP="dist/ArcaneAuditor.app"
+          
+          # Step 1: Sign ALL embedded libraries (.dylib, .so) FIRST
+          echo "----------------------------------------"
+          echo "Step 1: Signing ALL embedded libraries"
+          echo "----------------------------------------"
+          echo "🔍 Finding all dylibs and shared libraries..."
+          
+          SIGNED_COUNT=0
+          # Find and sign all .dylib and .so files recursively
+          find "$APP/Contents" -type f \( -name "*.dylib" -o -name "*.so" \) | while read lib; do
+            echo "🔏 Signing library: $(basename "$lib")"
+            codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$lib" 2>&1
+            if [ $? -eq 0 ]; then
+              echo "   ✅ Signed: $lib"
+            else
+              echo "   ❌ FAILED to sign: $lib"
+              exit 1
+            fi
+          done
+          
+          # Also sign any Mach-O executables in Frameworks
+          if [ -d "$APP/Contents/Frameworks" ]; then
+            find "$APP/Contents/Frameworks" -type f -perm +111 | while read f; do
+              if file "$f" | grep -q "Mach-O"; then
+                echo "🔏 Signing framework binary: $(basename "$f")"
+                codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$f" 2>&1
+                if [ $? -eq 0 ]; then
+                  echo "   ✅ Signed: $f"
+                else
+                  echo "   ❌ FAILED to sign: $f"
+                  exit 1
+                fi
+              fi
+            done
+          fi
+          
+          echo "✅ All embedded libraries signed"
+          
+          echo ""
+          echo "----------------------------------------"
+          echo "Step 2: Signing Python runtime files"
+          echo "----------------------------------------"
+          
+          # Sign any Python*.framework if present
+          if [ -d "$APP/Contents/Frameworks/Python.framework" ]; then
+            echo "🔏 Signing Python.framework..."
+            find "$APP/Contents/Frameworks/Python.framework" -type f -name "Python" | while read py; do
+              codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$py" 2>&1
+              echo "   ✅ Signed: $py"
+            done
+          fi
+          
+          echo ""
+          echo "----------------------------------------"
+          echo "Step 3: Signing main executable"
+          echo "----------------------------------------"
+          
+          MAIN_EXEC="$APP/Contents/MacOS/ArcaneAuditor"
+          if [ -f "$MAIN_EXEC" ]; then
+            echo "🔏 Signing: $MAIN_EXEC"
+            codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$MAIN_EXEC" 2>&1
+            if [ $? -eq 0 ]; then
+              echo "✅ Main executable signed"
+            else
+              echo "❌❌❌ FAILED TO SIGN MAIN EXECUTABLE"
+              exit 1
+            fi
+          else
+            echo "❌❌❌ CRITICAL: Main executable not found at $MAIN_EXEC"
+            exit 1
+          fi
+          
+          echo ""
+          echo "----------------------------------------"
+          echo "Step 4: Signing entire .app bundle"
+          echo "----------------------------------------"
+          
+          echo "🔏 Signing bundle: $APP"
+          codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$APP" 2>&1
+          if [ $? -eq 0 ]; then
+            echo "✅ Bundle signed successfully"
+          else
+            echo "❌❌❌ FAILED TO SIGN BUNDLE"
+            exit 1
+          fi
+          
+          echo ""
+          echo "----------------------------------------"
+          echo "Step 5: Verifying signatures"
+          echo "----------------------------------------"
+          
+          echo "🔍 Verifying bundle signature..."
+          codesign --verify --deep --strict --verbose=2 "$APP" 2>&1
+          if [ $? -eq 0 ]; then
+            echo "✅ Signature verification passed"
+          else
+            echo "⚠️  Signature verification warning (checking details...)"
+            codesign --verify --verbose=4 "$APP" 2>&1
+          fi
+          
+          echo ""
+          echo "🔍 Checking for Team ID consistency..."
+          codesign -dv "$APP" 2>&1 | grep "TeamIdentifier"
+          
+          echo ""
+          echo "🔍 Gatekeeper assessment..."
+          spctl -a -t exec -vvv "$APP" 2>&1 || echo "⚠️  Gatekeeper check failed (expected until notarized)"
+          
+          echo ""
+          echo "========================================"
+          echo "✅ .APP BUNDLE SIGNING COMPLETE"
+          echo "========================================"
+
+      - name: 🔏 Sign CLI binary
+        env:
+          MAC_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: |
+          set -e
+          echo "========================================"
+          echo "🔏 SIGNING CLI BINARY"
+          echo "========================================"
+          echo "📅 Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+          
+          CLI="dist/ArcaneAuditorCLI"
+          
+          if [ -f "$CLI" ]; then
+            echo "📄 Found CLI binary: $CLI"
+            echo "   Size: $(du -h "$CLI" | cut -f1)"
+            echo "   Type: $(file "$CLI")"
+            
+            echo ""
+            echo "🔧 Ensuring CLI is executable..."
+            chmod +x "$CLI"
+            ls -l "$CLI"
+            echo ""
+            
+            echo "🔏 Signing CLI binary..."
+            codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$CLI" 2>&1
+            if [ $? -eq 0 ]; then
+              echo "✅ CLI binary signed successfully"
+            else
+              echo "❌❌❌ FAILED TO SIGN CLI BINARY"
+              exit 1
+            fi
+            
+            echo ""
+            echo "🔍 Verifying CLI signature..."
+            codesign --verify --verbose=2 "$CLI" 2>&1
+            if [ $? -eq 0 ]; then
+              echo "✅ CLI signature verified"
+            else
+              echo "❌❌❌ CLI SIGNATURE VERIFICATION FAILED"
+              exit 1
+            fi
+            
+            echo ""
+            echo "🔍 Checking Team ID..."
+            codesign -dv "$CLI" 2>&1 | grep "TeamIdentifier"
+          else
+            echo "⚠️  CLI binary not found at $CLI"
+            echo "   Skipping CLI signing (may be expected)"
+          fi
+          
+          echo ""
+          echo "========================================"
+          echo "✅ CLI SIGNING COMPLETE (or skipped)"
+          echo "========================================"
+
+      - name: 🍏 Notarize & Staple .app
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          echo "========================================"
+          echo "🍏 NOTARIZING .APP BUNDLE"
+          echo "========================================"
+          echo "📅 Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+          echo "🎯 Target: dist/ArcaneAuditor.app"
+          echo ""
+          
+          ./scripts/notarize.sh dist/ArcaneAuditor.app
+          
+          if [ $? -eq 0 ]; then
+            echo ""
+            echo "========================================"
+            echo "✅ .APP NOTARIZATION COMPLETE"
+            echo "========================================"
+          else
+            echo ""
+            echo "❌❌❌ NOTARIZATION FAILED ❌❌❌"
+            echo "Check notarization logs for details"
+            exit 1
+          fi
+
+      - name: 🍏 Sign CLI bundle (all dylibs + executable)
+        env:
+          MAC_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: |
+          echo "========================================"
+          echo "🔏 SIGNING CLI BUNDLE"
+          echo "========================================"
+          echo "📅 Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+          echo ""
+          
+          CLI_DIR="dist/ArcaneAuditorCLI"
+          CLI_BINARY="$CLI_DIR/ArcaneAuditorCLI"
+          
+          if [ ! -d "$CLI_DIR" ]; then
+            echo "⚠️  CLI directory not found at $CLI_DIR"
+            echo "   Skipping CLI signing"
+          else
+            echo "📂 CLI bundle found: $CLI_DIR"
+            echo "🔑 Signing identity: $MAC_IDENTITY"
+            echo ""
+            
+            # Sign all dylibs first (most important for Team ID consistency)
+            echo "🔏 Signing all .dylib files..."
+            find "$CLI_DIR" -name "*.dylib" -type f | while read dylib; do
+              echo "   → $(basename "$dylib")"
+              codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$dylib" 2>&1 || {
+                echo "⚠️  Failed to sign $(basename "$dylib"), continuing..."
+              }
+            done
+            
+            # Sign .so files
+            echo ""
+            echo "🔏 Signing all .so files..."
+            find "$CLI_DIR" -name "*.so" -type f | while read so; do
+              echo "   → $(basename "$so")"
+              codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$so" 2>&1 || {
+                echo "⚠️  Failed to sign $(basename "$so"), continuing..."
+              }
+            done
+            
+            # Sign any frameworks
+            echo ""
+            echo "🔏 Signing framework bundles..."
+            find "$CLI_DIR" -name "*.framework" -type d | while read framework; do
+              echo "   → $(basename "$framework")"
+              codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$framework" 2>&1 || {
+                echo "⚠️  Failed to sign $(basename "$framework"), continuing..."
+              }
+            done
+            
+            # Finally, sign the main executable
+            echo ""
+            echo "🔏 Signing main executable..."
+            chmod +x "$CLI_BINARY"
+            codesign --force --options runtime --timestamp --sign "$MAC_IDENTITY" "$CLI_BINARY" 2>&1
+            
+            if [ $? -eq 0 ]; then
+              echo "✅ Main executable signed successfully"
+            else
+              echo "❌❌❌ FAILED TO SIGN MAIN EXECUTABLE"
+              exit 1
+            fi
+            
+            # Verify
+            echo ""
+            echo "🔍 Verifying main executable signature..."
+            codesign --verify --verbose=2 "$CLI_BINARY" 2>&1
+            if [ $? -eq 0 ]; then
+              echo "✅ CLI signature verified"
+              
+              # Check Team ID
+              echo ""
+              echo "🔍 Checking Team ID..."
+              TEAM_ID=$(codesign -dvv "$CLI_BINARY" 2>&1 | grep "TeamIdentifier" | cut -d= -f2)
+              echo "   Team ID: $TEAM_ID"
+              
+              # Check a sample dylib
+              SAMPLE_DYLIB=$(find "$CLI_DIR" -name "libpython*.dylib" | head -n 1)
+              if [ -n "$SAMPLE_DYLIB" ]; then
+                DYLIB_TEAM=$(codesign -dvv "$SAMPLE_DYLIB" 2>&1 | grep "TeamIdentifier" | cut -d= -f2)
+                echo "   Sample dylib Team ID: $DYLIB_TEAM"
+                
+                if [ "$TEAM_ID" = "$DYLIB_TEAM" ]; then
+                  echo "✅ Team IDs match!"
+                else
+                  echo "⚠️  WARNING: Team ID mismatch detected"
+                fi
+              fi
+            else
+              echo "❌❌❌ CLI SIGNATURE VERIFICATION FAILED"
+              exit 1
+            fi
+            
+            echo ""
+            echo "========================================"
+            echo "✅ CLI BUNDLE SIGNING COMPLETE"
+            echo "========================================"
+          fi
+
+      - name: 🍏 Notarize CLI (zipped bundle)
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          CLI_DIR="dist/ArcaneAuditorCLI"
+          CLI_BINARY="$CLI_DIR/ArcaneAuditorCLI"
+          
+          if [ -d "$CLI_DIR" ]; then
+            echo "========================================"
+            echo "🍏 NOTARIZING CLI BUNDLE"
+            echo "========================================"
+            echo "📅 Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "🎯 Target: $CLI_DIR"
+            echo ""
+            
+            # Create a zip of the entire CLI bundle for notarization
+            echo "📦 Creating zip archive..."
+            ditto -c -k --keepParent "$CLI_DIR" "ArcaneAuditorCLI.zip"
+            
+            ZIP_SIZE=$(du -h "ArcaneAuditorCLI.zip" | cut -f1)
+            echo "✅ Created ArcaneAuditorCLI.zip [$ZIP_SIZE]"
+            echo ""
+            
+            # Submit for notarization
+            echo "📤 Submitting to Apple notary service..."
+            xcrun notarytool submit "ArcaneAuditorCLI.zip" \
+              --apple-id "$APPLE_ID" \
+              --team-id "$APPLE_TEAM_ID" \
+              --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+              --wait \
+              --timeout 30m \
+              2>&1
+            
+            if [ $? -eq 0 ]; then
+              echo ""
+              echo "✅ CLI notarization successful!"
+              echo ""
+              echo "========================================"
+              echo "✅ CLI NOTARIZATION COMPLETE"
+              echo "========================================"
+            else
+              echo ""
+              echo "❌❌❌ CLI NOTARIZATION FAILED ❌❌❌"
+              exit 1
+            fi
+          else
+            echo "⚠️  CLI bundle not found, skipping notarization"
+          fi
+
+      - name: 📦 Create & Sign DMG (from notarized .app)
+        env:
+          MAC_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: |
+          set -e
+          echo "📦 Creating clean, signed DMG..."
+          DMG_PATH="dist/ArcaneAuditor_macOS_Desktop.dmg"
+          APP_PATH="dist/ArcaneAuditor.app"
+          ICON_PATH="assets/icons/aa-mac.icns"
+
+          # 1️⃣ Create a temporary staging folder
+          mkdir -p dmg
+          cp -R "$APP_PATH" dmg/
+          ln -s /Applications dmg/Applications
+
+          # 2️⃣ Add a custom volume icon (survives signing)
+          if [ -f "$ICON_PATH" ]; then
+            echo "🎨 Adding volume icon..."
+            cp "$ICON_PATH" dmg/.VolumeIcon.icns
+          fi
+
+          # 3️⃣ Build a compressed DMG (UDZO = zlib-compressed read-only)
+          hdiutil create -volname "Arcane Auditor" \
+            -srcfolder dmg \
+            -ov -format UDZO "$DMG_PATH"
+
+          # 4️⃣ Clean up staging folder
+          rm -rf dmg
+
+          # 5️⃣ Sign the DMG (not the background; this one’s layoutless)
+          echo "🔏 Signing DMG..."
+          codesign --force --timestamp --sign "$MAC_IDENTITY" "$DMG_PATH"
+
+          # 6️⃣ Verify signature
+          echo "🔍 Verifying DMG signature..."
+          codesign --verify --verbose=2 "$DMG_PATH"
+
+          # 7️⃣ Show final size
+          echo "✅ DMG ready: $(du -h "$DMG_PATH" | cut -f1)"
+
+
+      - name: 🍏 Notarize DMG
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          echo "========================================"
+          echo "🍏 NOTARIZING DMG"
+          echo "========================================"
+          echo "📅 Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+          echo "🎯 Target: dist/ArcaneAuditor_macOS_Desktop.dmg"
+          echo ""
+          
+          ./scripts/notarize.sh dist/ArcaneAuditor_macOS_Desktop.dmg
+          
+          if [ $? -eq 0 ]; then
+            echo ""
+            echo "========================================"
+            echo "✅ DMG NOTARIZATION COMPLETE"
+            echo "========================================"
+          else
+            echo ""
+            echo "❌❌❌ DMG NOTARIZATION FAILED ❌❌❌"
+            echo "Check notarization logs for details"
+            exit 1
+          fi
+
+      - name: 🎯 Final verification
+        run: |
+          echo "========================================"
+          echo "🎯 FINAL VERIFICATION"
+          echo "========================================"
+          echo "📅 Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+          echo ""
+          
+          APP="dist/ArcaneAuditor.app"
+          CLI_DIR="dist/ArcaneAuditorCLI"
+          CLI_BINARY="$CLI_DIR/ArcaneAuditorCLI"
+          DMG="dist/ArcaneAuditor_macOS_Desktop.dmg"
+          
+          echo "🔍 Checking .app bundle..."
+          if stapler validate "$APP" 2>&1 | grep -q "The validate action worked"; then
+            echo "✅ .app is properly notarized and stapled"
+          else
+            echo "❌ .app validation failed"
+          fi
+          
+          if [ -d "$CLI_DIR" ] && [ -f "$CLI_BINARY" ]; then
+            echo ""
+            echo "🔍 Checking CLI bundle..."
+            if codesign --verify --verbose=2 "$CLI_BINARY" 2>&1; then
+              echo "✅ CLI is properly signed"
+              
+              # Check notarization status
+              if spctl --assess --type execute --verbose=2 "$CLI_BINARY" 2>&1 | grep -q "accepted"; then
+                echo "✅ CLI is notarized and will run without Gatekeeper warnings"
+              else
+                echo "⚠️  CLI may trigger Gatekeeper warnings (check notarization)"
+              fi
+            else
+              echo "❌ CLI signature invalid"
+            fi
+          elif [ -f "dist/ArcaneAuditorCLI" ]; then
+            echo ""
+            echo "🔍 Checking CLI (single-file mode)..."
+            if codesign --verify --verbose=2 "dist/ArcaneAuditorCLI" 2>&1; then
+              echo "✅ CLI is properly signed"
+            else
+              echo "❌ CLI signature invalid"
+            fi
+          else
+            echo ""
+            echo "⚠️  CLI not found (neither bundle nor single file)"
+          fi
+          
+          echo ""
+          echo "🔍 Checking DMG..."
+          if stapler validate "$DMG" 2>&1 | grep -q "The validate action worked"; then
+            echo "✅ DMG is properly notarized and stapled"
+          else
+            echo "❌ DMG validation failed"
+          fi
+          
+          echo ""
+          echo "========================================"
+          echo "📊 FINAL BUILD ARTIFACTS"
+          echo "========================================"
+          ls -lh dist/ || echo "No dist/ folder found"
+          
+          if [ -d "dist/ArcaneAuditorCLI" ]; then
+            echo ""
+            echo "📦 CLI Bundle contents:"
+            ls -lh dist/ArcaneAuditorCLI/ | head -n 15
+          fi
+          
+          echo ""
+          echo "========================================"
+          echo "🎉 macOS BUILD PIPELINE COMPLETE"
+          echo "========================================"
+
+      - name: 📦 Create CLI distribution zip
+        run: |
+          echo "========================================"
+          echo "📦 CREATING CLI DISTRIBUTION ZIP"
+          echo "========================================"
+          
+          CLI_DIR="dist/ArcaneAuditorCLI"
+          
+          if [ -d "$CLI_DIR" ]; then
+            echo "Creating ArcaneAuditor_macOS_CLI.zip for distribution..."
+            cd dist
+            zip -r ArcaneAuditor_macOS_CLI.zip ArcaneAuditorCLI/
+            cd ..
+            
+            ZIP_SIZE=$(du -h "dist/ArcaneAuditor_macOS_CLI.zip" | cut -f1)
+            echo "✅ Created distributable CLI zip [$ZIP_SIZE]"
+          else
+            echo "⚠️  CLI bundle not found, skipping zip creation"
+          fi
+
+      - name: 📦 Upload signed macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-macos
+          path: |
+            dist/*.dmg
+            dist/ArcaneAuditor.app
+            dist/ArcaneAuditor_macOS_CLI.zip
+
+      - name: 📎 Upload notarization logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notarization-logs
+          path: ./notary-logs/
+          retention-days: 7
+
+
+  # 🚀 PUBLISH RELEASE ---------------------------------------------------------
+  publish:
+    name: 🚀 Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: [windows-sign, mac-build-sign]
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: 📥 Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-files
+
+      - name: 🗃️ List release artifacts
+        run: |
+          echo "========================================"
+          echo "📦 RELEASE ARTIFACTS"
+          echo "========================================"
+          find release-files -type f | while read f; do
+            size=$(du -h "$f" | cut -f1)
+            echo "  📄 $f [$size]"
+          done
+          echo ""
+          echo "========================================"
+
+      - name: 🚀 Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-files/signed-windows/*.exe
+            release-files/signed-macos/*.dmg
+            release-files/signed-macos/ArcaneAuditor_macOS_CLI.zip
+          draft: true
+          prerelease: false
+          body: |
+            ## 🎉 Release ${{ github.ref_name }}
+            
+            Fully signed and notarized release built from tag `${{ github.ref_name }}`.
+            
+            ### 📦 Downloads
+            
+            **Windows:**
+            - `ArcaneAuditor.exe` - Desktop application (EV signed)
+            - `ArcaneAuditorCLI.exe` - Command-line tool (EV signed)
+            
+            **macOS:**
+            - `ArcaneAuditor_macOS_Desktop.dmg` - Desktop application installer (signed & notarized)
+            - `ArcaneAuditor_macOS_CLI.zip` - Command-line tool bundle (signed & notarized)
+            
+            **Using the CLI (macOS):**
+            1. Download and extract `ArcaneAuditor_macOS_CLI.zip`
+            2. Run from the extracted folder: `./ArcaneAuditorCLI/ArcaneAuditorCLI --help`
+            3. Optionally, add to PATH or create a symlink
+            
+            ### ✅ Verification
+            
+            All binaries have been:
+            - ✅ Code signed with valid certificates
+            - ✅ Timestamped for long-term validity
+            - ✅ Notarized by Apple (macOS)
+            - ✅ Verified before release
+            
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

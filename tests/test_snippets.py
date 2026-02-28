@@ -7,7 +7,7 @@ the deterministic code-context shown alongside each finding.
 import pytest
 from types import SimpleNamespace
 
-from web.server import extract_snippet, build_source_map
+from web.services.jobs import extract_snippet, build_source_map
 
 
 # --- Sample 10-line source for most tests ---

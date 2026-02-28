@@ -416,6 +416,9 @@ class PMDPreprocessor:
         """
         Preprocess newlines in PMD script blocks (<% %>) to make them JSON-safe.
         This handles the case where JSON contains PMD script blocks with literal newlines.
+        
+        IMPORTANT: This method preserves existing escape sequences (like \\n, \\t, etc.)
+        and only escapes actual newline characters that are not already escaped.
         """
         result = []
         i = 0
@@ -433,11 +436,53 @@ class PMDPreprocessor:
                 # Extract the script block content (without <% and %>)
                 script_content = code[i+2:end_pos]
                 
-                # Replace newlines in the script content with \n
-                escaped_content = script_content.replace('\n', '\\n').replace('\r', '\\r')
+                # Process newlines while preserving existing escape sequences
+                # We need to escape actual newline characters but preserve escape sequences
+                # like \n, \t, etc. that are already in the string
+                # Process character-by-character to correctly handle backslashes
+                
+                # Use a more careful approach: iterate and only escape newlines
+                # that are NOT preceded by an odd number of backslashes
+                escaped_parts = []
+                i = 0
+                while i < len(script_content):
+                    char = script_content[i]
+                    
+                    if char == '\n':
+                        # Count consecutive backslashes before this position
+                        backslash_count = 0
+                        j = i - 1
+                        while j >= 0 and script_content[j] == '\\':
+                            backslash_count += 1
+                            j -= 1
+                        
+                        # If even number (or zero) of backslashes, this is an actual newline to escape
+                        # If odd number, it's already escaped (part of \n sequence), preserve it
+                        if backslash_count % 2 == 0:
+                            escaped_parts.append('\\n')
+                        else:
+                            escaped_parts.append(char)
+                        i += 1
+                    elif char == '\r':
+                        # Same logic for carriage return
+                        backslash_count = 0
+                        j = i - 1
+                        while j >= 0 and script_content[j] == '\\':
+                            backslash_count += 1
+                            j -= 1
+                        if backslash_count % 2 == 0:
+                            escaped_parts.append('\\r')
+                        else:
+                            escaped_parts.append(char)
+                        i += 1
+                    else:
+                        escaped_parts.append(char)
+                        i += 1
+                
+                escaped_content_str = ''.join(escaped_parts)
                 
                 # Add the processed script block
-                result.append('<%' + escaped_content + '%>')
+                result.append('<%' + escaped_content_str + '%>')
                 
                 # Move past the script block
                 i = end_pos + 2

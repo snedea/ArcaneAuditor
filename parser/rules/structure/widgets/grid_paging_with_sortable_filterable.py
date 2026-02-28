@@ -29,6 +29,63 @@ class GridPagingWithSortableFilterableRule(StructureRuleBase):
     ID = "GridPagingWithSortableFilterableRule"
     DESCRIPTION = "Detects grids with paging and sortableAndFilterable columns which can cause performance issues"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Combining paging with sortable/filterable columns can cause severe performance degradation due to how data is fetched and processed. This combination forces the system to fetch, sort, and filter data on every page change, leading to slow response times and potential timeout issues.''',
+        'catches': [
+            'Grids with `autoPaging: true` OR `pagingInfo` present',
+            'AND any column with `sortableAndFilterable: true`'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "type": "grid",
+  "id": "workerGrid",
+  "autoPaging": true,  // ❌ Paging enabled
+  "columns": [
+    {
+      "columnId": "workerName",
+      "sortableAndFilterable": true  // ❌ Sortable/filterable with paging
+    }
+  ]
+}
+```
+
+**Fix:**
+
+```json
+{
+  "type": "grid",
+  "id": "workerGrid",
+  "autoPaging": true,  // ✅ Keep paging
+  "columns": [
+    {
+      "columnId": "workerName",
+      "sortableAndFilterable": false  // ✅ Disable sortable/filterable when using paging
+    }
+  ]
+}
+```
+
+**OR remove paging if sorting/filtering is required:**
+
+```json
+{
+  "type": "grid",
+  "id": "workerGrid",
+  // ✅ No paging
+  "columns": [
+    {
+      "columnId": "workerName",
+      "sortableAndFilterable": true  // ✅ Can use sortable/filterable without paging
+    }
+  ]
+}
+```''',
+        'recommendation': 'Either remove paging from grids that need sortable/filterable columns, or disable sortableAndFilterable on all columns when using paging. This combination causes severe performance issues.'
+    }
     
     def get_description(self) -> str:
         """Get rule description."""
@@ -47,6 +104,14 @@ class GridPagingWithSortableFilterableRule(StructureRuleBase):
                 for widget, path, index, parent_type, container_name in self.traverse_presentation_structure(section_data, section_name):
                     if isinstance(widget, dict) and widget.get('type') == 'grid':
                         yield from self._check_grid_paging_and_sortable(widget, pmd_model, section_name, path)
+            elif isinstance(section_data, list):
+                # Handle tabs list (tabs is a list of section widgets)
+                for i, tab_item in enumerate(section_data):
+                    if isinstance(tab_item, dict):
+                        tab_path = f"{section_name}.{i}"
+                        for widget, path, index, parent_type, container_name in self.traverse_presentation_structure(tab_item, tab_path):
+                            if isinstance(widget, dict) and widget.get('type') == 'grid':
+                                yield from self._check_grid_paging_and_sortable(widget, pmd_model, section_name, path)
     
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze POD model for grids with paging and sortableAndFilterable columns."""

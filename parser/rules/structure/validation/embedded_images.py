@@ -29,6 +29,33 @@ class EmbeddedImagesRule(StructureRuleBase):
     ID = "EmbeddedImagesRule"
     DESCRIPTION = "Detects embedded images that should be stored as external files"
     SEVERITY = "ADVICE"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Base64-encoded images bloat your PMD/Pod file sizes dramatically (often 30% larger than the image itself) and make files harder to version control since small image changes create large text diffs. External images load faster, cache better, and keep your code files focused on logic. This significantly improves page load performance and makes code reviews manageable.''',
+        'catches': [
+            'Base64 encoded images embedded directly in files',
+            'Images that should be stored as external files'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "type": "image",
+  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..." // ❌ Embedded image
+}
+```
+
+**Fix:**
+
+```json
+{
+  "type": "image", 
+  "url": "http://example.com/images/logo.png" // ✅ External image file
+}
+```''',
+        'recommendation': 'Store images as external files and reference them by URL instead of embedding base64-encoded data. This reduces file size, improves page load performance, and makes version control more manageable.'
+    }
     
     
     def get_description(self) -> str:

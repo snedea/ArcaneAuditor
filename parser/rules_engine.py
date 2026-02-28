@@ -1,5 +1,7 @@
 import inspect
 import pkgutil
+import importlib.util
+import os
 from typing import List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -8,6 +10,7 @@ from .models import ProjectContext
 from . import rules
 from .rules.base import Rule, Finding
 from .config import ArcaneAuditorConfig
+from utils.arcane_paths import get_rule_dirs
 
 class RulesEngine:
     """Discovers, loads, and runs all analysis rules."""
@@ -18,38 +21,73 @@ class RulesEngine:
 
     def _discover_rules(self) -> List[Rule]:
         """
-        Automatically finds and instantiates all Rule classes in the 'rules' package.
-        Only includes rules that are enabled in the configuration.
+        Automatically finds and instantiates all Rule classes from both
+        built-in and user-defined rule directories.
+        
+        Note: This method runs once at initialization. If dynamic rule reloading
+        is implemented in the future, thread safety should be considered.
         """
         discovered_rules = []
-        # pkgutil.walk_packages allows us to find all modules in a package
-        for _, name, _ in pkgutil.walk_packages(rules.__path__, f"{rules.__name__}."):
-            # Import the module
-            module = __import__(name, fromlist="dummy")
-            # Find all classes in the module that are subclasses of Rule
-            for member_name, member_obj in inspect.getmembers(module, inspect.isclass):
-                if issubclass(member_obj, Rule) and member_obj is not Rule:
-                    # Skip abstract classes
-                    if hasattr(member_obj, '__abstractmethods__') and member_obj.__abstractmethods__:
-                        continue
-                    # Skip the base Rule class itself
-                    if member_obj.__name__ == 'Rule':
-                        continue
-                    
-                    # Skip example rules (flagged with IS_EXAMPLE = True)
-                    if hasattr(member_obj, 'IS_EXAMPLE') and member_obj.IS_EXAMPLE:
-                        continue
-                    
-                    # Check if rule is enabled in configuration using class name
-                    if self.config.is_rule_enabled(member_obj.__name__):
-                        print(f"Discovered rule: {member_obj.__name__}")
-                        rule_instance = member_obj()
-                        # Apply configuration overrides
-                        self._apply_rule_config(rule_instance)
-                        discovered_rules.append(rule_instance)
-                    else:
-                        print(f"Skipping disabled rule: {member_obj.__name__}")
+
+        # 1. Load built-in rules using the original working approach
+        self._load_builtin_rules(discovered_rules)
+        
+        # 2. Load user rules from custom directories
+        self._load_user_rules(discovered_rules)
+
         return discovered_rules
+
+    def _load_builtin_rules(self, discovered_rules: List[Rule]) -> None:
+        """Load built-in rules using the original pkgutil approach."""
+        # Use the original working approach for built-in rules
+        for _, name, _ in pkgutil.walk_packages(rules.__path__, f"{rules.__name__}."):
+            try:
+                module = __import__(name, fromlist="dummy")
+                self._extract_rules_from_module(module, discovered_rules, "built-in")
+            except Exception as e:
+                print(f"[RulesEngine] Error loading built-in rule {name}: {e}")
+
+    def _load_user_rules(self, discovered_rules: List[Rule]) -> None:
+        """Load user rules from custom directories."""
+        rule_dirs = get_rule_dirs()
+        for rule_dir in rule_dirs:
+            # Only process user custom directories (not built-in)
+            # Use basename check to avoid false positives if "custom" appears elsewhere in path
+            if os.path.basename(rule_dir) == "user" and os.path.isdir(rule_dir):
+                for file in os.listdir(rule_dir):
+                    if file.endswith(".py") and not file.startswith("__"):
+                        path = os.path.join(rule_dir, file)
+                        mod_name = os.path.splitext(file)[0]
+                        try:
+                            spec = importlib.util.spec_from_file_location(mod_name, path)
+                            if spec and spec.loader:
+                                mod = importlib.util.module_from_spec(spec)
+                                spec.loader.exec_module(mod)
+                                self._extract_rules_from_module(mod, discovered_rules, "user")
+                        except Exception as e:
+                            print(f"[RulesEngine] Error loading user rule {file} from {rule_dir}: {e}")
+
+    def _extract_rules_from_module(self, module, discovered_rules: List[Rule], rule_type: str) -> None:
+        """Extract and instantiate rules from a module."""
+        for member_name, member_obj in inspect.getmembers(module, inspect.isclass):
+            if issubclass(member_obj, Rule) and member_obj is not Rule:
+                # Skip abstract classes
+                if hasattr(member_obj, '__abstractmethods__') and member_obj.__abstractmethods__:
+                    continue
+                
+                # Skip example rules (flagged with IS_EXAMPLE = True)
+                if hasattr(member_obj, 'IS_EXAMPLE') and member_obj.IS_EXAMPLE:
+                    continue
+                
+                # Check if rule is enabled in configuration using class name
+                if self.config.is_rule_enabled(member_obj.__name__):
+                    print(f"[RulesEngine] Discovered {rule_type} rule: {member_obj.__name__}")
+                    rule_instance = member_obj()
+                    # Apply configuration overrides
+                    self._apply_rule_config(rule_instance)
+                    discovered_rules.append(rule_instance)
+                else:
+                    print(f"[RulesEngine] Skipping disabled {rule_type} rule: {member_obj.__name__}")
     
     def _apply_rule_config(self, rule: Rule) -> None:
         """Apply configuration overrides to a rule instance."""

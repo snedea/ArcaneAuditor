@@ -1,9 +1,11 @@
 // Main application orchestration for Arcane Auditor web interface
 
-import { ConfigManager } from './config-manager.js';
-import { ResultsRenderer } from './results-renderer.js';
+import { ConfigManager } from './config/manager.js';
+import { ThemeManager } from './theme-manager.js';
+import { ResultsManager } from './results/manager.js';
 import { downloadResults, getLastSortBy, getLastSortFilesBy } from './utils.js';
 import { showMagicalAnalysisComplete } from './magic-mode.js';
+import { DialogManager } from './dialog-manager.js';
 
 class ArcaneAuditorApp {
     constructor() {
@@ -19,7 +21,7 @@ class ArcaneAuditorApp {
         this.originalFileContents = new Map();  // file_path → original content
         this.resolvedFindings = new Set();       // set of original finding indices that are resolved
         this.autofixInProgress = new Set();      // finding indices currently being auto-fixed
-        this.diffWarnings = new Map();              // findingIndex → diff_warning object from autofix
+        this.diffWarnings = new Map();           // findingIndex → diff_warning object from autofix
         this.isRevalidating = false;
         this.lastRevalidationFindingCount = null; // total findings from latest revalidation (null = not yet run)
 
@@ -30,13 +32,78 @@ class ArcaneAuditorApp {
             sortFilesBy: getLastSortFilesBy()
         };
         
+        this.updatePreferences = {
+            enabled: false,
+            first_run_completed: false
+        };
+        this.ruleEvolutionPreferences = {
+            new_rule_default_enabled: true
+        };
+        this.exportPreferences = {
+            excel_single_tab: false
+        };
+        this.updatePreferencesPromise = null;
+        this.ruleEvolutionPreferencesPromise = null;
+        this.exportPreferencesPromise = null;
+        this.versionRetryAttempts = 0;
+        this.versionRetryTimer = null;
+        this.settingsPanelElements = null;
+
         // Initialize managers
         this.configManager = new ConfigManager(this);
-        this.resultsRenderer = new ResultsRenderer(this);
+        this.resultsManager = new ResultsManager(this);
         
         this.initializeEventListeners();
-        this.configManager.initializeTheme();
+
+        // Initialize theme manager
+        this.themeManager = new ThemeManager();
+        this.themeManager.initialize();
+
+        // Fix: Force-remove focus from the Grimoire button on Desktop App load
+        // We use a timeout to let the desktop wrapper finish its initial focus routine first.
+        setTimeout(() => {
+            const grimoireBtn = document.getElementById('global-grimoire-btn');
+            if (grimoireBtn) {
+                grimoireBtn.blur(); // Remove focus
+                grimoireBtn.classList.remove('hover'); // Force remove any sticky hover classes
+            }
+            // Optional: Shift focus to the body so nothing is highlighted
+            document.body.focus(); 
+        }, 500); // 500ms delay is usually the sweet spot
+
+        // Load configurations
         this.configManager.loadConfigurations();
+
+        // Load update preferences then version asynchronously after initialization
+        this.updatePreferencesPromise = this.loadUpdatePreferences();
+        this.updatePreferencesPromise.catch(err => console.error('Failed to load update preferences:', err));
+        this.ruleEvolutionPreferencesPromise = this.loadRuleEvolutionPreferences();
+        this.ruleEvolutionPreferencesPromise.catch(err => console.error('Failed to load rule evolution preferences:', err));
+        this.exportPreferencesPromise = this.loadExportPreferences();
+        this.exportPreferencesPromise.catch(err => console.error('Failed to load export preferences:', err));
+        this.loadVersion().catch(err => console.error('Failed to load version:', err));
+
+        // Initialize settings panel after DOM is loaded
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', () => this.initializeSettingsPanel());
+        } else {
+            this.initializeSettingsPanel();
+        }
+
+        if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+            window.addEventListener('pywebviewready', () => {
+                try {
+                    this.updatePreferencesPromise = this.loadUpdatePreferences();
+                    this.updatePreferencesPromise
+                        .catch(err => console.error('Failed to refresh update preferences:', err))
+                        .finally(() => {
+                            this.loadVersion().catch(err => console.error('Failed to refresh version:', err));
+                        });
+                } catch (error) {
+                    console.error('pywebviewready handler error:', error);
+                }
+            }, { once: false });
+        }
     }
 
     initializeEventListeners() {
@@ -88,46 +155,231 @@ class ArcaneAuditorApp {
             if (e.target.closest('.file-header')) {
                 const filePath = e.target.closest('.file-header').dataset.filePath;
                 if (filePath) {
-                    this.resultsRenderer.toggleFileExpansion(filePath);
+                    this.resultsManager.toggleFileExpansion(filePath);
                 }
             }
         });
+    }
+
+    initializeSettingsPanel() {
+        const settingsButton = document.getElementById('settings-toggle');
+        const settingsPanel = document.getElementById('settings-panel');
+        const updateCheckbox = document.getElementById('settings-update-checkbox');
+        const newRuleDefaultCheckbox = document.getElementById('settings-new-rule-default-checkbox');
+        const excelSingleTabCheckbox = document.getElementById('setting-excel-single-tab');
+
+        if (!settingsButton || !settingsPanel) {
+            return;
+        }
+
+        const openPanel = () => {
+            settingsButton.setAttribute('aria-expanded', 'true');
+            settingsPanel.hidden = false;
+            settingsPanel.setAttribute('aria-hidden', 'false');
+        };
+
+        const closePanel = () => {
+            settingsButton.setAttribute('aria-expanded', 'false');
+            settingsPanel.hidden = true;
+            settingsPanel.setAttribute('aria-hidden', 'true');
+        };
+
+        const isOpen = () => settingsButton.getAttribute('aria-expanded') === 'true';
+
+        settingsButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (isOpen()) {
+                closePanel();
+            } else {
+                openPanel();
+            }
+        });
+
+        settingsPanel.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+
+        const handleDocumentClick = (event) => {
+            if (!settingsPanel.contains(event.target) && !settingsButton.contains(event.target) && isOpen()) {
+                closePanel();
+            }
+        };
+
+        document.addEventListener('click', handleDocumentClick);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && isOpen()) {
+                closePanel();
+                settingsButton.focus();
+            }
+        });
+
+        if (updateCheckbox) {
+            updateCheckbox.addEventListener('change', (event) => {
+                const { checked } = event.target;
+                this.persistUpdatePreference(checked);
+            });
+        }
+
+        if (newRuleDefaultCheckbox) {
+            newRuleDefaultCheckbox.addEventListener('change', (event) => {
+                const { checked } = event.target;
+                this.persistRuleEvolutionPreference(checked);
+            });
+        }
+
+        if (excelSingleTabCheckbox) {
+            excelSingleTabCheckbox.addEventListener('change', (event) => {
+                const { checked } = event.target;
+                this.persistExportPreference(checked);
+            });
+        }
+
+        this.settingsPanelElements = {
+            button: settingsButton,
+            panel: settingsPanel,
+            updateCheckbox,
+            newRuleDefaultCheckbox,
+            excelSingleTabCheckbox
+        };
+
+        // Ensure panel starts hidden
+        closePanel();
+        this.syncUpdatePreferenceUI();
+        this.syncRuleEvolutionPreferenceUI();
+        this.syncExportPreferenceUI();
+
+        // Prevent initial focus outline on load unless the user tabs to the control
+        setTimeout(() => {
+            if (settingsButton === document.activeElement) {
+                settingsButton.blur();
+            }
+        }, 50);
+    }
+
+    syncPreferenceUI(key, value) {
+        const checkbox = this.settingsPanelElements[key];
+        if (!checkbox) {
+            return;
+        }
+        checkbox.checked = Boolean(value);
+    }
+
+    syncUpdatePreferenceUI() {
+        this.syncPreferenceUI('updateCheckbox', this.updatePreferences.enabled);
+    }
+
+    syncRuleEvolutionPreferenceUI() {
+        this.syncPreferenceUI('newRuleDefaultCheckbox', this.ruleEvolutionPreferences.new_rule_default_enabled);
+    }
+
+    syncExportPreferenceUI() {
+        this.syncPreferenceUI('excelSingleTabCheckbox', this.exportPreferences.excel_single_tab);
+    }
+
+    async persistUpdatePreference(enabled) {
+        const checkbox = this.settingsPanelElements.updateCheckbox;
+        const previous = this.updatePreferences.enabled;
+        this.updatePreferences.enabled = Boolean(enabled);
+
+        checkbox.disabled = true;
+
+        try {
+            if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_update_preferences === 'function') {
+                const result = await window.pywebview.api.set_update_preferences(enabled);
+                if (result && result.success === false) {
+                    throw new Error(result.error || 'Failed to save preferences');
+                }
+            } else {
+                const response = await fetch('/api/update-preferences', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ enabled })
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to update preferences:', error);
+            this.updatePreferences.enabled = previous;
+            this.syncUpdatePreferenceUI();
+            this.showToast('❌ Failed to update settings. Please try again.', 'error');
+        } finally {
+            checkbox.disabled = false;
+        }
     }
 
     // Navigation methods
     showUpload() {
         this.hideAllSections();
         document.getElementById('upload-section').style.display = 'block';
+        
+        // Show config toolbar on analyze page
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'flex';
+        }
+        
+        const configSectionContainer = document.querySelector('.config-section-container');
+        if (configSectionContainer) {
+            configSectionContainer.style.display = 'block';
+        }
     }
 
     showLoading() {
         this.hideAllSections();
         document.getElementById('loading-section').style.display = 'block';
+        
+        // Hide config toolbar when analysis is running
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'none';
+        }
+        
+        const configSectionContainer = document.querySelector('.config-section-container');
+        if (configSectionContainer) {
+            configSectionContainer.style.display = 'none';
+        }
     }
 
     showResults() {
         this.hideAllSections();
         document.getElementById('results-section').style.display = 'block';
-
+        
+        // Hide config toolbar on results page
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'none';
+        }
+        
+        const configSectionContainer = document.querySelector('.config-section-container');
+        if (configSectionContainer) {
+            configSectionContainer.style.display = 'none';
+        }
+        
         // Initialize filtered findings with current result findings
         if (this.currentResult) {
             this.filteredFindings = [...this.currentResult.findings];
         }
 
-        // Initialize file contents for inline editor
+        // Initialize file contents for autofix
         this.initializeFileContents();
 
         // Display context awareness panel if available
         if (this.currentResult && this.currentResult.context) {
-            this.resultsRenderer.displayContext(this.currentResult.context);
+            this.resultsManager.displayContext(this.currentResult.context);
         }
 
-        this.resultsRenderer.renderResults();
+        this.resultsManager.renderResults();
 
         // Show magical analysis completion if in magic mode
         showMagicalAnalysisComplete(this.currentResult);
 
-        // Auto-trigger AI explanations if there are findings
+        // Fire AI explain in background
         if (this.currentResult && this.currentResult.findings.length > 0) {
             this.explainWithAI();
         }
@@ -139,6 +391,196 @@ class ArcaneAuditorApp {
         const errorMessage = document.getElementById('error-message');
         errorMessage.textContent = message;
         errorSection.style.display = 'block';
+        
+        // Show config toolbar on analyze page (error is part of analyze flow)
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'flex';
+        }
+    }
+
+    async ensureUpdatePreferencesLoaded() {
+        if (this.updatePreferencesPromise) {
+            try {
+                await this.updatePreferencesPromise;
+            } catch (error) {
+                console.error('Failed waiting for update preferences:', error);
+            } finally {
+                this.updatePreferencesPromise = null;
+            }
+        }
+    }
+
+    async loadUpdatePreferences() {
+        try {
+            let data = null;
+            const hasDesktopBridge = (
+                window.pywebview &&
+                window.pywebview.api &&
+                typeof window.pywebview.api.get_update_preferences === 'function'
+            );
+
+            if (hasDesktopBridge) {
+                data = await window.pywebview.api.get_update_preferences();
+            } else {
+            const response = await fetch('/api/update-preferences');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+                data = await response.json();
+            }
+
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid update preferences payload');
+            }
+
+            if (typeof data.enabled === 'boolean') {
+                this.updatePreferences.enabled = data.enabled;
+            }
+            if (typeof data.first_run_completed === 'boolean') {
+                this.updatePreferences.first_run_completed = data.first_run_completed;
+            }
+            this.syncUpdatePreferenceUI();
+        } catch (error) {
+            console.error('Failed to load update preferences:', error);
+            // Keep defaults (disabled) if we can't load preferences
+            this.updatePreferences.enabled = false;
+            this.syncUpdatePreferenceUI();
+        }
+    }
+
+    async loadRuleEvolutionPreferences() {
+        try {
+            const response = await fetch('/api/rule-evolution-preferences');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid rule evolution preferences payload');
+            }
+
+            if (typeof data.new_rule_default_enabled === 'boolean') {
+                this.ruleEvolutionPreferences.new_rule_default_enabled = data.new_rule_default_enabled;
+            }
+            this.syncRuleEvolutionPreferenceUI();
+        } catch (error) {
+            console.error('Failed to load rule evolution preferences:', error);
+            // Keep defaults (enabled) if we can't load preferences
+            this.ruleEvolutionPreferences.new_rule_default_enabled = true;
+            this.syncRuleEvolutionPreferenceUI();
+        }
+    }
+
+    async persistRuleEvolutionPreference(enabled) {
+        const checkbox = this.settingsPanelElements.newRuleDefaultCheckbox;
+        const previous = this.ruleEvolutionPreferences.new_rule_default_enabled;
+        this.ruleEvolutionPreferences.new_rule_default_enabled = Boolean(enabled);
+
+        checkbox.disabled = true;
+
+        try {
+            const response = await fetch('/api/rule-evolution-preferences', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ new_rule_default_enabled: enabled })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || `HTTP ${response.status}`);
+            }
+            
+            if (data.success !== true) {
+                throw new Error('Save operation did not return success');
+            }
+            
+            // Ensure UI is in sync after successful save
+            this.syncRuleEvolutionPreferenceUI();
+            console.log('Rule evolution preference saved:', enabled);
+        } catch (error) {
+            console.error('Failed to update rule evolution preferences:', error);
+            this.ruleEvolutionPreferences.new_rule_default_enabled = previous;
+            this.syncRuleEvolutionPreferenceUI();
+            this.showToast(`❌ Failed to update settings: ${error.message}`, 'error');
+        } finally {
+            checkbox.disabled = false;
+        }
+    }
+
+    async loadExportPreferences() {
+        try {
+            const response = await fetch('/api/export-preferences');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid export preferences payload');
+            }
+
+            if (typeof data.excel_single_tab === 'boolean') {
+                this.exportPreferences.excel_single_tab = data.excel_single_tab;
+            }
+            this.syncExportPreferenceUI();
+        } catch (error) {
+            console.error('Failed to load export preferences:', error);
+            // Keep defaults (disabled) if we can't load preferences
+            this.exportPreferences.excel_single_tab = false;
+            this.syncExportPreferenceUI();
+        }
+    }
+
+    async persistExportPreference(enabled) {
+        const checkbox = this.settingsPanelElements.excelSingleTabCheckbox;
+        const previous = this.exportPreferences.excel_single_tab;
+        this.exportPreferences.excel_single_tab = Boolean(enabled);
+
+        checkbox.disabled = true;
+
+        try {
+            const response = await fetch('/api/export-preferences', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ excel_single_tab: enabled })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || `HTTP ${response.status}`);
+            }
+            
+            if (data.success !== true) {
+                throw new Error('Save operation did not return success');
+            }
+            
+            // Ensure UI is in sync after successful save
+            this.syncExportPreferenceUI();
+            console.log('Export preference saved:', enabled);
+        } catch (error) {
+            console.error('Failed to update export preferences:', error);
+            this.exportPreferences.excel_single_tab = previous;
+            this.syncExportPreferenceUI();
+            this.showToast(`❌ Failed to update settings: ${error.message}`, 'error');
+        } finally {
+            checkbox.disabled = false;
+        }
+    }
+
+    resetVersionIndicator() {
+        const versionElement = document.getElementById('version-info');
+        if (!versionElement) return;
+        versionElement.classList.remove('update-available', 'pulse');
+        versionElement.style.cursor = 'default';
+        versionElement.onclick = null;
     }
 
     hideAllSections() {
@@ -147,7 +589,6 @@ class ArcaneAuditorApp {
         document.getElementById('error-section').style.display = 'none';
         document.getElementById('results-section').style.display = 'none';
         document.getElementById('context-section').style.display = 'none';
-        document.getElementById('ai-loading-fab').style.display = 'none';
     }
 
     // File handling methods
@@ -280,10 +721,6 @@ class ArcaneAuditorApp {
                 body: formData,
             });
 
-            if (response.status === 429) {
-                throw new Error('Rate limit reached — wait a minute before uploading again');
-            }
-
             const data = await response.json();
 
             if (response.ok) {
@@ -306,12 +743,22 @@ class ArcaneAuditorApp {
 
     async uploadAndAnalyze() {
         if (this.selectedFiles.length === 0) {
-            alert('Please select a file or files to analyze');
+            const message = 'Please select a file or files to analyze';
+            if (DialogManager && typeof DialogManager.showAlert === 'function') {
+                DialogManager.showAlert(message);
+            } else {
+                alert(message);
+            }
             return;
         }
 
         if (!this.configManager.selectedConfig) {
-            alert('Please select a configuration');
+            const message = 'Please select a configuration';
+            if (DialogManager && typeof DialogManager.showAlert === 'function') {
+                DialogManager.showAlert(message);
+            } else {
+                alert(message);
+            }
             return;
         }
 
@@ -331,10 +778,6 @@ class ArcaneAuditorApp {
                 method: 'POST',
                 body: formData
             });
-
-            if (response.status === 429) {
-                throw new Error('Rate limit reached — wait a minute before uploading again');
-            }
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -404,33 +847,70 @@ class ArcaneAuditorApp {
 
     // Utility methods
     async downloadResults() {
-        await downloadResults(this.currentResult);
+        const result = await downloadResults(this.currentResult);
+        
+        // Show toast notification on success
+        if (result && result.success) {
+            if (window.pywebview) {
+                // Desktop app - show file path in toast
+                this.showToast(`✅ File saved to Downloads folder: ${result.filename}`, 'success');
+            } else {
+                // Web browser - generic success message
+                this.showToast('✅ Download complete!', 'success');
+            }
+        } else if (result && !result.success) {
+            // Show error toast if download failed
+            this.showToast('❌ Download failed. Please try again.', 'error');
+        }
+    }
+
+    showToast(message, type = 'info') {
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `arcane-toast ${type}`;
+        toast.textContent = message;
+        
+        // Add to body
+        document.body.appendChild(toast);
+        
+        // Trigger animation by adding 'show' class after a brief delay
+        setTimeout(() => toast.classList.add('show'), 10);
+        
+        // Remove after 4 seconds
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
     }
 
     // Filter and sort methods (delegated to results renderer)
     updateSeverityFilter(value) {
-        this.resultsRenderer.updateSeverityFilter(value);
+        this.resultsManager.updateSeverityFilter(value);
     }
 
     updateFileTypeFilter(value) {
-        this.resultsRenderer.updateFileTypeFilter(value);
+        this.resultsManager.updateFileTypeFilter(value);
     }
 
     updateSortBy(value) {
-        this.resultsRenderer.updateSortBy(value);
+        this.resultsManager.updateSortBy(value);
     }
 
     updateSortFilesBy(value) {
-        this.resultsRenderer.updateSortFilesBy(value);
+        this.resultsManager.updateSortFilesBy(value);
     }
 
     expandAllFiles() {
-        this.resultsRenderer.expandAllFiles();
+        this.resultsManager.expandAllFiles();
     }
 
     collapseAllFiles() {
-        this.resultsRenderer.collapseAllFiles();
+        this.resultsManager.collapseAllFiles();
     }
+
+    // -----------------------------------------------------------------------
+    // AI Features: Explain, Autofix, Revalidate, Export
+    // -----------------------------------------------------------------------
 
     static AI_LOADING_PHRASES = [
         'Scrying the code',
@@ -460,8 +940,8 @@ class ArcaneAuditorApp {
 
         const fab = document.getElementById('ai-loading-fab');
         const label = document.getElementById('ai-loading-text');
+        if (!fab || !label) return;
 
-        // Pick a random phrase, never repeating the last one
         const phrases = ArcaneAuditorApp.AI_LOADING_PHRASES;
         let idx;
         do {
@@ -470,7 +950,6 @@ class ArcaneAuditorApp {
         this._lastPhraseIdx = idx;
         label.textContent = phrases[idx];
 
-        // Show pill in bottom-left corner
         fab.style.display = 'block';
 
         try {
@@ -507,133 +986,13 @@ class ArcaneAuditorApp {
                         this.findingExplanations.set(key, expl);
                     }
                 }
-                // Re-render findings with inline explanations
-                this.resultsRenderer.renderFindings();
+                this.resultsManager.renderResults();
             }
-            // Hide FAB — done (structured or fallback)
             fab.style.display = 'none';
         } catch (error) {
-            // Hide FAB on error too — no lingering spinner
             fab.style.display = 'none';
             console.error('AI explanation failed:', error.message);
         }
-    }
-
-    renderMarkdown(text) {
-        // Split into sections by numbered headings (### 1. or ## 1.)
-        // Everything before the first numbered heading is "preamble"
-        const sections = [];
-        let currentSection = null;
-        const lines = text.split('\n');
-
-        for (const line of lines) {
-            const numberedHeading = line.match(/^(#{2,4})\s+(\d+)\.\s+(.+)$/);
-            if (numberedHeading) {
-                if (currentSection) sections.push(currentSection);
-                currentSection = { title: line, body: [] };
-            } else if (currentSection) {
-                currentSection.body.push(line);
-            } else {
-                // Preamble (before any numbered section)
-                if (!sections.length || sections[sections.length - 1].title !== null) {
-                    sections.push({ title: null, body: [] });
-                }
-                sections[sections.length - 1].body.push(line);
-            }
-        }
-        if (currentSection) sections.push(currentSection);
-
-        // Render each section
-        const renderedSections = sections.map((section, idx) => {
-            const rawText = section.title
-                ? section.title + '\n' + section.body.join('\n')
-                : section.body.join('\n');
-            const trimmed = rawText.trim();
-            if (!trimmed) return '';
-            const html = this._markdownToHtml(trimmed);
-            if (!html) return '';
-
-            const cardId = `explain-card-${idx}`;
-            const copyBtn = `<button class="explain-copy-btn" onclick="copyExplainCard('${cardId}')" title="Copy to clipboard">📋 Copy</button>`;
-            const extraClass = section.title ? '' : ' explain-card-summary';
-            return `<div class="explain-card${extraClass}" id="${cardId}">${copyBtn}${html}</div>`;
-        });
-
-        return renderedSections.join('\n');
-    }
-
-    _markdownToHtml(text) {
-        let html = text
-            // Escape HTML entities first
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-
-        // Code blocks (``` ... ```)
-        html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-            return `<pre><code class="lang-${lang}">${code.trim()}</code></pre>`;
-        });
-
-        // Inline code
-        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-        // Blockquotes
-        html = html.replace(/^&gt;\s*(.+)$/gm, '<blockquote>$1</blockquote>');
-
-        // Headings
-        html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
-        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-        html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-
-        // Bold and italic
-        html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-
-        // Tables
-        html = html.replace(/((?:^\|.+\|$\n?)+)/gm, (tableBlock) => {
-            const rows = tableBlock.trim().split('\n').filter(r => r.trim());
-            if (rows.length < 2) return tableBlock;
-            const isSeparator = /^\|[\s:-]+\|/.test(rows[1]);
-            if (!isSeparator) return tableBlock;
-            let tableHtml = '<table><thead><tr>';
-            rows[0].split('|').filter(c => c.trim() !== '').forEach(cell => {
-                tableHtml += `<th>${cell.trim()}</th>`;
-            });
-            tableHtml += '</tr></thead><tbody>';
-            for (let i = 2; i < rows.length; i++) {
-                tableHtml += '<tr>';
-                rows[i].split('|').filter(c => c.trim() !== '').forEach(cell => {
-                    tableHtml += `<td>${cell.trim()}</td>`;
-                });
-                tableHtml += '</tr>';
-            }
-            tableHtml += '</tbody></table>';
-            return tableHtml;
-        });
-
-        // Horizontal rules
-        html = html.replace(/^---$/gm, '<hr>');
-
-        // Unordered lists
-        html = html.replace(/^(\s*)[-*] (.+)$/gm, (_, indent, content) => {
-            const depth = Math.floor(indent.length / 2);
-            return `<li class="md-depth-${depth}">${content}</li>`;
-        });
-        html = html.replace(/((?:<li[^>]*>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
-
-        // Ordered lists
-        html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-        html = html.replace(/(?:^|(?<=<\/ul>)\n)((?:<li>.*<\/li>\n?)+)/gm, '<ol>$1</ol>');
-
-        // Paragraphs
-        html = html.replace(/^(?!<[houplbt]|<li|<pre|<hr|<t)(.+)$/gm, '<p>$1</p>');
-
-        // Clean up
-        html = html.replace(/\n{2,}/g, '\n');
-
-        return html;
     }
 
     initializeFileContents() {
@@ -642,13 +1001,11 @@ class ArcaneAuditorApp {
         this.resolvedFindings.clear();
         if (!this.currentResult) return;
 
-        // Collect unique file_paths and reconstruct full content from snippet lines
         const seen = new Set();
         for (const finding of this.currentResult.findings) {
             const fp = finding.file_path;
             if (seen.has(fp) || !finding.snippet) continue;
             seen.add(fp);
-            // snippet.lines is the full file (context_lines=None)
             const content = finding.snippet.lines.map(l => l.text).join('\n');
             this.editedFileContents.set(fp, content);
             this.originalFileContents.set(fp, content);
@@ -659,7 +1016,6 @@ class ArcaneAuditorApp {
         if (!this.currentResult || this.editedFileContents.size === 0) return;
         this.isRevalidating = true;
 
-        // Build files payload: send ALL files (some rules check cross-file references)
         const files = {};
         for (const [fp, content] of this.editedFileContents) {
             files[fp] = content;
@@ -682,9 +1038,8 @@ class ArcaneAuditorApp {
 
             this.lastRevalidationFindingCount = result.findings.length;
             this.diffFindings(result.findings);
-            // Refresh filteredFindings so newly merged findings appear in the UI
             this.filteredFindings = [...this.currentResult.findings];
-            this.resultsRenderer.renderFindings();
+            this.resultsManager.renderResults();
         } catch (error) {
             console.error('Revalidation error:', error);
         } finally {
@@ -692,25 +1047,17 @@ class ArcaneAuditorApp {
         }
     }
 
-    /**
-     * Build a stable comparison key for a finding.
-     * Strips long quoted strings (code context) from messages so that
-     * keys don't shift when surrounding code changes.  Short values
-     * like '42' or 'maxCount' are kept as stable identifiers.
-     */
     _stableFindingKey(f) {
         const stableMsg = f.message.replace(/'[^']{20,}'/g, "'...'");
         return `${f.rule_id}::${f.file_path}::${stableMsg}`;
     }
 
     diffFindings(newFindings) {
-        // Build set of stable keys from new findings
         const newKeys = new Set();
         for (const f of newFindings) {
             newKeys.add(this._stableFindingKey(f));
         }
 
-        // For each tracked finding, if its stable key is absent → resolved
         this.resolvedFindings.clear();
         if (!this.currentResult) return;
 
@@ -723,22 +1070,15 @@ class ArcaneAuditorApp {
             }
         }
 
-        // Merge NEW findings (introduced by LLM fixes) into the live list
-        // so Fix All and the UI can see and target them.
         for (const f of newFindings) {
             const key = this._stableFindingKey(f);
             if (!existingKeys.has(key)) {
                 this.currentResult.findings.push(f);
                 existingKeys.add(key);
-                // New finding is unresolved (not added to resolvedFindings)
             }
         }
     }
 
-    /**
-     * Reconstruct file content from snippet data for a given file path.
-     * Returns the content string or null if no snippet is available.
-     */
     getFileContentFromSnippets(filePath) {
         if (!this.currentResult) return null;
         for (const f of this.currentResult.findings) {
@@ -755,12 +1095,10 @@ class ArcaneAuditorApp {
         const finding = this.currentResult.findings[findingIndex];
         const filePath = finding.file_path;
 
-        // Get file content: try editedFileContents first, then reconstruct from snippets
         let fileContent = this.editedFileContents.get(filePath);
         if (!fileContent) {
             fileContent = this.getFileContentFromSnippets(filePath);
             if (fileContent) {
-                // Populate for future use
                 this.editedFileContents.set(filePath, fileContent);
                 this.originalFileContents.set(filePath, fileContent);
             }
@@ -770,9 +1108,8 @@ class ArcaneAuditorApp {
             return;
         }
 
-        // Mark as in progress and re-render
         this.autofixInProgress.add(findingIndex);
-        this.resultsRenderer.renderFindings();
+        this.resultsManager.renderResults();
 
         try {
             const response = await fetch('/api/autofix', {
@@ -805,17 +1142,14 @@ class ArcaneAuditorApp {
                 throw new Error(data.detail || 'Autofix failed');
             }
 
-            // Store the fixed content
             this.editedFileContents.set(filePath, data.fixed_content);
 
-            // Store or clear diff warning based on whether the LLM removed suspicious lines
             if (data.diff_warning) {
                 this.diffWarnings.set(findingIndex, data.diff_warning);
             } else {
                 this.diffWarnings.delete(findingIndex);
             }
 
-            // Update snippet data for all findings in this file so they show the fixed code
             const fixedLines = data.fixed_content.split('\n');
             for (const f of this.currentResult.findings) {
                 if (f.file_path === filePath) {
@@ -836,17 +1170,13 @@ class ArcaneAuditorApp {
             alert(`Auto-fix failed: ${error.message}`);
         } finally {
             this.autofixInProgress.delete(findingIndex);
-            this.resultsRenderer.renderFindings();
+            this.resultsManager.renderResults();
         }
     }
 
     async autofixFile(filePath) {
         if (!this.currentResult) return;
 
-        // Detect removal-type findings heuristically: if the rule ID or
-        // message suggests code removal, it should run LAST to avoid undoing
-        // additive fixes (e.g., removing console.info can revert a
-        // magic-number extraction done by an earlier fix).
         const isRemovalFinding = (f) => {
             const id = (f.rule_id || '').toLowerCase();
             const msg = (f.message || '').toLowerCase();
@@ -855,7 +1185,6 @@ class ArcaneAuditorApp {
 
         const maxPasses = 3;
         for (let pass = 0; pass < maxPasses; pass++) {
-            // Collect unresolved findings for this file
             const indices = [];
             for (let i = 0; i < this.currentResult.findings.length; i++) {
                 if (this.currentResult.findings[i].file_path === filePath && !this.resolvedFindings.has(i)) {
@@ -863,19 +1192,17 @@ class ArcaneAuditorApp {
                 }
             }
 
-            if (indices.length === 0) break; // all resolved
+            if (indices.length === 0) break;
             if (pass > 0) {
                 console.log(`Fix All pass ${pass + 1}: ${indices.length} findings still unresolved`);
             }
 
-            // Sort: additive fixes first, removal fixes last
             indices.sort((a, b) => {
                 const aRemoval = isRemovalFinding(this.currentResult.findings[a]) ? 1 : 0;
                 const bRemoval = isRemovalFinding(this.currentResult.findings[b]) ? 1 : 0;
                 return aRemoval - bRemoval;
             });
 
-            // Fix sequentially — each fix changes the file content for the next
             for (const idx of indices) {
                 await this.autofix(idx);
             }
@@ -885,7 +1212,6 @@ class ArcaneAuditorApp {
     async exportAllZip() {
         if (this.editedFileContents.size === 0) return;
 
-        // Build files map: file_path → content
         const files = {};
         for (const [fp, content] of this.editedFileContents) {
             files[fp] = content;
@@ -907,7 +1233,6 @@ class ArcaneAuditorApp {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            // Use the original upload name (minus .zip) + _fixed.zip, or generic
             const baseName = this.uploadedFileName
                 ? this.uploadedFileName.replace(/\.zip$/i, '')
                 : 'fixed_files';
@@ -924,6 +1249,18 @@ class ArcaneAuditorApp {
 
     resetForNewUpload() {
         this.hideAllSections();
+
+        // Show config toolbar when returning to analyze page
+        const configToolbar = document.getElementById('config-toolbar');
+        if (configToolbar) {
+            configToolbar.style.display = 'flex';
+        }
+
+        const configSectionContainer = document.querySelector('.config-section-container');
+        if (configSectionContainer) {
+            configSectionContainer.style.display = 'block';
+        }
+
         document.getElementById('upload-section').style.display = 'block';
         this.currentResult = null;
         this.findingExplanations.clear();
@@ -944,24 +1281,152 @@ class ArcaneAuditorApp {
         fileInput.value = '';
         const filesInput = document.getElementById('files-input');
         filesInput.value = '';
-        
+
         // Hide selected files list
         document.getElementById('selected-files-list').style.display = 'none';
-        
-        // Reset AI explain status
-        document.getElementById('ai-loading-fab').style.display = 'none';
+
+        // Hide AI FAB
+        const fab = document.getElementById('ai-loading-fab');
+        if (fab) fab.style.display = 'none';
 
         // Reset renderers
-        this.resultsRenderer.resetForNewUpload();
+        this.resultsManager.resetForNewUpload();
+    }
+
+    async loadVersion() {
+        await this.ensureUpdatePreferencesLoaded();
+        if (this.versionRetryTimer) {
+            clearTimeout(this.versionRetryTimer);
+            this.versionRetryTimer = null;
+        }
+
+        try {
+            let data = null;
+            const hasDesktopBridge = (
+                window.pywebview &&
+                window.pywebview.api &&
+                typeof window.pywebview.api.get_health_status === 'function'
+            );
+
+            if (hasDesktopBridge) {
+                data = await window.pywebview.api.get_health_status();
+            } else {
+            const response = await fetch('/api/health');
+                data = await response.json();
+            }
+
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid health payload');
+            }
+
+            if (data.version) {
+                const versionElement = document.getElementById('version-info');
+                if (versionElement) {
+                    versionElement.textContent = `v${data.version}`;
+                    versionElement.title = `Arcane Auditor version ${data.version}`;
+                    versionElement.removeAttribute('data-loading');
+                    this.resetVersionIndicator();
+                }
+
+                const updateInfo = data.update_info;
+                if (updateInfo && updateInfo.update_available) {
+                    this.updateVersionDisplay(updateInfo);
+                    this.versionRetryAttempts = 0;
+                } else if (hasDesktopBridge && !updateInfo) {
+                    if (this.scheduleVersionRetry()) {
+                        return;
+                    }
+                    this.versionRetryAttempts = 0;
+                } else {
+                    this.versionRetryAttempts = 0;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load version:', error);
+            const hasDesktopBridge = (
+                window.pywebview &&
+                window.pywebview.api &&
+                typeof window.pywebview.api.get_health_status === 'function'
+            );
+            if (hasDesktopBridge && this.scheduleVersionRetry()) {
+                return;
+            }
+            // If fetch fails, show "v?" to indicate version unavailable
+            const versionElement = document.getElementById('version-info');
+            if (versionElement) {
+                versionElement.textContent = 'v?';
+                versionElement.title = 'Version unavailable';
+                versionElement.removeAttribute('data-loading');
+                this.resetVersionIndicator();
+            }
+        }
+    }
+    
+    scheduleVersionRetry() {
+        const maxAttempts = 5;
+        if (this.versionRetryAttempts >= maxAttempts) {
+            return false;
+        }
+
+        this.versionRetryAttempts += 1;
+
+        const delay = 1000 * this.versionRetryAttempts;
+        this.versionRetryTimer = setTimeout(() => {
+            this.versionRetryTimer = null;
+            this.loadVersion().catch(err => {
+                console.error('Retrying loadVersion failed:', err);
+            });
+        }, delay);
+
+        return true;
+    }
+    
+    updateVersionDisplay(updateInfo) {
+        // Update version indicator to show update available
+        const versionElement = document.getElementById('version-info');
+        if (!versionElement) return;
         
-        // Re-render configurations to ensure selected config appears at top
-        this.configManager.renderConfigurations();
+        const latestVersion = updateInfo.latest_version || '';
+        const currentVersion = updateInfo.current_version || '';
+        const releaseUrl = updateInfo.release_url || 'https://github.com/Developers-and-Dragons/ArcaneAuditor/releases';
+        
+        // Update display
+        const linkLabel = latestVersion ? `v${latestVersion} now available! ⚡` : 'New version available! ⚡';
+        versionElement.innerHTML = `<a href="${releaseUrl}" target="_blank" rel="noopener noreferrer">${linkLabel}</a>`;
+        versionElement.title = `Update available! Current: v${currentVersion}, Latest: v${latestVersion}.`;
+        versionElement.removeAttribute('data-loading');
+        
+        // Add classes for styling and interaction
+        versionElement.classList.add('update-available', 'pulse');
+        versionElement.style.cursor = 'pointer';
+    }
+    
+    showUpdateNotification(updateInfo) {
+        // Show update notification dialog
+        const latest = updateInfo.latest_version || '';
+        const current = updateInfo.current_version || '';
+        const releaseUrl = updateInfo.release_url || 'https://github.com/Developers-and-Dragons/ArcaneAuditor/releases';
+        const lines = [
+            `Current: v${current}`,
+            `Latest: v${latest}`,
+            releaseUrl
+        ];
+        const fallbackMessage = `Update available!\n\n${lines.join('\n')}`;
+
+        if (DialogManager && typeof DialogManager.showUpdatePrompt === 'function') {
+            DialogManager.showUpdatePrompt('Update available! ⚡', lines).catch(() => {
+                alert(fallbackMessage);
+            });
+        } else {
+            alert(fallbackMessage);
+        }
     }
 }
 
 // Initialize the app
 const app = new ArcaneAuditorApp();
 window.app = app; // Make app globally accessible
+window.DialogManager = window.DialogManager || DialogManager;
 
 // Global functions for HTML onclick handlers
 window.resetInterface = function() {
@@ -973,61 +1438,63 @@ window.downloadResults = function() {
 };
 
 window.toggleTheme = function() {
-    app.configManager.toggleTheme();
+    app.themeManager.toggleTheme();
 };
 
 window.toggleContextPanel = function() {
-    app.resultsRenderer.toggleContextPanel();
-};
-
-window.copyExplainCard = function(cardId) {
-    const card = document.getElementById(cardId);
-    if (!card) return;
-
-    // Get plain text content (strip HTML)
-    const text = card.innerText.replace(/^📋 Copy\s*/, '').replace(/^✅ Copied!\s*/, '');
-    navigator.clipboard.writeText(text).then(() => {
-        const btn = card.querySelector('.explain-copy-btn');
-        btn.textContent = '✅ Copied!';
-        setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
-    });
+    app.resultsManager.toggleContextPanel();
 };
 
 // Results renderer global functions
 window.expandAllFiles = function() {
-    app.resultsRenderer.expandAllFiles();
+    app.resultsManager.expandAllFiles();
 };
 
 window.collapseAllFiles = function() {
-    app.resultsRenderer.collapseAllFiles();
+    app.resultsManager.collapseAllFiles();
 };
 
 window.updateSeverityFilter = function(value) {
-    app.resultsRenderer.updateSeverityFilter(value);
+    app.resultsManager.updateSeverityFilter(value);
 };
 
 window.updateFileTypeFilter = function(value) {
-    app.resultsRenderer.updateFileTypeFilter(value);
+    app.resultsManager.updateFileTypeFilter(value);
 };
 
 window.updateSortBy = function(value) {
-    app.resultsRenderer.updateSortBy(value);
+    app.resultsManager.updateSortBy(value);
 };
 
 window.updateSortFilesBy = function(value) {
-    app.resultsRenderer.updateSortFilesBy(value);
+    app.resultsManager.updateSortFilesBy(value);
 };
 
-window.exportAllZip = function() {
-    app.exportAllZip();
-};
-
+// AI feature global functions
 window.autofix = function(findingIndex) {
     app.autofix(findingIndex);
 };
 
 window.autofixFile = function(filePath) {
     app.autofixFile(filePath);
+};
+
+window.exportAllZip = function() {
+    app.exportAllZip();
+};
+
+window.copyExplainCard = function(cardId) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    const text = card.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = card.querySelector('.explain-copy-btn');
+        if (btn) {
+            const orig = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = orig; }, 1500);
+        }
+    });
 };
 
 export default app;

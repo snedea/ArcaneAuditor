@@ -8,6 +8,52 @@ class PMDSecurityDomainRule(Rule):
     
     DESCRIPTION = "Ensures PMD pages have at least one security domain defined (excludes microConclusion and error pages unless strict mode is enabled)"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {
+        'strict': {'type': 'bool', 'default': False, 'description': 'When enabled, requires security domains for ALL PMD pages, including microConclusion and error pages'}
+    }
+    
+    DOCUMENTATION = {
+        'why': '''Security domains control who can access your PMD pages in Workday. Missing security domains means your page is accessible to all users, which could lead to a security incident.
+
+**Smart Exclusions (configurable):**
+- **MicroConclusion pages**: Pages with `presentation.microConclusion: true` are excluded (unless strict mode)
+- **Error pages**: Pages whose ID appears in SMD `errorPageConfigurations` are excluded (unless strict mode)''',
+        'catches': [
+            'PMD pages missing `securityDomains` list',
+            'Empty `securityDomains` arrays',
+            'Enforces security best practices for Workday applications'
+        ],
+        'examples': '''**Example violations:**
+
+```javascript
+// ❌ Missing security domains
+{
+  "id": "myPage",
+  "presentation": {
+    "body": { ... }
+  }
+}
+
+// ✅ Proper security domains
+{
+  "id": "myPage", 
+  "securityDomains": ["ViewAdminPages"],
+  "presentation": {
+    "body": { ... }
+  }
+}
+
+// ✅ MicroConclusion page (excluded in normal mode)
+{
+  "id": "microPage",
+  "presentation": {
+    "microConclusion": true,
+    "body": { ... }
+  }
+}
+```''',
+        'recommendation': 'Always define at least one security domain for PMD pages to control access and prevent security incidents. Use strict mode to enforce security domains on all pages, including microConclusion and error pages.'
+    }
 
     def __init__(self):
         super().__init__()

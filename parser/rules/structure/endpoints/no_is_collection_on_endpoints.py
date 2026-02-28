@@ -27,6 +27,31 @@ class NoIsCollectionOnEndpointsRule(StructureRuleBase):
     ID = "NoIsCollectionOnEndpointsRule"
     DESCRIPTION = "Detects isCollection: true on inbound endpoints which can cause tenant-wide performance issues"
     SEVERITY = "ACTION"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Using `isCollection: true` on inbound endpoints may cause severe performance degradation when apps are in use simultaneously by different users. This can slow down the entire Workday instance for all users, not just your application. Avoiding isCollection on inbound endpoints is critical for maintaining app performance.''',
+        'catches': [
+            'Inbound endpoints with `isCollection: true`'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "inboundEndpoints": [
+    {
+      "name": "getWorkers",
+      "isCollection": true  // ❌ May cause performance issues
+    }
+  ]
+}
+```
+
+**Fix:**
+
+Consider utilizing WQL or RaaS instead, which will allow for fewer API calls that return larger datasets.''',
+        'recommendation': 'Remove `isCollection: true` from inbound endpoints. Use WQL or RaaS queries instead for better performance and to avoid tenant-wide performance degradation.'
+    }
     
     def get_description(self) -> str:
         """Get rule description."""

@@ -1,0 +1,678 @@
+/* config-editor.css - The specific UI for the "Manage Rules" list, summary, and filtering */
+
+/* Configuration Breakdown Modal */
+#config-breakdown-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    #config-breakdown-modal {
+        padding: 10px;
+    }
+}
+
+/* Config Source Badge */
+.config-source-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 9999px; /* pill */
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(148, 163, 184, 0.2); /* slate-400/20 */
+    color: #94a3b8; /* slate-400 */
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+[data-theme="dark"] .config-source-badge {
+    background: rgba(148, 163, 184, 0.15);
+    color: #cbd5e1; /* slate-300 */
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="light"] .config-source-badge {
+    background-color: #e5e7eb; /* Darker background (Zinc-200) */
+    color: #111827; /* Near black text for max contrast */
+    border: 1px solid #d1d5db; /* Border to separate it from the header */
+    font-weight: 600;
+}
+
+/* Read-only Badge */
+.config-readonly-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 9999px; /* pill */
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(251, 191, 36, 0.15); /* amber-400/15 */
+    color: #f59e0b; /* amber-500 */
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    margin-left: 8px;
+}
+
+[data-theme="dark"] .config-readonly-badge {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24; /* amber-400 */
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+[data-theme="light"] .config-readonly-badge {
+    background-color: #fef3c7; /* amber-100 */
+    color: #d97706; /* amber-600 - darker for contrast */
+    border: 1px solid #fcd34d; /* amber-300 */
+    font-weight: 600;
+}
+
+/* Config Breakdown Section */
+.config-breakdown-section {
+    margin-bottom: 24px;
+}
+
+.config-breakdown-section:last-child {
+    margin-bottom: 0;
+}
+
+.config-breakdown-section h4 {
+    margin: 0 0 16px 0;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Summary Cards */
+.config-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .config-summary-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
+.summary-card {
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card.enabled {
+    border-left: 4px solid #10b981;
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.summary-card.disabled {
+    border-left: 4px solid #64748b;
+    background: rgba(100, 116, 139, 0.05);
+}
+
+/* Light mode disabled summary cards - orange theme */
+[data-theme="light"] .summary-card.disabled {
+    border-left: 4px solid #ea580c;
+    background: rgba(251, 146, 60, 0.05);
+}
+
+.summary-card.total {
+    border-left: 4px solid #64748b;
+    background: rgba(100, 116, 139, 0.05);
+}
+
+.summary-number {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.summary-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+[data-theme="light"] .summary-label {
+    color: #4b5563; /* Darker gray (Zinc-600) instead of faint gray */
+    font-weight: 600; /* Slightly bolder to read better against white */
+}
+
+/* Filter Toolbar */
+.config-filter-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.config-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.config-filter-group label {
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+
+.config-filter-input {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    min-width: 200px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.config-filter-input:focus {
+    outline: none;
+    border-color: #9333ea; /* purple-600 */
+    box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+}
+
+.config-filter-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.config-filter-select:hover {
+    border-color: var(--border-color-hover);
+}
+
+.config-filter-select:focus {
+    outline: none;
+    border-color: #9333ea; /* purple-600 */
+    box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+}
+
+/* Dark mode filter inputs */
+[data-theme="dark"] .config-filter-input,
+[data-theme="dark"] .config-filter-select {
+    background: #1e293b; /* slate-800 */
+    border-color: #334155; /* slate-700 */
+    color: #f1f5f9; /* slate-100 */
+}
+
+[data-theme="dark"] .config-filter-input:focus,
+[data-theme="dark"] .config-filter-select:focus {
+    border-color: #a855f7; /* purple-500 */
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+}
+
+/* Light mode filter inputs */
+[data-theme="light"] .config-filter-input,
+[data-theme="light"] .config-filter-select {
+    background: #ffffff;
+    border-color: #e2e8f0; /* slate-200 */
+    color: #1e293b; /* slate-800 */
+}
+
+[data-theme="light"] .config-filter-input:focus,
+[data-theme="light"] .config-filter-select:focus {
+    border-color: #9333ea; /* purple-600 */
+    box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+}
+
+/* Rule Breakdown */
+.rule-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 16px; /* gap-4 equivalent */
+}
+
+@media (max-width: 1024px) {
+    .rule-breakdown {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .rule-breakdown {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .rule-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .rule-name {
+        flex: none;
+        width: 100%;
+        margin-bottom: 4px;
+    }
+    
+    .rule-status-badge {
+        align-self: flex-start;
+    }
+}
+
+/* Rule Item */
+.rule-item {
+    padding: 16px 16px; /* py-4 equivalent - increased vertical padding */
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    position: relative;
+    min-height: 50px; /* Thin row height */
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #f1f5f9; /* border-slate-100 - subtle row separator for light mode */
+}
+
+[data-theme="dark"] .rule-item {
+    border-bottom-color: #1e293b; /* border-slate-800 - subtle row separator for dark mode */
+}
+
+.rule-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Enabled state: 100% opacity, purple toggle */
+.rule-item.enabled {
+    opacity: 1;
+    border-left: 4px solid #9333ea; /* purple-600 */
+}
+
+[data-theme="light"] .rule-item.enabled {
+    border-left-color: #a855f7; /* purple-500 for light mode */
+}
+
+[data-theme="dark"] .rule-item.enabled {
+    border-left-color: #a78bfa; /* purple-400 for dark mode */
+}
+
+/* Disabled state: 60% opacity, gray toggle, no orange borders/backgrounds */
+.rule-item.disabled {
+    opacity: 0.6;
+}
+
+/* Single-row header layout */
+.rule-row-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+}
+
+.rule-name-container {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.rule-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1rem;
+    word-break: break-word;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Ensure disabled rules have the same text color as enabled rules */
+.rule-item.disabled .rule-name {
+    color: var(--text-primary);
+}
+
+.rule-item.disabled .rule-description {
+    color: var(--text-secondary);
+}
+
+/* Ghost warning badge inline with title */
+.ghost-warning-badge-inline {
+    display: inline-block;
+    padding: 2px 6px;
+    background: rgba(245, 158, 11, 0.15); /* amber-500/15 */
+    color: #f59e0b; /* amber-500 */
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+[data-theme="dark"] .ghost-warning-badge-inline {
+    background: rgba(251, 191, 36, 0.15); /* amber-400/15 */
+    color: #fbbf24; /* amber-400 */
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+/* Ghost Rule Styling - Amber/Yellow border to indicate warning */
+.rule-item.ghost-rule {
+    border: 2px solid #f59e0b; /* amber-500 - full border warning */
+    border-radius: 8px;
+    position: relative;
+}
+
+[data-theme="dark"] .rule-item.ghost-rule {
+    border-color: #fbbf24; /* amber-400 */
+}
+
+.ghost-warning-badge {
+    display: inline-block;
+    padding: 6px 10px;
+    background: rgba(245, 158, 11, 0.15); /* amber-500/15 */
+    color: #f59e0b; /* amber-500 */
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .ghost-warning-badge {
+    background: rgba(251, 191, 36, 0.15); /* amber-400/15 */
+    color: #fbbf24; /* amber-400 */
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+/* Ghost Warning Container */
+.ghost-warning-container {
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+/* Controls container on the right */
+.rule-controls-container {
+    display: flex;
+    align-items: center;
+    gap: 24px; /* gap-6 equivalent */
+    flex-shrink: 0;
+}
+
+/* Toggle Switch Styles */
+.rule-toggle-switch {
+    cursor: pointer;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+.toggle-track {
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    position: relative;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    padding: 2px;
+}
+
+.toggle-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Enabled toggle: purple-600 background, thumb on right */
+.rule-toggle-switch.enabled .toggle-track {
+    background-color: #9333ea; /* purple-600 */
+}
+
+[data-theme="dark"] .rule-toggle-switch.enabled .toggle-track {
+    background-color: #9333ea; /* purple-600 */
+}
+
+.rule-toggle-switch.enabled .toggle-thumb {
+    transform: translateX(20px); /* Move to right */
+}
+
+/* Disabled toggle: slate-600 background, thumb on left */
+.rule-toggle-switch.disabled .toggle-track {
+    background-color: #475569; /* slate-600 */
+}
+
+[data-theme="dark"] .rule-toggle-switch.disabled .toggle-track {
+    background-color: #475569; /* slate-600 */
+}
+
+.rule-toggle-switch.disabled .toggle-thumb {
+    transform: translateX(0); /* Stay on left */
+}
+
+/* Disabled toggle for ghost rules - non-interactive */
+.rule-toggle-switch[disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Severity Dropdown */
+.rule-severity-select {
+    font-size: 0.75rem; /* text-xs */
+    font-weight: 700; /* font-bold - stronger weight for button-like control */
+    background: #f8fafc; /* bg-slate-50 - solid background for light mode */
+    border: 1px solid #e2e8f0; /* border-slate-200 */
+    border-radius: 6px; /* rounded-md */
+    padding: 2px 8px; /* px-2 py-0.5 */
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    padding-right: 24px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+    width: 100px; /* Widen to 100px for better proportionality */
+    text-align: left; /* Consistent text alignment */
+}
+
+/* Dark mode background for dropdown options menu */
+[data-theme="dark"] .rule-severity-select {
+    background-color: #0f172a; /* bg-slate-900 */
+    border-color: #334155; /* border-slate-700 */
+    box-shadow: none;
+}
+
+.rule-severity-select:hover {
+    border-color: #9333ea; /* border-purple-500 */
+}
+
+.rule-severity-select:focus {
+    outline: none;
+    border-color: #9333ea;
+}
+
+/* Severity select text colors based on selected value */
+/* ADVICE = Sky/Blue (Suggestion/Standard) */
+/* Light mode: deep blue for weight and readability */
+.rule-severity-select.rule-severity-advice {
+    color: #1d4ed8; /* blue-700 - deep blue, adds weight */
+}
+
+[data-theme="dark"] .rule-severity-select.rule-severity-advice {
+    color: #38bdf8; /* sky-400 - bright, readable on dark */
+}
+
+/* ACTION = Amber/Orange (Important/Fix Now) */
+/* Light mode: burnt orange for weight and readability */
+.rule-severity-select.rule-severity-action {
+    color: #c2410c; /* orange-700 - burnt orange, adds weight */
+}
+
+[data-theme="dark"] .rule-severity-select.rule-severity-action {
+    color: #fbbf24; /* amber-400 - bright, readable on dark */
+}
+
+/* Severity option colors */
+/* Light mode: deeper colors for weight */
+.rule-severity-select option[value="ADVICE"] {
+    color: #1d4ed8; /* blue-700 - deep blue, adds weight */
+}
+
+.rule-severity-select option[value="ACTION"] {
+    color: #c2410c; /* orange-700 - burnt orange, adds weight */
+}
+
+[data-theme="dark"] .rule-severity-select option[value="ADVICE"] {
+    color: #38bdf8; /* sky-400 - bright, readable on dark */
+}
+
+[data-theme="dark"] .rule-severity-select option[value="ACTION"] {
+    color: #fbbf24; /* amber-400 - bright, readable on dark */
+}
+
+/* --- Configure Button Styles --- */
+
+/* 1. Base State (Not customized yet) */
+/* Make it neutral gray so it doesn't distract from the toggle */
+.rule-configure-btn {
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--border-color); /* Solid border defines the shape */
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent; /* No fill */
+    color: var(--text-secondary); /* Gray text */
+    white-space: nowrap;
+    width: 140px; /* Maintain width to prevent text wrapping */
+    justify-content: flex-start;
+    flex-shrink: 0;
+}
+
+.rule-configure-btn:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+
+/* 2. Modified State (Has custom settings) */
+/* Make it "Glow" with a border instead of a dark fill */
+.rule-configure-btn.modified {
+    background: rgba(147, 51, 234, 0.1); /* Very faint purple tint */
+    border: 1px solid #a855f7;           /* Bright purple border */
+    color: #d8b4fe;                      /* Bright lavender text */
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.15); /* Subtle glow */
+}
+
+.rule-configure-btn.modified:hover {
+    background: rgba(147, 51, 234, 0.2);
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+    color: #ffffff;
+}
+
+/* --- Light Mode Overrides --- */
+[data-theme="light"] .rule-configure-btn {
+    border-color: #cbd5e1;
+    color: #64748b;
+    background: white;
+}
+
+[data-theme="light"] .rule-configure-btn:hover {
+    border-color: #94a3b8;
+    color: #0f172a;
+    background: #f1f5f9;
+}
+
+[data-theme="light"] .rule-configure-btn.modified {
+    background: #f3e8ff; /* Lightest purple */
+    border: 1px solid #9333ea; /* Solid purple */
+    color: #7e22ce; /* Dark purple text */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* Chevron icon */
+.configure-chevron {
+    font-size: 0.75rem;
+    transition: transform 0.3s ease;
+    margin-left: 0; /* Gap is handled by parent gap */
+}
+
+/* Rule Actions Container */
+.rule-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+/* Delete Button for Ghost Rules */
+.rule-delete-btn {
+    background: transparent;
+    border: 1px solid #ef4444; /* red-500 */
+    color: #ef4444;
+    font-size: 0.875rem;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.rule-delete-btn:hover {
+    background: #ef4444;
+    color: white;
+}
+
+[data-theme="dark"] .rule-delete-btn {
+    border-color: #f87171; /* red-400 */
+    color: #f87171;
+}
+
+[data-theme="dark"] .rule-delete-btn:hover {
+    background: #f87171;
+    color: white;
+}
+
+/* All badges should be positioned in the bottom corner */
+.rule-item .rule-status-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+}
+

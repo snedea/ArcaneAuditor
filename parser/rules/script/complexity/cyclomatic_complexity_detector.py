@@ -19,6 +19,16 @@ class CyclomaticComplexityDetector(ScriptDetector):
             'logical_and_expression', 'logical_or_expression', 'ternary_expression'
         }
     
+    def apply_settings(self, custom_settings: dict):
+        """Apply custom settings from configuration."""
+        if 'max_complexity' in custom_settings:
+            max_complexity = custom_settings['max_complexity']
+            # Ensure it's a valid integer within reasonable bounds
+            if isinstance(max_complexity, (int, float)):
+                max_complexity = int(max_complexity)
+                if 1 <= max_complexity <= 50:
+                    self.max_complexity = max_complexity
+    
     def detect(self, ast: Tree, field_name: str = "") -> Generator[Violation, None, None]:
         """Detect excessive cyclomatic complexity in the AST using optimized single-pass analysis."""
         if not ast:

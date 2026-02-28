@@ -1,6 +1,3 @@
-# macOS system files
-.DS_Store
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -34,6 +31,11 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+
+# Exclude specific specs for our application specific specs
+!ArcaneAuditor.spec
+!ArcaneAuditorDesktop.spec
+!ArcaneAuditorWeb.spec
 
 # Installer logs
 pip-log.txt
@@ -141,6 +143,7 @@ celerybeat.pid
 .env
 .envrc
 .venv
+.buildenv
 env/
 venv/
 ENV/
@@ -204,6 +207,9 @@ cython_debug/
 .cursor/
 .cursorignore
 .cursorindexingignore
+
+# Vibe check output (generated analysis, not source)
+.vibe-check/
 
 # Marimo
 marimo/_static/

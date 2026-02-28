@@ -4,7 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arcane Auditor - Simple Interface</title>
-    <link rel="stylesheet" href="/static/style.css">
+    
+    <!-- Split stylesheets for better maintainability -->
+    <link rel="stylesheet" href="/static/styles/base.css">
+    <link rel="stylesheet" href="/static/styles/layout.css">
+    <link rel="stylesheet" href="/static/styles/components.css">
+    <link rel="stylesheet" href="/static/styles/results.css">
+    <!-- Config Modal Modules -->
+    <link rel="stylesheet" href="/static/styles/modules/modals-core.css">
+    <link rel="stylesheet" href="/static/styles/modules/config-editor.css">
+    <link rel="stylesheet" href="/static/styles/modules/settings-form.css">
+    <link rel="stylesheet" href="/static/styles/modules/grimoire.css">
+    
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 </head>
 <body>
@@ -12,36 +23,86 @@
         <header>
             <div class="header-content">
                 <div class="header-text">
-                    <h1><a href="/" style="color: inherit; text-decoration: none;">🔮 Arcane Auditor</a></h1>
+                    <div class="header-title-row">
+                        <h1>🔮 Arcane Auditor</h1>
+                        <div class="header-version">
+                            <span class="version-info" id="version-info" title="Application version" data-loading="true"></span>
+                        </div>
+                    </div>
                     <p>Cast mystical spells to reveal code quality issues in your Workday Extend applications</p>
                 </div>
             </div>
         </header>
 
-        <!-- Fixed theme toggle in bottom-right corner -->
+        <!-- Fixed theme toggle and settings in bottom corner -->
         <div class="theme-toggle-fixed">
-            <button id="theme-toggle" class="btn btn-secondary" onclick="toggleTheme()">
-                <span id="theme-icon">🌙</span>
-                <span id="theme-text">Dark</span>
-            </button>
-        </div>
-
-        <!-- Fixed AI loading pill in bottom-left corner -->
-        <div id="ai-loading-fab" class="ai-loading-fab" style="display: none;">
-            <button class="btn btn-secondary" disabled>
-                <div class="crystal-ball">
-                    <div class="crystal-ball-inner">
-                        <div class="crystal-ball-wisp wisp-1"></div>
-                        <div class="crystal-ball-wisp wisp-2"></div>
-                        <div class="crystal-ball-wisp wisp-3"></div>
-                    </div>
-                    <div class="crystal-ball-shine"></div>
+            <div class="quick-controls">
+                <button id="global-grimoire-btn" class="grimoire-float-btn" title="Open Rules Grimoire" aria-label="Open Rules Grimoire">
+                    <span class="icon">📜</span>
+                </button>
+                <button id="settings-toggle" class="settings-button" aria-expanded="false" aria-controls="settings-panel" aria-label="App settings" data-tooltip="App settings">
+                    <span class="icon icon-tome" aria-hidden="true">🔮</span>
+                    <span class="icon icon-close" aria-hidden="true">✖️</span>
+                    <span class="visually-hidden">App settings</span>
+                </button>
+                <button id="theme-toggle" class="theme-button" type="button" onclick="toggleTheme()" aria-label="Cast Darkness">
+                    <span class="theme-emoji" id="theme-icon" aria-hidden="true">🌙</span>
+                    <span class="theme-label" id="theme-text">Cast Darkness</span>
+                </button>
+            </div>
+            <div id="settings-panel" class="settings-panel" role="dialog" aria-labelledby="settings-panel-title" hidden>
+                <div class="settings-panel-header">
+                    <span>⚙️</span>
+                    <h3 id="settings-panel-title">App Settings</h3>
                 </div>
-                <span id="ai-loading-text"></span>
-            </button>
+                <div class="settings-panel-body">
+                    <div class="settings-option">
+                        <input type="checkbox" id="settings-update-checkbox">
+                        <label for="settings-update-checkbox">Enable app update detection</label>
+                    </div>
+                    <div class="settings-option">
+                        <input type="checkbox" id="settings-new-rule-default-checkbox">
+                        <label for="settings-new-rule-default-checkbox">Automatically enable new rules added in future updates</label>
+                    </div>
+                    <div class="settings-option">
+                        <input type="checkbox" id="setting-excel-single-tab">
+                        <label for="setting-excel-single-tab">Export all findings to a single Excel tab</label>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <main>
+            <!-- Configuration Toolbar -->
+            <div class="config-section-container" style="max-width: 1200px; margin: 0 auto 0;">
+                <h3 class="config-section-title" style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 8px; margin-left: 4px; font-weight: 700;">
+                    ⚙️ Analysis Configuration
+                </h3>
+                <div id="config-toolbar" class="config-toolbar">
+                <div id="config-toolbar-left" class="config-toolbar-left">
+                    <div class="config-selector-wrapper">
+                        <button id="config-selected-button" class="config-selected-button">
+                            <span class="config-icon">📜</span>
+                            <span id="config-selected-name" class="config-name">Development</span>
+                            <span class="config-divider"></span>
+                            <span id="config-selected-category" class="config-selected-category-text"></span>
+                            <span class="config-bullet">•</span>
+                            <span id="config-selected-rules" class="config-rules-count"></span>
+                            <span class="chevron">▼</span>
+                        </button>
+                        <!-- Config Dropdown -->
+                        <div id="config-dropdown" class="config-dropdown"></div>
+                    </div>
+                </div>
+
+                <div class="config-toolbar-right">
+                    <button id="config-manage-btn" class="config-manage-btn">
+                        ⚙️ Manage Rules
+                    </button>
+                </div>
+                </div>
+            </div>
+
             <!-- Upload Section -->
             <section id="upload-section" class="upload-section">
                 <div class="upload-area" id="upload-area">
@@ -49,6 +110,9 @@
                         <div class="upload-icon">📁</div>
                         <h3>Upload Your Extend Application</h3>
                         <p>Drag and drop files here, or click to select</p>
+                        <p id="upload-config-hint">
+                            <span>📜</span> Analyzing with <strong id="upload-config-name">...</strong> rules
+                        </p>
                         <div class="upload-buttons">
                             <button type="button" class="btn btn-primary" id="choose-file-btn">
                                 Choose ZIP File
@@ -60,7 +124,7 @@
                         <input type="file" id="file-input" accept=".zip" style="display: none;">
                         <input type="file" id="files-input" accept=".pmd,.pod,.amd,.smd,.script" multiple style="display: none;">
                         <p class="upload-hint">Supported: ZIP files or individual .pmd, .pod, .amd, .smd, .script files</p>
-
+                        
                         <!-- Selected Files List -->
                         <div id="selected-files-list" class="selected-files-list" style="display: none;">
                             <h4>Selected Files:</h4>
@@ -71,15 +135,57 @@
                         </div>
                     </div>
                 </div>
+            </section>
 
-                <!-- Configuration Selection -->
-                <div class="config-selection">
-                    <h3>⚙️ Analysis Configuration</h3>
-                    <div class="config-grid" id="config-grid">
-                        <!-- Configuration options will be populated by JavaScript -->
+                <!-- Duplicate Configuration Modal -->
+                <div id="duplicate-config-modal" class="modal-overlay hidden">
+                    <div class="modal-content" style="max-width: 450px; height: auto; max-height: 90vh;">
+                        
+                        <div class="modal-header">
+                            <h3 id="duplicate-modal-title" class="modal-title">
+                                <span id="duplicate-modal-icon" style="margin-right: 8px;">✨</span> New Configuration
+                            </h3>
+                            <button id="duplicate-close-btn" class="modal-close">×</button>
+                        </div>
+
+                        <div class="modal-body">
+                            
+                            <div class="setting-group mb-4">
+                                <label class="setting-label" for="duplicate-source-select">Copy From</label>
+                                <div class="setting-description">Select the template or configuration to copy settings from.</div>
+                                <select id="duplicate-source-select" class="setting-input config-select">
+                                </select>
+                            </div>
+
+                            <div class="setting-group mb-4">
+                                <label class="setting-label" for="duplicate-config-name">Configuration Name</label>
+                                <input type="text" id="duplicate-config-name" class="setting-input" placeholder="e.g., Strict Production Profile" autocomplete="off">
+                            </div>
+
+                            <div class="setting-group">
+                                <label class="setting-label">Category</label>
+                                <div style="display: flex; gap: 16px; margin-top: 8px;">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="radio" name="duplicate-category" value="Personal" class="setting-checkbox" checked>
+                                        <span style="font-size: 0.875rem;">Personal</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="radio" name="duplicate-category" value="Team" class="setting-checkbox">
+                                        <span style="font-size: 0.875rem;">Team</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; background: var(--bg-tertiary);">
+                            <button id="duplicate-cancel-btn" class="modal-btn ghost">Cancel</button>
+                            <button id="duplicate-confirm-btn" class="modal-btn primary">Create Wizardry</button>
+                        </div>
                     </div>
                 </div>
 
+                
+                
                 <!-- Configuration Breakdown Modal -->
                 <div id="config-breakdown-modal" class="modal" style="display: none;">
                     <div class="modal-content">
@@ -89,6 +195,53 @@
                         </div>
                         <div class="modal-body" id="config-breakdown-content">
                             <!-- Configuration details will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuration Delete Modal -->
+                <div id="config-delete-modal" class="arcane-modal" hidden>
+                    <div class="arcane-modal-content">
+                        <div class="arcane-modal-header">
+                            <h3>Delete Configuration</h3>
+                            <button id="config-delete-close" class="arcane-modal-close">×</button>
+                        </div>
+                        <div class="arcane-modal-body">
+                            <p id="config-delete-message"></p>
+                        </div>
+                        <div class="arcane-modal-footer">
+                            <button id="config-delete-confirm" class="btn btn-secondary arcane-danger">🗑️ Delete</button>
+                            <button id="config-delete-cancel" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ghost Rule Delete Modal -->
+                <div id="ghost-rule-delete-modal" class="arcane-modal" hidden>
+                    <div class="arcane-modal-content">
+                        <div class="arcane-modal-header">
+                            <h3>Remove Ghost Rule</h3>
+                            <button id="ghost-rule-delete-close" class="arcane-modal-close">×</button>
+                        </div>
+                        <div class="arcane-modal-body">
+                            <p id="ghost-rule-delete-message"></p>
+                        </div>
+                        <div class="arcane-modal-footer">
+                            <button id="ghost-rule-delete-confirm" class="btn btn-secondary arcane-danger">🗑️ Remove</button>
+                            <button id="ghost-rule-delete-cancel" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grimoire Modal -->
+                <div id="grimoire-modal" class="grimoire-overlay" style="display: none;">
+                    <div class="grimoire-content">
+                        <div class="grimoire-header">
+                            <h2 id="grimoire-title">📜 Rule Grimoire</h2>
+                            <button class="grimoire-close" id="grimoire-close-btn">✖️</button>
+                        </div>
+                        <div class="grimoire-body" id="grimoire-body">
+                            <!-- Content will be populated dynamically -->
                         </div>
                     </div>
                 </div>
@@ -151,10 +304,27 @@
                     <!-- Findings will be populated by JavaScript -->
                 </div>
             </section>
-
         </main>
     </div>
 
+    <!-- AI Loading FAB (Crystal Ball Spinner) -->
+    <div id="ai-loading-fab" class="ai-loading-fab" style="display: none;">
+        <button class="btn" disabled>
+            <span style="display: flex; align-items: center; gap: 8px;">
+                <span class="crystal-ball">
+                    <span class="crystal-ball-inner">
+                        <span class="crystal-ball-wisp wisp-1"></span>
+                        <span class="crystal-ball-wisp wisp-2"></span>
+                        <span class="crystal-ball-wisp wisp-3"></span>
+                        <span class="crystal-ball-shine"></span>
+                    </span>
+                </span>
+                <span id="ai-loading-text">Consulting the arcane...</span>
+            </span>
+        </button>
+    </div>
+
+    <script type="module" src="/static/js/dialog-manager.js"></script>
     <script type="module" src="/static/js/magic-mode.js"></script>
     <script type="module" src="/static/js/app.js"></script>
 </body>

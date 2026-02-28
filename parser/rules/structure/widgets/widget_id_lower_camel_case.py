@@ -12,6 +12,33 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
     ID = "WidgetIdLowerCamelCaseRule"
     DESCRIPTION = "Ensures widget IDs follow lowerCamelCase naming convention (style guide for PMD and POD files)"
     SEVERITY = "ADVICE"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''LowerCamelCase is the Workday standard, and following it means your code will be consisten across pages AND applications. Mixing conventions (snake_case, PascalCase) forces constant reference checking and slows development.''',
+        'catches': [
+            'Widget IDs that don\'t follow lowerCamelCase convention',
+            'Style guide violations'
+        ],
+        'examples': '''**Example violations:**
+
+```json
+{
+  "type": "richText",
+  "id": "WelcomeMessage"  // ❌ Should be lowerCamelCase
+}
+```
+
+**Fix:**
+
+```json
+{
+  "type": "richText",
+  "id": "welcomeMessage"  // ✅ Proper lowerCamelCase
+}
+```''',
+        'recommendation': 'Use lowerCamelCase for all widget IDs to follow Workday standards and ensure consistency across pages and applications.'
+    }
     
     # Widget types that do not require or support ID values
     WIDGET_TYPES_WITHOUT_ID_REQUIREMENT = {
@@ -40,6 +67,17 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
                         widget_type = widget.get('type', 'unknown')
                         if widget_type not in self.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT:
                             yield from self._check_widget_id_naming(widget, pmd_model, section_name, path, index)
+            elif isinstance(section_data, list):
+                # Handle tabs list (tabs is a list of section widgets)
+                for i, tab_item in enumerate(section_data):
+                    if isinstance(tab_item, dict):
+                        tab_path = f"{section_name}.{i}"
+                        for widget, path, index, parent_type, container_name in self.traverse_presentation_structure(tab_item, tab_path):
+                            if isinstance(widget, dict) and 'id' in widget:
+                                # Skip widget types that are excluded from ID requirements
+                                widget_type = widget.get('type', 'unknown')
+                                if widget_type not in self.WIDGET_TYPES_WITHOUT_ID_REQUIREMENT:
+                                    yield from self._check_widget_id_naming(widget, pmd_model, section_name, path, index)
     
     def visit_pod(self, pod_model: PodModel, context: ProjectContext) -> Generator[Finding, None, None]:
         """Analyze POD model for widget ID naming conventions."""
@@ -145,8 +183,47 @@ class WidgetIdLowerCamelCaseRule(StructureRuleBase):
             
             # Build readable path by following the technical path and using readable identifiers
             if pmd_model and pmd_model.presentation:
-                current_data = pmd_model.presentation.__dict__.get(section, {})
-                display_prefix = self._build_path_from_data(current_data, path_parts[1:], display_prefix)
+                section_data = pmd_model.presentation.__dict__.get(section)
+                
+                # Handle tabs (which is a list, not a dict)
+                if isinstance(section_data, list):
+                    # Path format: "tabs.0.children.0" or "tabs.0" 
+                    # Path may start with section name, so skip it if present
+                    path_start_idx = 0
+                    if path_parts and path_parts[0] == section:
+                        path_start_idx = 1
+                    
+                    if path_start_idx < len(path_parts) and path_parts[path_start_idx].isdigit():
+                        # First part after section is tab index
+                        try:
+                            tab_index = int(path_parts[path_start_idx])
+                            if 0 <= tab_index < len(section_data):
+                                tab_item = section_data[tab_index]
+                                if isinstance(tab_item, dict):
+                                    # Get readable identifier for the tab
+                                    tab_id = self._get_readable_identifier(tab_item, tab_index)
+                                    display_prefix = f"{section}[{tab_index}]->{tab_id}"
+                                    # Continue building path from the tab item, skipping section and tab index
+                                    remaining_parts = path_parts[path_start_idx + 1:]
+                                    if remaining_parts:
+                                        display_prefix = self._build_path_from_data(tab_item, remaining_parts, display_prefix)
+                                    # If no remaining parts, we're at the tab itself, so just return the tab info
+                                else:
+                                    display_prefix = f"{section}[{tab_index}]"
+                            else:
+                                display_prefix = section
+                        except (ValueError, IndexError):
+                            display_prefix = section
+                    else:
+                        # Path doesn't have expected format, fallback
+                        display_prefix = section
+                elif isinstance(section_data, dict):
+                    # Regular dict section (body, title, footer, etc.)
+                    # Path may start with section name, so skip it if present
+                    path_start_idx = 1 if path_parts and path_parts[0] == section else 0
+                    display_prefix = self._build_path_from_data(section_data, path_parts[path_start_idx:], display_prefix)
+                else:
+                    display_prefix = section
             elif pod_model and pod_model.seed and pod_model.seed.script:
                 current_data = pod_model.seed.script
                 display_prefix = self._build_path_from_data(current_data, path_parts, display_prefix)

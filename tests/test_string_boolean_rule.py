@@ -70,6 +70,43 @@ class TestStringBooleanRule:
         
         assert len(findings) == 0
 
+    def test_underscore_key_ignored(self):
+        """Test that fields starting with underscore (commented out) are ignored."""
+        from parser.models import PMDModel
+        
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content='{"id": "test", "enabled": "true", "_disabled": "true", "_hidden": "false"}',
+            presentation={"body": {"type": "text", "enabled": "true"}}
+        )
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        
+        # Should only flag "enabled": "true", not the underscore-prefixed fields
+        assert len(findings) == 1
+        assert "enabled" in findings[0].message.lower()
+        assert "_disabled" not in findings[0].message
+        assert "_hidden" not in findings[0].message
+
+    def test_underscore_key_only_content_no_findings(self):
+        """Test that if only underscore keys have string booleans, no findings are reported."""
+        from parser.models import PMDModel
+        
+        pmd_model = PMDModel(
+            pageId="testPage",
+            file_path="test.pmd",
+            source_content='{"id": "test", "_enabled": "true", "_disabled": "false"}',
+            presentation={"body": {"type": "text"}}
+        )
+        self.context.pmds["testPage"] = pmd_model
+        
+        findings = list(self.rule.analyze(self.context))
+        
+        # Should not flag any underscore-prefixed fields
+        assert len(findings) == 0
+
 
 if __name__ == '__main__':
     pytest.main([__file__])

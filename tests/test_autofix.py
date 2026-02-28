@@ -9,12 +9,13 @@ from unittest.mock import patch, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from web.server import (
-    app,
+from web.server import app
+from web.routes.ai import (
     compute_diff_warning,
     get_autofix_system_prompt,
     strip_code_fences,
     AUTOFIX_PROMPT_PATH,
+    _get_anthropic_client,
 )
 
 client = TestClient(app)
@@ -82,7 +83,7 @@ class TestStripCodeFences:
 class TestAutofixEndpoint:
     """Tests for /api/autofix."""
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_successful_autofix(self, mock_get_client):
         mock_client = MagicMock()
         mock_client.messages.create.return_value = _mock_api_response(FIXED_FILE_CONTENT)
@@ -98,7 +99,7 @@ class TestAutofixEndpoint:
         assert body["file_path"] == "test.pod"
         assert "WORKDAY_COMMON" in body["fixed_content"]
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_api_called_with_temperature_zero(self, mock_get_client):
         mock_client = MagicMock()
         mock_client.messages.create.return_value = _mock_api_response(FIXED_FILE_CONTENT)
@@ -138,7 +139,7 @@ class TestAutofixEndpoint:
         resp = client.post("/api/autofix", json={"file_path": "test.pod"})
         assert resp.status_code == 422
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_empty_ai_response(self, mock_get_client):
         mock_client = MagicMock()
         mock_client.messages.create.return_value = _mock_api_response("")
@@ -152,7 +153,7 @@ class TestAutofixEndpoint:
         assert resp.status_code == 502
         assert "empty response" in resp.json()["detail"]
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_auth_error(self, mock_get_client):
         mock_client = MagicMock()
         mock_client.messages.create.side_effect = anthropic.AuthenticationError(
@@ -168,7 +169,7 @@ class TestAutofixEndpoint:
         assert resp.status_code == 503
         assert "API key" in resp.json()["detail"]
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_timeout(self, mock_get_client):
         mock_client = MagicMock()
         mock_client.messages.create.side_effect = anthropic.APITimeoutError(request=MagicMock())
@@ -182,7 +183,7 @@ class TestAutofixEndpoint:
         assert resp.status_code == 504
         assert "timed out" in resp.json()["detail"]
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_code_fence_stripping(self, mock_get_client):
         """LLM wraps output in code fences — they should be stripped."""
         fenced = '```json\n{"id": "fixed"}\n```'
@@ -200,7 +201,7 @@ class TestAutofixEndpoint:
         assert body["fixed_content"] == '{"id": "fixed"}'
         assert "```" not in body["fixed_content"]
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_model_env_override(self, mock_get_client):
         mock_client = MagicMock()
         mock_client.messages.create.return_value = _mock_api_response()
@@ -232,7 +233,7 @@ class TestAutofixPromptLoading:
             prompt = get_autofix_system_prompt()
             assert "code fixer" in prompt.lower()
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_prompt_passed_to_api(self, mock_get_client):
         """Verify the file-loaded prompt reaches the API call."""
         mock_client = MagicMock()
@@ -263,7 +264,7 @@ class TestAutofixPromptLoading:
 class TestSequentialAutofix:
     """Tests simulating sequential Fix-All behavior (multiple fixes on same file)."""
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_sequential_fixes_use_updated_content(self, mock_get_client):
         """Each fix call should accept the file content from the prior fix."""
         first_fix = '{"id": "myPage", "fixed": "first"}'
@@ -302,7 +303,7 @@ class TestSequentialAutofix:
         assert "hardcoded" in call1_msg  # original content
         assert "first" in call2_msg      # updated content
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_fix_failure_midway_does_not_corrupt(self, mock_get_client):
         """If one fix in a batch fails, earlier fixes remain valid."""
         good_fix = '{"id": "myPage", "fixed": true}'
@@ -383,7 +384,7 @@ class TestDiffWarning:
         fixed = "function foo() {\n  return 1;\n}"
         assert compute_diff_warning(original, fixed) is None
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_endpoint_includes_diff_warning(self, mock_get_client):
         """Integration: LLM returns content with extra removals → response has diff_warning."""
         # LLM removes the helper function
@@ -404,7 +405,7 @@ class TestDiffWarning:
         assert body["diff_warning"] is not None
         assert body["diff_warning"]["removed_line_count"] >= 1
 
-    @patch("web.server._get_anthropic_client")
+    @patch("web.routes.ai._get_anthropic_client")
     def test_endpoint_null_diff_warning_when_clean(self, mock_get_client):
         """Integration: clean fix → diff_warning is None."""
         mock_client = MagicMock()

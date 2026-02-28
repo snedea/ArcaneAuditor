@@ -34,6 +34,27 @@ class HardcodedApplicationIdRule(StructureRuleBase):
     ID = "HardcodedApplicationIdRule"
     DESCRIPTION = "Detects hardcoded applicationId values that should be replaced with site.applicationId"
     SEVERITY = "ADVICE"
+    AVAILABLE_SETTINGS = {}  # This rule does not support custom configuration
+    
+    DOCUMENTATION = {
+        'why': '''Hardcoded application IDs break when you deploy the same code to different customer environments, because each has a unique ID. Using `site.applicationId` makes your code environment-agnostic and prevents runtime failures.''',
+        'catches': [
+            'Hardcoded applicationId values in scripts and configurations',
+            'Values that should use site.applicationId instead'
+        ],
+        'examples': '''**Example violations:**
+
+```javascript
+const appId = "acmeCorp_speedy"; // ❌ Hardcoded applicationId
+```
+
+**Fix:**
+
+```javascript
+const appId = site.applicationId; // ✅ Use site.applicationId
+```''',
+        'recommendation': 'Replace hardcoded applicationId values with `site.applicationId` to make your code environment-agnostic and prevent deployment failures across different customer environments.'
+    }
     
     def get_description(self) -> str:
         """Get rule description."""

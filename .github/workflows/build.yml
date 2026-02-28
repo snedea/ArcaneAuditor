@@ -1,0 +1,71 @@
+name: 🧪 Build (Unsigned Diagnostic)
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: 📥 Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🧙 Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.6"
+
+      - name: 🧩 Install pinned Python
+        run: |
+          echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') Installing Python via uv"
+          uv python install
+        shell: bash
+
+      - name: 🔍 Verify Python runtime
+        run: |
+          uv --version
+          uv run python -V
+          uv run python -c "import sys, sysconfig, platform, os; print('Python exe:', sys.executable); print('LIBDIR:', sysconfig.get_config_var('LIBDIR')); print('Platform:', platform.platform()); print('CWD:', os.getcwd())"
+        shell: bash
+
+      # 🪟 WINDOWS BUILD
+      - name: 🏗️ Build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          echo "🕒 $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') Starting Windows build"
+          New-Item -ItemType Directory -Force -Path build-logs | Out-Null
+          pwsh ./scripts/build.ps1 2>&1 | Tee-Object -FilePath build-logs/build_Windows.log -Append
+
+      # 🍎 MAC BUILD
+      - name: 🏗️ Build (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          echo "🕒 $(date '+%Y-%m-%d %H:%M:%S') Starting macOS build"
+          mkdir -p build-logs
+          bash ./scripts/build.sh 2>&1 | tee build-logs/build_macos.log
+
+      - name: 📦 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: arcane-auditor-${{ runner.os }}
+          path: |
+            dist/ArcaneAuditor*.exe
+            dist/ArcaneAuditor*.app*
+            dist/ArcaneAuditorCLI*
+            dist/ArcaneAuditorWeb.exe
+            build-logs/

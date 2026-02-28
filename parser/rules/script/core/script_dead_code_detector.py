@@ -187,7 +187,11 @@ class ScriptDeadCodeDetector(ScriptDetector):
         
         # Issue 1: Top-level variables declared but not exported AND not used internally
         unexported_vars = set(top_level_vars.keys()) - exported_vars
-        truly_unused_vars = unexported_vars - internal_calls
+        # Check each unexported variable to see if it's actually used
+        truly_unused_vars = {
+            var_name for var_name in unexported_vars 
+            if not self._is_variable_used(var_name, ast) and var_name not in internal_calls
+        }
         
         for var_name in truly_unused_vars:
             var_info = top_level_vars[var_name]

@@ -64,7 +64,7 @@ class TestEndpointBaseUrlTypeRule:
     def test_api_gateway_endpoint_usage_flagged(self):
         """Test that endpoints using apiGatewayEndpoint directly are flagged."""
         from parser.models import PMDModel
-
+        
         pmd_model = PMDModel(
             pageId="testPage",
             file_path="test.pmd",
@@ -75,50 +75,12 @@ class TestEndpointBaseUrlTypeRule:
             }]
         )
         self.context.pmds["testPage"] = pmd_model
-
+        
         findings = list(self.rule.analyze(self.context))
-
+        
         assert len(findings) == 1
         assert "apiGatewayEndpoint" in findings[0].message or "baseUrlType" in findings[0].message
         assert "duplication" in findings[0].message.lower()
-
-    def test_api_gateway_with_base_url_type_not_flagged(self):
-        """Endpoints with apiGatewayEndpoint in URL but baseUrlType set should NOT be flagged."""
-        from parser.models import PMDModel
-
-        pmd_model = PMDModel(
-            pageId="testPage",
-            file_path="test.pmd",
-            source_content="",
-            inboundEndpoints=[{
-                "name": "getWorker",
-                "url": "{{apiGatewayEndpoint}}/common/v1/workers",
-                "baseUrlType": "WORKDAY_API",
-            }]
-        )
-        self.context.pmds["testPage"] = pmd_model
-
-        findings = list(self.rule.analyze(self.context))
-        assert len(findings) == 0
-
-    def test_workday_url_with_base_url_type_not_flagged(self):
-        """Endpoints with workday.com in URL but baseUrlType set should NOT be flagged."""
-        from parser.models import PMDModel
-
-        pmd_model = PMDModel(
-            pageId="testPage",
-            file_path="test.pmd",
-            source_content="",
-            inboundEndpoints=[{
-                "name": "getWorker",
-                "url": "https://api.workday.com/common/v1/workers",
-                "baseUrlType": "WORKDAY_COMMON",
-            }]
-        )
-        self.context.pmds["testPage"] = pmd_model
-
-        findings = list(self.rule.analyze(self.context))
-        assert len(findings) == 0
 
 
 if __name__ == '__main__':

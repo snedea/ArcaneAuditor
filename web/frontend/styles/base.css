@@ -1,0 +1,670 @@
+/* CSS Variables for theming */
+:root {
+    /* Light theme colors */
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --text-primary: #1e293b;    /* Darker for better contrast */
+    --text-secondary: #475569;  /* Slightly darker gray-blue */
+    --text-muted: #64748b;      /* Keep this tone for subtle info */
+    --border-color: #cbd5e1;    /* Slightly darker for separation */
+    --border-light: #f1f5f9;
+    --shadow: rgba(0, 0, 0, 0.1);
+    --shadow-hover: rgba(0, 0, 0, 0.15);
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-secondary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    
+    /* Magical theme colors */
+    --arcane-purple: #756AA2;
+    --arcane-glow: rgba(117, 106, 162, 0.1);
+    --arcane-shimmer: rgba(117, 106, 162, 0.2);
+    --magical-gradient: radial-gradient(circle at top center, rgba(117, 106, 162, 0.15) 0%, transparent 70%);
+    --accent: #7c3aed;
+}
+
+[data-theme="dark"] {
+    /* Dark theme colors - lightened for less fatigue */
+    --bg-primary: #1a2433;
+    --bg-secondary: #253447;
+    --bg-tertiary: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #64748b;
+    --border-color: #475569;
+    --border-light: #334155;
+    --shadow: rgba(0, 0, 0, 0.3);
+    --shadow-hover: rgba(0, 0, 0, 0.4);
+    --gradient-primary: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
+    --gradient-secondary: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
+    
+    /* Magical theme colors for dark mode */
+    --arcane-purple: #9F7AEA;
+    --arcane-glow: rgba(159, 122, 234, 0.15);
+    --arcane-shimmer: rgba(159, 122, 234, 0.25);
+    --magical-gradient: radial-gradient(circle at top center, rgba(159, 122, 234, 0.2) 0%, transparent 70%);
+}
+
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    line-height: 1.6;
+    color: var(--text-primary);
+    background-color: var(--bg-primary);
+    background-image: var(--magical-gradient);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+header {
+    margin-bottom: 40px;
+    padding: 40px 0;
+    background: var(--gradient-primary);
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px var(--shadow);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.header-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.header-text {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.header-version .version-info {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 10px 22px;
+    border-radius: 24px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    letter-spacing: 0.6px;
+    text-decoration: none;
+}
+
+.header-version .version-info:hover {
+    text-decoration: none;
+}
+
+.header-version .version-info[data-loading="true"] {
+    visibility: hidden;
+}
+
+
+.version-info a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+.version-info a:hover {
+    text-decoration: none;
+}
+
+/* Better contrast for light mode */
+[data-theme="light"] .header-version .version-info {
+    background: rgba(0, 0, 0, 0.15);
+    color: rgba(255, 255, 255, 1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Update available indicator */
+.version-info.update-available {
+    color: #facc15 !important; /* warm gold shimmer - WCAG AA compliant on header background */
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.version-info.update-available.pulse {
+    animation: pulse 2s ease-in-out infinite;
+    cursor: pointer;
+}
+
+@keyframes pulse {
+    0%, 100% { 
+        opacity: 1; 
+    }
+    50% { 
+        opacity: 0.8; 
+    }
+}
+
+header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+/* Fixed theme toggle in bottom corner */
+.theme-toggle-fixed {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 14px;
+}
+
+.theme-toggle-fixed .quick-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    position: relative;
+}
+
+.theme-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    height: 52px;
+    padding: 0;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    font-weight: 600;
+    gap: 0;
+}
+
+.theme-button .theme-emoji {
+    font-size: 1.6rem;
+    transition: transform 0.3s ease;
+}
+
+.theme-button .theme-label {
+    font-size: 0.95rem;
+    opacity: 0;
+    max-width: 0;
+    margin-left: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.3s ease, opacity 0.3s ease, margin-left 0.3s ease, color 0.3s ease;
+}
+
+.theme-button:hover,
+.theme-button:focus-visible {
+    padding: 0 18px;
+    border-radius: 28px;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.theme-button:hover .theme-label,
+.theme-button:focus-visible .theme-label {
+    opacity: 1;
+    max-width: 160px;
+    margin-left: 12px;
+}
+
+[data-theme="light"] .theme-button {
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    border: 2px solid var(--accent);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .theme-button:hover,
+[data-theme="light"] .theme-button:focus-visible {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border-color: #667eea;
+}
+
+[data-theme="dark"] .theme-button {
+    background: rgba(30, 41, 59, 0.95);
+    color: #f1f5f9;
+    border: 2px solid var(--accent);
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4), 0 0 30px rgba(124, 58, 237, 0.2);
+}
+
+[data-theme="dark"] .theme-button:hover,
+[data-theme="dark"] .theme-button:focus-visible {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    color: #1e293b;
+    border-color: #f8fafc;
+}
+
+.grimoire-float-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    border: 2px solid var(--accent);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    padding: 0;
+}
+
+.grimoire-float-btn:hover,
+.grimoire-float-btn:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .grimoire-float-btn {
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    border: 2px solid var(--accent);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .grimoire-float-btn:hover,
+[data-theme="light"] .grimoire-float-btn:focus-visible {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border-color: #667eea;
+}
+
+[data-theme="dark"] .grimoire-float-btn {
+    background: rgba(30, 41, 59, 0.95);
+    color: #f1f5f9;
+    border: 2px solid var(--accent);
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4), 0 0 30px rgba(124, 58, 237, 0.2);
+}
+
+[data-theme="dark"] .grimoire-float-btn:hover,
+[data-theme="dark"] .grimoire-float-btn:focus-visible {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    color: #1e293b;
+    border-color: #f8fafc;
+}
+
+.grimoire-float-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.35), 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.settings-button {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    border: 2px solid var(--accent);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.settings-button .icon-close {
+    display: none;
+    font-size: 1.2rem;
+}
+
+.settings-button .icon-tome {
+    display: inline;
+    font-size: 1.6rem;
+}
+
+.settings-button:hover,
+.settings-button[aria-expanded="true"] {
+    background: var(--accent);
+    color: var(--text-primary);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    border: 2px solid var(--accent);
+}
+
+[data-theme="light"] .settings-button:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border-color: #667eea;
+}
+
+[data-theme="light"] .settings-button[aria-expanded="true"] {
+    background: #ffffff;
+    border-color: rgba(102, 126, 234, 0.45);
+    color: #1e293b;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.25);
+}
+
+[data-theme="dark"] .settings-button {
+    background: rgba(30, 41, 59, 0.95);
+    color: #f1f5f9;
+    border: 2px solid var(--accent);
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4), 0 0 30px rgba(124, 58, 237, 0.2);
+}
+
+[data-theme="dark"] .settings-button:hover,
+[data-theme="dark"] .settings-button[aria-expanded="true"] {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    color: #1e293b;
+    box-shadow: 0 8px 25px rgba(248, 250, 252, 0.6), 0 0 30px rgba(248, 250, 252, 0.3);
+    border: 2px solid #f8fafc;
+}
+
+.settings-button[aria-expanded="true"] .icon-close {
+    display: inline;
+    color: #ffffff !important;
+}
+
+.settings-button[aria-expanded="true"] .icon-tome {
+    display: none;
+}
+
+.settings-panel {
+    /* Keep positioning (bottom/right) */
+    position: absolute;
+    bottom: 120px;
+    right: 0;
+    width: 400px; /* Widen for better text spacing */
+    height: auto; /* Let content drive height */
+    background: rgba(15, 23, 42, 0.98); /* Deep dark blue */
+    border: 1px solid rgba(139, 92, 246, 0.4); /* Purple border */
+    border-radius: 12px;
+    box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(139, 92, 246, 0.15); /* Subtle purple glow */
+    padding: 0; /* Remove padding here, move to body/header */
+    overflow: hidden; /* For header border radius */
+    backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-panel[hidden] {
+    display: none;
+}
+
+/* Add a Gradient Header */
+.settings-panel-header {
+    background: linear-gradient(to right, rgba(139, 92, 246, 0.15), transparent);
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-panel-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #f8fafc;
+    letter-spacing: 0.02em;
+}
+
+/* Style the Body */
+.settings-panel-body {
+    padding: 24px; /* Increased padding for more spacious feel */
+    display: flex;
+    flex-direction: column;
+    gap: 16px; /* Space out the options */
+}
+
+.settings-option {
+    display: flex;
+    align-items: flex-start; /* So toggle stays at top when text wraps */
+    gap: 12px;
+}
+
+/* Hide default checkbox */
+.settings-option input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 40px;
+    height: 22px;
+    background: #475569; /* Slate-600 (Off) */
+    border-radius: 11px;
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    transition: background 0.3s;
+    flex-shrink: 0; /* Don't squish */
+    margin: 0;
+    margin-top: 2px; /* Align with first line of text */
+}
+
+/* Toggle Knob */
+.settings-option input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Checked State (On) */
+.settings-option input[type="checkbox"]:checked {
+    background: #9333ea; /* Purple-600 (On) */
+}
+
+.settings-option input[type="checkbox"]:checked::after {
+    transform: translateX(18px);
+}
+
+/* Text Label */
+.settings-option label {
+    font-size: 0.9rem;
+    color: #e2e8f0;
+    cursor: pointer;
+    margin: 0;
+    flex: 1; /* Ensure it takes up all available space next to the toggle */
+    white-space: normal; /* Allow wrapping */
+    line-height: 1.4; /* Better readability for multi-line text */
+}
+
+/* Light Mode Overrides */
+[data-theme="light"] .settings-panel {
+    background: rgba(255, 255, 255, 0.98); /* Clean white background */
+    border: 1px solid rgba(139, 92, 246, 0.25); /* Softer purple border */
+    box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.15),
+        0 0 20px rgba(139, 92, 246, 0.1); /* Lighter glow for light mode */
+}
+
+[data-theme="light"] .settings-panel-header {
+    background: linear-gradient(to right, rgba(139, 92, 246, 0.08), transparent);
+    border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+[data-theme="light"] .settings-panel-header h3 {
+    color: #1e293b; /* Dark slate for good contrast */
+}
+
+[data-theme="light"] .settings-option label {
+    color: #475569; /* Slate-600 for readable text in light mode */
+}
+
+[data-theme="light"] .settings-option input[type="checkbox"] {
+    background: #cbd5e1; /* Lighter gray for off state in light mode */
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .settings-option input[type="checkbox"]:checked {
+    background: #9333ea; /* Keep purple for on state */
+}
+
+[data-theme="light"] .settings-option input[type="checkbox"]::after {
+    background: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.theme-toggle-fixed .btn::after,
+.settings-button::after {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    width: 70%;
+    height: 8px;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(147, 51, 234, 0.25), transparent 70%);
+    filter: blur(6px);
+    pointer-events: none;
+}
+
+.theme-button,
+.settings-button {
+    outline: none;
+}
+
+.theme-button:focus-visible,
+.settings-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.35), 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.settings-button[data-tooltip]::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 12px);
+    right: 0;
+    background: rgba(15, 23, 42, 0.92);
+    color: #f8fafc;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.45);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(4px);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+    z-index: 1001;
+}
+
+[data-theme="light"] .settings-button[data-tooltip]::before {
+    background: rgba(79, 70, 229, 0.92);
+    box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
+}
+
+.settings-button[data-tooltip]:hover::before {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* =========================================
+   CUSTOM SCROLLBARS
+   ========================================= */
+
+/* --- Default / Light Mode --- */
+:root {
+    --scrollbar-width: 8px;
+    --scrollbar-track: transparent;
+    --scrollbar-thumb: #cbd5e1;       /* Slate-300 */
+    --scrollbar-thumb-hover: #94a3b8; /* Slate-400 */
+}
+
+/* --- Dark Mode Variables --- */
+[data-theme="dark"] {
+    --scrollbar-thumb: #334155;       /* Slate-700 */
+    --scrollbar-thumb-hover: #7c3aed; /* Brand Purple (Magical glow on hover) */
+}
+
+/* --- Firefox Standard --- */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* --- WebKit (Chrome, Edge, Safari) --- */
+::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 20px;       /* Fully rounded pill shape */
+    border: 2px solid transparent; /* Creates padding effect so it doesn't touch edges */
+    background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+[data-theme="light"] .settings-button[aria-expanded="true"] .icon-close {
+    color: #1e293b !important;
+}
+
