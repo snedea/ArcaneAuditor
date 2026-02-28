@@ -7,7 +7,6 @@ This serves the simple HTML/JavaScript interface with FastAPI backend.
 from contextlib import asynccontextmanager
 import json
 import os
-import subprocess
 import sys
 import io
 import re as _re_module
@@ -32,6 +31,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
+
+# Anthropic SDK for direct API calls (temperature control)
+import anthropic
 
 # Configuration constants
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB default limit
@@ -240,6 +242,39 @@ def get_autofix_system_prompt() -> str:
             "You are a code fixer. Return ONLY the complete corrected file content. "
             "Fix ONLY the specific finding described. No preamble, no code fences, no explanation."
         )
+
+
+# Shared Anthropic API helper
+_anthropic_client: Optional[anthropic.Anthropic] = None
+
+def _get_anthropic_client() -> anthropic.Anthropic:
+    """Get or create a shared Anthropic client.  Reads ANTHROPIC_API_KEY from env."""
+    global _anthropic_client
+    if _anthropic_client is None:
+        _anthropic_client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY
+    return _anthropic_client
+
+
+async def _call_claude(
+    system_prompt: str,
+    user_message: str,
+    model: Optional[str] = None,
+    temperature: float = 1.0,
+    max_tokens: int = 16384,
+) -> str:
+    """Call the Anthropic API with the given prompts.  Returns the text response."""
+    if model is None:
+        model = os.environ.get("LLM_MODEL", "claude-sonnet-4-6")
+    client = _get_anthropic_client()
+    response = await asyncio.to_thread(
+        client.messages.create,
+        model=model,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_message}],
+    )
+    return response.content[0].text.strip()
 
 
 @asynccontextmanager
@@ -800,31 +835,15 @@ async def explain_findings(request: ExplainRequest):
     if not findings:
         raise HTTPException(status_code=400, detail="No findings provided")
 
-    model = os.environ.get("LLM_MODEL", "claude-sonnet-4-6")
     user_msg, findings_list = _build_numbered_user_message(findings)
 
     try:
-        result = await asyncio.to_thread(
-            subprocess.run,
-            [
-                "claude",
-                "--print",
-                "--model", model,
-                "--max-turns", "1",
-                "--system-prompt", get_explain_system_prompt(),
-            ],
-            input=user_msg,
-            capture_output=True,
-            text=True,
-            timeout=120,
+        explanation = await _call_claude(
+            system_prompt=get_explain_system_prompt(),
+            user_message=user_msg,
+            temperature=0.3,
         )
 
-        if result.returncode != 0:
-            error_msg = result.stderr.strip() or "Claude CLI returned non-zero exit code"
-            print(f"Claude CLI error: {error_msg}", file=sys.stderr)
-            raise HTTPException(status_code=502, detail=f"AI explanation failed: {error_msg}")
-
-        explanation = result.stdout.strip()
         if not explanation:
             raise HTTPException(status_code=502, detail="AI returned empty response")
 
@@ -847,10 +866,10 @@ async def explain_findings(request: ExplainRequest):
         # Fallback: return raw markdown
         return {"explanation": explanation, "format": "markdown"}
 
-    except subprocess.TimeoutExpired:
-        raise HTTPException(status_code=504, detail="AI explanation timed out (120s limit)")
-    except FileNotFoundError:
-        raise HTTPException(status_code=503, detail="Claude CLI not available in this environment")
+    except anthropic.APITimeoutError:
+        raise HTTPException(status_code=504, detail="AI explanation timed out")
+    except anthropic.AuthenticationError:
+        raise HTTPException(status_code=503, detail="Anthropic API key not configured or invalid")
     except HTTPException:
         raise
     except Exception as e:
@@ -954,18 +973,16 @@ def strip_code_fences(text: str) -> str:
 
 @app.post("/api/autofix")
 async def autofix_finding(request: AutofixRequest):
-    """Use Claude CLI to auto-fix a single finding in a file.
+    """Use Anthropic API to auto-fix a single finding in a file.
 
     Accepts the full file content and a finding description, returns the
-    corrected file content.
+    corrected file content.  Temperature is set to 0 for maximum fidelity.
     """
     if not request.file_content.strip():
         raise HTTPException(status_code=400, detail="Empty file content")
 
     if not request.finding:
         raise HTTPException(status_code=400, detail="No finding provided")
-
-    model = os.environ.get("LLM_MODEL", "claude-sonnet-4-6")
 
     # Build user message with file path, finding details, and full content
     finding = request.finding
@@ -980,27 +997,12 @@ async def autofix_finding(request: AutofixRequest):
     )
 
     try:
-        result = await asyncio.to_thread(
-            subprocess.run,
-            [
-                "claude",
-                "--print",
-                "--model", model,
-                "--max-turns", "1",
-                "--system-prompt", get_autofix_system_prompt(),
-            ],
-            input=user_msg,
-            capture_output=True,
-            text=True,
-            timeout=120,
+        fixed_content = await _call_claude(
+            system_prompt=get_autofix_system_prompt(),
+            user_message=user_msg,
+            temperature=0,
         )
 
-        if result.returncode != 0:
-            error_msg = result.stderr.strip() or "Claude CLI returned non-zero exit code"
-            print(f"Claude CLI autofix error: {error_msg}", file=sys.stderr)
-            raise HTTPException(status_code=502, detail=f"Autofix failed: {error_msg}")
-
-        fixed_content = result.stdout.strip()
         if not fixed_content:
             raise HTTPException(status_code=502, detail="AI returned empty response")
 
@@ -1009,10 +1011,10 @@ async def autofix_finding(request: AutofixRequest):
 
         return {"fixed_content": fixed_content, "file_path": request.file_path}
 
-    except subprocess.TimeoutExpired:
-        raise HTTPException(status_code=504, detail="Autofix timed out (120s limit)")
-    except FileNotFoundError:
-        raise HTTPException(status_code=503, detail="Claude CLI not available in this environment")
+    except anthropic.APITimeoutError:
+        raise HTTPException(status_code=504, detail="Autofix timed out")
+    except anthropic.AuthenticationError:
+        raise HTTPException(status_code=503, detail="Anthropic API key not configured or invalid")
     except HTTPException:
         raise
     except Exception as e:

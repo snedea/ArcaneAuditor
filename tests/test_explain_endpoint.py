@@ -1,10 +1,10 @@
 """
 Tests for POST /api/explain endpoint.
 
-All tests mock subprocess.run so no real Claude CLI is needed.
+All tests mock the Anthropic SDK so no real API calls are made.
 """
 import json
-import subprocess
+import anthropic
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -43,13 +43,13 @@ STRUCTURED_RESPONSE = json.dumps([
 ])
 
 
-def _mock_completed(stdout="## Explanation\nLooks good.", returncode=0, stderr=""):
-    """Return a mock CompletedProcess for subprocess.run."""
-    cp = MagicMock(spec=subprocess.CompletedProcess)
-    cp.stdout = stdout
-    cp.stderr = stderr
-    cp.returncode = returncode
-    return cp
+def _mock_api_response(text="## Explanation\nLooks good."):
+    """Return a mock Anthropic API response."""
+    block = MagicMock()
+    block.text = text
+    resp = MagicMock()
+    resp.content = [block]
+    return resp
 
 
 class TestParseStructuredExplanation:
@@ -150,8 +150,12 @@ class TestParseStructuredExplanation:
 class TestExplainEndpoint:
     """Tests for /api/explain."""
 
-    @patch("web.server.subprocess.run", return_value=_mock_completed(stdout=STRUCTURED_RESPONSE))
-    def test_structured_response(self, mock_run):
+    @patch("web.server._get_anthropic_client")
+    def test_structured_response(self, mock_get_client):
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = _mock_api_response(STRUCTURED_RESPONSE)
+        mock_get_client.return_value = mock_client
+
         resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
         assert resp.status_code == 200
         body = resp.json()
@@ -162,9 +166,13 @@ class TestExplainEndpoint:
         assert "findings_order" in body
         assert body["findings_order"][0]["rule_id"] == "HardcodedWorkdayAPIRule"
 
-    @patch("web.server.subprocess.run", return_value=_mock_completed())
-    def test_markdown_fallback(self, mock_run):
+    @patch("web.server._get_anthropic_client")
+    def test_markdown_fallback(self, mock_get_client):
         """Non-JSON output falls back to markdown format."""
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = _mock_api_response("## Explanation\nLooks good.")
+        mock_get_client.return_value = mock_client
+
         resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
         assert resp.status_code == 200
         body = resp.json()
@@ -172,29 +180,31 @@ class TestExplainEndpoint:
         assert "explanation" in body
         assert "Explanation" in body["explanation"]
 
-    @patch("web.server.subprocess.run", return_value=_mock_completed(stdout=STRUCTURED_RESPONSE))
-    def test_subprocess_called_correctly(self, mock_run):
+    @patch("web.server._get_anthropic_client")
+    def test_api_called_with_correct_params(self, mock_get_client):
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = _mock_api_response(STRUCTURED_RESPONSE)
+        mock_get_client.return_value = mock_client
+
         resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
         assert resp.status_code == 200
 
-        # Verify subprocess was called with correct args
-        args, kwargs = mock_run.call_args
-        cmd = args[0]
-        assert cmd[0] == "claude"
-        assert "--print" in cmd
-        assert "--max-turns" in cmd
-        assert "--system-prompt" in cmd
-        assert kwargs["input"] is not None
-        assert "Finding #0" in kwargs["input"]  # numbered format
-        assert kwargs["timeout"] == 120
+        call_kwargs = mock_client.messages.create.call_args[1]
+        assert call_kwargs["temperature"] == 0.3
+        assert "Finding #0" in call_kwargs["messages"][0]["content"]
+        assert len(call_kwargs["system"]) > 20
 
-    @patch("web.server.subprocess.run", return_value=_mock_completed())
-    def test_model_env_override(self, mock_run):
+    @patch("web.server._get_anthropic_client")
+    def test_model_env_override(self, mock_get_client):
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = _mock_api_response(STRUCTURED_RESPONSE)
+        mock_get_client.return_value = mock_client
+
         with patch.dict("os.environ", {"LLM_MODEL": "claude-haiku-4-5"}):
             resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
         assert resp.status_code == 200
-        cmd = mock_run.call_args[0][0]
-        assert "claude-haiku-4-5" in cmd
+        call_kwargs = mock_client.messages.create.call_args[1]
+        assert call_kwargs["model"] == "claude-haiku-4-5"
 
     def test_empty_findings_rejected(self):
         resp = client.post("/api/explain", json={"findings": {}})
@@ -205,58 +215,64 @@ class TestExplainEndpoint:
         resp = client.post("/api/explain", json={})
         assert resp.status_code == 422  # Pydantic validation error
 
-    @patch(
-        "web.server.subprocess.run",
-        return_value=_mock_completed(returncode=1, stderr="auth failed"),
-    )
-    def test_nonzero_exit_code(self, mock_run):
-        resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
-        assert resp.status_code == 502
-        assert "auth failed" in resp.json()["detail"]
+    @patch("web.server._get_anthropic_client")
+    def test_empty_response(self, mock_get_client):
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = _mock_api_response("")
+        mock_get_client.return_value = mock_client
 
-    @patch(
-        "web.server.subprocess.run",
-        return_value=_mock_completed(stdout="", returncode=0),
-    )
-    def test_empty_response(self, mock_run):
         resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
         assert resp.status_code == 502
         assert "empty response" in resp.json()["detail"]
 
-    @patch(
-        "web.server.subprocess.run",
-        side_effect=subprocess.TimeoutExpired(cmd="claude", timeout=120),
-    )
-    def test_timeout(self, mock_run):
+    @patch("web.server._get_anthropic_client")
+    def test_auth_error(self, mock_get_client):
+        mock_client = MagicMock()
+        mock_client.messages.create.side_effect = anthropic.AuthenticationError(
+            message="invalid key", response=MagicMock(status_code=401), body={}
+        )
+        mock_get_client.return_value = mock_client
+
+        resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
+        assert resp.status_code == 503
+        assert "API key" in resp.json()["detail"]
+
+    @patch("web.server._get_anthropic_client")
+    def test_timeout(self, mock_get_client):
+        mock_client = MagicMock()
+        mock_client.messages.create.side_effect = anthropic.APITimeoutError(request=MagicMock())
+        mock_get_client.return_value = mock_client
+
         resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
         assert resp.status_code == 504
         assert "timed out" in resp.json()["detail"]
 
-    @patch("web.server.subprocess.run", side_effect=FileNotFoundError())
-    def test_cli_not_found(self, mock_run):
-        resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
-        assert resp.status_code == 503
-        assert "not available" in resp.json()["detail"]
-
-    @patch("web.server.subprocess.run", return_value=_mock_completed())
-    def test_markdown_response_is_stripped(self, mock_run):
+    @patch("web.server._get_anthropic_client")
+    def test_markdown_response_is_stripped(self, mock_get_client):
         """Verify leading/trailing whitespace is stripped from markdown fallback."""
-        mock_run.return_value = _mock_completed(stdout="\n\n  Some explanation  \n\n")
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = _mock_api_response("\n\n  Some explanation  \n\n")
+        mock_get_client.return_value = mock_client
+
         resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
         assert resp.status_code == 200
         body = resp.json()
         assert body["format"] == "markdown"
         assert body["explanation"] == "Some explanation"
 
-    @patch("web.server.subprocess.run", return_value=_mock_completed())
-    def test_format_field_always_present(self, mock_run):
+    @patch("web.server._get_anthropic_client")
+    def test_format_field_always_present(self, mock_get_client):
         """Both structured and markdown responses include a format field."""
+        mock_client = MagicMock()
+
         # Markdown case
+        mock_client.messages.create.return_value = _mock_api_response("## Explanation\nLooks good.")
+        mock_get_client.return_value = mock_client
         resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
         assert "format" in resp.json()
 
         # Structured case
-        mock_run.return_value = _mock_completed(stdout=STRUCTURED_RESPONSE)
+        mock_client.messages.create.return_value = _mock_api_response(STRUCTURED_RESPONSE)
         resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
         assert "format" in resp.json()
 
@@ -278,13 +294,14 @@ class TestPromptLoading:
             assert "code reviewer" in prompt  # fallback prompt
             assert "JSON" in prompt  # fallback now also requests JSON
 
-    @patch("web.server.subprocess.run", return_value=_mock_completed())
-    def test_prompt_passed_to_subprocess(self, mock_run):
-        """Verify the file-loaded prompt reaches the subprocess command."""
+    @patch("web.server._get_anthropic_client")
+    def test_prompt_passed_to_api(self, mock_get_client):
+        """Verify the file-loaded prompt reaches the API call."""
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = _mock_api_response(STRUCTURED_RESPONSE)
+        mock_get_client.return_value = mock_client
+
         resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
         assert resp.status_code == 200
-        cmd = mock_run.call_args[0][0]
-        # Find the --system-prompt value
-        sp_idx = cmd.index("--system-prompt")
-        prompt_arg = cmd[sp_idx + 1]
-        assert "JSON" in prompt_arg
+        call_kwargs = mock_client.messages.create.call_args[1]
+        assert "JSON" in call_kwargs["system"]
