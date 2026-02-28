@@ -56,7 +56,9 @@ Layered config system protects your customizations during updates. Your personal
 | ![Landing Page](docs/screenshots/01-landing.png) | ![Results Summary](docs/screenshots/02-results-summary.png) |
 | **Upload & Configure** — drag-and-drop ZIP or individual files, pick a built-in config | **Results Summary** — 9 issues found across 3 files, with severity breakdown |
 | ![Findings Detail](docs/screenshots/03-findings.png) | ![Auto-Fix](docs/screenshots/05-autofix.png) |
-| **Findings Detail** — code snippets with highlighted lines, per-finding actions | **AI Auto-Fix** — one-click fixes with FIXED badges, Fix All for entire files |
+| **Findings Detail** — code snippets with AI explanations for every finding | **AI Auto-Fix** — one-click fixes with FIXED badges, Fix All for entire files |
+| ![Summary Before](docs/screenshots/summary-before.png) | ![Summary After](docs/screenshots/summary-after.png) |
+| **Before Fix All** — 9 issues, 3 actions, 6 advices | **After Fix All** — counters update live as findings get resolved |
 
 ---
 
