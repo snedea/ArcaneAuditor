@@ -171,7 +171,7 @@ export class ResultsRenderer {
                                     ` : (() => {
                                         const unresolvedIndices = fileFindingIndices.filter(i => i >= 0 && !this.app.resolvedFindings.has(i));
                                         const unresolvedCount = unresolvedIndices.length;
-                                        if (unresolvedCount > 1) {
+                                        if (unresolvedCount >= 1) {
                                             return `<button class="fix-all-btn${fileAutofixBusy ? ' loading' : ''}"
                                                 onclick="event.stopPropagation(); autofixFile('${escapedFilePath}')"
                                                 ${fileAutofixBusy ? 'disabled' : ''}>
