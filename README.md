@@ -382,6 +382,12 @@ Contributions are welcome! Submit pull requests against the **`develop`** branch
 
 ---
 
+## 🙏 Attribution
+
+This is a fork of [Arcane Auditor](https://github.com/Developers-and-Dragons/ArcaneAuditor) by **Chris Humphrey** and the **Developers and Dragons** community. The deterministic rules engine, parser, configuration system, and desktop app are their work. This fork adds AI-powered explain/auto-fix, side-by-side diff view, and Docker deployment.
+
+---
+
 ## 📄 License
 
 Licensed under the **MIT License** — see [LICENSE](LICENSE).
