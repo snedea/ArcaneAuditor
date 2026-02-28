@@ -440,9 +440,14 @@ class ArcaneAuditorApp {
         const fab = document.getElementById('ai-loading-fab');
         const label = document.getElementById('ai-loading-text');
 
-        // Pick a random phrase
+        // Pick a random phrase, never repeating the last one
         const phrases = ArcaneAuditorApp.AI_LOADING_PHRASES;
-        label.textContent = phrases[Math.floor(Math.random() * phrases.length)];
+        let idx;
+        do {
+            idx = Math.floor(Math.random() * phrases.length);
+        } while (phrases.length > 1 && idx === this._lastPhraseIdx);
+        this._lastPhraseIdx = idx;
+        label.textContent = phrases[idx];
 
         // Show pill in bottom-left corner
         fab.style.display = 'block';
