@@ -12,8 +12,19 @@ class ArcaneAuditorApp {
         this.currentResult = null;
         this.filteredFindings = [];
         this.expandedFiles = new Set();
+        this.findingExplanations = new Map(); // key: "index::rule_id::file_path::line" → explanation obj
         this.uploadedFileName = null;
         this.selectedFiles = []; // For multiple file uploads
+
+        // File contents and fix state
+        this.editedFileContents = new Map();    // file_path → current content (updated by autofix)
+        this.originalFileContents = new Map();  // file_path → original content
+        this.resolvedFindings = new Set();       // set of original finding indices that are resolved
+        this.autofixInProgress = new Set();      // finding indices currently being auto-fixed
+        this.diffWarnings = new Map();           // findingIndex → diff_warning object from autofix
+        this.isRevalidating = false;
+        this.lastRevalidationFindingCount = null; // total findings from latest revalidation (null = not yet run)
+
         this.currentFilters = {
             severity: 'all',
             fileType: 'all',
@@ -354,16 +365,24 @@ class ArcaneAuditorApp {
         if (this.currentResult) {
             this.filteredFindings = [...this.currentResult.findings];
         }
-        
+
+        // Initialize file contents for autofix
+        this.initializeFileContents();
+
         // Display context awareness panel if available
         if (this.currentResult && this.currentResult.context) {
             this.resultsManager.displayContext(this.currentResult.context);
         }
-        
+
         this.resultsManager.renderResults();
-        
+
         // Show magical analysis completion if in magic mode
         showMagicalAnalysisComplete(this.currentResult);
+
+        // Fire AI explain in background
+        if (this.currentResult && this.currentResult.findings.length > 0) {
+            this.explainWithAI();
+        }
     }
 
     showError(message) {
@@ -889,37 +908,389 @@ class ArcaneAuditorApp {
         this.resultsManager.collapseAllFiles();
     }
 
+    // -----------------------------------------------------------------------
+    // AI Features: Explain, Autofix, Revalidate, Export
+    // -----------------------------------------------------------------------
+
+    static AI_LOADING_PHRASES = [
+        'Scrying the code',
+        'Consulting the archmage',
+        'Brewing insight potion',
+        'Reading the runes',
+        'Channeling the Weave',
+        'Summoning dragon wisdom',
+        'Decoding ancient scrolls',
+        'Casting divination',
+        'Invoking elder sight',
+        'Attuning the crystal',
+        'Unraveling the hex',
+        'Whispering to wyrms',
+        'Forging arcane links',
+        'Gazing into the abyss',
+        'Conjuring clarity',
+        'Awakening the oracle',
+        'Sifting through omens',
+        'Parsing the prophecy',
+        'Taming wild magic',
+        'Communing with spirits',
+    ];
+
+    async explainWithAI() {
+        if (!this.currentResult || !this.currentResult.findings.length) return;
+
+        const fab = document.getElementById('ai-loading-fab');
+        const label = document.getElementById('ai-loading-text');
+        if (!fab || !label) return;
+
+        const phrases = ArcaneAuditorApp.AI_LOADING_PHRASES;
+        let idx;
+        do {
+            idx = Math.floor(Math.random() * phrases.length);
+        } while (phrases.length > 1 && idx === this._lastPhraseIdx);
+        this._lastPhraseIdx = idx;
+        label.textContent = phrases[idx];
+
+        fab.style.display = 'block';
+
+        try {
+            const response = await fetch('/api/explain', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    findings: {
+                        findings: this.currentResult.findings,
+                        summary: this.currentResult.summary
+                    }
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.status === 429) {
+                console.warn('Rate limited on /api/explain — will retry on next analysis');
+                fab.style.display = 'none';
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(data.detail || 'AI explanation failed');
+            }
+
+            if (data.format === 'structured' && data.explanations && data.findings_order) {
+                this.findingExplanations.clear();
+                for (const expl of data.explanations) {
+                    const idx = expl.index;
+                    if (idx >= 0 && idx < data.findings_order.length) {
+                        const f = data.findings_order[idx];
+                        const key = `${idx}::${f.rule_id}::${f.file_path}::${f.line}`;
+                        this.findingExplanations.set(key, expl);
+                    }
+                }
+                this.resultsManager.renderResults();
+            }
+            fab.style.display = 'none';
+        } catch (error) {
+            fab.style.display = 'none';
+            console.error('AI explanation failed:', error.message);
+        }
+    }
+
+    initializeFileContents() {
+        this.editedFileContents.clear();
+        this.originalFileContents.clear();
+        this.resolvedFindings.clear();
+        if (!this.currentResult) return;
+
+        const seen = new Set();
+        for (const finding of this.currentResult.findings) {
+            const fp = finding.file_path;
+            if (seen.has(fp) || !finding.snippet) continue;
+            seen.add(fp);
+            const content = finding.snippet.lines.map(l => l.text).join('\n');
+            this.editedFileContents.set(fp, content);
+            this.originalFileContents.set(fp, content);
+        }
+    }
+
+    async revalidate() {
+        if (!this.currentResult || this.editedFileContents.size === 0) return;
+        this.isRevalidating = true;
+
+        const files = {};
+        for (const [fp, content] of this.editedFileContents) {
+            files[fp] = content;
+        }
+
+        try {
+            const response = await fetch('/api/revalidate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    files,
+                    config: this.currentResult.config_name || 'default',
+                }),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                console.error('Revalidation failed:', result);
+                return;
+            }
+
+            this.lastRevalidationFindingCount = result.findings.length;
+            this.diffFindings(result.findings);
+            this.filteredFindings = [...this.currentResult.findings];
+            this.resultsManager.renderResults();
+        } catch (error) {
+            console.error('Revalidation error:', error);
+        } finally {
+            this.isRevalidating = false;
+        }
+    }
+
+    _stableFindingKey(f) {
+        const stableMsg = f.message.replace(/'[^']{20,}'/g, "'...'");
+        return `${f.rule_id}::${f.file_path}::${stableMsg}`;
+    }
+
+    diffFindings(newFindings) {
+        const newKeys = new Set();
+        for (const f of newFindings) {
+            newKeys.add(this._stableFindingKey(f));
+        }
+
+        this.resolvedFindings.clear();
+        if (!this.currentResult) return;
+
+        const existingKeys = new Set();
+        for (let i = 0; i < this.currentResult.findings.length; i++) {
+            const f = this.currentResult.findings[i];
+            existingKeys.add(this._stableFindingKey(f));
+            if (!newKeys.has(this._stableFindingKey(f))) {
+                this.resolvedFindings.add(i);
+            }
+        }
+
+        for (const f of newFindings) {
+            const key = this._stableFindingKey(f);
+            if (!existingKeys.has(key)) {
+                this.currentResult.findings.push(f);
+                existingKeys.add(key);
+            }
+        }
+    }
+
+    getFileContentFromSnippets(filePath) {
+        if (!this.currentResult) return null;
+        for (const f of this.currentResult.findings) {
+            if (f.file_path === filePath && f.snippet && f.snippet.lines) {
+                return f.snippet.lines.map(l => l.text).join('\n');
+            }
+        }
+        return null;
+    }
+
+    async autofix(findingIndex) {
+        if (!this.currentResult || findingIndex < 0 || findingIndex >= this.currentResult.findings.length) return;
+
+        const finding = this.currentResult.findings[findingIndex];
+        const filePath = finding.file_path;
+
+        let fileContent = this.editedFileContents.get(filePath);
+        if (!fileContent) {
+            fileContent = this.getFileContentFromSnippets(filePath);
+            if (fileContent) {
+                this.editedFileContents.set(filePath, fileContent);
+                this.originalFileContents.set(filePath, fileContent);
+            }
+        }
+        if (!fileContent) {
+            alert('Cannot auto-fix: file content not available. Try re-uploading.');
+            return;
+        }
+
+        this.autofixInProgress.add(findingIndex);
+        this.resultsManager.renderResults();
+
+        try {
+            const response = await fetch('/api/autofix', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    file_path: filePath,
+                    file_content: fileContent,
+                    finding: {
+                        rule_id: finding.rule_id,
+                        message: finding.message,
+                        line: finding.line,
+                        severity: finding.severity,
+                    },
+                }),
+            });
+
+            let data;
+            try {
+                data = await response.json();
+            } catch {
+                throw new Error(`Server returned invalid response (HTTP ${response.status})`);
+            }
+
+            if (response.status === 429) {
+                throw new Error('Rate limit reached — wait a minute before trying again');
+            }
+
+            if (!response.ok) {
+                throw new Error(data.detail || 'Autofix failed');
+            }
+
+            this.editedFileContents.set(filePath, data.fixed_content);
+
+            if (data.diff_warning) {
+                this.diffWarnings.set(findingIndex, data.diff_warning);
+            } else {
+                this.diffWarnings.delete(findingIndex);
+            }
+
+            const fixedLines = data.fixed_content.split('\n');
+            for (const f of this.currentResult.findings) {
+                if (f.file_path === filePath) {
+                    f.snippet = {
+                        start_line: 1,
+                        lines: fixedLines.map((text, i) => ({
+                            number: i + 1,
+                            text,
+                            highlight: (i + 1) === f.line,
+                        })),
+                    };
+                }
+            }
+
+            await this.revalidate();
+        } catch (error) {
+            console.error('Autofix failed:', error.message);
+            alert(`Auto-fix failed: ${error.message}`);
+        } finally {
+            this.autofixInProgress.delete(findingIndex);
+            this.resultsManager.renderResults();
+        }
+    }
+
+    async autofixFile(filePath) {
+        if (!this.currentResult) return;
+
+        const isRemovalFinding = (f) => {
+            const id = (f.rule_id || '').toLowerCase();
+            const msg = (f.message || '').toLowerCase();
+            return /unused|dead.?code|console.?log|remove|debug.?statement/.test(id + ' ' + msg);
+        };
+
+        const maxPasses = 3;
+        for (let pass = 0; pass < maxPasses; pass++) {
+            const indices = [];
+            for (let i = 0; i < this.currentResult.findings.length; i++) {
+                if (this.currentResult.findings[i].file_path === filePath && !this.resolvedFindings.has(i)) {
+                    indices.push(i);
+                }
+            }
+
+            if (indices.length === 0) break;
+            if (pass > 0) {
+                console.log(`Fix All pass ${pass + 1}: ${indices.length} findings still unresolved`);
+            }
+
+            indices.sort((a, b) => {
+                const aRemoval = isRemovalFinding(this.currentResult.findings[a]) ? 1 : 0;
+                const bRemoval = isRemovalFinding(this.currentResult.findings[b]) ? 1 : 0;
+                return aRemoval - bRemoval;
+            });
+
+            for (const idx of indices) {
+                await this.autofix(idx);
+            }
+        }
+    }
+
+    async exportAllZip() {
+        if (this.editedFileContents.size === 0) return;
+
+        const files = {};
+        for (const [fp, content] of this.editedFileContents) {
+            files[fp] = content;
+        }
+
+        try {
+            const response = await fetch('/api/export-zip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ files }),
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Export failed');
+            }
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const baseName = this.uploadedFileName
+                ? this.uploadedFileName.replace(/\.zip$/i, '')
+                : 'fixed_files';
+            a.download = `${baseName}_fixed.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Export ZIP failed:', error.message);
+            alert(`Export failed: ${error.message}`);
+        }
+    }
+
     resetForNewUpload() {
         this.hideAllSections();
-        
+
         // Show config toolbar when returning to analyze page
         const configToolbar = document.getElementById('config-toolbar');
         if (configToolbar) {
             configToolbar.style.display = 'flex';
         }
-        
+
         const configSectionContainer = document.querySelector('.config-section-container');
         if (configSectionContainer) {
             configSectionContainer.style.display = 'block';
         }
-        
+
         document.getElementById('upload-section').style.display = 'block';
         this.currentResult = null;
+        this.findingExplanations.clear();
         this.uploadedFileName = null;
         this.selectedFiles = [];
-        
+
+        // Clear fix state
+        this.editedFileContents.clear();
+        this.originalFileContents.clear();
+        this.resolvedFindings.clear();
+        this.autofixInProgress.clear();
+        this.diffWarnings.clear();
+        this.isRevalidating = false;
+        this.lastRevalidationFindingCount = null;
+
         // Reset file inputs
         const fileInput = document.getElementById('file-input');
         fileInput.value = '';
         const filesInput = document.getElementById('files-input');
         filesInput.value = '';
-        
+
         // Hide selected files list
         document.getElementById('selected-files-list').style.display = 'none';
-        
+
+        // Hide AI FAB
+        const fab = document.getElementById('ai-loading-fab');
+        if (fab) fab.style.display = 'none';
+
         // Reset renderers
         this.resultsManager.resetForNewUpload();
-        
     }
 
     async loadVersion() {
@@ -1097,6 +1468,33 @@ window.updateSortBy = function(value) {
 
 window.updateSortFilesBy = function(value) {
     app.resultsManager.updateSortFilesBy(value);
+};
+
+// AI feature global functions
+window.autofix = function(findingIndex) {
+    app.autofix(findingIndex);
+};
+
+window.autofixFile = function(filePath) {
+    app.autofixFile(filePath);
+};
+
+window.exportAllZip = function() {
+    app.exportAllZip();
+};
+
+window.copyExplainCard = function(cardId) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    const text = card.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = card.querySelector('.explain-copy-btn');
+        if (btn) {
+            const orig = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = orig; }, 1500);
+        }
+    });
 };
 
 export default app;

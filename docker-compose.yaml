@@ -1,0 +1,11 @@
+services:
+  arcane-auditor:
+    build: .
+    container_name: arcane-auditor
+    restart: unless-stopped
+    ports:
+      - "8082:8080"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - ./prompts:/app/prompts:ro

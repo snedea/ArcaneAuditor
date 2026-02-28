@@ -307,6 +307,23 @@
         </main>
     </div>
 
+    <!-- AI Loading FAB (Crystal Ball Spinner) -->
+    <div id="ai-loading-fab" class="ai-loading-fab" style="display: none;">
+        <button class="btn" disabled>
+            <span style="display: flex; align-items: center; gap: 8px;">
+                <span class="crystal-ball">
+                    <span class="crystal-ball-inner">
+                        <span class="crystal-ball-wisp wisp-1"></span>
+                        <span class="crystal-ball-wisp wisp-2"></span>
+                        <span class="crystal-ball-wisp wisp-3"></span>
+                        <span class="crystal-ball-shine"></span>
+                    </span>
+                </span>
+                <span id="ai-loading-text">Consulting the arcane...</span>
+            </span>
+        </button>
+    </div>
+
     <script type="module" src="/static/js/dialog-manager.js"></script>
     <script type="module" src="/static/js/magic-mode.js"></script>
     <script type="module" src="/static/js/app.js"></script>

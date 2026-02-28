@@ -1,0 +1,18 @@
+{
+  "podId": "dirtyPod",
+  "seed": {
+    "parameters": [],
+    "endPoints": [
+      {
+        "name": "getHrData",
+        "url": "https://api.workday.com/common/v1/workers"
+      }
+    ],
+    "template": {
+      "type": "text",
+      "id": "hrText",
+      "label": "HR",
+      "value": "HR data"
+    }
+  }
+}

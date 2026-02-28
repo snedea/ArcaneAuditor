@@ -1,0 +1,11 @@
+{
+  "planner_model": "opus",
+  "builder_model": "opus",
+  "reviewer_model": "sonnet",
+  "fixer_model": "sonnet",
+  "discovery_model": "sonnet",
+  "pause_between_tasks_secs": 2,
+  "pause_between_agents_secs": 1,
+  "pause_between_cycles_secs": 10,
+  "agent_timeout_secs": 600
+}

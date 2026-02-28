@@ -1,0 +1,11 @@
+const formatDate = function(date) {
+  return date:getTodaysDate(date);
+};
+
+var unusedHelper = function() {
+  return "not exported or used";
+};
+
+{
+  "formatDate": formatDate
+}

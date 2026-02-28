@@ -1,0 +1,30 @@
+{
+  "id": "dirtyPage",
+  "securityDomains": ["Everyone"],
+  "script": "<% var count = 0; const msg = 'Count: ' + count; console.info(msg); if (count > 42) { count = 100; } %>",
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Dirty Page"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "text",
+          "value": "Missing ID widget"
+        }
+      ]
+    },
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "pod",
+          "id": "footerPod"
+        }
+      ]
+    }
+  }
+}

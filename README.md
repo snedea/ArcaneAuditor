@@ -195,6 +195,94 @@ Widget IDs • endpoint failOnStatusCodes • naming conventions • file struct
 
 ---
 
+## 🤖 AI Features (Fork Addition)
+
+This fork adds an optional AI layer on top of the deterministic engine — **AI Explain** and **AI Auto-Fix** — powered by Anthropic's Claude API.
+
+### The Deterministic Sandwich
+
+> **Deterministic rules find the issues. AI explains and fixes them. Deterministic rules verify the fix.**
+
+The AI autofix receives the *deterministic finding* directly (rule ID, severity, line number, message) — never the AI-generated explanation. After every fix, a line-level diff checks for suspicious removals, and then the same 42 rules re-run on the modified code. Export is gated on revalidation returning zero findings, not on the AI's self-assessment.
+
+```mermaid
+flowchart TD
+    A["Upload files\n(.zip or individual)"] --> B["Parse & validate\n42 deterministic rules"]
+    B --> C["Display findings\nwith source snippets"]
+    C --> D{"AI Explain\n(optional)"}
+    D --> C
+    C --> E{"Auto-Fix\n(per finding or Fix All)"}
+    E --> V{"Diff Verification\n(line-level)"}
+    V -->|"Suspicious removals?"| W["Amber warning\nshown to user"]
+    V -->|"Clean fix"| F["Re-validate\nfixed content"]
+    W --> F
+    F -->|"Merge new findings\ninto live list"| G{"Revalidation\n0 findings?"}
+    G -- "No (up to 3 passes)" --> E
+    G -- Yes --> H["Export\n_fixed.zip"]
+    H --> I(["Done"])
+
+    style A fill:#e2e8f0,stroke:#475569,color:#1e293b
+    style B fill:#e2e8f0,stroke:#475569,color:#1e293b
+    style C fill:#e2e8f0,stroke:#475569,color:#1e293b
+    style F fill:#e2e8f0,stroke:#475569,color:#1e293b
+    style H fill:#e2e8f0,stroke:#475569,color:#1e293b
+    style D fill:#ddd6fe,stroke:#7c3aed,color:#4c1d95
+    style E fill:#ddd6fe,stroke:#7c3aed,color:#4c1d95
+    style V fill:#fef3c7,stroke:#d97706,color:#92400e
+    style W fill:#fef3c7,stroke:#d97706,color:#92400e
+    style G fill:#e2e8f0,stroke:#475569,color:#1e293b
+    style I fill:#e2e8f0,stroke:#475569,color:#1e293b
+```
+
+| Step | Type | What happens |
+|------|------|-------------|
+| **Upload** | Deterministic | Files extracted and prepared for analysis |
+| **Parse & Validate** | Deterministic | 42 rules run against the code — same input always produces same findings |
+| **Display** | Deterministic | Findings shown with source snippets and highlighted lines |
+| **AI Explain** | AI (optional) | Generates plain-English explanations and fix suggestions |
+| **Auto-Fix** | AI (temp 0) | Receives the deterministic finding + full file. Returns corrected file |
+| **Diff Verification** | Deterministic | Line-level diff flags suspicious removals |
+| **Re-validate** | Deterministic | Runs the same 42 rules on the fixed file |
+| **Fix All** | AI + Deterministic | Additive fixes first, removals last, up to 3 convergence passes |
+| **Export** | Deterministic | Bundles all fixed files into `_fixed.zip` — only after revalidation passes |
+
+### Customizing AI Prompts
+
+| File | Controls | Purpose |
+|------|----------|---------|
+| [`prompts/explain_system.md`](prompts/explain_system.md) | AI Explain | How findings are explained and prioritized |
+| [`prompts/autofix_system.md`](prompts/autofix_system.md) | Auto-Fix | How the LLM generates corrected files |
+
+Prompts are hot-reloaded (mtime-cached) — edit and see changes on the next request without restarting.
+
+### Required Environment
+
+- `ANTHROPIC_API_KEY` — required for AI explain and autofix
+- `LLM_MODEL` — model override (default: `claude-sonnet-4-6`)
+
+---
+
+## 🐳 Docker Deployment (Fork Addition)
+
+```bash
+# Build and run
+docker compose build --no-cache
+docker compose up -d
+
+# Check logs
+docker logs arcane-auditor --tail 20
+```
+
+Create a `.env` file with:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+The service runs on port 8080 internally, mapped to 8082 externally. Prompts are mounted read-only for hot-reload without rebuild.
+
+---
+
 ## ⚡ Advanced Usage
 
 <details>

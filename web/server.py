@@ -5,6 +5,7 @@ This serves the simple HTML/JavaScript interface with FastAPI backend.
 """
 
 from contextlib import asynccontextmanager
+import os
 import sys
 import threading
 import time
@@ -21,11 +22,14 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # FastAPI imports
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles as StarletteStaticFiles
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import uvicorn
 
 # Arcane paths for path resolution
@@ -37,7 +41,7 @@ from utils.arcane_paths import (
 )
 
 # Import routers
-from web.routes import configs, analysis, health, preferences
+from web.routes import configs, analysis, health, preferences, ai
 
 # Import services
 from web.services.jobs import cleanup_orphaned_files, cleanup_old_jobs
@@ -80,10 +84,18 @@ else:
     static_dir = Path(__file__).parent / "frontend"
 
 
+# Rate limiting (in-memory, per-IP)
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Add CORS middleware
+_cors_origins = os.environ.get(
+    "CORS_ORIGINS", "*"
+).split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -95,6 +107,7 @@ app.include_router(configs.router)
 app.include_router(analysis.router)
 app.include_router(health.router)
 app.include_router(preferences.router)
+app.include_router(ai.router)
 
 
 @app.get("/", response_class=HTMLResponse)

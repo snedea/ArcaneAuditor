@@ -1,0 +1,32 @@
+{
+  "id": "minimalPage",
+  "securityDomains": ["Everyone"],
+  "script": "<% const pageTitle = 'Minimal Page'; let currentTitle = pageTitle; currentTitle = currentTitle; %>",
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Minimal Page"
+    },
+    "body": {
+      "type": "section",
+      "id": "bodySection",
+      "children": [
+        {
+          "type": "text",
+          "id": "greetingText",
+          "label": "Greeting",
+          "value": "<% greeting %>"
+        }
+      ]
+    },
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "pod",
+          "id": "footerPod"
+        }
+      ]
+    }
+  }
+}

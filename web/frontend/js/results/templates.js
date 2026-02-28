@@ -17,9 +17,15 @@ export const Templates = {
      * @param {string} uploadedFileName - The name of the uploaded file
      * @returns {string} HTML for the summary
      */
-    summary(result, uploadedFileName) {
-        const severityCounts = getSeverityCounts(result.findings);
-        
+    summary(result, uploadedFileName, app) {
+        // Compute unresolved counts for live summary
+        const resolvedFindings = app ? app.resolvedFindings : new Set();
+        const unresolvedFindings = result.findings.filter((_, i) => !resolvedFindings.has(i));
+        const unresolvedSeverityCounts = getSeverityCounts(unresolvedFindings);
+        const totalUnresolved = unresolvedFindings.length;
+        const actionCount = unresolvedSeverityCounts['ACTION'] || 0;
+        const adviceCount = unresolvedSeverityCounts['ADVICE'] || 0;
+
         return `
             <h4>📈 Summary</h4>
             ${uploadedFileName ? `
@@ -30,7 +36,7 @@ export const Templates = {
             ` : ''}
             <div class="summary-grid">
                 <div class="summary-item">
-                    <div class="summary-number summary-number-blue">${result.summary?.total_findings || result.findings.length}</div>
+                    <div class="summary-number summary-number-blue">${totalUnresolved}</div>
                     <div class="summary-label">Issues Found</div>
                 </div>
                 <div class="summary-item">
@@ -38,13 +44,13 @@ export const Templates = {
                     <div class="summary-label">Rules Enabled</div>
                 </div>
                 <div class="summary-item magic-summary-card action">
-                    <div class="count">${result.summary?.by_severity?.action || 0}</div>
+                    <div class="count">${actionCount}</div>
                     <div class="label">
                         <span class="icon">${getSeverityIcon('ACTION')}</span> Actions
                     </div>
                 </div>
                 <div class="summary-item magic-summary-card advice">
-                    <div class="count">${result.summary?.by_severity?.advice || 0}</div>
+                    <div class="count">${adviceCount}</div>
                     <div class="label">
                         <span class="icon">${getSeverityIcon('ADVICE')}</span> Advices
                     </div>
@@ -111,14 +117,23 @@ export const Templates = {
      * @param {string} sortBy - Sort order for findings
      * @returns {string} HTML for the file group
      */
-    fileGroup(filePath, fileFindings, isExpanded, currentFilters, sortBy) {
-        // Strip job ID prefix from filename (format: uuid_filename.ext)
-        // UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (8-4-4-4-12 hex digits)
-        // Only match actual UUIDs, not arbitrary hex sequences
+    fileGroup(filePath, fileFindings, isExpanded, currentFilters, sortBy, app) {
         const rawFileName = filePath.split(/[/\\]/).pop() || filePath;
         const fileName = rawFileName.replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_/, '');
         const severityCounts = getSeverityCounts(fileFindings);
-        
+        const escapedFilePath = filePath.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+
+        // AI fix state
+        const resolvedFindings = app ? app.resolvedFindings : new Set();
+        const autofixInProgress = app ? app.autofixInProgress : new Set();
+        const diffWarnings = app ? app.diffWarnings : new Map();
+        const allFindings = app && app.currentResult ? app.currentResult.findings : [];
+        const fileFindingIndices = fileFindings.map(f => allFindings.indexOf(f));
+        const resolvedCount = fileFindingIndices.filter(i => resolvedFindings.has(i)).length;
+        const totalCount = fileFindings.length;
+        const allResolved = resolvedCount === totalCount && totalCount > 0;
+        const fileAutofixBusy = fileFindingIndices.some(i => autofixInProgress.has(i));
+
         return `
             <div class="file-group">
                 <div class="file-header" data-file-path="${filePath.replace(/"/g, '&quot;')}">
@@ -130,6 +145,23 @@ export const Templates = {
                         </div>
                     </div>
                     <div class="file-header-right">
+                        ${allResolved ? (() => {
+                            const hasWarnings = fileFindingIndices.some(i => diffWarnings.has(i));
+                            return `<span class="file-all-fixed-badge${hasWarnings ? ' has-warnings' : ''}">All Fixed${hasWarnings ? ' (with warnings)' : ''}</span>`;
+                        })() : (() => {
+                            const unresolvedCount = fileFindingIndices.filter(i => i >= 0 && !resolvedFindings.has(i)).length;
+                            if (unresolvedCount >= 1) {
+                                return `<button class="fix-all-btn${fileAutofixBusy ? ' loading' : ''}"
+                                    onclick="event.stopPropagation(); autofixFile('${escapedFilePath}')"
+                                    ${fileAutofixBusy ? 'disabled' : ''}>
+                                    ${fileAutofixBusy ? '&#9203; Fixing...' : `Fix All (${unresolvedCount})`}
+                                </button>`;
+                            }
+                            return '';
+                        })()}
+                        ${resolvedCount > 0 && !allResolved ? `
+                            <span class="file-fix-progress">${resolvedCount}/${totalCount} fixed</span>
+                        ` : ''}
                         ${currentFilters.severity === 'all' ? `
                             <div class="file-count-badge">
                                 ${fileFindings.length} issue${fileFindings.length !== 1 ? 's' : ''}
@@ -137,7 +169,6 @@ export const Templates = {
                         ` : ''}
                         <div class="severity-badges">
                             ${getOrderedSeverityEntries(severityCounts).map(([severity, count]) => {
-                                // Only show severity badges when severity filter is 'all' or matches this severity
                                 if (currentFilters.severity === 'all' || currentFilters.severity === severity) {
                                     return `
                                         <span class="severity-count-badge ${severity.toLowerCase()}">
@@ -150,11 +181,11 @@ export const Templates = {
                         </div>
                     </div>
                 </div>
-                
+
                 ${isExpanded ? `
                     <div class="file-findings">
-                        ${sortFindingsInGroup(fileFindings, sortBy).map((finding, index) => 
-                            this.findingItem(finding)
+                        ${sortFindingsInGroup(fileFindings, sortBy).map((finding) =>
+                            this.findingItem(finding, app)
                         ).join('')}
                     </div>
                 ` : ''}
@@ -167,16 +198,80 @@ export const Templates = {
      * @param {Object} finding - The finding object
      * @returns {string} HTML for the finding item
      */
-    findingItem(finding) {
+    findingItem(finding, app) {
+        const allFindings = app && app.currentResult ? app.currentResult.findings : [];
+        const origIdx = allFindings.indexOf(finding);
+        const resolvedFindings = app ? app.resolvedFindings : new Set();
+        const autofixInProgress = app ? app.autofixInProgress : new Set();
+        const diffWarnings = app ? app.diffWarnings : new Map();
+        const findingExplanations = app ? app.findingExplanations : new Map();
+        const isResolved = resolvedFindings.has(origIdx);
+        const isLoading = autofixInProgress.has(origIdx);
+
+        const escapeHtml = (str) => str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+        // Explanation card
+        const explKey = `${origIdx}::${finding.rule_id}::${finding.file_path}::${finding.line}`;
+        const expl = findingExplanations.get(explKey);
+
         return `
-            <div class="finding ${finding.severity.toLowerCase()}">
+            <div class="finding ${finding.severity.toLowerCase()}${isResolved ? ' finding-resolved' : ''}"
+                 data-finding-line="${finding.line}">
                 <div class="finding-header">
+                    ${isResolved ? '<span class="resolved-badge">FIXED</span>' : ''}
                     ${getSeverityIcon(finding.severity)}
                     <strong>[${finding.rule_id}]</strong> ${finding.message}
                 </div>
                 <div class="finding-details">
-                    <span><strong>Line:</strong> ${finding.line}</span>
+                    <span class="finding-line-number"><strong>Line:</strong> ${finding.line}</span>
                 </div>
+                ${finding.snippet ? `
+                <div class="finding-snippet${isResolved ? ' snippet-fixed' : ''}">
+                    <pre><code>${finding.snippet.lines.map(l =>
+                        `<span class="snippet-line${l.highlight ? (isResolved ? ' snippet-highlight-fixed' : ' snippet-highlight') : ''}"><span class="snippet-lineno">${String(l.number).padStart(4)}</span>${escapeHtml(l.text)}</span>`
+                    ).join('\n')}</code></pre>
+                </div>
+                ` : ''}
+                ${(() => {
+                    const dw = diffWarnings.get(origIdx);
+                    if (!dw) return '';
+                    const plural = dw.removed_line_count === 1 ? 'line' : 'lines';
+                    const linesDelta = dw.total_lines_original - dw.total_lines_fixed;
+                    const deltaLabel = linesDelta > 0 ? `&minus;${linesDelta}` : linesDelta < 0 ? `+${Math.abs(linesDelta)}` : '0';
+                    return `
+                    <div class="diff-warning">
+                        <div class="diff-warning-header">
+                            &#9888; Auto-fix removed ${dw.removed_line_count} non-trivial ${plural} (${dw.total_lines_original} &#8594; ${dw.total_lines_fixed} lines, ${deltaLabel})
+                        </div>
+                        <details class="diff-warning-details">
+                            <summary>Show removed lines</summary>
+                            <pre class="diff-warning-code">${dw.removed_lines.map(l => escapeHtml(l)).join('\n')}</pre>
+                        </details>
+                    </div>`;
+                })()}
+                ${expl ? (() => {
+                    const cardId = `explain-card-${origIdx}`;
+                    const priorityIcon = expl.priority === 'high' ? '🔴' : expl.priority === 'medium' ? '🟡' : '🟢';
+                    const copyBtn = `<button class="explain-copy-btn" onclick="copyExplainCard('${cardId}')" title="Copy to clipboard">📋 Copy</button>`;
+                    return `
+                    <div class="explain-card" id="${cardId}">
+                        <div class="explain-card-header">
+                            <span class="explain-priority">${priorityIcon} ${expl.priority}</span>
+                            ${copyBtn}
+                        </div>
+                        <div class="explain-card-body">${escapeHtml(expl.explanation)}</div>
+                        <div class="explain-card-suggestion"><strong>Suggestion:</strong> ${escapeHtml(expl.suggestion)}</div>
+                    </div>`;
+                })() : ''}
+                ${!isResolved ? `
+                <div class="finding-actions">
+                    <button class="autofix-btn${isLoading ? ' loading' : ''}"
+                        onclick="event.stopPropagation(); autofix(${origIdx})"
+                        ${isLoading ? 'disabled' : ''}>
+                        ${isLoading ? '&#9203; Fixing...' : '&#9889; Auto-fix'}
+                    </button>
+                </div>
+                ` : ''}
             </div>
         `;
     },

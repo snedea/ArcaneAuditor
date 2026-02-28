@@ -21,7 +21,7 @@ export class FindingsUI {
         const summary = document.getElementById('summary');
         const result = this.app.currentResult;
         
-        summary.innerHTML = Templates.summary(result, this.app.uploadedFileName);
+        summary.innerHTML = Templates.summary(result, this.app.uploadedFileName, this.app);
     }
 
     /**
@@ -48,18 +48,39 @@ export class FindingsUI {
         const findingsContent = findings.querySelector('.findings-content');
         if (!findingsContent) return;
         
+        // Check if all findings are resolved for export bar
+        const totalFindings = this.app.currentResult ? this.app.currentResult.findings.length : 0;
+        const allOriginalResolved = totalFindings > 0 && this.app.resolvedFindings.size === totalFindings;
+        const revalClean = this.app.lastRevalidationFindingCount === 0;
+        const allGlobalResolved = allOriginalResolved && revalClean;
+        const hasAnyEdited = this.app.editedFileContents.size > 0;
+
+        // Insert export ZIP bar before findings content if all fixed
+        if (allGlobalResolved && hasAnyEdited) {
+            const exportBar = document.createElement('div');
+            exportBar.className = 'export-zip-bar';
+            exportBar.innerHTML = `
+                <span class="export-zip-message">All findings fixed!</span>
+                <button class="export-zip-btn" onclick="exportAllZip()">
+                    Export Fixed Files (.zip)
+                </button>
+            `;
+            findingsContent.parentElement.insertBefore(exportBar, findingsContent);
+        }
+
         // Render file groups
         const fileGroupsHtml = Object.entries(sortedGroupedFindings).map(([filePath, fileFindings]) => {
             const isExpanded = this.app.expandedFiles.has(filePath);
             return Templates.fileGroup(
-                filePath, 
-                fileFindings, 
-                isExpanded, 
+                filePath,
+                fileFindings,
+                isExpanded,
                 this.app.currentFilters,
-                this.app.currentFilters.sortBy
+                this.app.currentFilters.sortBy,
+                this.app
             );
         }).join('');
-        
+
         findingsContent.innerHTML = fileGroupsHtml;
         
         // Update filter options after HTML is rendered
