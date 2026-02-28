@@ -177,6 +177,13 @@ class FileProcessor:
             
             # Path.rglob('*') is a powerful way to recursively search a directory.
             for file_path in temp_path.rglob('*'):
+                # Skip macOS metadata artifacts (__MACOSX/ dirs, ._ resource forks)
+                relative = file_path.relative_to(temp_path)
+                if any(part.startswith('__MACOSX') for part in relative.parts):
+                    continue
+                if file_path.name.startswith('._'):
+                    continue
+
                 # Check if the file has one of our target extensions.
                 if file_path.is_file() and file_path.suffix in self.relevant_extensions:
                     logger.debug(f"Found relevant file: {file_path.name}")
@@ -277,6 +284,13 @@ class FileProcessor:
         
         # Recursively find all relevant files
         for file_path in dir_path.rglob('*'):
+            # Skip macOS metadata artifacts
+            relative = file_path.relative_to(dir_path)
+            if any(part.startswith('__MACOSX') for part in relative.parts):
+                continue
+            if file_path.name.startswith('._'):
+                continue
+
             if file_path.is_file() and file_path.suffix in self.relevant_extensions:
                 logger.debug(f"Found relevant file: {file_path.name}")
                 

@@ -29,13 +29,13 @@ SAMPLE_SOURCE = {
 # ---- extract_snippet: happy path ----
 
 class TestExtractSnippetHappyPath:
-    def test_middle_line_returns_context(self):
-        """Finding on line 5 should return lines 2-8 (±3)."""
+    def test_default_returns_full_file(self):
+        """Default (context_lines=None) should return all lines."""
         result = extract_snippet(SAMPLE_SOURCE, "app/page.pmd", 5)
         assert result is not None
-        assert result["start_line"] == 2
+        assert result["start_line"] == 1
         numbers = [l["number"] for l in result["lines"]]
-        assert numbers == [2, 3, 4, 5, 6, 7, 8]
+        assert numbers == [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
     def test_highlighted_line_is_correct(self):
         """Only the finding line should be highlighted."""
@@ -49,35 +49,46 @@ class TestExtractSnippetHappyPath:
         result = extract_snippet(SAMPLE_SOURCE, "app/page.pmd", 5)
         non_highlights = [l for l in result["lines"] if not l["highlight"]]
         assert all(not l["highlight"] for l in non_highlights)
-        assert len(non_highlights) == 6
+        assert len(non_highlights) == 8
 
-    def test_first_line_clamps_start(self):
-        """Finding on line 1 should clamp start to 1, not go negative."""
+    def test_first_line_highlight(self):
+        """Finding on line 1 should highlight first line, show full file."""
         result = extract_snippet(SAMPLE_SOURCE, "app/page.pmd", 1)
         assert result is not None
         assert result["start_line"] == 1
-        assert result["lines"][0]["number"] == 1
         assert result["lines"][0]["highlight"] is True
-        # Should show lines 1-4
-        assert len(result["lines"]) == 4
+        assert len(result["lines"]) == 9
 
-    def test_last_line_clamps_end(self):
-        """Finding on last line should clamp end to file length."""
+    def test_last_line_highlight(self):
+        """Finding on last line should highlight last line, show full file."""
         result = extract_snippet(SAMPLE_SOURCE, "app/page.pmd", 9)
         assert result is not None
         last = result["lines"][-1]
         assert last["number"] == 9
         assert last["highlight"] is True
-        # Should show lines 6-9
-        assert result["start_line"] == 6
-        assert len(result["lines"]) == 4
+        assert len(result["lines"]) == 9
 
-    def test_custom_context_lines(self):
+    def test_bounded_context_lines(self):
         """context_lines=1 should return only 3 lines total."""
         result = extract_snippet(SAMPLE_SOURCE, "app/page.pmd", 5, context_lines=1)
         assert result is not None
         numbers = [l["number"] for l in result["lines"]]
         assert numbers == [4, 5, 6]
+
+    def test_bounded_context_clamps_start(self):
+        """context_lines=3 on line 1 should clamp start to 1."""
+        result = extract_snippet(SAMPLE_SOURCE, "app/page.pmd", 1, context_lines=3)
+        assert result is not None
+        assert result["start_line"] == 1
+        assert result["lines"][0]["highlight"] is True
+        assert len(result["lines"]) == 4
+
+    def test_bounded_context_clamps_end(self):
+        """context_lines=3 on last line should clamp end to file length."""
+        result = extract_snippet(SAMPLE_SOURCE, "app/page.pmd", 9, context_lines=3)
+        assert result is not None
+        assert result["start_line"] == 6
+        assert len(result["lines"]) == 4
 
     def test_text_content_preserved(self):
         """Snippet text should match source exactly."""
@@ -109,12 +120,17 @@ class TestExtractSnippetEdgeCases:
         result = extract_snippet({}, "app/page.pmd", 5)
         assert result is None
 
-    def test_line_beyond_file_end(self):
-        """Line past end of file should still return a snippet (the tail of the file)."""
-        # Line 100 is way past our 9-line file
+    def test_line_beyond_file_end_full_file(self):
+        """Line past end with default (full file) returns all lines, none highlighted."""
         result = extract_snippet(SAMPLE_SOURCE, "app/page.pmd", 100)
-        # The start will clamp to max(0, 99-3)=96, end to min(9, 103)=9
-        # Since 96 > 9, range(96, 9) is empty → returns None
+        # Full file is returned but no line is highlighted (line 100 doesn't exist)
+        assert result is not None
+        assert len(result["lines"]) == 9
+        assert all(not l["highlight"] for l in result["lines"])
+
+    def test_line_beyond_file_end_bounded(self):
+        """Line past end with bounded context returns None."""
+        result = extract_snippet(SAMPLE_SOURCE, "app/page.pmd", 100, context_lines=3)
         assert result is None
 
     def test_empty_file(self):
