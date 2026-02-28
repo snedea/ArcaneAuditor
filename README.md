@@ -261,6 +261,35 @@ python explain.py myapp.zip
 
 ---
 
+## 🔄 How It Works
+
+```mermaid
+flowchart TD
+    A["Upload files\n(.zip or individual)"] --> B["Parse & validate\n42 deterministic rules"]
+    B --> C["Display findings\nwith source snippets"]
+    C --> D{"AI Explain\n(optional)"}
+    D --> C
+    C --> E{"Auto-Fix\n(per finding or Fix All)"}
+    E --> F["Re-validate\nfixed content"]
+    F --> C
+    F --> G{"All findings\nresolved?"}
+    G -- No --> E
+    G -- Yes --> H["Export\n_fixed.zip"]
+
+    style A fill:#e2e8f0,stroke:#475569,color:#1e293b
+    style B fill:#e2e8f0,stroke:#475569,color:#1e293b
+    style C fill:#e2e8f0,stroke:#475569,color:#1e293b
+    style F fill:#e2e8f0,stroke:#475569,color:#1e293b
+    style H fill:#e2e8f0,stroke:#475569,color:#1e293b
+    style D fill:#ddd6fe,stroke:#7c3aed,color:#4c1d95
+    style E fill:#ddd6fe,stroke:#7c3aed,color:#4c1d95
+    style G fill:#e2e8f0,stroke:#475569,color:#1e293b
+```
+
+> **Legend**: Gray = deterministic, Purple = AI-powered
+
+---
+
 ## 🌐 Web Interface
 
 ### Features
@@ -270,6 +299,8 @@ python explain.py myapp.zip
 - **📊 Real-time Results**: Quick analysis with detailed violation reports
 - **📥 Excel Export**: Comprehensive reports with context information
 - **🌙 Theme Support**: Dark and light modes
+- **🤖 AI Auto-Fix**: Per-finding or per-file auto-correction via Claude CLI
+- **📦 ZIP Export**: Download all fixed files as a single archive
 
 ### Starting the Server
 
@@ -301,12 +332,18 @@ start-web-service.bat --no-browser
 <details>
 <summary>🔗 API Endpoints</summary>
 
-- `GET /` - Main interface
-- `POST /upload` - File upload
-- `GET /job/{job_id}` - Job status
-- `GET /download/{job_id}/excel` - Download Excel report
-- `GET /configurations` - Available configurations
-- `GET /static/{file}` - Static assets
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Main interface |
+| `/api/upload` | POST | File upload (ZIP or individual files) |
+| `/api/job/{job_id}` | GET | Poll job status |
+| `/api/download/{job_id}` | GET | Download Excel report |
+| `/api/configs` | GET | Available configurations |
+| `/api/explain` | POST | AI-powered finding explanations |
+| `/api/autofix` | POST | AI auto-fix for a single finding |
+| `/api/revalidate` | POST | Re-run rules on modified files |
+| `/api/export-zip` | POST | Bundle fixed files into a ZIP |
+| `/api/health` | GET | Health check |
 
 </details>
 
