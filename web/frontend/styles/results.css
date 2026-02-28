@@ -1301,16 +1301,30 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
 
 .file-all-fixed-badge.has-dismissed {
     background: #6b7280;
+    border-color: #4b5563;
+}
+
+[data-theme="dark"] .file-all-fixed-badge {
+    background: #059669;
+    border-color: #10b981;
+}
+
+[data-theme="dark"] .file-all-fixed-badge.has-dismissed {
+    background: #4b5563;
+    border-color: #6b7280;
 }
 
 .file-all-fixed-badge {
-    font-size: 0.75rem;
-    padding: 3px 10px;
-    border-radius: 10px;
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    border-radius: 12px;
     background: #10b981;
     color: #fff;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.3px;
+    display: inline-flex;
+    align-items: center;
+    border: 2px solid #059669;
 }
 
 /* ===== Export ZIP bar ===== */
