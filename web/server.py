@@ -830,12 +830,17 @@ async def serve_index():
     with open(index_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # Inject a cache-buster query param based on server start time
-    # so browsers always fetch fresh JS/CSS after a deploy.
+    # Inject a cache-buster query param on /static/ asset URLs.
+    # Handles both quote styles and avoids double-appending if ?v= already present.
     import re
+    def _bust(m):
+        attr, quote, path = m.group(1), m.group(2), m.group(3)
+        if '?' in path:
+            return m.group(0)  # already has query string, skip
+        return f'{attr}={quote}/static/{path}?v={_asset_version}{quote}'
     content = re.sub(
-        r'(src|href)="/static/([^"]+)"',
-        rf'\1="/static/\2?v={_asset_version}"',
+        r"""(src|href)=(["'])/static/([^"']+)\2""",
+        _bust,
         content,
     )
     return HTMLResponse(content=content)

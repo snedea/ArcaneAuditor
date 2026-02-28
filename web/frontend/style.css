@@ -1842,15 +1842,35 @@ header p {
     margin: 8px 0 4px 30px;
     border-radius: 6px;
     max-height: 220px;
-    overflow: hidden;
+    overflow: auto;
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
     transition: border-color 0.2s;
+    /* Hide scrollbar by default, show on hover */
+    scrollbar-width: none; /* Firefox */
+}
+
+.finding-snippet::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Edge */
 }
 
 .finding-snippet:hover {
-    overflow: auto;
     border-color: var(--text-secondary);
+    scrollbar-width: thin; /* Firefox: show on hover */
+}
+
+.finding-snippet:hover::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+}
+
+.finding-snippet:hover::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 3px;
+}
+
+.finding-snippet:hover::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 .finding-snippet pre {
