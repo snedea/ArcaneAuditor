@@ -492,19 +492,15 @@ class ArcaneAuditorApp {
             const rawText = section.title
                 ? section.title + '\n' + section.body.join('\n')
                 : section.body.join('\n');
-            const html = this._markdownToHtml(rawText.trim());
+            const trimmed = rawText.trim();
+            if (!trimmed) return '';
+            const html = this._markdownToHtml(trimmed);
             if (!html) return '';
 
-            // Numbered sections get cards with copy buttons
-            if (section.title) {
-                const cardId = `explain-card-${idx}`;
-                return `<div class="explain-card" id="${cardId}">` +
-                    `<button class="explain-copy-btn" onclick="copyExplainCard('${cardId}')" title="Copy to clipboard">📋 Copy</button>` +
-                    html +
-                    `</div>`;
-            }
-            // Preamble/summary gets a plain card
-            return `<div class="explain-card explain-card-summary">${html}</div>`;
+            const cardId = `explain-card-${idx}`;
+            const copyBtn = `<button class="explain-copy-btn" onclick="copyExplainCard('${cardId}')" title="Copy to clipboard">📋 Copy</button>`;
+            const extraClass = section.title ? '' : ' explain-card-summary';
+            return `<div class="explain-card${extraClass}" id="${cardId}">${copyBtn}${html}</div>`;
         });
 
         return renderedSections.join('\n');
