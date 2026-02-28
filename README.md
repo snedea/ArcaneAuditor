@@ -261,12 +261,14 @@ python explain.py myapp.zip
 
 ### Customizing AI Prompts
 
-The AI behavior is controlled by two plain-text prompt files. Edit them to change tone, add domain-specific guidance, or adjust fix strategies. Changes take effect on the next request — no restart required.
+The AI behavior is controlled by two plain-text prompt files. Edit them to change tone, add domain-specific guidance, or adjust fix strategies.
 
 | File | Controls | Purpose |
 |------|----------|---------|
 | [`prompts/explain_system.md`](prompts/explain_system.md) | AI Explain | How findings are explained and prioritized |
 | [`prompts/autofix_system.md`](prompts/autofix_system.md) | Auto-Fix | How the LLM generates corrected files |
+
+**Live updates**: Edit a prompt file on GitHub and push to `main` — a [CI/CD workflow](.github/workflows/deploy-prompts.yml) automatically pulls the change to the server. The server hot-reloads prompts on each request, so the new behavior takes effect immediately with no restart or rebuild.
 
 ---
 
