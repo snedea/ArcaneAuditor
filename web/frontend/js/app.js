@@ -490,6 +490,39 @@ class ArcaneAuditorApp {
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
+        // Tables - convert markdown tables to HTML
+        html = html.replace(/((?:^\|.+\|$\n?)+)/gm, (tableBlock) => {
+            const rows = tableBlock.trim().split('\n').filter(r => r.trim());
+            if (rows.length < 2) return tableBlock;
+
+            // Check if second row is a separator (|---|---|)
+            const isSeparator = /^\|[\s:-]+\|/.test(rows[1]);
+            if (!isSeparator) return tableBlock;
+
+            let tableHtml = '<table>';
+
+            // Header row
+            const headerCells = rows[0].split('|').filter(c => c.trim() !== '');
+            tableHtml += '<thead><tr>';
+            headerCells.forEach(cell => {
+                tableHtml += `<th>${cell.trim()}</th>`;
+            });
+            tableHtml += '</tr></thead>';
+
+            // Body rows (skip separator at index 1)
+            tableHtml += '<tbody>';
+            for (let i = 2; i < rows.length; i++) {
+                const cells = rows[i].split('|').filter(c => c.trim() !== '');
+                tableHtml += '<tr>';
+                cells.forEach(cell => {
+                    tableHtml += `<td>${cell.trim()}</td>`;
+                });
+                tableHtml += '</tr>';
+            }
+            tableHtml += '</tbody></table>';
+            return tableHtml;
+        });
+
         // Horizontal rules
         html = html.replace(/^---$/gm, '<hr>');
 
@@ -507,7 +540,7 @@ class ArcaneAuditorApp {
         html = html.replace(/(?:^|(?<=<\/ul>)\n)((?:<li>.*<\/li>\n?)+)/gm, '<ol>$1</ol>');
 
         // Paragraphs - wrap lines that aren't already wrapped in block elements
-        html = html.replace(/^(?!<[houple]|<li|<pre|<hr)(.+)$/gm, '<p>$1</p>');
+        html = html.replace(/^(?!<[houple]|<li|<pre|<hr|<t)(.+)$/gm, '<p>$1</p>');
 
         // Clean up extra newlines
         html = html.replace(/\n{2,}/g, '\n');

@@ -2846,3 +2846,30 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
     border-top: 1px solid var(--border-color);
     margin: 16px 0;
 }
+
+.explain-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 0.95em;
+}
+
+.explain-content th,
+.explain-content td {
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.explain-content th {
+    background: var(--bg-tertiary);
+    font-weight: 600;
+}
+
+.explain-content tr:nth-child(even) {
+    background: var(--bg-tertiary);
+}
+
+.explain-content tr:hover {
+    background: var(--arcane-glow);
+}
