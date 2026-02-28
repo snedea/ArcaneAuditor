@@ -18,9 +18,10 @@ export const Templates = {
      * @returns {string} HTML for the summary
      */
     summary(result, uploadedFileName, app) {
-        // Compute unresolved counts for live summary
+        // Compute unresolved counts for live summary (exclude both fixed and dismissed)
         const resolvedFindings = app ? app.resolvedFindings : new Set();
-        const unresolvedFindings = result.findings.filter((_, i) => !resolvedFindings.has(i));
+        const dismissedFindings = app ? app.dismissedFindings : new Set();
+        const unresolvedFindings = result.findings.filter((_, i) => !resolvedFindings.has(i) && !dismissedFindings.has(i));
         const unresolvedSeverityCounts = getSeverityCounts(unresolvedFindings);
         const totalUnresolved = unresolvedFindings.length;
         const actionCount = unresolvedSeverityCounts['ACTION'] || 0;
@@ -125,13 +126,16 @@ export const Templates = {
 
         // AI fix state
         const resolvedFindings = app ? app.resolvedFindings : new Set();
+        const dismissedFindings = app ? app.dismissedFindings : new Set();
         const autofixInProgress = app ? app.autofixInProgress : new Set();
         const diffWarnings = app ? app.diffWarnings : new Map();
         const allFindings = app && app.currentResult ? app.currentResult.findings : [];
         const fileFindingIndices = fileFindings.map(f => allFindings.indexOf(f));
         const resolvedCount = fileFindingIndices.filter(i => resolvedFindings.has(i)).length;
+        const dismissedCount = fileFindingIndices.filter(i => dismissedFindings.has(i)).length;
+        const handledCount = resolvedCount + dismissedCount;
         const totalCount = fileFindings.length;
-        const allResolved = resolvedCount === totalCount && totalCount > 0;
+        const allHandled = handledCount === totalCount && totalCount > 0;
         const fileAutofixBusy = fileFindingIndices.some(i => autofixInProgress.has(i));
 
         return `
@@ -145,11 +149,13 @@ export const Templates = {
                         </div>
                     </div>
                     <div class="file-header-right">
-                        ${allResolved ? (() => {
+                        ${allHandled ? (() => {
                             const hasWarnings = fileFindingIndices.some(i => diffWarnings.has(i));
-                            return `<span class="file-all-fixed-badge${hasWarnings ? ' has-warnings' : ''}">All Fixed${hasWarnings ? ' (with warnings)' : ''}</span>`;
+                            const label = dismissedCount > 0 && resolvedCount === 0 ? 'All Dismissed' :
+                                          dismissedCount > 0 ? 'All Handled' : 'All Fixed';
+                            return `<span class="file-all-fixed-badge${hasWarnings ? ' has-warnings' : ''}${dismissedCount > 0 ? ' has-dismissed' : ''}">${label}${hasWarnings ? ' (with warnings)' : ''}</span>`;
                         })() : (() => {
-                            const unresolvedCount = fileFindingIndices.filter(i => i >= 0 && !resolvedFindings.has(i)).length;
+                            const unresolvedCount = fileFindingIndices.filter(i => i >= 0 && !resolvedFindings.has(i) && !dismissedFindings.has(i)).length;
                             if (unresolvedCount >= 1) {
                                 return `<button class="fix-all-btn${fileAutofixBusy ? ' loading' : ''}"
                                     onclick="event.stopPropagation(); autofixFile('${escapedFilePath}')"
@@ -159,8 +165,8 @@ export const Templates = {
                             }
                             return '';
                         })()}
-                        ${resolvedCount > 0 && !allResolved ? `
-                            <span class="file-fix-progress">${resolvedCount}/${totalCount} fixed</span>
+                        ${handledCount > 0 && !allHandled ? `
+                            <span class="file-fix-progress">${handledCount}/${totalCount} handled</span>
                         ` : ''}
                         ${currentFilters.severity === 'all' ? `
                             <div class="file-count-badge">
@@ -202,10 +208,12 @@ export const Templates = {
         const allFindings = app && app.currentResult ? app.currentResult.findings : [];
         const origIdx = allFindings.indexOf(finding);
         const resolvedFindings = app ? app.resolvedFindings : new Set();
+        const dismissedFindings = app ? app.dismissedFindings : new Set();
         const autofixInProgress = app ? app.autofixInProgress : new Set();
         const diffWarnings = app ? app.diffWarnings : new Map();
         const findingExplanations = app ? app.findingExplanations : new Map();
         const isResolved = resolvedFindings.has(origIdx);
+        const isDismissed = dismissedFindings.has(origIdx);
         const isLoading = autofixInProgress.has(origIdx);
 
         const escapeHtml = (str) => str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -215,10 +223,11 @@ export const Templates = {
         const expl = findingExplanations.get(explKey);
 
         return `
-            <div class="finding ${finding.severity.toLowerCase()}${isResolved ? ' finding-resolved' : ''}"
+            <div class="finding ${finding.severity.toLowerCase()}${isResolved ? ' finding-resolved' : ''}${isDismissed ? ' finding-dismissed' : ''}"
                  data-finding-line="${finding.line}">
                 <div class="finding-header">
                     ${isResolved ? '<span class="resolved-badge">FIXED</span>' : ''}
+                    ${isDismissed ? '<span class="dismissed-badge">DISMISSED</span>' : ''}
                     ${getSeverityIcon(finding.severity)}
                     <strong>[${finding.rule_id}]</strong> ${finding.message}
                 </div>
@@ -259,12 +268,17 @@ export const Templates = {
                         ${expl.suggestion ? `<p class="finding-explanation-suggestion">Suggestion: ${escapeHtml(expl.suggestion)}</p>` : ''}
                     </div>
                 ` : ''}
-                ${!isResolved ? `
+                ${!isResolved && !isDismissed ? `
                 <div class="finding-actions">
                     <button class="autofix-btn${isLoading ? ' loading' : ''}"
                         onclick="event.stopPropagation(); autofix(${origIdx})"
                         ${isLoading ? 'disabled' : ''}>
                         ${isLoading ? '&#9203; Fixing...' : '&#9889; Auto-fix'}
+                    </button>
+                    <button class="dismiss-btn"
+                        onclick="event.stopPropagation(); dismissFinding(${origIdx})"
+                        title="Acknowledge and skip this finding">
+                        Dismiss
                     </button>
                 </div>
                 ` : ''}

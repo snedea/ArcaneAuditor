@@ -20,6 +20,7 @@ class ArcaneAuditorApp {
         this.editedFileContents = new Map();    // file_path → current content (updated by autofix)
         this.originalFileContents = new Map();  // file_path → original content
         this.resolvedFindings = new Set();       // set of original finding indices that are resolved
+        this.dismissedFindings = new Set();      // set of finding indices dismissed/acknowledged by user
         this.autofixInProgress = new Set();      // finding indices currently being auto-fixed
         this.diffWarnings = new Map();           // findingIndex → diff_warning object from autofix
         this.isRevalidating = false;
@@ -999,6 +1000,7 @@ class ArcaneAuditorApp {
         this.editedFileContents.clear();
         this.originalFileContents.clear();
         this.resolvedFindings.clear();
+        this.dismissedFindings.clear();
         if (!this.currentResult) return;
 
         const seen = new Set();
@@ -1061,12 +1063,20 @@ class ArcaneAuditorApp {
         this.resolvedFindings.clear();
         if (!this.currentResult) return;
 
+        // Preserve dismissed findings across revalidation
+        const prevDismissed = new Set(this.dismissedFindings);
+        this.dismissedFindings.clear();
+
         const existingKeys = new Set();
         for (let i = 0; i < this.currentResult.findings.length; i++) {
             const f = this.currentResult.findings[i];
             existingKeys.add(this._stableFindingKey(f));
             if (!newKeys.has(this._stableFindingKey(f))) {
                 this.resolvedFindings.add(i);
+            }
+            // Re-apply dismissed status if finding still exists after revalidation
+            if (prevDismissed.has(i)) {
+                this.dismissedFindings.add(i);
             }
         }
 
@@ -1087,6 +1097,12 @@ class ArcaneAuditorApp {
             }
         }
         return null;
+    }
+
+    dismissFinding(findingIndex) {
+        if (!this.currentResult || findingIndex < 0 || findingIndex >= this.currentResult.findings.length) return;
+        this.dismissedFindings.add(findingIndex);
+        this.resultsManager.renderFindings();
     }
 
     async autofix(findingIndex) {
@@ -1271,6 +1287,7 @@ class ArcaneAuditorApp {
         this.editedFileContents.clear();
         this.originalFileContents.clear();
         this.resolvedFindings.clear();
+        this.dismissedFindings.clear();
         this.autofixInProgress.clear();
         this.diffWarnings.clear();
         this.isRevalidating = false;
@@ -1473,6 +1490,10 @@ window.updateSortFilesBy = function(value) {
 // AI feature global functions
 window.autofix = function(findingIndex) {
     app.autofix(findingIndex);
+};
+
+window.dismissFinding = function(findingIndex) {
+    app.dismissFinding(findingIndex);
 };
 
 window.autofixFile = function(filePath) {

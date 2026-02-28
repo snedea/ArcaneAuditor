@@ -1272,6 +1272,37 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
     background: #059669;
 }
 
+/* Dismissed finding */
+.finding-dismissed {
+    opacity: 0.45;
+}
+
+.finding-dismissed .finding-header {
+    text-decoration: line-through;
+    text-decoration-color: #6b7280;
+}
+
+.dismissed-badge {
+    display: inline-block;
+    background: #6b7280;
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-right: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+[data-theme="dark"] .dismissed-badge {
+    background: #4b5563;
+}
+
+.file-all-fixed-badge.has-dismissed {
+    background: #6b7280;
+}
+
 .file-all-fixed-badge {
     font-size: 0.75rem;
     padding: 3px 10px;
@@ -1371,6 +1402,9 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
 
 .finding-actions {
     margin: 8px 0 0 30px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
 .autofix-btn {
@@ -1397,6 +1431,24 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
 
 .autofix-btn.loading {
     cursor: wait;
+}
+
+.dismiss-btn {
+    font-size: 0.8rem;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.dismiss-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
 }
 
 /* ===== Diff warning (autofix removed suspicious lines) ===== */

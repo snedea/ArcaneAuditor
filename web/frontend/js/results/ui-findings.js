@@ -48,14 +48,16 @@ export class FindingsUI {
         const findingsContent = findings.querySelector('.findings-content');
         if (!findingsContent) return;
         
-        // Check if all findings are resolved for export bar
+        // Check if all findings are resolved or dismissed for export bar
         const totalFindings = this.app.currentResult ? this.app.currentResult.findings.length : 0;
-        const allOriginalResolved = totalFindings > 0 && this.app.resolvedFindings.size === totalFindings;
+        const handledCount = this.app.resolvedFindings.size + this.app.dismissedFindings.size;
+        const allOriginalHandled = totalFindings > 0 && handledCount >= totalFindings;
         const revalClean = this.app.lastRevalidationFindingCount === 0;
-        const allGlobalResolved = allOriginalResolved && revalClean;
-        const hasAnyEdited = this.app.editedFileContents.size > 0;
+        const allDismissedOnly = this.app.dismissedFindings.size > 0 && this.app.resolvedFindings.size === 0;
+        const allGlobalResolved = allOriginalHandled && (revalClean || allDismissedOnly);
+        const hasAnyEdited = this.app.editedFileContents.size > 0 || allDismissedOnly;
 
-        // Insert export ZIP bar before findings content if all fixed
+        // Insert export ZIP bar before findings content if all handled
         if (allGlobalResolved && hasAnyEdited) {
             const exportBar = document.createElement('div');
             exportBar.className = 'export-zip-bar';
