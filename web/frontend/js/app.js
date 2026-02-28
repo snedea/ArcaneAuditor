@@ -799,20 +799,25 @@ class ArcaneAuditorApp {
     async autofixFile(filePath) {
         if (!this.currentResult) return;
 
-        // Snapshot unresolved finding indices BEFORE any fixes run.
-        // Do NOT re-check resolvedFindings mid-batch — earlier fixes can
-        // shift code context in messages, causing siblings to appear
-        // falsely "resolved" via key mismatch in diffFindings().
-        const indices = [];
-        for (let i = 0; i < this.currentResult.findings.length; i++) {
-            if (this.currentResult.findings[i].file_path === filePath && !this.resolvedFindings.has(i)) {
-                indices.push(i);
+        const maxPasses = 3;
+        for (let pass = 0; pass < maxPasses; pass++) {
+            // Collect unresolved findings for this file
+            const indices = [];
+            for (let i = 0; i < this.currentResult.findings.length; i++) {
+                if (this.currentResult.findings[i].file_path === filePath && !this.resolvedFindings.has(i)) {
+                    indices.push(i);
+                }
             }
-        }
 
-        // Fix sequentially — each fix changes the file content for the next
-        for (const idx of indices) {
-            await this.autofix(idx);
+            if (indices.length === 0) break; // all resolved
+            if (pass > 0) {
+                console.log(`Fix All pass ${pass + 1}: ${indices.length} findings still unresolved`);
+            }
+
+            // Fix sequentially — each fix changes the file content for the next
+            for (const idx of indices) {
+                await this.autofix(idx);
+            }
         }
     }
 
