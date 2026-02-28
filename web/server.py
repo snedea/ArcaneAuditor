@@ -34,6 +34,9 @@ import uvicorn
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB default limit
 CHUNK_SIZE = 8192  # 8KB chunks for streaming
 
+# Cache-busting version: changes every time the server process starts
+_asset_version = str(int(time.time()))
+
 # Global job management for async analysis
 analysis_jobs: Dict[str, 'AnalysisJob'] = {}
 job_lock = threading.Lock()
@@ -819,13 +822,22 @@ async def explain_findings(request: ExplainRequest):
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():
-    """Serve the main HTML page."""
+    """Serve the main HTML page with cache-busted asset references."""
     index_path = static_dir / "index.html"
     if not index_path.exists():
         raise HTTPException(status_code=404, detail="Index file not found")
-    
+
     with open(index_path, 'r', encoding='utf-8') as f:
         content = f.read()
+
+    # Inject a cache-buster query param based on server start time
+    # so browsers always fetch fresh JS/CSS after a deploy.
+    import re
+    content = re.sub(
+        r'(src|href)="/static/([^"]+)"',
+        rf'\1="/static/\2?v={_asset_version}"',
+        content,
+    )
     return HTMLResponse(content=content)
 
 @app.get("/api/health")

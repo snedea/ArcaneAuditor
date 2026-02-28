@@ -1898,27 +1898,57 @@ header p {
     background: rgba(255, 220, 100, 0.08);
 }
 
-/* Inline AI Explanation (per-finding) */
+/* Inline AI Explanation (per-finding)
+   Visually distinct from deterministic findings above —
+   dashed border, tinted background, AI label, subtle shadow */
 .finding-explanation {
     margin: 10px 0 4px 30px;
-    padding: 10px 14px;
+    padding: 10px 14px 10px 12px;
+    border: 1px dashed var(--arcane-purple);
     border-left: 3px solid var(--arcane-purple);
-    background: var(--arcane-glow);
-    border-radius: 0 6px 6px 0;
-    font-size: 0.88rem;
+    background: linear-gradient(135deg, var(--arcane-glow) 0%, transparent 100%);
+    border-radius: 0 8px 8px 0;
+    font-size: 0.85rem;
     line-height: 1.5;
     color: var(--text-secondary);
+    box-shadow: 0 1px 4px rgba(117, 106, 162, 0.15);
+    position: relative;
+}
+
+[data-theme="dark"] .finding-explanation {
+    box-shadow: 0 1px 6px rgba(159, 122, 234, 0.2);
+}
+
+/* "AI" label in top-right corner */
+.finding-explanation-ai-label {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    background: var(--arcane-purple);
+    color: #fff;
+    border-radius: 0 8px 0 6px;
+    letter-spacing: 0.08em;
+    opacity: 0.85;
+}
+
+.finding-explanation-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
 }
 
 .finding-explanation-badge {
     display: inline-block;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 700;
     padding: 2px 8px;
     border-radius: 10px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    margin-bottom: 6px;
 }
 
 .finding-explanation-badge.high {
@@ -1957,6 +1987,7 @@ header p {
 .finding-explanation-suggestion {
     margin: 4px 0 0 0;
     color: var(--text-primary);
+    font-style: italic;
 }
 
 .no-issues {
