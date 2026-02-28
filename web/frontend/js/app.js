@@ -151,6 +151,13 @@ class ArcaneAuditorApp {
             uploadArea.addEventListener('drop', (e) => this.handleDrop(e));
         }
 
+        // Header click to return to home/upload screen
+        const headerTitle = document.querySelector('header h1');
+        if (headerTitle) {
+            headerTitle.style.cursor = 'pointer';
+            headerTitle.addEventListener('click', () => this.showUpload());
+        }
+
         // File expansion listeners (delegated)
         document.addEventListener('click', (e) => {
             if (e.target.closest('.file-header')) {
