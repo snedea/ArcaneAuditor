@@ -1505,6 +1505,10 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
 }
 
 .diff-warning-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     color: #b45309;
     font-weight: 600;
     margin-bottom: 4px;
