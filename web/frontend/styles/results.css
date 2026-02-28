@@ -285,11 +285,14 @@
 .file-count-badge {
     background: #3b82f6;
     color: white;
-    padding: 6px 12px;
-    border-radius: 16px;
-    font-size: 0.9rem;
-    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
     white-space: nowrap;
+    border: 2px solid #2563eb;
+    display: inline-flex;
+    align-items: center;
 }
 
 .severity-badges {
@@ -299,10 +302,10 @@
 }
 
 .severity-count-badge {
-    padding: 4px 8px;
+    padding: 4px 10px;
     border-radius: 12px;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 700;
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -312,8 +315,6 @@
     background: #ea580c;
     color: #ffffff;
     border: 2px solid #c2410c;
-    border-style: solid;
-    font-weight: 700;
 }
 
 .severity-count-badge.action::before {
@@ -325,7 +326,6 @@
     background: #756AA2;
     color: #ffffff;
     border: 2px dashed #6B5E94;
-    font-weight: 700;
 }
 
 .severity-count-badge.advice::before {
