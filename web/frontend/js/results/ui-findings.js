@@ -52,17 +52,18 @@ export class FindingsUI {
         const totalFindings = this.app.currentResult ? this.app.currentResult.findings.length : 0;
         const handledCount = this.app.resolvedFindings.size + this.app.dismissedFindings.size;
         const allOriginalHandled = totalFindings > 0 && handledCount >= totalFindings;
-        const revalClean = this.app.lastRevalidationFindingCount === 0;
-        const allDismissedOnly = this.app.dismissedFindings.size > 0 && this.app.resolvedFindings.size === 0;
-        const allGlobalResolved = allOriginalHandled && (revalClean || allDismissedOnly);
-        const hasAnyEdited = this.app.editedFileContents.size > 0 || allDismissedOnly;
+        const hasEdits = this.app.editedFileContents.size > 0;
+        const revalRan = this.app.lastRevalidationFindingCount !== null;
+        // Export allowed when all findings handled AND (revalidation ran if files were edited, OR no edits)
+        const allGlobalResolved = allOriginalHandled && (revalRan || !hasEdits);
+        const hasAnyEdited = hasEdits || this.app.dismissedFindings.size > 0;
 
         // Insert export ZIP bar before findings content if all handled
         if (allGlobalResolved && hasAnyEdited) {
             const exportBar = document.createElement('div');
             exportBar.className = 'export-zip-bar';
             exportBar.innerHTML = `
-                <span class="export-zip-message">All findings fixed!</span>
+                <span class="export-zip-message">${this.app.dismissedFindings.size > 0 ? 'All findings handled!' : 'All findings fixed!'}</span>
                 <button class="export-zip-btn" onclick="exportAllZip()">
                     Export Fixed Files (.zip)
                 </button>
