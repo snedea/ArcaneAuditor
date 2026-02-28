@@ -302,7 +302,7 @@ The architecture enforces a strict boundary:
 
 > **Deterministic rules find the issues. AI explains and fixes them. Deterministic rules verify the fix.**
 
-The AI autofix receives the *deterministic finding* directly (rule ID, severity, line number, message) — never the AI-generated explanation. The two LLM features are independent branches off the same deterministic source of truth. After every fix, the same 42 rules re-run on the modified code. If the fix didn't work — or introduced a new problem — the auditor catches it. Export is gated on revalidation returning zero findings, not on the AI's self-assessment.
+The AI autofix receives the *deterministic finding* directly (rule ID, severity, line number, message) — never the AI-generated explanation. The two LLM features are independent branches off the same deterministic source of truth. After every fix, a line-level diff checks for suspicious removals (non-trivial code deleted without a matching modification), and then the same 42 rules re-run on the modified code. If the fix didn't work, removed unrelated code, or introduced a new problem — the auditor catches it. Export is gated on revalidation returning zero findings, not on the AI's self-assessment.
 
 This isn't a compromise. It's separation of concerns.
 
@@ -313,7 +313,10 @@ flowchart TD
     C --> D{"AI Explain\n(optional)"}
     D --> C
     C --> E{"Auto-Fix\n(per finding or Fix All)"}
-    E --> F["Re-validate\nfixed content"]
+    E --> V{"Diff Verification\n(line-level)"}
+    V -->|"Suspicious removals?"| W["Amber warning\nshown to user"]
+    V -->|"Clean fix"| F["Re-validate\nfixed content"]
+    W --> F
     F -->|"Merge new findings\ninto live list"| G{"Revalidation\n0 findings?"}
     G -- "No (up to 3 passes)" --> E
     G -- Yes --> H["Export\n_fixed.zip"]
@@ -326,6 +329,8 @@ flowchart TD
     style H fill:#e2e8f0,stroke:#475569,color:#1e293b
     style D fill:#ddd6fe,stroke:#7c3aed,color:#4c1d95
     style E fill:#ddd6fe,stroke:#7c3aed,color:#4c1d95
+    style V fill:#fef3c7,stroke:#d97706,color:#92400e
+    style W fill:#fef3c7,stroke:#d97706,color:#92400e
     style G fill:#e2e8f0,stroke:#475569,color:#1e293b
     style I fill:#e2e8f0,stroke:#475569,color:#1e293b
 ```
@@ -337,6 +342,7 @@ flowchart TD
 | **Display** | Deterministic | Findings shown with source snippets and highlighted lines |
 | **AI Explain** | AI (optional) | Generates plain-English explanations and fix suggestions. Does not feed into autofix. |
 | **Auto-Fix** | AI (temp 0) | Receives the deterministic finding + full file. Returns corrected file. |
+| **Diff Verification** | Deterministic | Line-level diff compares original vs fixed content. Flags non-trivial removed lines that weren't modified or moved — catches silent code deletion by the LLM. |
 | **Re-validate** | Deterministic | Runs the same 42 rules on the fixed file — the auditor checks the mechanic's work |
 | **Fix All** | AI + Deterministic | Additive fixes first, removals last, up to 3 convergence passes. New findings from fixes are merged and retried. Export gated on 0 findings from revalidation. |
 | **Export** | Deterministic | Bundles all fixed files into a `_fixed.zip` — only after the auditor signs off |
@@ -353,6 +359,7 @@ flowchart TD
 - **📥 Excel Export**: Comprehensive reports with context information
 - **🌙 Theme Support**: Dark and light modes
 - **🤖 AI Auto-Fix**: Per-finding or per-file auto-correction via Anthropic API (temperature 0)
+- **🛡️ Diff Verification**: Line-level diff warns when auto-fix removes unrelated code — amber banner with collapsible preview of deleted lines
 - **📦 ZIP Export**: Download all fixed files as a single archive
 
 ### Starting the Server
