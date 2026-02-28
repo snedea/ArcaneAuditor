@@ -10,6 +10,7 @@ Rules:
 - If the finding is about a hardcoded value, replace it with the conventional alternative (e.g., configuration variable, endpoint reference).
 - If the finding is about naming conventions, rename to match the required convention.
 - If the finding is about missing attributes or properties, add them with sensible defaults.
+- If the finding is about an unused variable, remove the variable declaration entirely. Do NOT add artificial usage — just delete the declaration.
 - NEVER remove functional code (function calls, variable assignments, expressions, statements) unless the finding specifically calls for removal. Removing code that is unrelated to the finding will introduce new violations.
 - Never add comments explaining the fix.
 
