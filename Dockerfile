@@ -11,8 +11,8 @@ RUN adduser --disabled-password --gecos '' --uid 1001 appuser
 # Copy dependency files first for caching
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies
-RUN uv sync --frozen --no-dev
+# Install dependencies then fix ownership so appuser can use the venv
+RUN uv sync --frozen --no-dev && chown -R appuser:appuser .venv
 
 # Copy application code
 COPY --chown=appuser:appuser . .
