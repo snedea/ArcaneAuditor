@@ -227,12 +227,15 @@ async def periodic_cleanup():
         cleanup_old_jobs()
 
 # Add CORS middleware
+_cors_origins = os.environ.get(
+    "CORS_ORIGINS", "https://arcane.llam.ai"
+).split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 def cleanup_old_jobs():
