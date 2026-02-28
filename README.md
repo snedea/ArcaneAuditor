@@ -246,6 +246,38 @@ flowchart TD
 | **Fix All** | AI + Deterministic | Additive fixes first, removals last, up to 3 convergence passes |
 | **Export** | Deterministic | Bundles all fixed files into `_fixed.zip` — only after revalidation passes |
 
+### See It in Action
+
+<details>
+<summary>📸 AI Features Gallery</summary>
+
+**AI Explanations & Auto-Fix Buttons**
+Each finding gets an AI-generated explanation with priority, plus one-click Auto-Fix and Dismiss controls.
+![AI Explain Summary](assets/screenshots/ai-features/ai-explain-summary.png)
+
+**Side-by-Side Diff View**
+After auto-fixing, a GitHub-style split diff shows exactly what changed — Original on the left, Fixed on the right.
+![Diff View - Fixed Finding](assets/screenshots/ai-features/diff-view-fixed.png)
+
+**Fix All in Bulk**
+Fix every issue across all files at once. Progress tracks each file group with pass/fail status.
+![Fix All Bulk](assets/screenshots/ai-features/fix-all-bulk.png)
+
+**Dismiss Findings**
+Mark findings as intentional. Dismissed findings stay visible with their AI explanation for reference.
+![Dismiss Finding](assets/screenshots/ai-features/dismiss-finding.png)
+
+**Export Fixed Files**
+Download all fixed files as a single `_reviewed.zip` archive, gated on revalidation passing.
+![Export ZIP](assets/screenshots/ai-features/export-zip.png)
+
+**Loading Animations**
+Thematic loading states while the engine works its magic.
+![Loading - Decoding](assets/screenshots/ai-features/loading-decoding.png)
+![Loading - Sifting](assets/screenshots/ai-features/loading-sifting.png)
+
+</details>
+
 ### Customizing AI Prompts
 
 | File | Controls | Purpose |
