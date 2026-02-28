@@ -111,14 +111,13 @@ class ArcaneAuditorApp {
 
         this.resultsRenderer.renderResults();
 
-        // Show "Explain with AI" button if there are findings
-        const explainBtn = document.getElementById('explain-btn');
-        if (explainBtn && this.currentResult && this.currentResult.findings.length > 0) {
-            explainBtn.style.display = 'inline-flex';
-        }
-
         // Show magical analysis completion if in magic mode
         showMagicalAnalysisComplete(this.currentResult);
+
+        // Auto-trigger AI explanations if there are findings
+        if (this.currentResult && this.currentResult.findings.length > 0) {
+            this.explainWithAI();
+        }
     }
 
     showError(message) {
@@ -135,7 +134,7 @@ class ArcaneAuditorApp {
         document.getElementById('error-section').style.display = 'none';
         document.getElementById('results-section').style.display = 'none';
         document.getElementById('context-section').style.display = 'none';
-        document.getElementById('explain-section').style.display = 'none';
+        document.getElementById('ai-explain-status').style.display = 'none';
     }
 
     // File handling methods
@@ -415,21 +414,12 @@ class ArcaneAuditorApp {
     async explainWithAI() {
         if (!this.currentResult || !this.currentResult.findings.length) return;
 
-        const explainBtn = document.getElementById('explain-btn');
-        const explainSection = document.getElementById('explain-section');
-        const explainLoading = document.getElementById('explain-loading');
-        const explainError = document.getElementById('explain-error');
-        const explainContent = document.getElementById('explain-content');
+        const status = document.getElementById('ai-explain-status');
 
-        // Disable button — button text is the only loading indicator.
-        // The old bottom-of-page explain section stays hidden unless we
-        // fall back to markdown.
-        explainBtn.disabled = true;
-        explainBtn.textContent = '🤖 Explaining...';
-        explainSection.style.display = 'none';
-        explainLoading.style.display = 'none';
-        explainError.style.display = 'none';
-        explainContent.innerHTML = '';
+        // Show a single loading line
+        status.style.display = 'block';
+        status.textContent = '🤖 AI explanations loading...';
+        status.className = 'ai-explain-status loading';
 
         try {
             const response = await fetch('/api/explain', {
@@ -450,9 +440,6 @@ class ArcaneAuditorApp {
             }
 
             if (data.format === 'structured' && data.explanations && data.findings_order) {
-                // Structured response: map explanations to findings
-                // Key includes the original index to avoid collisions when
-                // multiple findings share the same rule_id+file_path+line.
                 this.findingExplanations.clear();
                 for (const expl of data.explanations) {
                     const idx = expl.index;
@@ -464,23 +451,16 @@ class ArcaneAuditorApp {
                 }
                 // Re-render findings with inline explanations
                 this.resultsRenderer.renderFindings();
-                explainBtn.textContent = '✅ Explained';
+                // Hide the status line — explanations are now inline
+                status.style.display = 'none';
             } else {
-                // Markdown fallback: only now show the bottom section
-                explainSection.style.display = 'block';
-                explainContent.innerHTML = this.renderMarkdown(data.explanation);
-                explainBtn.textContent = '✅ Explained';
+                // Non-structured response — show it as a status message
+                status.textContent = '🤖 AI explanation loaded (see below)';
+                status.className = 'ai-explain-status done';
             }
         } catch (error) {
-            // Show error in the bottom section
-            explainSection.style.display = 'block';
-            explainError.style.display = 'block';
-            document.getElementById('explain-error-message').textContent =
-                `Failed to get AI explanation: ${error.message}`;
-
-            // Re-enable button for retry
-            explainBtn.disabled = false;
-            explainBtn.textContent = '🤖 Retry Explain';
+            status.textContent = `AI explanations unavailable: ${error.message}`;
+            status.className = 'ai-explain-status error';
         }
     }
 
@@ -618,15 +598,8 @@ class ArcaneAuditorApp {
         // Hide selected files list
         document.getElementById('selected-files-list').style.display = 'none';
         
-        // Reset explain section
-        const explainBtn = document.getElementById('explain-btn');
-        if (explainBtn) {
-            explainBtn.style.display = 'none';
-            explainBtn.disabled = false;
-            explainBtn.textContent = '🤖 Explain with AI';
-        }
-        document.getElementById('explain-section').style.display = 'none';
-        document.getElementById('explain-content').innerHTML = '';
+        // Reset AI explain status
+        document.getElementById('ai-explain-status').style.display = 'none';
 
         // Reset renderers
         this.resultsRenderer.resetForNewUpload();
@@ -655,10 +628,6 @@ window.toggleTheme = function() {
 
 window.toggleContextPanel = function() {
     app.resultsRenderer.toggleContextPanel();
-};
-
-window.explainWithAI = function() {
-    app.explainWithAI();
 };
 
 window.copyExplainCard = function(cardId) {
