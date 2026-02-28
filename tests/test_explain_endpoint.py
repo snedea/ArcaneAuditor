@@ -190,7 +190,7 @@ class TestExplainEndpoint:
         assert resp.status_code == 200
 
         call_kwargs = mock_client.messages.create.call_args[1]
-        assert call_kwargs["temperature"] == 0.3
+        assert call_kwargs["temperature"] == 1.0
         assert "Finding #0" in call_kwargs["messages"][0]["content"]
         assert len(call_kwargs["system"]) > 20
 
