@@ -1102,7 +1102,7 @@ class ArcaneAuditorApp {
     dismissFinding(findingIndex) {
         if (!this.currentResult || findingIndex < 0 || findingIndex >= this.currentResult.findings.length) return;
         this.dismissedFindings.add(findingIndex);
-        this.resultsManager.renderFindings();
+        this.resultsManager.renderResults();
     }
 
     async autofix(findingIndex) {

@@ -133,7 +133,7 @@ export const Templates = {
         const fileFindingIndices = fileFindings.map(f => allFindings.indexOf(f));
         const resolvedCount = fileFindingIndices.filter(i => resolvedFindings.has(i)).length;
         const dismissedCount = fileFindingIndices.filter(i => dismissedFindings.has(i)).length;
-        const handledCount = resolvedCount + dismissedCount;
+        const handledCount = fileFindingIndices.filter(i => resolvedFindings.has(i) || dismissedFindings.has(i)).length;
         const totalCount = fileFindings.length;
         const allHandled = handledCount === totalCount && totalCount > 0;
         const fileAutofixBusy = fileFindingIndices.some(i => autofixInProgress.has(i));

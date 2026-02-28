@@ -50,7 +50,8 @@ export class FindingsUI {
         
         // Check if all findings are resolved or dismissed for export bar
         const totalFindings = this.app.currentResult ? this.app.currentResult.findings.length : 0;
-        const handledCount = this.app.resolvedFindings.size + this.app.dismissedFindings.size;
+        const handledSet = new Set([...this.app.resolvedFindings, ...this.app.dismissedFindings]);
+        const handledCount = handledSet.size;
         const allOriginalHandled = totalFindings > 0 && handledCount >= totalFindings;
         const hasEdits = this.app.editedFileContents.size > 0;
         const revalRan = this.app.lastRevalidationFindingCount !== null;
