@@ -1112,6 +1112,44 @@ class ArcaneAuditorApp {
         this.resultsManager.renderResults();
     }
 
+    async revertFix(findingIndex) {
+        if (!this.currentResult || findingIndex < 0 || findingIndex >= this.currentResult.findings.length) return;
+
+        const filePath = this.currentResult.findings[findingIndex].file_path;
+        const originalContent = this.originalFileContents.get(filePath);
+        if (!originalContent) return;
+
+        // Restore original file content
+        this.editedFileContents.set(filePath, originalContent);
+
+        // Un-resolve all findings in this file and clear their diff warnings
+        for (let i = 0; i < this.currentResult.findings.length; i++) {
+            if (this.currentResult.findings[i].file_path === filePath) {
+                this.resolvedFindings.delete(i);
+                this.diffWarnings.delete(i);
+            }
+        }
+
+        // Rebuild snippets from original content
+        const lines = originalContent.split('\n');
+        for (const f of this.currentResult.findings) {
+            if (f.file_path === filePath) {
+                f.snippet = {
+                    start_line: 1,
+                    lines: lines.map((text, i) => ({
+                        number: i + 1,
+                        text,
+                        highlight: (i + 1) === f.line,
+                    })),
+                };
+            }
+        }
+
+        // Re-run revalidation to get accurate resolved state
+        await this.revalidate();
+        this.resultsManager.renderResults();
+    }
+
     async autofix(findingIndex) {
         if (!this.currentResult || findingIndex < 0 || findingIndex >= this.currentResult.findings.length) return;
 
@@ -1501,6 +1539,10 @@ window.autofix = function(findingIndex) {
 
 window.dismissFinding = function(findingIndex) {
     app.dismissFinding(findingIndex);
+};
+
+window.revertFix = function(findingIndex) {
+    app.revertFix(findingIndex);
 };
 
 window.autofixFile = function(filePath) {

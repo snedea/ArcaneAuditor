@@ -48,23 +48,25 @@ export class FindingsUI {
         const findingsContent = findings.querySelector('.findings-content');
         if (!findingsContent) return;
         
-        // Check if all findings are resolved or dismissed for export bar
-        const totalFindings = this.app.currentResult ? this.app.currentResult.findings.length : 0;
-        const handledSet = new Set([...this.app.resolvedFindings, ...this.app.dismissedFindings]);
-        const handledCount = handledSet.size;
-        const allOriginalHandled = totalFindings > 0 && handledCount >= totalFindings;
-        const hasEdits = this.app.editedFileContents.size > 0;
-        const revalRan = this.app.lastRevalidationFindingCount !== null;
-        // Export allowed when all findings handled AND (revalidation ran if files were edited, OR no edits)
-        const allGlobalResolved = allOriginalHandled && (revalRan || !hasEdits);
-        const hasAnyEdited = hasEdits || this.app.dismissedFindings.size > 0;
+        // Check if any files have been edited (content differs from original)
+        const hasEdits = this._hasActualEdits();
+        if (hasEdits) {
+            const totalFindings = this.app.currentResult ? this.app.currentResult.findings.length : 0;
+            const handledSet = new Set([...this.app.resolvedFindings, ...this.app.dismissedFindings]);
+            const handledCount = handledSet.size;
+            const allHandled = totalFindings > 0 && handledCount >= totalFindings;
 
-        // Insert export ZIP bar before findings content if all handled
-        if (allGlobalResolved && hasAnyEdited) {
+            let message;
+            if (allHandled) {
+                message = this.app.dismissedFindings.size > 0 ? 'All findings handled!' : 'All findings fixed!';
+            } else {
+                message = `${handledCount}/${totalFindings} findings handled`;
+            }
+
             const exportBar = document.createElement('div');
             exportBar.className = 'export-zip-bar';
             exportBar.innerHTML = `
-                <span class="export-zip-message">${this.app.dismissedFindings.size > 0 ? 'All findings handled!' : 'All findings fixed!'}</span>
+                <span class="export-zip-message">${message}</span>
                 <button class="export-zip-btn" onclick="exportAllZip()">
                     Export Fixed Files (.zip)
                 </button>
@@ -256,6 +258,17 @@ export class FindingsUI {
     collapseAllFiles() {
         this.app.expandedFiles.clear();
         this.renderFindings();
+    }
+
+    /**
+     * Check if any file content has actually changed from the original
+     */
+    _hasActualEdits() {
+        for (const [fp, content] of this.app.editedFileContents) {
+            const original = this.app.originalFileContents.get(fp);
+            if (original && content !== original) return true;
+        }
+        return false;
     }
 }
 

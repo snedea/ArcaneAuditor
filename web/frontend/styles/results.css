@@ -1475,6 +1475,24 @@ box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
     border-color: var(--text-secondary);
 }
 
+.revert-fix-btn {
+    font-size: 0.8rem;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid #d97706;
+    background: transparent;
+    color: #d97706;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.revert-fix-btn:hover {
+    background: rgba(217, 119, 6, 0.1);
+    border-color: #b45309;
+    color: #b45309;
+}
+
 /* ===== Diff warning (autofix removed suspicious lines) ===== */
 
 .diff-warning {

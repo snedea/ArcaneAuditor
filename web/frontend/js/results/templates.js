@@ -282,6 +282,15 @@ export const Templates = {
                     </button>
                 </div>
                 ` : ''}
+                ${isResolved ? `
+                <div class="finding-actions">
+                    <button class="revert-fix-btn"
+                        onclick="event.stopPropagation(); revertFix(${origIdx})"
+                        title="Undo auto-fix and restore original file content">
+                        &#8634; Revert Fix
+                    </button>
+                </div>
+                ` : ''}
             </div>
         `;
     },
