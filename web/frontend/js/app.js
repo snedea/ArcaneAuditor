@@ -13,6 +13,15 @@ class ArcaneAuditorApp {
         this.findingExplanations = new Map(); // key: "index::rule_id::file_path::line" → explanation obj
         this.uploadedFileName = null;
         this.selectedFiles = []; // For multiple file uploads
+
+        // Inline editor state
+        this.editedFileContents = new Map();    // file_path → current edited content
+        this.originalFileContents = new Map();  // file_path → original content (for reset)
+        this.resolvedFindings = new Set();       // set of original finding indices that are resolved
+        this.revalidationTimer = null;           // debounce timer
+        this.parseErrors = new Map();            // file_path → error message string
+        this.isRevalidating = false;
+
         this.currentFilters = {
             severity: 'all',
             fileType: 'all',
@@ -103,6 +112,9 @@ class ArcaneAuditorApp {
         if (this.currentResult) {
             this.filteredFindings = [...this.currentResult.findings];
         }
+
+        // Initialize file contents for inline editor
+        this.initializeFileContents();
 
         // Display context awareness panel if available
         if (this.currentResult && this.currentResult.context) {
@@ -609,6 +621,111 @@ class ArcaneAuditorApp {
         return html;
     }
 
+    initializeFileContents() {
+        this.editedFileContents.clear();
+        this.originalFileContents.clear();
+        this.resolvedFindings.clear();
+        this.parseErrors.clear();
+        if (!this.currentResult) return;
+
+        // Collect unique file_paths and reconstruct full content from snippet lines
+        const seen = new Set();
+        for (const finding of this.currentResult.findings) {
+            const fp = finding.file_path;
+            if (seen.has(fp) || !finding.snippet) continue;
+            seen.add(fp);
+            // snippet.lines is the full file (context_lines=None)
+            const content = finding.snippet.lines.map(l => l.text).join('\n');
+            this.editedFileContents.set(fp, content);
+            this.originalFileContents.set(fp, content);
+        }
+    }
+
+    scheduleRevalidation() {
+        if (this.revalidationTimer) clearTimeout(this.revalidationTimer);
+        this.revalidationTimer = setTimeout(() => this.revalidate(), 500);
+    }
+
+    async revalidate() {
+        if (!this.currentResult || this.editedFileContents.size === 0) return;
+        this.isRevalidating = true;
+
+        // Build files payload: send ALL files (some rules check cross-file references)
+        const files = {};
+        for (const [fp, content] of this.editedFileContents) {
+            files[fp] = content;
+        }
+
+        try {
+            const response = await fetch('/api/revalidate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    files,
+                    config: this.currentResult.config_name || 'default',
+                }),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                console.error('Revalidation failed:', result);
+                return;
+            }
+
+            // Store parse errors
+            this.parseErrors.clear();
+            if (result.errors) {
+                for (const err of result.errors) {
+                    if (err.file_path && err.file_path !== '_global') {
+                        this.parseErrors.set(err.file_path, err.error);
+                    }
+                }
+            }
+
+            this.diffFindings(result.findings);
+            this.resultsRenderer.renderFindings();
+        } catch (error) {
+            console.error('Revalidation error:', error);
+        } finally {
+            this.isRevalidating = false;
+        }
+    }
+
+    diffFindings(newFindings) {
+        // Build set of keys from new findings: rule_id::file_path::message
+        const newKeys = new Set();
+        for (const f of newFindings) {
+            newKeys.add(`${f.rule_id}::${f.file_path}::${f.message}`);
+        }
+
+        // For each original finding, if its key is absent from new set → resolved
+        this.resolvedFindings.clear();
+        if (!this.currentResult) return;
+        for (let i = 0; i < this.currentResult.findings.length; i++) {
+            const f = this.currentResult.findings[i];
+            const key = `${f.rule_id}::${f.file_path}::${f.message}`;
+            if (!newKeys.has(key)) {
+                this.resolvedFindings.add(i);
+            }
+        }
+    }
+
+    exportFile(filePath) {
+        const content = this.editedFileContents.get(filePath);
+        if (!content) return;
+        // Strip any UUID prefix from path, use just the base filename
+        const rawName = filePath.split(/[/\\]/).pop() || filePath;
+        const fileName = rawName.replace(/^[a-f0-9-]+_/, '');
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
     resetForNewUpload() {
         this.hideAllSections();
         document.getElementById('upload-section').style.display = 'block';
@@ -616,7 +733,16 @@ class ArcaneAuditorApp {
         this.findingExplanations.clear();
         this.uploadedFileName = null;
         this.selectedFiles = [];
-        
+
+        // Clear editor state
+        this.editedFileContents.clear();
+        this.originalFileContents.clear();
+        this.resolvedFindings.clear();
+        this.parseErrors.clear();
+        if (this.revalidationTimer) clearTimeout(this.revalidationTimer);
+        this.revalidationTimer = null;
+        this.isRevalidating = false;
+
         // Reset file inputs
         const fileInput = document.getElementById('file-input');
         fileInput.value = '';
@@ -694,6 +820,10 @@ window.updateSortBy = function(value) {
 
 window.updateSortFilesBy = function(value) {
     app.resultsRenderer.updateSortFilesBy(value);
+};
+
+window.exportFile = function(filePath) {
+    app.exportFile(filePath);
 };
 
 export default app;

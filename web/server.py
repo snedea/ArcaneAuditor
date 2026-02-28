@@ -179,6 +179,11 @@ class AnalysisRequest(BaseModel):
     """Request model for analysis."""
     job_id: str
 
+class RevalidateRequest(BaseModel):
+    """Request model for inline re-validation."""
+    files: Dict[str, str]   # file_path -> modified content
+    config: str              # config path used for original analysis
+
 class ExplainRequest(BaseModel):
     """Request model for AI explanation."""
     findings: dict
@@ -818,6 +823,90 @@ async def explain_findings(request: ExplainRequest):
     except Exception as e:
         print(f"Explain endpoint error: {e}", file=sys.stderr)
         raise HTTPException(status_code=500, detail=f"AI explanation failed: {str(e)}")
+
+
+@app.post("/api/revalidate")
+async def revalidate(request: RevalidateRequest):
+    """Re-validate edited file contents against the rules engine.
+
+    Accepts file contents directly (no file upload) and returns fresh findings.
+    Used by the inline editor to show real-time fix progress.
+    """
+    from file_processing.models import SourceFile
+    from parser.app_parser import ModelParser
+    from parser.rules_engine import RulesEngine
+    from parser.config_manager import ConfigurationManager
+
+    if not request.files:
+        return {"findings": [], "summary": {"total_findings": 0, "rules_executed": 0, "by_severity": {"action": 0, "advice": 0}}, "errors": []}
+
+    errors = []
+    source_files_map: Dict[str, SourceFile] = {}
+
+    for file_path, content in request.files.items():
+        try:
+            source_files_map[file_path] = SourceFile(
+                path=Path(file_path),
+                content=content,
+                size=len(content.encode("utf-8")),
+            )
+        except Exception as e:
+            errors.append({"file_path": file_path, "error": str(e)})
+
+    if not source_files_map:
+        return {"findings": [], "summary": {"total_findings": 0, "rules_executed": 0, "by_severity": {"action": 0, "advice": 0}}, "errors": errors}
+
+    try:
+        parser = ModelParser()
+        context = parser.parse_files(source_files_map)
+
+        config_manager = ConfigurationManager(project_root)
+        config = config_manager.load_config(request.config)
+        rules_engine = RulesEngine(config)
+        findings = rules_engine.run(context)
+
+        source_map = build_source_map(context)
+
+        # Propagate per-file parsing errors from ModelParser
+        for err_str in context.parsing_errors:
+            # Format is "file_path: error_message"
+            parts = err_str.split(": ", 1)
+            if len(parts) == 2:
+                errors.append({"file_path": parts[0], "error": parts[1]})
+            else:
+                errors.append({"file_path": "_parse", "error": err_str})
+
+        result = {
+            "findings": [
+                {
+                    "rule_id": f.rule_id,
+                    "rule_description": f.rule_description,
+                    "severity": f.severity,
+                    "message": f.message,
+                    "file_path": f.file_path,
+                    "line": f.line,
+                    "snippet": extract_snippet(source_map, f.file_path, f.line),
+                }
+                for f in findings
+            ],
+            "summary": {
+                "total_findings": len(findings),
+                "rules_executed": len(rules_engine.rules),
+                "by_severity": {
+                    "action": len([f for f in findings if f.severity == "ACTION"]),
+                    "advice": len([f for f in findings if f.severity == "ADVICE"]),
+                },
+            },
+            "errors": errors,
+        }
+        return result
+
+    except Exception as e:
+        return {
+            "findings": [],
+            "summary": {"total_findings": 0, "rules_executed": 0, "by_severity": {"action": 0, "advice": 0}},
+            "errors": errors + [{"file_path": "_global", "error": str(e)}],
+        }
 
 
 @app.get("/", response_class=HTMLResponse)

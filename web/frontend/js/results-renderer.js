@@ -73,7 +73,7 @@ export class ResultsRenderer {
 
     renderFindings() {
         const findings = document.getElementById('findings');
-        
+
         if (this.app.filteredFindings.length === 0) {
             findings.innerHTML = `
                 <div class="no-issues">
@@ -85,7 +85,7 @@ export class ResultsRenderer {
 
         const groupedFindings = groupFindingsByFile(this.app.filteredFindings);
         const sortedGroupedFindings = sortFileGroups(groupedFindings, this.app.currentFilters.sortFilesBy);
-        
+
         findings.innerHTML = `
             <div class="findings-header">
                 <div class="expand-collapse-buttons">
@@ -122,7 +122,7 @@ export class ResultsRenderer {
                     </div>
                 </div>
             </div>
-            
+
             <div class="findings-content">
                 ${Object.entries(sortedGroupedFindings).map(([filePath, fileFindings]) => {
                     const isExpanded = this.app.expandedFiles.has(filePath);
@@ -130,7 +130,18 @@ export class ResultsRenderer {
                     const rawFileName = filePath.split(/[/\\]/).pop() || filePath;
                     const fileName = rawFileName.replace(/^[a-f0-9-]+_/, '');
                     const severityCounts = getSeverityCounts(fileFindings);
-                    
+
+                    // Count resolved findings for this file
+                    const fileFindingIndices = fileFindings.map(f =>
+                        this.app.currentResult ? this.app.currentResult.findings.indexOf(f) : -1
+                    );
+                    const resolvedCount = fileFindingIndices.filter(i => this.app.resolvedFindings.has(i)).length;
+                    const totalCount = fileFindings.length;
+                    const allResolved = resolvedCount === totalCount && totalCount > 0;
+                    const hasEditorContent = this.app.editedFileContents.has(filePath);
+                    const hasParseError = this.app.parseErrors.has(filePath);
+                    const escapedFilePath = filePath.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+
                     return `
                         <div class="file-group">
                             <div class="file-header" data-file-path="${filePath.replace(/"/g, '&quot;')}">
@@ -142,6 +153,9 @@ export class ResultsRenderer {
                                     </div>
                                 </div>
                                 <div class="file-header-right">
+                                    ${resolvedCount > 0 ? `
+                                        <span class="file-fix-progress">${resolvedCount}/${totalCount} fixed</span>
+                                    ` : ''}
                                     ${this.app.currentFilters.severity === 'all' ? `
                                         <div class="file-count-badge">
                                             ${fileFindings.length} issue${fileFindings.length !== 1 ? 's' : ''}
@@ -149,7 +163,6 @@ export class ResultsRenderer {
                                     ` : ''}
                                     <div class="severity-badges">
                                         ${getOrderedSeverityEntries(severityCounts).map(([severity, count]) => {
-                                            // Only show severity badges when severity filter is 'all' or matches this severity
                                             if (this.app.currentFilters.severity === 'all' || this.app.currentFilters.severity === severity) {
                                                 return `
                                                     <span class="severity-count-badge ${severity.toLowerCase()}">
@@ -162,33 +175,61 @@ export class ResultsRenderer {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             ${isExpanded ? `
                                 <div class="file-findings">
+                                    ${hasEditorContent ? `
+                                        <div class="file-editor-container">
+                                            <div class="file-editor-toolbar">
+                                                <span class="editor-status-text">
+                                                    ${this.app.isRevalidating ? 'Revalidating...' :
+                                                      hasParseError ? 'Parse error' :
+                                                      allResolved ? 'All issues fixed!' :
+                                                      resolvedCount > 0 ? `${resolvedCount}/${totalCount} issues fixed` :
+                                                      'Edit to fix issues'}
+                                                </span>
+                                                <button class="export-file-btn"
+                                                    onclick="exportFile('${escapedFilePath}')"
+                                                    ${allResolved ? '' : 'disabled'}
+                                                    title="${allResolved ? 'Download fixed file' : 'Fix all issues to enable export'}">
+                                                    Export Fixed File
+                                                </button>
+                                            </div>
+                                            ${hasParseError ? `
+                                                <div class="editor-parse-error">
+                                                    Parse Error: ${this.escapeHtml(this.app.parseErrors.get(filePath))}
+                                                </div>
+                                            ` : ''}
+                                            <div class="file-editor-wrapper">
+                                                <div class="editor-line-numbers" data-file-path="${filePath.replace(/"/g, '&quot;')}"></div>
+                                                <textarea class="file-editor${hasParseError ? ' has-error' : ''}"
+                                                    data-file-path="${filePath.replace(/"/g, '&quot;')}"
+                                                    spellcheck="false"
+                                                    autocomplete="off"
+                                                    autocorrect="off"
+                                                    autocapitalize="off"
+                                                >${this.escapeHtml(this.app.editedFileContents.get(filePath) || '')}</textarea>
+                                            </div>
+                                        </div>
+                                    ` : ''}
                                     ${sortFindingsInGroup(fileFindings, this.app.currentFilters.sortBy).map((finding, index) => {
-                                        // Use the finding's position in the original results array as the key prefix
-                                        // to avoid collisions when duplicate rule_id+file_path+line exist.
                                         const origIdx = this.app.currentResult
                                             ? this.app.currentResult.findings.indexOf(finding)
                                             : -1;
+                                        const isResolved = this.app.resolvedFindings.has(origIdx);
                                         const explKey = `${origIdx}::${finding.rule_id}::${finding.file_path}::${finding.line}`;
                                         const expl = this.app.findingExplanations.get(explKey);
                                         return `
-                                        <div class="finding ${finding.severity.toLowerCase()}">
+                                        <div class="finding ${finding.severity.toLowerCase()}${isResolved ? ' finding-resolved' : ''}"
+                                             data-finding-line="${finding.line}" data-file-path="${filePath.replace(/"/g, '&quot;')}">
                                             <div class="finding-header">
+                                                ${isResolved ? '<span class="resolved-badge">FIXED</span>' : ''}
                                                 ${getSeverityIcon(finding.severity)}
                                                 <strong>[${finding.rule_id}]</strong> ${finding.message}
                                             </div>
                                             <div class="finding-details">
-                                                <span><strong>Line:</strong> ${finding.line}</span>
+                                                <span class="finding-line-link" data-line="${finding.line}" data-file-path="${filePath.replace(/"/g, '&quot;')}"><strong>Line:</strong> ${finding.line}</span>
                                             </div>
-                                            ${finding.snippet ? `
-                                            <div class="finding-snippet">
-                                                <pre><code>${finding.snippet.lines.map(l =>
-                                                    `<span class="snippet-line${l.highlight ? ' snippet-highlight' : ''}"><span class="snippet-lineno">${String(l.number).padStart(4)}</span>${this.escapeHtml(l.text)}</span>`
-                                                ).join('\n')}</code></pre>
-                                            </div>
-                                            ` : ''}
                                             ${expl ? `
                                             <div class="finding-explanation ${finding.severity.toLowerCase()}">
                                                 <span class="finding-explanation-ai-label">AI</span>
@@ -208,27 +249,92 @@ export class ResultsRenderer {
                 }).join('')}
             </div>
         `;
-        
+
         // Update filter options after HTML is rendered
         this.updateFilterOptions();
 
-        // Auto-scroll each snippet so the highlighted line is visible
-        this.scrollSnippetsToHighlight();
+        // Wire up editor events after DOM is rendered
+        this.wireEditorEvents();
     }
 
-    scrollSnippetsToHighlight() {
-        document.querySelectorAll('.finding-snippet').forEach(container => {
-            const highlighted = container.querySelector('.snippet-highlight');
-            if (highlighted) {
-                // Use getBoundingClientRect for reliable offset regardless of DOM nesting
-                const containerRect = container.getBoundingClientRect();
-                const highlightRect = highlighted.getBoundingClientRect();
-                // Distance from top of scrollable content to the highlighted line
-                const offsetInContent = highlightRect.top - containerRect.top + container.scrollTop;
-                // Center the highlighted line vertically
-                container.scrollTop = offsetInContent - container.clientHeight / 2 + highlighted.offsetHeight / 2;
+    wireEditorEvents() {
+        // Wire textarea input events and sync line numbers
+        document.querySelectorAll('.file-editor').forEach(textarea => {
+            const filePath = textarea.dataset.filePath;
+            const wrapper = textarea.closest('.file-editor-wrapper');
+            const lineNumbers = wrapper ? wrapper.querySelector('.editor-line-numbers') : null;
+
+            // Populate line numbers
+            if (lineNumbers) {
+                this.updateLineNumbers(textarea, lineNumbers);
             }
+
+            // Input event → update content, schedule revalidation
+            textarea.addEventListener('input', () => {
+                this.app.editedFileContents.set(filePath, textarea.value);
+                if (lineNumbers) this.updateLineNumbers(textarea, lineNumbers);
+                this.app.scheduleRevalidation();
+            });
+
+            // Scroll sync: textarea ↔ line numbers
+            if (lineNumbers) {
+                textarea.addEventListener('scroll', () => {
+                    lineNumbers.scrollTop = textarea.scrollTop;
+                });
+            }
+
+            // Tab key → insert 2 spaces
+            textarea.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    textarea.value = textarea.value.substring(0, start) + '  ' + textarea.value.substring(end);
+                    textarea.selectionStart = textarea.selectionEnd = start + 2;
+                    this.app.editedFileContents.set(filePath, textarea.value);
+                    if (lineNumbers) this.updateLineNumbers(textarea, lineNumbers);
+                    this.app.scheduleRevalidation();
+                }
+            });
         });
+
+        // Wire click-to-scroll on finding line links
+        document.querySelectorAll('.finding-line-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const line = parseInt(link.dataset.line, 10);
+                const fp = link.dataset.filePath;
+                this.scrollEditorToLine(fp, line);
+            });
+        });
+    }
+
+    updateLineNumbers(textarea, lineNumbers) {
+        const lineCount = textarea.value.split('\n').length;
+        const nums = [];
+        for (let i = 1; i <= lineCount; i++) {
+            nums.push(i);
+        }
+        lineNumbers.textContent = nums.join('\n');
+    }
+
+    scrollEditorToLine(filePath, line) {
+        const textarea = document.querySelector(`.file-editor[data-file-path="${CSS.escape(filePath)}"]`);
+        if (!textarea) return;
+
+        // Calculate approximate scroll position based on line height
+        const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 16;
+        const targetScroll = (line - 1) * lineHeight - textarea.clientHeight / 2 + lineHeight;
+        textarea.scrollTop = Math.max(0, targetScroll);
+        textarea.focus();
+
+        // Move cursor to that line
+        const lines = textarea.value.split('\n');
+        let pos = 0;
+        for (let i = 0; i < Math.min(line - 1, lines.length); i++) {
+            pos += lines[i].length + 1; // +1 for newline
+        }
+        textarea.selectionStart = textarea.selectionEnd = pos;
     }
 
     // Filter and sort methods
