@@ -296,6 +296,15 @@ export const Templates = {
                     </button>
                 </div>
                 ` : ''}
+                ${isDismissed ? `
+                <div class="finding-actions">
+                    <button class="revert-fix-btn"
+                        onclick="event.stopPropagation(); undismissFinding(${origIdx})"
+                        title="Undo dismiss and re-address this finding">
+                        &#8634; Undo Dismiss
+                    </button>
+                </div>
+                ` : ''}
             </div>
         `;
     },

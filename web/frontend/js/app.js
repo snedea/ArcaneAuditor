@@ -1112,6 +1112,12 @@ class ArcaneAuditorApp {
         this.resultsManager.renderResults();
     }
 
+    undismissFinding(findingIndex) {
+        if (!this.currentResult || findingIndex < 0 || findingIndex >= this.currentResult.findings.length) return;
+        this.dismissedFindings.delete(findingIndex);
+        this.resultsManager.renderResults();
+    }
+
     async revertFix(findingIndex) {
         if (!this.currentResult || findingIndex < 0 || findingIndex >= this.currentResult.findings.length) return;
 
@@ -1539,6 +1545,10 @@ window.autofix = function(findingIndex) {
 
 window.dismissFinding = function(findingIndex) {
     app.dismissFinding(findingIndex);
+};
+
+window.undismissFinding = function(findingIndex) {
+    app.undismissFinding(findingIndex);
 };
 
 window.revertFix = function(findingIndex) {
