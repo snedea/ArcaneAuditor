@@ -7,3 +7,4 @@ services:
       - "8082:8080"
     volumes:
       - ~/.claude:/home/appuser/.claude
+      - ./prompts:/app/prompts:ro

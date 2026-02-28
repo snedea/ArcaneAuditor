@@ -180,22 +180,22 @@ class ExplainRequest(BaseModel):
     """Request model for AI explanation."""
     findings: dict
 
-EXPLAIN_SYSTEM_PROMPT = (
-    "You are a senior Workday Extend code reviewer. You receive deterministic findings "
-    "from Arcane Auditor (a static analysis tool with 42 rules) as JSON.\n\n"
-    "Your job:\n"
-    "1. TRIAGE: Group findings by priority. What should the developer fix first and why?\n"
-    "2. EXPLAIN: For each finding, explain why it matters in plain English. "
-    "Not what the rule says -- why a real developer should care.\n"
-    "3. SUGGEST: For ACTION-severity findings, suggest a concrete fix. "
-    "For ADVICE-severity findings, explain the trade-off.\n\n"
-    "Rules:\n"
-    "- Never invent findings that aren't in the JSON.\n"
-    "- Never contradict the tool's output.\n"
-    "- Never say a finding is wrong or should be ignored.\n"
-    "- Be concise. Developers don't read walls of text.\n"
-    "- If the JSON has zero findings, just say the app is clean."
-)
+# Mtime-cached prompt loader: re-reads file only when it changes on disk
+_explain_prompt_cache = {"mtime": 0.0, "content": ""}
+EXPLAIN_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "explain_system.md"
+
+def get_explain_system_prompt() -> str:
+    """Load system prompt from file, re-reading only when mtime changes."""
+    try:
+        current_mtime = EXPLAIN_PROMPT_PATH.stat().st_mtime
+        if current_mtime != _explain_prompt_cache["mtime"]:
+            _explain_prompt_cache["content"] = EXPLAIN_PROMPT_PATH.read_text(encoding="utf-8").strip()
+            _explain_prompt_cache["mtime"] = current_mtime
+            print(f"Reloaded explain prompt from {EXPLAIN_PROMPT_PATH}")
+        return _explain_prompt_cache["content"]
+    except FileNotFoundError:
+        print(f"Warning: {EXPLAIN_PROMPT_PATH} not found, using fallback prompt", file=sys.stderr)
+        return "You are a code reviewer. Triage, explain, and suggest fixes for the findings."
 
 
 @asynccontextmanager
@@ -623,7 +623,7 @@ async def explain_findings(request: ExplainRequest):
                 "--print",
                 "--model", model,
                 "--max-turns", "1",
-                "--system-prompt", EXPLAIN_SYSTEM_PROMPT,
+                "--system-prompt", get_explain_system_prompt(),
             ],
             input=user_msg,
             capture_output=True,

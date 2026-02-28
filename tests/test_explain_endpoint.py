@@ -9,7 +9,7 @@ from unittest.mock import patch, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from web.server import app
+from web.server import app, get_explain_system_prompt, EXPLAIN_PROMPT_PATH
 
 client = TestClient(app)
 
@@ -125,3 +125,31 @@ class TestExplainEndpoint:
         assert resp.status_code == 200
         body = resp.json()
         assert "\t" in body["explanation"]  # tab preserved through FastAPI serialization
+
+
+class TestPromptLoading:
+    """Tests for mtime-cached prompt file loading."""
+
+    def test_loads_from_file(self):
+        prompt = get_explain_system_prompt()
+        assert "Workday Extend" in prompt
+        assert "TRIAGE" in prompt
+
+    def test_prompt_file_exists(self):
+        assert EXPLAIN_PROMPT_PATH.exists(), f"Prompt file missing: {EXPLAIN_PROMPT_PATH}"
+
+    def test_fallback_on_missing_file(self):
+        with patch.object(EXPLAIN_PROMPT_PATH.__class__, "stat", side_effect=FileNotFoundError):
+            prompt = get_explain_system_prompt()
+            assert "code reviewer" in prompt  # fallback prompt
+
+    @patch("web.server.subprocess.run", return_value=_mock_completed())
+    def test_prompt_passed_to_subprocess(self, mock_run):
+        """Verify the file-loaded prompt reaches the subprocess command."""
+        resp = client.post("/api/explain", json={"findings": SAMPLE_FINDINGS})
+        assert resp.status_code == 200
+        cmd = mock_run.call_args[0][0]
+        # Find the --system-prompt value
+        sp_idx = cmd.index("--system-prompt")
+        prompt_arg = cmd[sp_idx + 1]
+        assert "TRIAGE" in prompt_arg
