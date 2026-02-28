@@ -421,11 +421,13 @@ class ArcaneAuditorApp {
         const explainError = document.getElementById('explain-error');
         const explainContent = document.getElementById('explain-content');
 
-        // Disable button, show loading
+        // Disable button — button text is the only loading indicator.
+        // The old bottom-of-page explain section stays hidden unless we
+        // fall back to markdown.
         explainBtn.disabled = true;
         explainBtn.textContent = '🤖 Explaining...';
-        explainSection.style.display = 'block';
-        explainLoading.style.display = 'flex';
+        explainSection.style.display = 'none';
+        explainLoading.style.display = 'none';
         explainError.style.display = 'none';
         explainContent.innerHTML = '';
 
@@ -447,8 +449,6 @@ class ArcaneAuditorApp {
                 throw new Error(data.detail || 'AI explanation failed');
             }
 
-            explainLoading.style.display = 'none';
-
             if (data.format === 'structured' && data.explanations && data.findings_order) {
                 // Structured response: map explanations to findings
                 // Key includes the original index to avoid collisions when
@@ -464,16 +464,16 @@ class ArcaneAuditorApp {
                 }
                 // Re-render findings with inline explanations
                 this.resultsRenderer.renderFindings();
-                // Hide the old explain section (no markdown fallback needed)
-                explainSection.style.display = 'none';
                 explainBtn.textContent = '✅ Explained';
             } else {
-                // Markdown fallback: render in old section
+                // Markdown fallback: only now show the bottom section
+                explainSection.style.display = 'block';
                 explainContent.innerHTML = this.renderMarkdown(data.explanation);
                 explainBtn.textContent = '✅ Explained';
             }
         } catch (error) {
-            explainLoading.style.display = 'none';
+            // Show error in the bottom section
+            explainSection.style.display = 'block';
             explainError.style.display = 'block';
             document.getElementById('explain-error-message').textContent =
                 `Failed to get AI explanation: ${error.message}`;
