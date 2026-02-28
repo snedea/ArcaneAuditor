@@ -140,12 +140,17 @@
         </main>
     </div>
 
-    <!-- Fixed AI loading indicator in bottom-left corner (mirrors theme toggle) -->
+    <!-- Fixed AI loading orb in bottom-left corner -->
     <div id="ai-loading-fab" class="ai-loading-fab" style="display: none;">
-        <button class="btn btn-secondary" disabled>
-            <span class="ai-loading-spinner"></span>
-            <span>AI</span>
-        </button>
+        <div class="crystal-ball">
+            <div class="crystal-ball-inner">
+                <div class="crystal-ball-wisp wisp-1"></div>
+                <div class="crystal-ball-wisp wisp-2"></div>
+                <div class="crystal-ball-wisp wisp-3"></div>
+            </div>
+            <div class="crystal-ball-shine"></div>
+            <div class="crystal-ball-base"></div>
+        </div>
     </div>
 
     <script type="module" src="/static/js/magic-mode.js"></script>
